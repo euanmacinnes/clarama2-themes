@@ -13,7 +13,7 @@
      style="padding: 1px; background-color: #303030;">
     <div class="container-fluid py-2">
         <a class="navbar-brand" href="{{ url_for("clarama_ui.home") }}">
-            <img src="/static/art/clarama_logo_c2_128.png" width="42" height="42" alt="">
+            <img src="{{ static("art/clarama_logo_c2_128.png") }}" width="42" height="42" alt="">
         </a>
         <a class="navbar-brand pb-0" href="{{ url_for("clarama_ui.home") }}content/explore/">Clarama</a>
 
@@ -38,8 +38,8 @@
                             {% for branch in branches %}
                                 <li>
                                     <a class="text-capitalize nav-link  fw-bold text-white  fst-italic dropdown-item py-2 px-3"
-                                       href="/content/explore/?set_branch={{ branch['branch'] }}&branch_path={{ branch['folder'] }}">
-                                        <i class="bi bi-signpost h5 me-2"></i>{{ branch['branch'] }}
+                                       href="/content/explore/?set_branch={{ branch }}">
+                                        <i class="bi bi-signpost h5 me-2"></i>{{ branch }}
                                     </a>
                                 </li>
                             {% endfor %}
@@ -420,6 +420,6 @@
     });
 
 </script>
-<script src="{{ url_for('static', filename='prism.js') }}" type="text/javascript"></script>
+<script src="{{ static( filename='js/prism.js') }}" type="text/javascript"></script>
 </body>
 </html>
