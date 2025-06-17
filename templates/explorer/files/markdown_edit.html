@@ -1,0 +1,71 @@
+<nav class="navbar navbar-expand-lg bg-light">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarEditor"
+                aria-controls="navbarEditor" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarEditor">
+            <ul class="navbar-nav me-auto mb-2 mb-xl-0" style="padding:5px">
+                <li class="nav-item">
+                    <a id="markdown_save" href="#"><i class="nav-link bi bi-floppy"></i></a>
+                </li>
+                <li class="nav-item"><i class="nav-link">&nbsp;|&nbsp;</i></li>
+                <li class="nav-item">
+                    <i class="nav-link bi bi-arrow-counterclockwise"></i>
+                </li>
+                <li class="nav-item">
+                    <i class="nav-link bi bi-arrow-clockwise"></i>
+                </li>
+                <li class="nav-item"><i class="nav-link">&nbsp;|&nbsp;</i></li>
+                <li class="nav-item">
+                    <i class="nav-link bi bi-scissors"></i>
+                </li>
+                <li class="nav-item">
+                    <i class="nav-link bi bi-copy"></i>
+                </li>
+                <li class="nav-item">
+                    <i class="nav-link bi bi-clipboard-plus"></i>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<textarea id="markdown" name="markdown"
+          fieldtype="trumbowyg"
+          class="row text-editor form-control clarama-text-editor clarama-field clarama-rtf-field"
+          celltype="text" style="height:100%">{{ file_content }}
+</textarea>
+
+<script type="text/javascript">
+    $(document).ready(() => {
+        $('#markdown_save').on('click', function () {
+            console.log('save');
+
+            // Get the markdown content
+            const markdownContent = $('#markdown').trumbowyg('html');
+
+            // Get the current file path from the template
+            const filePath = "/content/save/{{ file_url }}";
+
+            // Send AJAX POST request to save the markdown
+            $.ajax({
+                url: filePath,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    edited_content: markdownContent
+                }),
+                success: function (response) {
+                    // Show success notification
+                    flash('Markdown saved successfully', 'success');
+                },
+                error: function (xhr, status, error) {
+                    // Show error notification
+                    flash('Failed to save markdown: ' + error, 'danger');
+                }
+            });
+        });
+    });
+</script>
+
+{% include "web/file_footer.html" %}

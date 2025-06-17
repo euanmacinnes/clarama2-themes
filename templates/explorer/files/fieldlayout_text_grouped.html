@@ -1,0 +1,25 @@
+{% if field_type != "hidden" %}
+    <div class="container-fluid" style="height: 100%;">
+        <div class="row" style="height: 100%; padding: 0;">
+            <div class="input-group mb-3">
+                    <span class="input-group-text" id="basic-addon3">
+
+                            {% if get(field_config,'required',False) %}
+                                <strong>{{ get(field_config,'name',field) }}</strong>
+                            {% else %}
+                                <strong>{{ get(field_config,'name',field) }}</strong>
+                            {% endif %}
+                    </span>
+                {% block content %}{% endblock %}
+
+                {% if get(field_config,'tag',False) %}
+                    <span class="input-group-text ">{{ get(field_config,'tag','') }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    </div>
+    <script>
+        $('[data-bs-toggle="tooltip"]').tooltip()
+    </script>
+{% endif %}

@@ -1,0 +1,128 @@
+* { 
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.role-wrapper:hover {
+    transform: scale(1.07);
+    transition: all 0.3s ease-out;
+}
+
+.role-wrapper:hover .card, .role-wrapper:hover i {
+    color: #289bd1 !important;
+    transition: all 0.2s ease-out;
+}
+
+.nav-search-wrapper input,
+.nav-search-btn {
+    transition: all 0.25s ease-out;
+}
+
+.nav-search-wrapper input:invalid:not(:focus),
+.nav-search-btn {
+    cursor: pointer;
+}
+
+.nav-search-wrapper input:focus,
+.nav-search-wrapper input:valid {
+    width: 100%;
+}
+
+.nav-search-wrapper input:focus,
+.nav-search-wrapper input:not(:focus)+.nav-search-btn:focus {
+    outline: transparent;
+}
+
+.nav-search-wrapper input {
+    border-radius: 1.5em;
+    transform: translate(0.5em, 0.5em) scale(0);
+    transform-origin: 100% 0;
+    width: 0;
+}
+
+.nav-search-wrapper input:focus,
+.nav-search-wrapper input:valid {
+    border-radius: 0.375em;
+    transform: scale(1);
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+    filter: invert(100%);
+}
+
+.removeInputFocus:focus {
+    border-color: inherit;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+}
+
+.clarama-edit-element.highlight {
+    border-color: #000 !important;
+    background-color: #eee !important; 
+    transition: background-color, border-color 0.2s ease-in-out;
+}
+
+.bi-plus-circle.grid-interaction-add:hover {
+    color: #4bb785;
+    transition: color 0.2s ease-in-out;
+}
+
+#interactionPopup {
+    position: absolute;
+    display: none;
+    z-index: 1055;
+    padding: 10px;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    max-width: 44%;
+}
+
+.help img {
+    width: 100%;
+}
+
+@media (min-width: 576px) {
+    #interactionModal .modal-dialog {
+        max-width: 85% !important;
+    }
+}
+
+.custom-dropdown-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.custom-selected {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+    user-select: none;
+}
+
+.custom-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-top: none;
+    background: white;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.custom-option {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.custom-option:hover {
+    background-color: #f1f1f1;
+}

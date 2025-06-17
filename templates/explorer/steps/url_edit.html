@@ -1,0 +1,31 @@
+<div class="clarama-cell-content" celltype="url" dataid="{{ loop_index }}">
+    <div class="bg-light rounded text-dark" style="padding: 5px">
+        <div class="btn-group rounded" role="group" aria-label="Basic example">
+            <i class="bi bi-link fs-4 mb-3"> Call Web Page</i>
+        </div>
+        <div class="alert alert-secondary">
+            <div>Call
+            </div>
+            <div class="row">
+                <div class="col-1">
+                    <select id="content_query_{{ loop_index }}_mode" class="form-control">
+                        {% if mode is defined %}
+                            <option {{ selected("GET", mode) }} >GET</option>
+                            <option {{ selected("POST", mode) }} >POST</option>
+                        {% else %}
+                            <option>GET</option>
+                            <option>POST</option>
+                        {% endif %}
+
+                    </select></div>
+                <div class="col"><input id="content_query_{{ loop_index }}_url"
+                                        name="task_step_field_{{ loop_index }}_url" class="form-control"
+                                        value="{{ url }}"></div>
+            </div>
+
+            <div><br/>Parameters (headers, data, json), enter in YAML format</div>
+            <div id="content_query_{{ loop_index }}_params" name="task_step_field_{{ loop_index }}_params" editor="yaml"
+                 class="source-editor form-control" style="min-height: 100px">{{ content }}</div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,1061 @@
+<div class="modal fade" tabindex="-1" id="addfieldModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Content</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb" id="breadcrumb_addfield">
+          </ol>
+        </nav>
+
+        <button type="button" class="btn btn-primary" onclick="add_selected_content('/content/element/{{ file_url }}', '')">Add Empty Grid</button>
+
+        <div class="d-flex align-items-center w-100">
+          <p class="mb-1 pe-2">New: </p>
+          <button id="new_1" type="button" class="btn toggle_show hoverover"
+            opacity=0.6 style="opacity: 0.6" new_file_class="bi-folder"
+            new_file_type="folder" data-bs-toggle="tooltip" data-bs-title="Folder"
+            data-bs-placement="bottom"><i class="bi bi-folder"></i></button>
+          <button id="new_2" type="button" class="btn toggle_show hoverover"
+            opacity=0.6 style="opacity: 0.6" new_file_class="bi-journal-arrow-down"
+            new_file_type="task" data-bs-toggle="tooltip" data-bs-title="Task"
+            data-bs-placement="bottom"><i class="bi bi-journal-arrow-down"></i></button>
+          <button id="new_3" type="button" class="btn toggle_show hoverover"
+            opacity=0.6 style="opacity: 0.6"
+            new_file_class="bi-menu-app" new_file_type="field"
+            data-bs-toggle="tooltip" data-bs-title="Field"
+            data-bs-placement="bottom"><i class="bi bi-menu-app"></i>
+          </button>
+          <button id="new_4" type="button" class="btn toggle_show hoverover"
+            opacity=0.6 style="opacity: 0.6" new_file_class="bi-blockquote-left"
+            new_file_type="markdown" data-bs-toggle="tooltip"
+            data-bs-title="Markdown File (Help Content)" data-bs-placement="bottom"><i
+            class="bi bi-blockquote-left"></i></button>
+        </div>
+
+        <div id="toggle_target" name="toggle_target"
+              class="list-group-item list-group-item-action container-fluid toggle_target p-3"
+              style="display: none;">
+            <div class="row">
+                <div class="col">
+                    <div class="row row-cols-auto justify-content-center align-items-center"
+                          style="width:100%;">
+                        <i id="new_item" class="bi bi-folder position-relative new_item"
+                            style="font-size: 1.8rem;">
+                            <div class="rounded-pill badge-notification position-absolute translate-middle"
+                                  style="font-size: 0.86em; left: 80%!important;top: 20%!important;">
+                                <i class="bi bi-plus-circle-dotted"></i>
+                            </div>
+                        </i>
+                        <div class="col-10">
+                            <form id="new_content_form" class="col">
+                                <div class="btn-group d-flex" role="group"
+                                      aria-label="task_functions" style="width=100%;">
+                                    <input id="new_content" name="new_content" type="text"
+                                            value="Untitled" class="form-control"
+                                            style="width: 100%;">
+                                    <input id="new_content_type" name="new_content_type"
+                                            type="hidden" value=""
+                                            class="form-control new_content_type"
+                                            style="width: 100%;">
+                                    <button type="submit" class="btn btn-secondary"><i
+                                            class="bi bi-floppy"></i></button>
+                                    <button type="button" class="btn btn-secondary toggle_hide"><i
+                                            class="bi bi-x fs-4"></i></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <select id="add_content_addfield" name="add_content" size="10" class="form-control">
+
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary"
+          onclick="add_selected_content('/content/element/{{ file_url }}')">Add
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" tabindex="-1" id="browseFileModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Browse File</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb" id="breadcrumb_browsefile">
+          </ol>
+        </nav>
+
+        <select id="add_content_browsefile" name="add_file" size="10" class="form-control">
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="add_selected_file()">Select
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form id="interactionForm">
+  <div class="modal fade" id="interactionSettingsModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="interaction-title">Interaction Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="interaction-element">
+          <input type="hidden" id="interaction-target">
+          <input type="hidden" id="interaction-index">
+  
+          <div class="mb-3">
+            <label class="form-label d-block">Interaction Type</label>
+            <div class="btn-group" role="group" aria-label="Interaction Type">
+              <input type="radio" class="btn-check" name="interactionType" id="elementType" autocomplete="off" value="element" required>
+              <label class="btn btn-outline-primary" for="elementType">Element</label>
+
+              <input type="radio" class="btn-check" name="interactionType" id="popupType" autocomplete="off" value="popup" required>
+              <label class="btn btn-outline-primary" for="popupType">Popup</label>
+              
+              <input type="radio" class="btn-check" name="interactionType" id="modalType" autocomplete="off" value="modal" required>
+              <label class="btn btn-outline-primary" for="modalType">Modal</label>
+
+              <input type="radio" class="btn-check" name="interactionType" id="menuType" autocomplete="off" value="menu" required>
+              <label class="btn btn-outline-primary" for="menuType">Context Menu</label>
+              
+              <input type="radio" class="btn-check" name="interactionType" id="pauseType" autocomplete="off" value="pause" required>
+              <label class="btn btn-outline-primary" for="pauseType">Pause</label>
+            </div>
+          </div>
+
+          <input type="hidden" id="selected-elem" name="selectedElementUrl" value=""> 
+          <div class="mb-3 dropdown-container d-none" id="elementDropdownContainer">
+          </div>
+
+          <input type="text" id="menu-item" class="form-control mb-3 d-none" name="contentMenuItemName" placeholder="Menu Item Name" value=""> 
+
+          <div class="input-group mb-3">
+            <button type="button" class="btn btn-outline-primary input-group-text" data-bs-toggle="modal" id="browseFileBtn"
+              data-bs-target="#browseFileModal"
+              inputId="grid-elem"
+              filters="*.task.yaml">
+              <i class="bi bi-folder2-open"></i>
+            </button>
+             
+            <input id="grid-elem" type="text"
+              class="form-control removeInputFocus"
+              placeholder="Data Source Filename"
+              value="{{ source }}"/>
+
+            <button type="button" class="btn btn-outline-secondary border-end-0 p-1" onclick="clearInput('grid-elem')" style="font-size: 1rem;border-color: #dee2e6;">
+              <i class="bi bi-x"></i>
+            </button>
+             
+            <span class="input-group-text">?</span>
+            <input type="text" class="form-control removeInputFocus" id="interaction-params" name="interactionParams" placeholder="my_param=something">
+            
+            <button type="button" class="btn btn-outline-secondary p-1" onclick="clearInput('interaction-params')" style="font-size: 1rem;border-color: #dee2e6;">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeInteractionsModal()">Close</button>
+          <button type="submit" class="btn btn-primary">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script type="text/javascript">
+  function isDict(v) {
+    return typeof v==='object' && v!==null && !(v instanceof Array) && !(v instanceof Date);
+  }
+
+  function isFolder(item) {
+    return item.hasClass('bi bi-folder-fill');
+  }
+  
+  var {{ grid_id }}elements = {{ element_json | to_json | safe }};
+  console.log("{{ grid_id }}elements", {{ grid_id }}elements);
+  let currentTarget = null;
+  const currentPath = "{{ file_url | path }}";
+
+  function openInteractionSettings(button) {
+    document.getElementById('interactionSettingsModal').classList.add('modal-open');
+    const browseBtn = document.getElementById('browseFileBtn');
+    const dropdownContainer = document.getElementById('elementDropdownContainer');
+    const cmItem_field = document.getElementById('menu-item');
+    const inputId_field = document.getElementById('grid-elem');
+
+    document.getElementById('interaction-target').value = button;
+    browseBtn.setAttribute('gridElem', button);
+
+    document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
+      radio.checked = false;
+    });
+
+    inputId_field.value = "";
+    dropdownContainer.classList.add('d-none');
+    dropdownContainer.innerHTML = '';
+
+    cmItem_field.classList.add('d-none');
+    cmItem_field.value = '';
+
+    if (typeof(button) === "object") {
+      var type = button.getAttribute('data-element');
+      var initialType = type;
+      const allowedTypes = ['popup', 'modal', 'pause', 'menu'];
+      if (!allowedTypes.includes(type)) type = 'element';
+
+      const target = button.getAttribute('data-target');
+      const url = button.getAttribute('data-url');
+      const index = button.getAttribute('data-index');
+      const params = button.getAttribute('data-params');
+      const menuItem = button.getAttribute('data-menuName');
+
+      currentTarget = target;
+      document.getElementById('interaction-target').value = target;
+      document.getElementById('interaction-index').value = index;
+      document.getElementById('interaction-params').value = params;
+
+      if (type == "element") showElementOptions(url, initialType);
+      if (type == "menu") cmItem_field.classList.remove('d-none');
+
+      inputId_field.value = url;
+      cmItem_field.value = menuItem;
+      
+      browseBtn.setAttribute('gridElem', target);
+
+      $('input[name="interactionType"]').prop('checked', false);
+      if (type) {
+        $(`input[name="interactionType"][value="${type}"]`).prop('checked', true);
+      }
+    } else {
+      document.getElementById('interaction-title').innerHTML = "Add Interaction";
+      currentTarget = button;
+    }
+  }
+
+  function closeInteractionsModal() {
+    document.getElementById('interactionSettingsModal').classList.remove('modal-open');
+  }
+
+  function showElementOptions(url = "", elemType = "") {
+    const inputId_field = document.getElementById('grid-elem');
+    inputId_field.value = url;
+  
+    const dropdownContainer = document.getElementById('elementDropdownContainer');
+    dropdownContainer.classList.remove('d-none');
+    dropdownContainer.innerHTML = "";
+  
+    const dropdownWrapper = document.createElement('div');
+    dropdownWrapper.className = 'custom-dropdown-wrapper';
+  
+    const selectedDiv = document.createElement('div');
+    selectedDiv.className = 'custom-selected';
+    selectedDiv.id = `add_content_interactions-${currentTarget}`;
+    selectedDiv.textContent = elemType || "Select an element";
+    dropdownWrapper.appendChild(selectedDiv);
+
+    document.getElementById('selected-elem').value = elemType;
+  
+    const optionsContainer = document.createElement('div');
+    optionsContainer.className = 'custom-options hidden';
+  
+    const elements = {{ grid_id }}elements;
+    // const currentElemLinks = (elements[currentTarget]?.links || []).map(link =>
+    //   typeof link === "string" ? link : link.element
+    // );
+
+    console.log("elements", elements)
+    // console.log("currentTarget", currentTarget)
+    // console.log("currentElemLinks", currentElemLinks)
+  
+    let hasOptions = false;
+  
+    for (const [elem, value] of Object.entries(elements)) {
+      // if (currentElemLinks.includes(elem)) continue;  // Skip already linked elements
+  
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'custom-option';
+      optionDiv.setAttribute('elem-id', currentTarget);
+      optionDiv.setAttribute('elem-url', value['url']);
+      optionDiv.textContent = elem;
+  
+      optionDiv.addEventListener('mouseover', () => {
+        const targetDiv = document.querySelector(`div[id='${elem}']`);
+        if (targetDiv) targetDiv.classList.add('highlight');
+      });
+  
+      optionDiv.addEventListener('mouseout', () => {
+        const targetDiv = document.querySelector(`div[id='${elem}']`);
+        if (targetDiv) targetDiv.classList.remove('highlight');
+      });
+  
+      optionDiv.addEventListener('click', () => {
+        selectedDiv.textContent = elem;
+        document.getElementById('selected-elem').value = elem;
+        inputId_field.value = value['url'];
+        optionsContainer.classList.add('hidden');
+      });
+  
+      optionsContainer.appendChild(optionDiv);
+      hasOptions = true;
+    }
+  
+    selectedDiv.addEventListener('click', () => {
+      optionsContainer.classList.toggle('hidden');
+    });
+  
+    dropdownWrapper.appendChild(optionsContainer);
+  
+    // console.log("hasOptions", hasOptions)
+    // const elementRadio = document.querySelector(`input[name="interactionType"][value="element"]`);
+    // if (elementRadio) elementRadio.disabled = !hasOptions;
+  
+    if (hasOptions) {
+      dropdownContainer.appendChild(dropdownWrapper);
+      dropdownContainer.style.display = 'block';
+    } else {
+      dropdownContainer.style.display = 'none';
+    }
+  }
+
+  document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const dropdownContainer = document.getElementById('elementDropdownContainer');
+      const cmItem_field = document.getElementById('menu-item');
+      if (radio.checked && radio.value === 'element') {
+        showElementOptions();
+        cmItem_field.classList.add('d-none');
+      } else if (radio.checked && radio.value === 'menu') {
+        cmItem_field.classList.remove('d-none');
+        dropdownContainer.classList.add('d-none');
+        dropdownContainer.innerHTML = '';
+      } else {
+        dropdownContainer.classList.add('d-none');
+        dropdownContainer.innerHTML = '';
+        cmItem_field.classList.add('d-none');
+      }
+    });
+  });
+
+  function clearInput(id, event = null) {
+    if (event) event.stopPropagation();
+    
+    if (id) {
+      const el = document.getElementById(id);
+      if (el.tagName === 'A') {
+        el.textContent = '';
+        el.removeAttribute('href');
+      } else {
+        el.value = '';
+      }
+    }
+  }
+
+  $( document ).ready(() => {
+    $(".toggle_show").click(function () {
+      new_class = $(this).attr("new_file_class");
+      new_type = $(this).attr("new_file_type");
+      $(".new_content_type").val(new_type);
+      $(".new_item").removeClass("bi-folder bi-journal-arrow-down bi-file-earmark-spreadsheet bi-blockquote-left bi-table bi-database bi-menu-app bi-eye bi-sliders");
+      $(".new_item").addClass(new_class);
+      $(".toggle_target").show('fast', function () {
+      });
+    });
+
+    $(".toggle_hide").click(function () {
+      $(".toggle_target").hide('fast', function () {
+      });
+    });
+
+    $('#new_content_form').on('submit', function (e) {
+      content_new(e);
+      e.preventDefault();
+    });
+
+    async function content_new(e) {
+      var new_content = $("#new_content").val();
+      var new_content_type = $("#new_content_type").val();
+      var file = "/render/new/" + currentModalAddContentPath + "/?new_content=" + encodeURIComponent(new_content) + "&new_content_type=" + encodeURIComponent(new_content_type);
+
+      await execute_json_url_async(file);
+      filters = $(".gridaddcontent").attr('filters');
+
+      if (encodeURIComponent(new_content_type) == "folder") {
+        const option = document.createElement('option');
+        option.value = encodeURIComponent(new_content);
+        option.className = "bi bi-folder-fill";
+        option.innerHTML = `&nbsp; ${encodeURIComponent(new_content)}`;
+        option.addEventListener('dblclick', () => navigateToPath(`/content/json/${currentModalAddContentPath}/${encodeURIComponent(new_content)}/` + "?subfolders=True&extensions=" + filters, 'breadcrumb_addfield', 'add_content_addfield'));
+        document.getElementById('add_content_addfield').appendChild(option);
+      } else {
+        path = ($CLARAMA_ROOT + '/content/json/' + currentModalAddContentPath + '?subfolders=True&extensions=' + filters);
+        navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield');
+      }
+
+      document.getElementById('new_content').value = '';
+    }
+
+    let interactionSettingsWasOpen = false;
+    // double-click on a file in the modal
+    $('#add_content_addfield').on('dblclick', 'option', function () {
+      document.getElementById('new_content').value = '';
+      const selectedItem = $(this); 
+      if (!isFolder(selectedItem)) {
+        console.log("File selected: " + selectedItem.val());
+        add_selected_content('/content/element/{{ file_url }}')
+      }
+    });
+
+    $('#add_content_browsefile').on('dblclick', 'option', function () {
+      const selectedItem = $(this); 
+      if (!isFolder(selectedItem)) {
+        console.log("File selected: " + selectedItem.val());
+        add_selected_file();
+      }
+    });
+
+    $('#addfieldModal').on('shown.bs.modal', function () {
+      filters = $(".gridaddcontent").attr('filters');
+      path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
+
+      currentModalAddContentPath = "{{ file_url | path }}";
+      navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield');
+    });
+
+    $('#browseFileModal').on('shown.bs.modal', function (event) {
+      interactionSettingsWasOpen = $('#interactionSettingsModal').hasClass('modal-open');
+      
+      button = $(event.relatedTarget);
+      filters = button.attr('filters'); 
+      inputId = button.attr('inputId');
+      gridElem = button.attr('gridElem');
+
+      $(this).data('inputId', inputId);
+      $(this).data('gridElem', gridElem);
+      path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
+
+      navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile');
+    });
+
+    $('#browseFileModal').on('hidden.bs.modal', function () {
+      console.log("interactionSettingsWasOpen", interactionSettingsWasOpen)
+      if (interactionSettingsWasOpen) {
+        $('#interactionSettingsModal').modal('show');
+      }
+
+      if (activeDropdownId) {
+        const dropdownMenu = document.querySelector(`#${activeDropdownId} .dropdown-menu`);
+        const gridMenu = document.querySelector(`#${activeDropdownId} .grid-elem-menu`);
+        dropdownMenu.classList.add('show');
+        gridMenu.classList.add('show');
+      }
+    });
+
+    $('#interactionSettingsModal').on('hidden.bs.modal', function () {
+      if (activeDropdownId) {
+        console.log("activeDropdownId", activeDropdownId)
+        const dropdownMenu = document.querySelector(`#${activeDropdownId} .dropdown-menu`);
+        const gridMenu = document.querySelector(`#${activeDropdownId} .grid-elem-menu`);
+        dropdownMenu.classList.add('show');
+        gridMenu.classList.add('show');
+      }
+    });
+
+    //console.log("GRID");
+    //console.log({{ grid_id }}elements);
+    //console.log({{ grid_json | safe }});
+  });
+
+  let {{ grid_id }}subOptions = {
+    cellHeight: 55, // should be 50 - top/bottom
+    acceptWidgets: true, // will accept .grid-stack-item by default
+    margin: 2,
+    sizeToContent: true,
+    subGridDynamic: false, // make it recursive for all future sub-grids
+  };
+
+  let {{ grid_id }}options = { // main grid options
+    cellHeight: 55,
+    margin: 2,
+    float: true,
+    minRow: 1, // don't collapse when empty
+    acceptWidgets: true,
+    subGridOpts: {{ grid_id }}subOptions,
+    removable: '.trash',
+    draggable: {cancel: '.no-drag'},
+    subGridDynamic: false, // v7 api to create sub-grids on the fly
+    children: {{ grid_json | safe }}
+  };
+
+  GridStack.renderCB = function(el, w) {
+  el.innerHTML = w.content;
+};
+
+  // document.querySelector('#saved').value = JSON.stringify(options);
+  let {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#containment-wrapper'), {{ grid_id }}options);
+
+  function addNested() {
+    {{ grid_id }}grid.addWidget({
+      x: 0, y: 20, w: 4, h: 4,
+      cellHeight: 75,
+      margin: 2,
+      minRow: 1, // don't collapse when empty
+      acceptWidgets: true,
+      removable: '.trash',
+      subGridOpts: {
+        children: [],
+        ...{{ grid_id }}subOptions
+      }
+    });
+  }
+
+  function addContent(element, data, html) {
+    // console.log("element", element)
+    // console.log("data", data)
+    // console.log("html", html)
+    if (isDict({{ grid_id }}elements)) {
+      {{ grid_id }}elements[element] = data;
+    } else {
+      var elem = {};
+      elem[element] = data;
+      {{ grid_id }}elements = elem;
+    }
+
+
+    //{{ grid_id }}elements[element] = data;
+
+    {{ grid_id }}grid.addWidget({
+      x: 0,
+      y: 0,
+      w: 4,
+      h: 1,
+      id: element,
+      content: html,
+      cellHeight: 65,
+      margin: 5,
+      minRow: 1, // don't collapse when empty
+      acceptWidgets: true,
+      removable: '.trash'
+    })
+
+    $('.clarama-post-embedded').load();
+  }
+
+  // function add_blank_content(element, data) {
+  //   if (isDict({{ grid_id }}elements)) {
+  //     {{ grid_id }}elements[element] = data;
+  //   } else {
+  //     var elem = {};
+  //     elem[element] = data;
+  //     {{ grid_id }}elements = elem;
+  //   }
+
+
+  //   {{ grid_id }}grid.addWidget({
+  //     x: 0,
+  //     y: 0,
+  //     w: 4,
+  //     h: 1,
+  //     id: element,
+  //     content: '',
+  //     cellHeight: 65,
+  //     margin: 5,
+  //     minRow: 1, // don't collapse when empty
+  //     acceptWidgets: true,
+  //     removable: '.trash'
+  //   })
+
+  //   $('.clarama-post-embedded').load();
+  // }
+
+  function delete_element(element) {
+    delete {{ grid_id }}elements[element];
+
+    gs_element = $('.grid-stack-item');
+    // console.log(gs_element);
+    let remove = undefined;
+
+    gs_element.each(function() {
+      if ($(this).attr("gs-id") === element)
+        remove = $(this);
+    })
+
+    // console.log(remove);
+    remove.remove();
+  }
+
+  function saveGrid() {
+    savedgrid = {{ grid_id }}grid.save(false, true);
+
+    serializedData = {
+      'grid': savedgrid,
+      'elements': {{ grid_id }}elements
+    };
+
+    return serializedData;
+  }
+
+  function add_selected_content(element_render_url, selected_v = "") {
+    if (selected_v !== "") {
+      selected_val = selected_v;
+    } else {
+      selected_val = "./" + $("#add_content_addfield").val();
+    }
+    console.log("adding " + selected_val);
+
+    if (selected_val == null) {
+      flash("No file selected!")
+    } else {
+      // Find a unique element id
+      var element_id = 0;
+      var element_found = false;
+      do {
+        element = "element_" + element_id;
+
+        if (element in {{ grid_id }}elements)
+          element_id = element_id + 1;
+        else
+          element_found = true;
+      }
+      while (!element_found);
+
+      console.log("element " + element);
+
+      // Now add the element
+
+      new_element_data = {"url": selected_val}
+
+      slate_data = saveGrid();
+
+      if (isDict(slate_data['elements'])) {
+        slate_data['elements'][element] = new_element_data;
+      } else {
+        var elem = {};
+        elem[element] = new_element_data;
+        slate_data['elements'] = elem;
+      }
+
+      console.log(slate_data)
+
+      // if (element_render_url === '') {
+      //   add_blank_content(element, new_element_data);
+      // } else {
+        $.ajax({
+          type: 'POST',
+          url: element_render_url + "?element=" + element,
+          datatype: "html",
+          contentType: 'application/json',
+          data: JSON.stringify(slate_data),
+          success: function (data) {
+            if (data['data'] == 'ok') {
+              addContent(element, new_element_data, data['results']);
+            } else {
+              console.log('Submission was not successful.');
+              console.log(data);
+              flash("Couldn't save content: " + data['error'], "danger");
+            }
+          },
+          error: function (data) {
+            console.log('An error occurred.');
+            console.log(data);
+            flash("Couldn't render element content, access denied", "danger");
+          }
+        })
+      // }
+      
+      // $("#addfieldModal").modal('hide');
+    }
+  }
+
+  function add_selected_file() {
+    const selected_val = "./" + $("#add_content_browsefile").val();
+    console.log("adding " + selected_val);
+    if (selected_val == null) {
+      flash("No file selected!");
+      return;
+    }
+
+    const inputId = $("#browseFileModal").data('inputId');
+    const targetInput = document.getElementById(inputId);
+    let target = inputId.replace('_elemInput', ''); 
+    if (targetInput) {
+      const newSource = $CLARAMA_ROOT + selected_val;
+      if (inputId.includes('_elemInput')) {
+        targetInput.href = "/content/edit/" + resolveRelativeFilePath(newSource);
+        targetInput.textContent = newSource;
+        {{ grid_id }}elements[target]['url'] = newSource;
+
+        let parentDiv = document.getElementById(target);
+        const currentUrl = parentDiv.getAttribute('url');
+        parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_element_height=2&clarama_element_aspect=2.0");
+        
+        // console.log("new url", document.getElementById(target).getAttribute('url'))
+        enable_interactions($(`#${target}`).parent(), true);
+      } else {
+        targetInput.value = newSource;
+      }
+
+      if (inputId !== "grid-elem" && (!inputId.includes('_elemInput'))) {
+        const btnId = inputId.replace("_source", "_browse");
+        const browseLink = document.getElementById(btnId + "_link");
+        if (browseLink) {
+          browseLink.href = newSource;
+          browseLink.style.display = "inline-block";
+        }
+      }
+      flash("File path stored successfully! " + newSource);
+    } else {
+      flash("Target input field not found!", "danger");
+    }
+
+    $("#browseFileModal").modal('hide');
+  }
+
+  function getElementKeyByUrl(obj, currentFileUrl) {
+    for (const [key, value] of Object.entries(obj)) {
+      if (value.url === currentFileUrl) {
+        return key;
+      }
+    }
+    
+    return Object.keys(obj)[0];
+  }
+
+  document.getElementById('interactionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    handle_interaction_settings();
+  });
+
+  function saveElementParams(target) {
+    const params = $("#" + target + "_paramsInput").val();
+    const refresh = $("#" + target + "_refresh").is(":checked");    
+    const fit = $("#" + target + "_fit").is(":checked");   
+    const layout = $("#" + target + "_layout option:selected").attr('id');
+    
+    if (params !== undefined) {{ grid_id }}elements[target]['params'] = params;
+    if (refresh !== undefined) {{ grid_id }}elements[target]['refresh'] = refresh;
+    if (fit !== undefined) {{ grid_id }}elements[target]['autofill'] = fit;
+    if (layout !== undefined) {{ grid_id }}elements[target]['layout'] = layout;
+
+    console.log("updated element " + target, {{ grid_id }}elements[target]);
+    enable_interactions($(`#${target}`).parent(), true);
+  }
+
+  function handle_interaction_settings() {
+    const file_url = document.getElementById("grid-elem").value.trim();
+    const gridElem = document.getElementById("interaction-target").value;
+    const elemIndex = document.getElementById('interaction-index').value;
+    const urlParams = document.getElementById('interaction-params').value;
+    const menuItem = document.getElementById("menu-item").value.trim();
+    
+    var checkedType = $('input[name="interactionType"]:checked').val();
+    console.log("checkedType", checkedType)
+    const allowedTypes = ['popup', 'modal', 'pause', 'menu'];
+    if (!allowedTypes.includes(checkedType)) {
+      checkedType = document.getElementById('selected-elem').value;
+
+      if (checkedType == "") {
+        alert("Please select an element")
+        return;
+      }
+    } else {
+      if (file_url == "") {
+        alert("Please select a Data Source Filename")
+        return;
+      }
+    }
+
+    var elementToAddInteraction = {{ grid_id }}elements[gridElem];
+    if (!elementToAddInteraction.links) {
+      elementToAddInteraction.links = [];
+    }
+    
+    let grid_element_target = document.getElementById('grid_element_target-'+gridElem);
+
+    if (elemIndex == "") {
+      if (checkedType == "menu") {
+        elementToAddInteraction.links.push({ element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
+        grid_element_target.appendChild(addGridInteraction(gridElem, checkedType, file_url, elementToAddInteraction.links.length -1, urlParams, menuItem));
+      } else {
+        elementToAddInteraction.links.push({ element: checkedType, url: file_url, params: urlParams });
+        grid_element_target.appendChild(addGridInteraction(gridElem, checkedType, file_url, elementToAddInteraction.links.length -1, urlParams));
+      }
+      enable_interactions($("#grid_element_target-" + gridElem));
+    } else {
+      if (checkedType == "menu") {
+        elementToAddInteraction.links[elemIndex] = { element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
+      } else {
+        elementToAddInteraction.links[elemIndex] = { element: checkedType, url: file_url, params: urlParams };
+      }
+
+      if (!grid_element_target) return;
+      const li = grid_element_target.querySelector(`li[loop-index="${elemIndex}"]`);
+      if (!li) return;
+      li.setAttribute('elem-id', checkedType);
+
+      const innerTextDiv = li.querySelector('div.cElem');
+      if (innerTextDiv) {
+        innerTextDiv.textContent = checkedType;
+      }
+
+      const gearIcon = li.querySelector('.bi-gear');
+      if (gearIcon) {
+        gearIcon.setAttribute('data-element', checkedType);
+        gearIcon.setAttribute('data-url', file_url);
+        gearIcon.setAttribute('data-params', urlParams);
+        if (checkedType == "menu") {
+          gearIcon.setAttribute('data-menuName', menuItem);
+        }
+      }
+    }
+
+    console.log("updated element", elementToAddInteraction);
+    $("#interactionSettingsModal").modal('hide');
+  }
+
+  function save(url) {
+    slate_data = saveGrid();
+    console.log("slate_data", slate_data)
+    $.ajax({
+      type: 'POST',
+      url: url,
+      datatype: "html",
+      contentType: 'application/json',
+      data: JSON.stringify(slate_data),
+      success: function (data) {
+        if (data['data'] == 'ok') {
+          console.log('Submission was successful.');
+          console.log(data);
+          flash("Saved!");
+        } else {
+          console.log('Submission was not successful.');
+          console.log(data);
+          flash("Couldn't save content: " + data['error'], "danger");
+        }
+      },
+      error: function (data) {
+        console.log('An error occurred.');
+        console.log(data);
+        flash("Couldn't save content, access denied", "danger");
+      }
+    })
+  }
+
+  function link_elements(target, linked) {
+    if (linked in {{ grid_id }}elements) {
+      if (target in {{ grid_id }}elements) {
+        var element = {{ grid_id }}elements[target];
+        if (!element.hasOwnProperty("links")) {
+          element['links'] = [];
+        }
+
+        if (!element['links'].includes(linked)) {
+          element['links'].push({ element: linked, url: {{ grid_id }}elements[linked]['url'] });
+        }
+
+        flash("linking " + target + " to [" + element['links'] + "]");
+      }
+    }
+  }
+
+  function unlink_elements(target, link_index) {
+    if (target in {{ grid_id }}elements) {
+      var element = {{ grid_id }}elements[target];
+      console.log("element", element)
+      element['links'].splice(link_index, 1);
+      // enable_interactions($(`#${target}`).parent(), true);
+
+      flash("unlinking " + target + " to [" + element['links'] + "]");
+      console.log("updated element", {{ grid_id }}elements);
+    }
+  }
+
+  // Extract the current directory depth
+  var relativePath;
+  function renderBreadcrumb(path, breadcrumbId, selectId) {
+    const targetPath = path.split('?')[0].split('/').slice(3).join('/');
+    relativePath = getRelativePath(currentPath, targetPath);
+
+    const breadcrumb = document.getElementById(breadcrumbId);
+    breadcrumb.innerHTML = '';
+
+    // console.log("path", path);
+    const trimmedPath = path.split('/').slice(3);
+    // console.log("trimmedPath", trimmedPath);
+
+    const root = document.createElement('li');
+    if (trimmedPath[0][0] != "?") {
+      root.style.cursor = 'pointer';
+      root.className = 'text-secondary';
+      root.innerHTML = "Clarama&nbsp;>&nbsp;";
+    } else {
+      root.innerHTML = "Clarama";
+    }
+    root.addEventListener('click', () => navigateToPath(path.split('/').slice(0, 3).join('/') + "/?subfolders=True&extensions=" + filters, breadcrumbId, selectId));
+    breadcrumb.appendChild(root);
+
+    trimmedPath.forEach((part, index, array) => {
+        // console.log(part)
+        const li = document.createElement('li');
+
+        if (index < array.length - 1) {
+          li.style.cursor = 'pointer';
+          li.className = 'text-secondary';
+          li.addEventListener('click', () => navigateToPath(path.split('/').slice(0, index + 4).join('/') + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId));
+          li.innerHTML = part + "&nbsp;>&nbsp;";
+        } else {
+          li.innerText = part.split('?')[0];
+        }
+        breadcrumb.appendChild(li);
+      });
+    }
+
+    function getRelativePath(from, to) {
+      const fromParts = from.split('/').filter(Boolean);
+      const toParts = to.split('/').filter(Boolean);
+      // Find common root
+      let i = 0;
+      while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) {
+          i++;
+      }
+
+      // How many levels to go up from `from`
+      const upLevels = fromParts.length - i; // eg. if this is 6-4 = 2
+      const goUp = Array(upLevels).fill('..').join('/'); // this will be ../../
+
+      // Navigate down to `to`
+      const goDown = toParts.slice(i).join('/'); // extracts the remaining thats not common
+
+      if (!goUp && !goDown) {
+        return ''
+      }
+
+      return goUp ? `${goUp}/${goDown}` : goDown; // if no goUp means we r in the correct folder
+    }
+
+    function naturalSort(arr) {
+      return arr.sort((a, b) => {
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+      })
+    }
+
+    function renderFilesNFolder(path, breadcrumbId, selectId) {
+      const selectElement = document.getElementById(selectId);
+      console.log(`fetch path: ${path}`)
+      fetch(path)
+        .then((response) => response.json())
+        .then((json_files) => {
+          console.log("json files", json_files)
+          $(`#${selectId}`).empty();
+          // const allPaths = json_files['results']['files'];
+          // const foldersSet = new Set();
+          // const filesSet = new Set();
+          // console.log(`json_files returned: ${allPaths}`);
+
+          // // Determine folders and files
+          // allPaths.forEach(filePath => {
+          //   // console.log("File path:", filePath);
+          //   const parts = filePath.split('/');
+          //   if (parts.length > 1) {
+          //     foldersSet.add(parts[0]); // Top-level folder
+          //   } else {
+          //     filesSet.add(filePath); // Root-level file
+          //   }
+          // });
+
+          // const sortedFolders = naturalSort([...foldersSet]);
+          // const sortedFiles = naturalSort([...filesSet]);
+          const sortedFolders = json_files['results']['folders'];
+          const sortedFiles = json_files['results']['files'];
+          console.log("folders", sortedFolders)
+          console.log("files", sortedFiles)
+
+          // Render folders
+          sortedFolders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder;
+            option.className = "bi bi-folder-fill";
+            option.innerHTML = `&nbsp; ${folder}`;
+            if (path.split('?')[0] == "/content/json/") {
+              option.addEventListener('dblclick', () => navigateToPath(`/content/json/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId));
+            } else {
+              option.addEventListener('dblclick', () => navigateToPath(`${path.split('?')[0]}/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId));
+            }
+            selectElement.appendChild(option);
+          });
+
+          // Render files with relative paths
+          sortedFiles.forEach(filePath => {
+            // if (!sortedFolders.has(filePath.split('/')[0])) { // ensure it's not a folder
+              const option = document.createElement('option');
+
+              // store relative path in val
+              const trimmedPath = relativePath.trim();
+              if (/^(?:\.\.\/)+$/.test(trimmedPath) || trimmedPath === '') {
+                option.value = trimmedPath + filePath;
+              } else {
+                option.value = trimmedPath + "/" + filePath;
+              }
+
+              let matchedIcon = Object.entries(filetypeCSS)
+                .find(([ext, _]) => filePath.endsWith(ext));
+              if (!matchedIcon) {
+                const simpleExt = `.${filePath.split('.').pop()}`;
+                matchedIcon = filetypeCSS[simpleExt] ? [simpleExt, filetypeCSS[simpleExt]] : null;
+              }
+              const icon = matchedIcon ? matchedIcon[1] : "bi-file-earmark";
+              option.className = `bi ${icon}`;
+
+              option.innerHTML = `&nbsp; ${filePath}`;
+              selectElement.appendChild(option);
+            // }
+          });
+        });
+    }
+
+    // Function to navigate to a specific path
+    function navigateToPath(path, breadcrumbId, selectId) {
+      console.log("path", path)
+      const match = path.match(/^\/content\/json\/?(.*?)(\?|$)/);
+      currentModalAddContentPath = match ? match[1] : "";
+      renderBreadcrumb(path, breadcrumbId, selectId);
+      renderFilesNFolder(path, breadcrumbId, selectId);
+    }
+
+    function resolveRelativeFilePath(relativePath) {
+      const baseParts = currentPath.split('/').filter(Boolean);
+      const relativeParts = relativePath.split('/').filter(Boolean);
+      for (const part of relativeParts) {
+        if (part === '..') {
+          baseParts.pop();
+        } else if (part !== '.') {
+          baseParts.push(part);
+        }
+      }
+      return baseParts.join('/');
+    }
+
+</script>

@@ -1,0 +1,45 @@
+<div class="container-fluid" style="height: 100%">
+    <div class="row justify-content-center" style="height: 100%">
+        {% if file_index %}
+            <div class="col-2">
+                <div class="card bg-secondary help shadow">
+                    <nav class="card-header navbar navbar-expand-xl navbar-dark bg-dark">
+                        <div class="container-fluid">
+                            <h2 class="navbar-brand">Table of Contents</h2>
+                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#navbarFolder" aria-controls="navbarFolder" aria-expanded="false"
+                                    aria-label="Toggle navigation">
+                                <span class="navbar-toggler-icon"></span>
+                            </button>
+                        </div>
+                    </nav>
+                    {{ file_index | safe }}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="col" style="height: 100%">
+            <div class="card bg-light shadow" style="height: 100%">
+                <nav class="card-header navbar navbar-expand-xl navbar-dark bg-dark">
+                    <div class="container-fluid">
+                        <h1 class="navbar-brand">{{ active_content }}</h1>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#navbarFolder" aria-controls="navbarFolder" aria-expanded="false"
+                                aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                    </div>
+                </nav>
+                {% if file_content %}
+                    <div class="card-body bg-white help"
+                         style="font-size:12px; padding-left:20px; padding-right:20px; height: 100%">
+                        <p class="card-text" style="font-size:12px;">{{ file_content | safe }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% include "web/file_footer.html" %}

@@ -1,0 +1,334 @@
+<table>
+    <tr class="bg-secondary text-white">
+        <td colspan="1">
+            <h3 style="padding: 15px;">Field</h3>
+        </td>
+        <td class="text-end" style="padding:10px;">
+            <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}"></i>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2" style="padding: 15px;">
+            <div class="container-fluid">
+                <div class="row">
+                    {% for key, ftype in fieldtypes.items() %}
+                        <div class="col">
+                            <label id="field_{{ key }}" key="{{ key }}"
+                                   class="btn {% if field_config['type'] == key %} clicked btn-primary {% else %} btn-light {% endif %} field"
+                                   style="width: 100%;">
+                                <i class="bi fs-4 {{ ftype['icon'] }}" style="width: 100%;"> </i></label>
+                            <div style="overflow-wrap: initial; width: 100%" class="text-center">
+                                <br/><b>{{ ftype['name'] }}</b>
+                            </div>
+                            <br/>{{ ftype['description'] }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </td>
+
+    </tr>
+    <tr class="bg-secondary text-white">
+        <td>
+            <table width="100%">
+                <tr>
+                    <td widht="20%"><h3 style="padding: 15px;">Edit Field</h3></td>
+                    <td width="40%">
+                        <div class="form-check form-switch inputgroup">
+                            <input class="form-check-input clarama-field clarama-now-field"
+                                   fieldtype="html"
+                                   type="checkbox"
+                                   id="required"
+                                   name="required"
+                                    {% if get(field_config,'required','') | lower == 'true' %} checked {% endif %}
+                                    {% include "explorer/files/field_tooltip.html" %}
+                            >
+                            <label class="form-check-label" for="required">Required</label>
+                        </div>
+                    </td>
+                    <td width="40%">
+                        <div class="form-check form-switch inputgroup">
+                            <input class="form-check-input clarama-field clarama-now-field"
+                                   fieldtype="html"
+                                   type="checkbox"
+                                   id="readonly"
+                                   name="readonly"
+                                    {% if get(field_config,'readonly','') | lower == 'true' %} checked {% endif %}
+                                    {% include "explorer/files/field_tooltip.html" %}
+                            >
+                            <label class="form-check-label" for="readonly">Read-Only</label>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </td>
+        <td><h3 style="padding: 15px;">Field Preview</h3></td>
+    </tr>
+    <tr>
+        <td width="50%" style="vertical-align: top">
+            <table style="padding: 5px;">
+                <tr style="padding: 5px;">
+                    <td style="vertical-align: top">
+                        <h5 style="padding: 5px;">Name </h5>
+                    </td>
+                    <td>
+                        <input id="name" required name="name" type="text"
+                               class="form-control clarama-field"
+                               autocomplete="on"
+                               placeholder="field name"
+                               value="{{ get(field_config,'name','') }}"
+                                {% include "explorer/files/field_tooltip.html" %}
+                        />
+                    </td>
+                </tr>
+                <tr style="padding: 5px;">
+                    <td style="vertical-align: top">
+                        <h5 style="padding: 5px;">Description </h5>
+                    </td>
+                    <td>
+                        <textarea id="description"
+                                  name="description" type="text"
+                                  class="form-control clarama-field"
+                                  autocomplete="on"
+                                  rows="5"
+                                  placeholder="description"
+                                  value=""
+                                {% include "explorer/files/field_tooltip.html" %}
+                        >{{ get(field_config,'description','') }}</textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="vertical-align: top">
+                        <h5 style="padding: 5px;">Default</h5>
+                    </td>
+                    <td>
+                        <input id="default" name="default" type="text"
+                               class="form-control clarama-field"
+                               autocomplete="on"
+                               placeholder="default value"
+                               value="{{ get(field_config,'default','') }}"
+                                {% include "explorer/files/field_tooltip.html" %}
+                        />
+                        <div>For checkboxes, use a default value of True for checked (the value will be made lowercase,
+                            a
+                            string
+                            and
+                            then
+                            equal to 'true'), anything else will be unchecked by default
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="vertical-align: top">
+                        <h5 style="padding: 5px;"> Placeholder </h5>
+                    </td>
+                    <td>
+                        <input id="placeholder" name="placeholder" type="text"
+                               class="form-control clarama-field"
+                               autocomplete="on"
+                               placeholder="placeholder value"
+                               value="{{ get(field_config,'placeholder','') }}"
+                                {% include "explorer/files/field_tooltip.html" %}
+                        />
+
+                    </td>
+                </tr>
+                <tr>
+                    <td style="vertical-align: top">
+                        <h5 style="padding: 5px;"> Data </h5>
+                    </td>
+                    <td style="padding: 5px;">
+                        <div id="data"
+                             name="data"
+                             editor="yaml"
+                             class="source-editor form-control clarama-field clarama-editor-field"
+                             fieldtype="aceeditor"
+                             style="min-height:{{ get(field_config,'min-height','64') }} ;height: 100%"
+                                {% include "explorer/files/field_tooltip.html" %}
+                        >{{ get(field_config,'data', 'source:\naction:\nparams:\n  query:\n  path:\noptions:\n') | yaml }}</div>
+                        <p>
+                            <b>source:</b> is the task/source/yaml file to get the data from. Relative to where the
+                            field
+                            is<br/>
+                            <b>params:</b> if the source in question needs additional parameters<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<b>query:</b> For SQL/CSV/Excel/Influx sources to run a query
+                            against them<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<b>path:</b> For Yaml sources to specify the /path/ in the yaml to
+                            get the
+                            dictionary
+                            from<br/>
+                            <b>options</b> is for a manual list of options for a select/select-multiple<br/>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <table width="100%">
+                            <tr>
+                                <td>
+                                    <h5>Minimum</h5>
+                                    <input id="minimum" name="minimum" type="number"
+                                           class="form-control clarama-field clarama-delay-field"
+                                           fieldtype="html"
+                                           autocomplete="on"
+                                           placeholder="0"
+                                           value="{{ get(field_config,'minimum','') }}"
+                                            {% include "explorer/files/field_tooltip.html" %}
+                                    />
+                                </td>
+                                <td>
+                                    <h5>Maximum</h5>
+                                    <input id="maximum" name="maximum" type="number"
+                                           class="form-control clarama-field clarama-delay-field"
+                                           fieldtype="html"
+                                           autocomplete="on"
+                                           placeholder="100"
+                                           value="{{ get(field_config,'maximum','') }}"
+                                            {% include "explorer/files/field_tooltip.html" %}
+                                    />
+                                </td>
+                                <td>
+                                    <h5>Step</h5>
+                                    <input id="step" name="step" type="number"
+                                           class="form-control clarama-field clarama-delay-field"
+                                           fieldtype="html"
+                                           autocomplete="on"
+                                           placeholder="100"
+                                           value="{{ get(field_config,'step','') }}"
+                                            {% include "explorer/files/field_tooltip.html" %}
+                                    />
+                                </td>
+                                <td>
+                                    <h5>Size</h5>
+                                    <input id="size" name="size" type="number"
+                                           class="form-control clarama-field clarama-delay-field"
+                                           fieldtype="html"
+                                           autocomplete="on"
+                                           placeholder="4"
+                                           value="{{ get(field_config,'size','4') }}"
+                                            {% include "explorer/files/field_tooltip.html" %}
+                                    />
+                                </td>
+                                <td>
+                                    <h5>Spacing</h5>
+                                    <input id="spacing" name="spacing" type="number"
+                                           class="form-control clarama-field clarama-delay-field"
+                                           fieldtype="html"
+                                           autocomplete="on"
+                                           placeholder="2"
+                                           value="{{ get(field_config,'spacing','3') }}"
+                                            {% include "explorer/files/field_tooltip.html" %}
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px;">For number &amp; range fields</td>
+                                <td style="padding: 5px;">For number &amp; range fields</td>
+                                <td style="padding: 5px;">For number &amp; range fields</td>
+                                <td style="padding: 5px;">For select, number of items to show</td>
+                                <td style="padding: 5px;">Spacing of the name/description</td>
+                            </tr>
+                        </table>
+                    </td>
+            </table>
+        </td>
+        <td width="50%" style="vertical-align: top; padding:30px;">
+            <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
+        </td>
+    </tr>
+
+</table>
+<script type="text/javascript">
+    var key = "{{ get(field_config,'type','string') }}";
+
+    $(".field").click(function () {
+        $(".field").removeClass("clicked");
+        $(".field").removeClass("btn-primary");
+        $(".field").addClass("btn-light");
+        key = $(this).attr("key");
+        $(this).addClass("clicked");
+        $(this).addClass("btn-primary");
+        $(this).removeClass("btn-light");
+        update_preview();
+    });
+
+    $(".clarama-field")
+        .on("focusout", function () {
+            update_preview();
+        });
+
+    function update_preview() {
+        var editor = ace.edit("data");
+        var code = editor.getValue();
+        
+        var url = "{{ embedded_url(filename=file_url) }}"
+            + "?type=" + key
+            + "&name=" + $("#name").val()
+            + "&description=" + $("#description").val()
+            + "&placeholder=" + $("#placeholder").val()
+            + "&default=" + $("#default").val()
+            + "&maximum=" + $("#maximum").val()
+            + "&minimum=" + $("#minimum").val()
+            + "&readonly=" + $("#readonly").prop('checked')
+            + "&required=" + $("#required").prop('checked')
+            + "&step=" + $("#step").val()
+            + "&spacing=" + $("#spacing").val()
+            + "&data_text=" + code
+        ;
+        console.log(url);
+        $("#preview").attr("url", url);
+        $("#preview").attr("clarama_loaded", false)
+        $('#preview').load();
+    }
+
+    function save_field() {
+        var editor = ace.edit("data");
+        var code = editor.getValue();
+
+        var field_data = {
+            "type": key,
+            "name": $("#name").val(),
+            "description": $("#description").val(),
+            "placeholder": $("#placeholder").val(),
+            "default": $("#default").val(),
+            "maximum": $("#maximum").val(),
+            "minimum": $("#minimum").val(),
+            "step": $("#step").val(),
+            "spacing": $("#spacing").val(),
+            "readonly": $("#readonly").prop('checked'),
+            "required": $("#required").prop('checked'),
+            "data_text": code
+        }
+
+        var url = "/content/save/" + $("#save").attr("url")
+
+        console.log(url);
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            datatype: "html",
+            contentType: 'application/json',
+            data: JSON.stringify(field_data),
+            success: function (data) {
+                if (data['data'] == 'ok') {
+                    console.log('Submission was successful.');
+                    console.log(data);
+                    flash("Saved!");
+                } else {
+                    console.log('Submission was not successful.');
+                    console.log(data);
+                    flash("Couldn't save content: " + data['error'], "danger");
+                }
+            },
+            error: function (data) {
+                console.log('An error occurred.');
+                console.log(data);
+                flash("Couldn't save content, access denied", "danger");
+            }
+        });
+    }
+</script>
+
+{% include "web/file_footer.html" %}

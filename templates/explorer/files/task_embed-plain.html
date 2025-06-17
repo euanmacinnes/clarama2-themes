@@ -1,0 +1,88 @@
+<div class="card bg-light" style="padding:25px;">
+
+    {% set internal_topic = element_prefix + url_for(request.endpoint, **request.view_args) | topic %}
+    <form>
+        {% for streamslist in streams %}
+            {% for stream, steps in streamslist.items() %}
+                {% if stream=='main' %}
+                    <div class="container-fluid">
+                        {% for step in steps %}
+                            {% if loop.last %}
+                                <div class="row bg-white text-dark clarama-cell-item"
+                                     id="{{ internal_topic ~ '_stream_' ~ stream ~ '_step' }}_{{ loop.index }}"
+                                >
+                                    <div class="col bg-light" style="padding:0">
+                                        <!-- the Results -->
+                                        <div class="container-fluid">
+                                            <div id="results_{{ loop.index }}" class="cell-results">
+                                                <ul class="row" style="list-style-type: none; padding: 0px;">
+                                                    {% include "explorer/files/_fields_popup_task.html" %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+
+        <div class="container-fluid bg-light">
+            <div class="row">
+                {% for streamslist in streams %}
+                    {% for stream, steps in streamslist.items() %}
+                        {% if stream=='main' %}
+                            <div class="progress col" style="height: 46px;">
+                                <div id="task_progress_{{ stream }}"
+                                     style="width: 0%; beight:100%;"
+                                     max="{{ steps | length }} "
+                                     class="progress-bar" role="progressbar">
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+                <div class="col-auto clarama-task">
+                    <div class="btn-group" role="group" aria-label="task_functions">
+                        <button id="run" type="button" class="btn btn-primary kernel-play-button" socket="run_socket"
+                                kill="False"><i
+                                class="bi bi-play-fill h2"></i></button>
+                        <button type="button" class="btn btn-info kernel_status" id="kernel_status"> Loading...</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+
+    <div class="bg-white text-dark clarama-cell-item tight"
+         id="{{ (internal_topic ~ '_stream_main') }}_exception">
+        <div id="results_exception" class="cell-results tight">
+        </div>
+    </div>
+    <div class="clarama-task">
+        <div id="run_socket" class="clarama-websocket clarama-task"
+             mode="run"
+             topic="{{ internal_topic }}"
+             task="{{ file_url }}" kill="True" refresh="True"></div>
+    </div>
+
+    <script>
+        function show_schedule() {
+            console.log("Ok");
+            $("#schedule_form").removeClass('loop-hidden');
+            $("#schedule_form").addClass('loop-show');
+            $("#schedule_form").addClass('loop-show');
+            $("#results_scheduler").load(() => {
+                $('.clarama-post-embedded').load();
+            });
+        }
+    </script>
+
+    {% include "explorer/files/_grid_popup.html" %}
+    {% include "explorer/files/task_response_templates.html" %}
+
+    {% include "web/file_footer.html" %}
+</div>

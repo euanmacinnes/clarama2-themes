@@ -1,0 +1,147 @@
+{% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
+<form>
+    <div class="container-fluid bg-light">
+        <div class="row">
+            <div class="col-1 bg-secondary text-light" style="padding:0">
+                <div class="container-fluid">
+                    <br/>Execution
+                </div>
+            </div>
+            {% for streamslist in streams %}
+                {% for stream, steps in streamslist.items() %}
+                    {% if stream=='main' %}
+                        <div class="progress col" style="height: 46px;">
+                            <div id="task_progress_{{ stream }}"
+                                 style="width: 0%; beight:100%;"
+                                 max="{{ steps | length }} "
+                                 class="progress-bar" role="progressbar">
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            <div class="col-auto clarama-task">
+                <div class="btn-group" role="group" aria-label="task_functions">
+                    <button id="run" type="button" class="btn btn-primary kernel-play-button" socket="run_socket"
+                            kill="False"><i
+                            class="bi bi-play-fill h2"></i></button>
+                    <button id="schedule" type="button" class="btn btn-primary"><i
+                            class="bi bi-stopwatch h2" onclick="show_schedule();"></i></button>
+                    <button type="button" class="btn btn-info kernel_status" id="kernel_status"> Loading...</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-1 bg-secondary text-light" style="padding:0">
+                <div class="container-fluid">
+                    <br/>Parameters
+                </div>
+            </div>
+            <div class="col">
+                <div class="container-fluid">
+                    <ul class="row" style="list-style-type: none; padding: 0px;">
+                        {% include "explorer/files/_fields_readonly_task.html" %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="schedule_form" class="loop-hidden">
+        <div class="container-fluid">
+            <div class="row bg-white text-dark">
+                <div class="col-1 bg-primary text-light justify-content-end" style="padding:0">
+                    <div class="container-fluid">
+                        <br/>Schedule<br/>
+                    </div>
+                </div>
+                <div class="col-11 bg-light" style="padding:0">
+                    <!-- the Results -->
+                    <div class="container-fluid">
+                        <div id="results_scheduler" class="cell-results" url="/render/schedule/{{ content_url }}">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% for streamslist in streams %}
+        {% for stream, steps in streamslist.items() %}
+            {% if stream=='main' %}
+                <div class="container-fluid">
+                    {% for step in steps %}
+                        {% if loop.last %}
+                            <div class="row bg-white text-dark clarama-cell-item"
+                                 id="{{ internal_topic ~ '_stream_' ~ stream ~ '_step' }}_{{ loop.index }}"
+                            >
+                                <div class="col-1 bg-primary text-light justify-content-end" style="padding:0">
+                                    <div class="container-fluid">
+                                        <br/>Results<br/>
+                                        <br/>
+                                    </div>
+                                    <div class="cell-spin" style="opacity: 0">
+                                        <div
+                                                class="d-flex justify-content-center spinner-border text-info position-absolute start-50"
+                                                role="status"
+                                                style="width: 4rem; height: 4rem; z-index: 100"
+                                        >
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-center position-absolute bottom-0">
+                                        <div class="container-fluid cell-timing">&nbsp;
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-11 bg-light" style="padding:0">
+                                    <!-- the Results -->
+                                    <div class="container-fluid">
+                                        <div id="results_{{ loop.index }}" class="cell-results">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+</form>
+
+<div class="bg-white text-dark clarama-cell-item tight"
+     id="{{ (internal_topic ~ '_stream_main') }}_exception">
+    <div id="results_exception" class="cell-results tight">
+    </div>
+</div>
+<div class="clarama-task">
+    <div id="run_socket" class="clarama-websocket clarama-task"
+         mode="run"
+         topic="{{ internal_topic }}"
+         task="{{ file_url }}" task_kill="False" refresh="True"></div>
+</div>
+
+<script type="application/json" id="{{ grid_id }}_json">
+    {{ task_arguments
+|
+json_pprint
+|
+safe }}</script>
+
+<script>
+    function show_schedule() {
+        console.log("Ok");
+        $("#schedule_form").removeClass('loop-hidden');
+        $("#schedule_form").addClass('loop-show');
+        $("#schedule_form").addClass('loop-show');
+        $("#results_scheduler").load(() => {
+            $('.clarama-post-embedded').load();
+        });
+    }
+</script>
+
+{% include "explorer/files/_grid_explore.html" %}
+{% include "explorer/files/task_response_templates.html" %}
+
+{% include "web/file_footer.html" %}

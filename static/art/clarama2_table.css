@@ -1,0 +1,179 @@
+/*
+ * Copyright (c) 2025. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
+ */
+
+.table-default {
+    top: 5px;
+    left: 5px;
+    right: 0px;
+    bottom: 5px;
+    padding: 5px;
+}
+
+.table-header {
+    padding: 0px;
+}
+
+.table-header-nav-item {
+    padding: 0px !important;
+    vertical-align: middle;
+}
+
+.table-header-nav-text {
+    top: 8px !important;
+    bottom: 8px !important;
+    vertical-align: middle;
+}
+
+.table-header-nav-bar {
+    padding: 0px;
+}
+
+.table-header-nav-toolbar {
+    padding: 0px;
+}
+
+.table-default-header {
+    --bs-bg-opacity: 1;
+    background-color: rgba(var(--bs-dark-rgb), var(--bs-bg-opacity)) !important;
+    --bs-navbar-color: rgba(255, 255, 255, 0.55);
+    --bs-navbar-hover-color: rgba(255, 255, 255, 0.75);
+    --bs-navbar-disabled-color: rgba(255, 255, 255, 0.25);
+    --bs-navbar-active-color: #fff;
+    --bs-navbar-brand-color: #fff;
+    --bs-navbar-brand-hover-color: #fff;
+    --bs-navbar-toggler-border-color: rgba(255, 255, 255, 0.1);
+}
+
+.table-default-header ul {
+    text-align: center;
+    padding: 5px;
+}
+
+.table-default-header ul li {
+    text-align: center;
+    padding: 5px;
+    color: #bbb;
+}
+
+.table-default thead * {
+    color: #fff;
+    background-color: #555;
+}
+
+.table-default td * {
+    font-size: 16px;
+    line-height: 1.528;
+}
+
+.table-centered {
+    table-layout: fixed;
+}
+
+.table-centered-header {
+    text-align: center;
+    border-style: solid;
+    border-width: 1px;
+}
+
+.table-centered-header ul {
+    text-align: center;
+    padding: 5px;
+}
+
+.table-centered-header ul li {
+    text-align: center;
+    padding: 5px;
+}
+
+.table-centered thead * {
+    text-align: center;
+}
+
+.table-centered tr td {
+    font-size: 16px;
+    line-height: 1.528;
+    text-align: center;
+}
+
+/* METRIC - displays the values as large bold text */
+
+.table-metric {
+    table-layout: fixed;
+}
+
+.table-metric-header {
+    text-align: center;
+    font-weight: normal;
+}
+
+.table-metric-header ul {
+    text-align: center;
+    padding: 5px;
+}
+
+.table-metric-header ul li {
+    text-align: center;
+    padding: 5px;
+    font-weight: lighter;
+}
+
+.table-metric thead * {
+    text-align: center;
+    border-style: none;
+    border-width: 0;
+    font-weight: lighter;
+}
+
+.table-metric tr {
+    font-size: 16px;
+    line-height: 1.528;
+    text-align: center;
+    border-style: none;
+    border-width: 0;
+}
+
+.table-metric tr td {
+    font-size: 56px;
+    line-height: 1.528;
+    text-align: center;
+    font-weight: bold;
+    color: #444;
+    border-style: none;
+    border-width: 0;
+}
+
+/* WORKSHEET */
+
+.table-worksheet-header {
+    text-align: center;
+    display: inline-block;
+    list-style-type: none;
+    font-size: 20px;
+}
+
+.table-worksheet-header ul {
+    text-align: center;
+    padding: 5px;
+}
+
+.table-worksheet-header ul li {
+    text-align: center;
+    padding: 10px;
+}
+
+.table-worksheet thead * {
+    text-align: center;
+    border-style: none;
+    border-width: 0;
+}
+
+.table-worksheet tr td {
+    font-size: 16px;
+    line-height: 1.528;
+    text-align: center;
+    border-style: none;
+    border-width: 0;
+}
+
+/* END WORKSHEET */

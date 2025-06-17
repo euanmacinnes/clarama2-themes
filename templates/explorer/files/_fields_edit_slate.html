@@ -1,0 +1,19 @@
+<div class="d-flex align-items-center">
+    <div class="d-flex align-items-center me-4" type="button" onClick="save('/content/save/{{ file_url }}')"><i
+            class="fs-5 bi bi-floppy pe-2"></i> Save
+    </div>
+    <!--<div class="d-flex align-items-center me-4" onClick="addNested()"><i class="fs-5 bi bi-file-plus pe-2"></i> Add Panel</div>-->
+    <div class="d-flex align-items-center gridaddcontent" type="button" data-bs-toggle="modal"
+         data-bs-target="#addfieldModal"
+         filters="*.field.yaml|*.task.yaml|*.md"><i
+            class="fs-5 bi bi-node-plus pe-2"></i> Add Content
+    </div>
+    <div class="col">&nbsp;</div>
+    <div class="col-auto trash d-flex align-items-center"><i class="fs-5 bi bi-trash3 pe-2"></i> Drag here to remove
+    </div>
+</div>
+<hr/>
+<div class="row d-flex">
+    <div id="containment-wrapper" class="col" width="100%" height="100%">
+    </div>
+</div>

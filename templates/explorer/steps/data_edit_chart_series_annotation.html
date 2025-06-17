@@ -1,0 +1,113 @@
+{% if sanno is not defined %}
+    {% set sanno = {"sanno-col" : "", "sanno-col-back" : ""} %}
+{% endif %}
+{% set chartColors = {
+        "Default": "",
+        "Red": "rgb(255, 50, 50)",
+        "Orange": "rgb(255, 159, 64)",
+        "Yellow": "rgb(255, 205, 86)",
+        "Green": "rgb(75, 255, 192)",
+        "Blue": "rgb(54, 162, 235)",
+        "Purple": "rgb(153, 102, 255)",
+        "Grey": "rgb(201, 203, 207)",
+        "Medium Grey": "rgb(128, 128, 128)",
+        "Dark Grey": "rgb(64, 64, 64)",
+        "Black": "rgb(20, 20, 20)"
+    } %}
+<li class="chart-series-annotations">
+    <div class="list-group-item d-flex row gx-2 align-items-center">
+        <div class="col-1">
+            <input type="string" class="form-control anno-label" id="l{{ loop_index }}" name="label"
+                   value="{{ sanno['anno-label'] }}">
+        </div>
+        <div class="col-1">
+            <input type="string" class="form-control anno-x" id="x{{ loop_index }}" name="x"
+                   value="{{ sanno['anno-x'] }}">
+        </div>
+        <div class="col-1">
+            <input type="string" class="form-control anno-y" id="y{{ loop_index }}" name="y"
+                   value="{{ sanno['anno-y'] }}">
+        </div>
+        <div class="col-1">
+            <input type="string" class="form-control anno-xmax" id="z{{ loop_index }}" name="xmax"
+                   value="{{ sanno['anno-xm'] }}">
+        </div>
+        <div class="col">
+            <input type="string" class="form-control anno-ymax" id="z{{ loop_index }}" name="ymax"
+                   value="{{ sanno['anno-ym'] }}">
+        </div>
+
+        <div class="col">
+            <input type="string" class="form-control anno-yaxis" id="z{{ loop_index }}" name="yaxis"
+                   value="{{ sanno['anno-yaxis'] }}">
+        </div>
+
+        <div class="col d-flex justify-content-evenly">
+            <input type="checkbox" class="form-check-input anno-dt" id="dt{{ loop_index }}" name="dt"
+                   {% if sanno['anno-dt'] %}checked{% endif %} title="Dotted Lines" data-toggle="tooltip">
+        </div>
+        <div class="col">
+            <input type="number" step="1" min="0" max="100" class="form-control anno-width"
+                   id="width{{ loop_index }}" name="width" value="{{ sanno['anno-width'] }}" data-toggle="tooltip"
+                   title="Border Width">
+        </div>
+        <div class="col">
+            <select id="ps{{ loop_index }}" class="form-control anno-type" title="Type"
+                    data-toggle="tooltip">>
+                <option {{ selected("box",sanno['anno-type']) }} id="box">Box</option>
+                <option {{ selected("line",sanno['anno-type']) }} id="line">Line</option>
+                <option {{ selected("bounds",sanno['anno-type']) }} id="bounds">Bounds</option>
+            </select>
+        </div>
+        <div class="col">
+            <div class="color-picker-container d-flex align-items-center">
+                <select class="form-control sanno-col" id="anno-col{{ loop_index }}" name="color"
+                        style="background-color: {{ sanno['format-col'] }}; " title="Line colour"
+                        data-toggle="tooltip">
+                    {% for key, value in chartColors.items() %}
+                        <option value="{{ value }}" {%- if sanno['anno-col']==value -%}selected{%- endif -%}>
+                            {{ key }}
+                        </option>
+                    {% endfor %}
+                    {% if (sanno['anno-col']  or '').startswith('#') %}
+                        <option value="{{ sanno['anno-col'] }}" selected>{{ sanno['anno-col'] }}</option>
+                    {% else %}
+                        <option value="custom">Custom Colour</option>
+                    {% endif %}
+                </select>
+                <i class="bi bi-three-dots-vertical ellipsis"></i>
+                <input type="color" selected="anno-col" class="form-control anno-col-picker"
+                       id="col{{ loop_index }}"
+                       name="cc" value="{{ sanno['anno-col'] }}">
+            </div>
+        </div>
+        <div class="col">
+            <div class="color-picker-container d-flex align-items-center">
+                <select class="form-control anno-col-back" id="anno-col-back{{ loop_index }}"
+                        name="color-back" style="background-color: {{ sanno['anno-col-back'] }}; "
+                        title="Fill colour" data-toggle="tooltip">
+                    {% for key, value in chartColors.items() %}
+                        <option value="{{ value }}"
+                                {%- if sanno['anno-col-back']==value -%}selected{%- endif -%}>
+                            {{ key }}
+                        </option>
+                    {% endfor %}
+                    {% if (sanno['anno-col-back'] or '').startswith('#') %}
+                        <option value="{{ sanno['anno-col-back'] }}"
+                                selected>{{ sanno['anno-col-back'] }}</option>
+                    {% else %}
+                        <option value="custom">Custom Colour</option>
+                    {% endif %}
+                </select>
+                <i class="bi bi-three-dots-vertical ellipsis"></i>
+                <input type="color" selected="anno-col-back" class="form-control anno-col-picker-back"
+                       id="col-back{{ loop_index }}"
+                       name="cc" value="{{ sanno['anno-col-back'] }}">
+            </div>
+        </div>
+        <div style="width: 4%;">
+            <i class="bi bi-trash ps-3 cell-delete-series-format data-cell-icon-hover remove" title="Delete?"
+               data-toggle="tooltip"></i>
+        </div>
+    </div>
+</li>

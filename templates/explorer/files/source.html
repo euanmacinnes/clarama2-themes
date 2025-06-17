@@ -1,0 +1,34 @@
+<form action="/content/explore/Data/Sources/postgres.source.yaml" method="post">
+    <div class="mb-3">
+        <div id="content_query_{{ short_id() }}" editor="sql" class="source-editor form-control" style="min-height: 400px"></div>
+    <button class="btn btn-primary" type="submit">Run</button>
+    </div>
+</form>
+<p>{{ args }}</p>
+<div id="table-toolbar">
+
+</div><table
+    data-toggle="table"
+    data-toolbar="#table-toolbar"
+    data-show-columns="true"
+    data-filter-control="true"
+    data-click-to-select="true"
+    data-id-field="id"
+    data-show-footer="true"
+    data-show-export="true"
+    data-pagination="true"
+    data-page-size="15"
+    data-search="true"
+    data-export-options="{exportoptions}"
+    class="table table-striped  table-hover">
+    <thead>
+        <tr>
+            <th>1</th>
+        </tr>
+    </thead>
+    <tbody>
+
+    </tbody>
+</table>
+
+{% include "web/file_footer.html" %}

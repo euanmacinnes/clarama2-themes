@@ -1,0 +1,42 @@
+<div class="clarama-cell-content" celltype="source" dataid="{{ loop_index }}">
+    <div class="bg-info rounded text-light" style="padding: 5px">
+        <div class="rounded text-light row">
+            <div class="btn-group col align-items-center">
+                <!-- <button type="button" class="gridbrowsefile border border-0 bg-white input-group align-items-center" data-bs-toggle="modal" data-bs-target="#browseFileModal" inputId="task_step_{{ loop_index }}_source" filters="*.task.yaml">
+                    <input id="task_step_{{ loop_index }}_source" type="text" class="form-control border-0"
+                        placeholder="Task Filename" aria-label="Task relative filename"
+                        value="{{ source }}">
+                        <i class="bi bi-folder2-open px-2"></i>
+                    </input>
+                </button> -->
+
+                <div class="input-group">
+                    <input id="task_step_{{ loop_index }}_source" type="text" class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus"
+                    placeholder="Task Filename" aria-label="Task relative filename"
+                    value="{{ source }}">
+                    <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2" data-bs-toggle="modal" data-bs-target="#browseFileModal" inputId="task_step_{{ loop_index }}_source" filters="*.task.yaml">
+                        <i class="bi bi-folder2-open"></i>
+                    </button>
+                </div>
+
+                {% if source %}
+                    <a href="{{ source }}" target="_blank" id="task_step_{{ loop_index }}_browse_link" class="text-decoration-none text-white">
+                        <button id="task_step_{{ loop_index }}_browse" type="button"
+                            class="btn btn-secondary datasource" aria-haspopup="true"
+                            aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                            <i class="bi bi-pen"></i>
+                        </button>
+                    </a>
+                {% else %}
+                    <a href="#" target="_blank" id="task_step_{{ loop_index }}_browse_link" class="text-decoration-none text-white" style="display:none;">
+                        <button id="task_step_{{ loop_index }}_browse" type="button"
+                            class="btn btn-secondary datasource" aria-haspopup="true"
+                            aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                            <i class="bi bi-pen"></i>
+                        </button>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

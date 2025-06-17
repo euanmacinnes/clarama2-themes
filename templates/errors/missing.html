@@ -1,0 +1,39 @@
+{% extends "web/root.html" %}
+
+{% block content %}
+    <div class="row align-items-center">
+
+        <div class="d-flex container-fluid justify-content-center " style="padding: 75px">
+
+            <div class="row" class="bg-light">
+                <div class="card bg-light">
+                    <h2 class="card-header ">
+                        {{ content_info['data'] | capitalize }} accessing <i>{{ local_url }}</i> for {{ username }}
+                    </h2>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ content_info['error'] }}</h5>
+                        <p class="card-text">{{ content_info['error_location_code'] }} </p>
+                        <div class="accordion" id="accordionExample">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingOne">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapseOne" aria-expanded="true"
+                                            aria-controls="collapseOne">
+                                        Additional Information
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
+                                     data-bs-parent="#accordionExample">
+                                    <div class="accordion-body">
+                                        <p class="card-text">{% if 'extra' in content_info %}
+                                            {{ content_info['extra'] | dict_to_table | safe }}{% endif %} </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+{% endblock %}

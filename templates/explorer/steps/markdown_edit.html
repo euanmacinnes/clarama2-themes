@@ -1,0 +1,24 @@
+<textarea id="content_query_{{ loop_index }}" name="task_step_field_{{ loop_index }}"
+          class="row text-editor form-control clarama-text-editor clarama-cell-content"
+          celltype="text">{{ content }}</textarea>
+
+<script type="text/javascript">
+    $( document ).ready(() => {
+        $('.text-editor').trumbowyg({
+                            autogrow: true,
+                            autogrowOnEnter: true,
+                            btns: [
+                                ['historyUndo', 'historyRedo'],
+                                ['formatting'],
+                                ['fontsize', 'foreColor', 'backColor'],
+                                ['strong', 'em', 'del'],
+                                ['superscript', 'subscript'],
+                                ['link'],
+                                ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
+                                ['unorderedList', 'orderedList', 'indent', 'outdent'],
+                                ['horizontalRule'],
+                                ['removeformat'],
+                            ]
+                        });
+    });
+</script>

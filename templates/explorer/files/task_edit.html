@@ -1,0 +1,139 @@
+{% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
+<form>
+    <div class="container-fluid bg-light">
+        <div class="row" style="padding: 0">
+            <div class="col-1 bg-secondary text-light" style="padding: 0">
+                <button type="button" class="btn btn-secondary">Execution</button>
+            </div>
+            <div class="col">
+                <div class="row">
+                </div>
+            </div>
+            <div class="col-auto">
+                <ul class="btn-group clarama-task" role="group" aria-label="task_functions">
+                    <button id="save" type="button" class="btn btn-secondary clarama-task clarama-task-save"
+                            url="{{ file_url }}"><i
+                            class="bi bi-floppy"></i></button>
+                    <button id="stop" type="button" class="btn btn-secondary clarama-task clarama-task-stop"><i
+                            class="bi bi-stop-fill"></i></button>
+                    <button id="editrun" type="button" class="btn btn-secondary kernel-play-button clarama-task-editrun"
+                            socket="edit_socket"
+                            kill="False"><i
+                            class="bi bi-play-fill h3"></i></button>
+                    <button type="button" class="btn btn-info" id="kernel_status"> Loading...</button>
+                    <button id="environment" aria-haspopup="true" aria-expanded="false"
+                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                            class="btn btn-info environment dropdown-toggle">..
+                    </button>
+                    <ul class="dropdown-menu bg-light shadow-lg" aria-labelledby="environment">
+                        <li>
+                            <span class="dropdown-item-text"><h4>Available Environments</h4></span>
+                        </li>
+                        <table width="100%">
+                            {% for key, env in environments.items() %}
+                                <tr>
+                                    <td width="90%"><a
+                                            class="dropdown-item environments {% if key==environment %}active{% endif %}"
+                                            href="#"
+                                            id="environment_{{ key | washed }}"
+                                            env="{{ key }}"
+                                            onclick="set_environment('{{ key }}')">{{ env }}</a>
+                                    </td>
+                                    <td width="32px">
+                                        <i class="bi bi-arrow-counterclockwise"
+                                           env="{{ key }}"
+                                           onclick="reset_environment('{{ key }}');"></i>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </ul>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-1 bg-secondary text-light" style="padding: 0">
+                <hr/>
+                <button type="button" class="btn btn-secondary">Parameters</button>
+            </div>
+            <div class="col mb-3" style="padding: 0">
+                <hr/>
+                <div class="container-fluid">
+                    {% include "explorer/files/_fields_edit_task.html" %}
+                </div>
+            </div>
+            <div id="startup_scripts" class="container-fluid">
+                <div class="d-flex justify-content-center">
+                </div>
+            </div>
+            <div id="parameters" class="container-fluid">
+                <div class="d-flex justify-content-center">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion" id="accordionStreams">
+        <div class="accordion-item">
+            {% for streamslist in streams %}
+                {% for stream, steps in streamslist.items() %}
+                    <h2 class="accordion-header" id="panelsStayOpen-heading{{ stream }}">
+                        <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapse{{ stream }}"
+                                aria-expanded="true" aria-controls="panelsStayOpen-collapse{{ stream }}">
+                            <i>{{ stream }}</i>&nbsp;Stream
+                        </button>
+                    </h2>
+                    <div id="panelsStayOpen-collapse{{ stream }}"
+                         class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+                         aria-labelledby="panelsStayOpen-heading{{ stream }}">
+                        <div class="accordion-body" style="padding:0">
+                            <ul id="stream_{{ stream }}" class="clarama-sortable-color container-fluid stream"
+                                stream="{{ stream }}"
+                                stream-file="{{ file_url | washed }}"
+                                stream-name="{{ (internal_topic ~ '_stream_' ~ stream ~ '_step') }}">
+
+                                {% for step in steps %}
+                                    {% with task_step = step, task_index=loop.index, task_last = loop.last, stream=stream,
+                        task_topic=internal_topic %}
+                                        {% include "explorer/files/_cell.html" %}
+                                    {% endwith %}
+
+                                {% endfor %}
+
+                            </ul>
+
+                            {% include "explorer/files/_cell_insert_new.html" %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+</form>
+
+<div class="clarama-task">
+    <div id="edit_socket" environment="{{ environment }}" class="clarama-websocket clarama-task"
+         mode="edit"
+         topic="{{ internal_topic }}"
+         task="{{ file_url }}" task_kill="False"></div>
+</div>
+
+<div id="step_json">
+    {% for streamslist in streams %}
+        {% for stream, steps in streamslist.items() %}
+            {% for step in steps %}
+                <script type="application/json" id="json_{{ loop.index }}">
+                    {{ step
+            |
+            json_pprint
+            |
+            safe }}</script>
+            {% endfor %}
+        {% endfor %}
+    {% endfor %}
+</div>
+
+{% include "explorer/files/_grid_edit.html" %}
+{% include "explorer/files/task_response_templates.html" %}
+{% include "web/file_footer.html" %}

@@ -1,0 +1,18 @@
+{% extends "explorer/files/fieldlayout_" + field_layout + ".html" %}
+
+{% block content %}
+    <input id="{{ field_id }}"
+           name="{{ field_name }}" step="0.001" type="datetime-local"
+           class="form-control col clarama-field clarama-delay-field"
+           fieldtype="html"
+            {{ field_config | required }}
+            {{ field_config | readonly }}
+           autocomplete="{{ get(field_config,'autocomplete','on') }}"
+           placeholder="{{ get(field_config,'placeholder') }}"
+           value="{{ field_value or get(field_config,'default','') }}"
+           step="{{ get(field_config,'step','0.0000001') }}"
+           min="{{ get(field_config,'minimum','0') }}"
+           max="{{ get(field_config,'maximum','5') }}"
+            {% include "explorer/files/field_tooltip.html" %}
+    />
+{% endblock %}

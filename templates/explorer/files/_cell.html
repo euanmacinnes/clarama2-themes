@@ -1,0 +1,143 @@
+<li id="{{ (task_topic ~ '_stream_' ~ stream ~ '_step') }}_{{ task_index }}" step="{{ task_index }}"
+    class="row bg-white text-dark clarama-cell-item"
+    steptype="{{task_step['type']}}"
+>
+    <div class="panel col-2 col-lg-1
+                 {% if task_last %}
+                    bg-primary
+                 {% else %}
+                    bg-secondary
+                 {% endif %}
+                 text-light draggable-heading justify-content-end position-relative"
+         style="padding:0">
+        <hr class="faded"/>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-auto">
+                    <button type="button" class="btn text-white step-label">{{ task_index }}</button>
+                </div>
+                <div class="col">
+                    <input type="text" id="loop-iterable-{{ task_index }}"
+                           loop-id="{{ task_index }}"
+                           class="form-control loop-iterable loop-inactive"
+                           value="{%- if step is defined -%}{{step['loop-iterable']}}{%- endif -%}"
+                           opacity="0.04">
+                </div>
+            </div>
+            {% if task_step['type'] != "markdown" %}
+            <div class="row">
+                <div class="col">&nbsp;</div>
+                <div class="col-auto hoverover auto-hover"
+                     id="task_toolbar_{{ stream}}_{{ task_index }}_play"
+                     opacity="0.04">
+                    <button type="button" class="btn celleditrun" data-bs-toggle="tooltip"
+                            data-bs-placement="bottom" title="Run this step"><i
+                            class="mb-3 fs-4 bi bi-play-fill " style="width: 75px;"></i></button>
+                    <button type="button" class="btn celleditfwd" data-bs-toggle="tooltip"
+                            data-bs-placement="bottom" title="Run from this step onwards"><i
+                            class="mb-3 fs-4 bi bi-fast-forward-fill"></i>
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="cell-spin" style="opacity: 0">
+            <div
+                    class="d-flex justify-content-center spinner-border text-info position-absolute start-50"
+                    role="status"
+                    style="width: 4rem; height: 4rem;"
+            >
+            </div>
+        </div>
+        <div class="d-flex justify-content-center position-absolute bottom-0">
+            <div class="container-fluid cell-timing">
+            </div>
+        </div>
+    </div>
+    <div class="col-10 col-lg-11" style="padding:0">
+        <div class="container-fluid">
+            <div class="row flex-nowrap align-items-center my-2">
+                {% include "explorer/files/_cell_insert.html" %}
+                <div class="col-auto hoverover auto-hover"
+                     id="task_toolbar_{{ stream}}_{{ task_index }}_trash"
+                     opacity="0.04"
+                     style="opacity: 0.04">
+                    <button type="button" class="btn delete_step" data-bs-toggle="tooltip"
+                            data-bs-placement="bottom" title="Delete this step"><i
+                            class="fs-2 bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>
+            <div class="row">
+                <div class="col loop-left loop-hidden loop-{{ task_index }}">
+                    <div class="loop loop-left loop-height">&nbsp;</div>
+                </div>
+                <div class="col">
+                    <!-- the Editing -->
+                    <div id="step_{{ stream }}_{{ task_index }}"
+                         class="clarama-post-embedded cell-editor"
+                         post_json="json_{{ task_index }}"
+                         url="{{ call('clarama_content.content_template_render','explorer/steps/' ~ task_step['type'] ~ '_edit') }}?loop_index={{ task_index }}">
+                    </div>
+                    <!-- the Results -->
+                    <div class="container-fluid cell-response">
+                        <div id="results_{{ task_index }}" class="cell-results" {% if task_step['type'] == "data" %}style="min-height: 50px;" {% endif%}>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>
+        </div>
+    </div>
+</li>
+
+<script>
+    function toggle_loop(elem){
+       var val = (elem.val()).trim();
+
+              loop_id = elem.attr('loop-id');
+
+              //console.log("LOOP" + elem.attr('id'));
+
+              //console.log('LOOP .loop-' + loop_id + ' : ' + val);
+
+              //console.log($('.loop-' + loop_id));
+
+              if (val == '')
+              {
+                  elem.addClass('loop-inactive');
+                  elem.removeClass('loop-active');
+                  $('.loop-' + loop_id).addClass("loop-hidden");
+                  $('.loop-' + loop_id).removeClass("loop-show");
+              }
+              else
+              {
+                  elem.addClass('loop-active');
+                  elem.removeClass('loop-inactive');
+                  $('.loop-' + loop_id).removeClass("loop-hidden");
+                  $('.loop-' + loop_id).addClass("loop-show");
+              }
+    }
+
+      $( document ).ready(() => {
+          $('.loop-iterable').each(function(){
+                toggle_loop($(this));
+                });
+
+          $('.loop-iterable').bind('keypress keydown keyup', function(e){
+         if(e.keyCode == 13) { e.preventDefault(); }
+            toggle_loop($(this));
+          });
+
+          $("input").off("change");
+          $("input").on("change", function(){
+            toggle_loop($(this));
+
+
+          });
+      });
+</script>

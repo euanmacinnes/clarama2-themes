@@ -1,0 +1,22 @@
+{% if field_type != "hidden" %}
+<div class="container" style="height: 100%;">
+    <div class="row" style="height: 100%; padding: 0; ">
+        <div class="col-auto tight">
+            <label
+                    style="white-space:nowrap;overflow:hidden;">
+                {% if get(field_config,'required',False) %}
+                <strong style="font-size: 10px;">{{ get(field_config,'name',field) }}</strong>
+                {% else %}
+                <strong style="font-size: 10px;">{{ get(field_config,'name',field) }}</strong>
+                {% endif %}
+            </label>
+        </div>
+        <div class="col" style="font-size: 10px; padding-left: 3px; padding-right: 0;">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+<script>
+    $('[data-bs-toggle="tooltip"]').tooltip()
+</script>
+{% endif %}

@@ -1,0 +1,115 @@
+<div class="modal fade" id="interactionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="interactionModalTitle">Interaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="interactionModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="interactionPopup" class="w-100">
+</div>
+
+<script type="text/javascript">
+    let lastMouseEvent = null;
+    var currentModalAddContentPath = "";
+
+    document.addEventListener('mousemove', function (e) {
+        lastMouseEvent = e;
+    });
+
+    function showModalWithContent(url, parameters) {
+        $('#interactionModal').modal('show');
+        const iModal = document.getElementById("interactionModalBody");
+        iModal.innerHTML = '';
+        iModal.append(showInteractionContent('modal', url, parameters));
+        // iModal.innerHTML = '';
+        // iModal.append(showInteractionContent(url, 'interactionModalContent'));
+        enable_interactions($("#interactionModalBody"), true);
+    }
+
+    function showPopupNearMouse(url, parameters) {
+        const ipopup = document.getElementById('interactionPopup');
+        console.log("ipopup", ipopup)
+
+        if (lastMouseEvent) {
+            const popupMaxWidthPercent = 43;
+            const viewportWidth = window.innerWidth;
+            const popupMaxWidth = viewportWidth * (popupMaxWidthPercent / 100);
+            const mouseX = lastMouseEvent.pageX;
+            const mouseY = lastMouseEvent.pageY;
+
+            // check if popup overflowed past right
+            if (mouseX + popupMaxWidth > viewportWidth) {
+                ipopup.style.left = 'unset';
+                ipopup.style.right = (viewportWidth - mouseX) + 'px';
+            } else {
+                ipopup.style.right = 'unset';
+                ipopup.style.left = mouseX + 'px';
+            }
+
+            ipopup.style.top = (mouseY - 150) + 'px';
+        }
+
+        ipopup.style.display = 'block';
+        ipopup.innerHTML = '';
+        ipopup.append(showInteractionContent('popup', url, parameters));
+        // ipopup.innerHTML = '';
+        // ipopup.append(showInteractionContent(url, 'interactionPopupContent'));
+        enable_interactions($("#interactionPopup"), true);
+
+        document.addEventListener('click', function hideOnClick(e) {
+            if (!ipopup.contains(e.target)) {
+                ipopup.style.display = 'none';
+                document.removeEventListener('click', hideOnClick);
+            }
+        });
+    }
+
+    function showInteractionContent(interaction, relativeP, parameters) {
+        // console.log("inside showinteractioncontent fn");
+        let currentP;
+        let ICurl;
+
+        if (relativeP === "/System/Slates/Tasks/Issue_Details.task.yaml") {
+            ICurl = '/render/popup' + relativeP;
+        } else {
+            if ('{{ file_url | path }}'[0] === '/') {
+                currentP = ($CLARAMA_ROOT + '/render/popup' + '{{ file_url | path }}');
+            } else {
+                currentP = ($CLARAMA_ROOT + '/render/popup' + '/{{ file_url | path }}');
+            }
+            console.log("fileurl/path", '{{ file_url | path }}');
+
+            let currentSegments = currentP.split('/');
+            let relativeSegments = relativeP.split('/');
+            for (let segment of relativeSegments) {
+                if (segment === '..') {
+                    currentSegments.pop(); // Move up one directory
+                } else if (segment !== '.' && segment !== '') {
+                    currentSegments.push(segment); // Move into subdirectory
+                }
+            }
+
+            ICurl = $CLARAMA_ROOT + currentSegments.join('/');
+            // document.getElementById(displayContentID).setAttribute("url", ICurl);
+        }
+        console.log("$CLARAMA_ROOT", $CLARAMA_ROOT)
+        console.log("ICurl", ICurl)
+
+        const newIC = document.createElement("div");
+        // newIC.id = newDivID;
+        newIC.className = "clarama-post-embedded clarama-replaceable";
+        newIC.setAttribute("url", `${ICurl}`);
+        newIC.setAttribute("json", JSON.stringify(parameters));
+        // newIC.setAttribute("autorun", "True");
+        return newIC;
+    }
+</script>

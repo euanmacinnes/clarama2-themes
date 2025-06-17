@@ -1,0 +1,66 @@
+{% set internal_topic = element_prefix + url_for(request.endpoint, **request.view_args) | topic %}
+
+{% for streamslist in streams %}
+    {% for stream, steps in streamslist.items() %}
+        {% if stream=='main' %}
+            <div class="container-fluid tight" style="height: 100%;">
+                <div class="bg-white text-dark clarama-cell-item tight"
+                     id="{{ (internal_topic ~ '_stream_main') }}_exception">
+                    <div id="results_exception" class="cell-results tight">
+                    </div>
+                </div>
+                {% for step in steps %}
+                    {% if loop.last %}
+                        <div class="row bg-white text-dark clarama-cell-item tight" style="height: 100%"
+                             id="{{ (internal_topic ~ '_stream_' ~ stream ~ '_step') }}_{{ loop.index }}"
+                        >
+                            <div class="col bg-light tight" style="height: 100%">
+                                <!-- the Results -->
+                                <div class="container-fluid tight" style="height: 100%">
+                                    <div id="results_{{ loop.index }}" class="cell-results tight" style="height: 100%">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        {% if debug %}
+                            <div class="row bg-white text-dark clarama-cell-item tight"
+                                 id="{{ (internal_topic ~ '_stream_' ~ stream ~ '_step') }}_{{ loop.index }}"
+                            >
+                                <div class="col bg-light tight">
+                                    <!-- the Results -->
+                                    <div class="container-fluid tight">
+                                        <div id="results_{{ loop.index }}" class="cell-results tight"
+                                             style="height: 100%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+
+<div class="clarama-task">
+    <!-- internal topic already has element_x inside -->
+    <div id="{{ internal_topic }}_socket"
+         class="clarama-websocket clarama-task"
+         mode="embed"
+         task="{{ file_url }}"
+         task_kill="False"
+         topic="{{ internal_topic }}"
+         autorun="{{ run }}"></div>
+</div>
+
+<script type="application/json" id="{{ internal_topic }}_socket_args">
+    {{ task_arguments
+        |
+        json_pprint
+        |
+        safe }}
+</script>
+{% include "explorer/files/task_response_templates.html" %}
+{% include "web/file_footer.html" %}

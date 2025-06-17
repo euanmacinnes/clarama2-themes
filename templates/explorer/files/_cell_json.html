@@ -1,0 +1,13 @@
+<!--
+~ Copyright (c) 2024. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
+-->
+
+<script type="application/json" id="json_{{ task_index }}">
+    {{
+        step
+        |
+        json_pprint
+        |
+        safe
+    }}
+</script>

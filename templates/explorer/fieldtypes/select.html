@@ -1,0 +1,35 @@
+{% extends "explorer/files/fieldlayout_" + field_layout + ".html" %}
+
+{% block content %}
+    <div style="position-relative">
+        <select id="{{ field_id }}"
+                fieldtype="html"
+                name="{{ field_name }}"
+                size="{{ field_config['size'] or '4' }}"
+                {{ field_config | required }}
+                {{ field_config | readonly }}
+                class="form-control clarama-field-select2 clarama-field clarama-select-field tooltip"
+                {% include "explorer/files/field_tooltip.html" %}
+                {% if field_config.get('data',{}).get('source') %}
+                sourceurl="{{ field_config['data'] | datasource }}"
+                {% endif %}
+        >
+            {% if field_config['placeholder'] is defined %}
+                {% if field_config["default"] is not defined %}
+                    <option value="" selected disabled hidden>{{ field_config['placeholder'] }}
+                    </option>
+                {% endif %}
+            {% endif %}
+            {%- for item in field_config.get('data',{}).get('options',{}) -%}
+                {% if item is mapping %}
+                    <option value="{{ item['id'] }}"
+                            {% if item['id']== field_config["default"] or item['id']==field_value %}
+                            selected="selected"  {% endif %}>{{ item['value'] }}</option>
+                {% else %}
+                    <option value="{{ item }}" {% if item== field_config["default"] %}
+                            selected="selected"  {% endif %}>{{ item }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+{% endblock %}

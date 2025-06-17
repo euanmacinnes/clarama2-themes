@@ -1,0 +1,101 @@
+/*
+ * Copyright (c) 2025. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
+ */
+
+.help h1 {
+    font-size: 48px !important;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+    padding-bottom: .2em;
+    border-bottom: 1px solid #d1d9e0b3;
+    border-spacing: 15px;
+}
+
+.help p {
+    font-size: 18px !important;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+}
+
+.help ul {
+    font-size: 18px !important;
+    color: #bbb;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+    padding: 10px;
+}
+
+.help li {
+    font-size: 18px !important;
+    color: #555;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+    padding: 10px;
+}
+
+.help em {
+    font-size: 18px !important;
+    color: #888;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+}
+
+.help code {
+    font-size: 20px !important;
+}
+
+.help pre {
+    font-size: 20px !important;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    background-color: #eee;
+    font-color: #ccf;
+    border-radius: 8px;
+}
+
+.help a {
+    font-size: 18px !important;
+    color: #2FA4E7;
+    text-decoration: none;
+}
+
+.help-folder h1 {
+    font-size: 44px !important;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+    padding-bottom: .2em;
+    border-bottom: 1px solid #d1d9e0b3;
+}
+
+.help-folder p {
+    font-size: 16px !important;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+}
+
+.help-folder li {
+    font-size: 16px !important;
+    color: #ccc;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+}
+
+.help-folder em {
+    font-size: 16px !important;
+    color: #888;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+}
+
+.help-folder code {
+    font-size: 20px !important;
+}
+
+.help-folder pre {
+    font-size: 20px !important;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    background-color: #333;
+    border-radius: 8px;
+}
+
+.help-folder a {
+    font-size: 22px !important;
+    color: #5DACFC;
+    text-decoration: none;
+}

@@ -1,0 +1,255 @@
+<div>
+    <div class="container-fluid">
+             <div class="row bg-white text-dark">
+                 <div class="col-1  bg-secondary text-light justify-content-end">
+                     <hr/>Schedule
+                 </div>
+                 <div class="col">
+                     <hr/>
+                <div class="container-fluid">
+                    <div class="row">
+                        <p class="col">Start Date</p>
+                     <input id="schedule_field_startdate" {{ required }} name="schedule_field_startdate" step="0.001" type="datetime-local" class="form-control col"
+               data-bs-toggle="tooltip"
+               data-bs-title="Start Date"
+               data-bs-placement="bottom"
+                />
+                        <p class="col">End Date</p>
+                        <input id="schedule_field_enddate" {{ required }} name="schedule_field_enddate" step="0.001" type="datetime-local" class="form-control col"
+               data-bs-toggle="tooltip"
+               data-bs-title="Start Date"
+               data-bs-placement="bottom"
+                />
+                    </div></div>
+                    <br/>
+                    <div class="accordion" id="accordionPanels_schedule">
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="panelsStayOpen-headingSecond">
+                          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseSecond" aria-expanded="true" aria-controls="panelsStayOpen-collapseSecond">
+                            Seconds
+                          </button>
+                        </h2>
+                        <div id="panelsStayOpen-collapseSecond" class="accordion-collapse collapse show" aria-labelledby="panelsStayOpen-headingSecond">
+                          <div class="accordion-body">
+                                      <div class="container">
+                                          <div class="row">
+                                              <input class="form-check-input" type="checkbox"  id="field_second_enabled">
+                                              <select id="field_second_type" class="col form-control">
+                                                  <option>Every</option>
+                                                  <option>On the xth</option>
+                                              </select>
+                                      <input id="field_second_value" name="field_second_every" type="range" class="form-control form-range col"
+                                             oninput="this.nextElementSibling.value = this.value"
+                                             step="1"
+                                             min="0"
+                                             max="59"
+                                             value="0"
+                                             data-bs-toggle="tooltip"
+                                             data-bs-title="number of seconds in between runs"
+                                             data-bs-placement="bottom"/>
+                                      <output id="persecond_id" for="field_second_value" class="col">0</output>
+                                          </div>
+                                      </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="panelsStayOpen-headingMinute">
+                          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseMinute" aria-expanded="true" aria-controls="panelsStayOpen-collapseMinute">
+                            Minutes
+                          </button>
+                        </h2>
+                        <div id="panelsStayOpen-collapseMinute" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingMinute">
+                          <div class="accordion-body ">
+                                      <div class="container">
+                                          <div class="row">
+                                              <input class="form-check-input" type="checkbox"  id="field_minute_enabled">
+                                              <select id="field_minute_type" class="col form-control">
+                                                  <option>Every</option>
+                                                  <option>On the xth</option>
+                                              </select>
+                                      <input id="field_minute_value" name="field_minute_every" type="range" class="form-control form-range col"
+                                             oninput="this.nextElementSibling.value = this.value"
+                                             step="1"
+                                             min="0"
+                                             max="59"
+                                             value="0"
+                                             data-bs-toggle="tooltip"
+                                             data-bs-title="number of seconds in between runs"
+                                             data-bs-placement="bottom"/>
+                                      <output for="field_minute_value" class="col">0</output>
+                                          </div>
+                                      </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="panelsStayOpen-headingTwo">
+                          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
+                            Hours
+                          </button>
+                        </h2>
+                        <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingTwo">
+                          <div class="accordion-body">
+                                      <div class="container">
+                                          <div class="row">
+                                              <input class="form-check-input" type="checkbox"  id="field_hour_enabled">
+                                              <select id="field_hour_type" class="col form-control">
+                                                  <option>Every</option>
+                                                  <option>On the xth</option>
+                                              </select>
+                                      <input id="field_hour_value" name="field_hour_every" type="range" class="form-control form-range col"
+                                             oninput="this.nextElementSibling.value = this.value"
+                                             step="1"
+                                             min="0"
+                                             max="24"
+                                             value="0"
+                                             data-bs-toggle="tooltip"
+                                             data-bs-title="number of hours in between runs, or the specific hour (24 hour UTC) to run at"
+                                             data-bs-placement="bottom"/>
+                                      <output for="field_hour_value" class="col">0</output>
+                                          </div>
+                                      </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="panelsStayOpen-headingThree">
+                          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false" aria-controls="panelsStayOpen-collapseThree">
+                            Days
+                          </button>
+                        </h2>
+                        <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingThree">
+                          <div class="accordion-body">
+                                              <div class="container">
+                                          <div class="row">
+                                              <input class="form-check-input" type="checkbox"  id="field_day_enabled">
+                                              <select id="field_day_type" class="col form-control">
+                                                  <option>Every</option>
+                                                  <option>On the xth</option>
+                                              </select>
+                                      <input id="field_day_value" name="field_day_every" type="range" class="form-control form-range col"
+                                             oninput="this.nextElementSibling.value = this.value"
+                                             step="1"
+                                             min="0"
+                                             max="24"
+                                             value="0"
+                                             data-bs-toggle="tooltip"
+                                             data-bs-title="number of hours in between runs, or the specific hour (24 hour UTC) to run at"
+                                             data-bs-placement="bottom"/>
+                                      <output for="field_day_value" class="col">0</output>
+                                          </div>
+                                                  <div class="row">
+                                                      - or -
+                                                  </div>
+                                                  <div class="row">
+                                                      <table>
+                                                          <tr>
+                                                              <td>sun</td>
+                                                              <td>mon</td>
+                                                              <td>tue</td>
+                                                              <td>wed</td>
+                                                              <td>thu</td>
+                                                              <td>fri</td>
+                                                              <td>sat</td>
+                                                          </tr>
+                                                          <tr>
+                                                              <td><input class="form-check-input" type="checkbox"  id="field_sun_enabled"></td>
+                                                              <td><input class="form-check-input" type="checkbox"  id="field_mon_enabled"></td>
+                                                              <td><input class="form-check-input" type="checkbox"  id="field_tue_enabled"></td>
+                                                              <td><input class="form-check-input" type="checkbox"  id="field_wed_enabled"></td>
+                                                              <td><input class="form-check-input" type="checkbox"  id="field_thur_enabled"></td>
+                                                              <td><input class="form-check-input" type="checkbox"  id="field_fri_enabled"></td>
+                                                              <td><input class="form-check-input" type="checkbox"  id="field_sat_enabled"></td>
+                                                          </tr>
+                                                      </table>
+                                                  </div>
+                                      </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="panelsStayOpen-headingWeeks">
+                          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseWeeks" aria-expanded="false" aria-controls="panelsStayOpen-collapseWeeks">
+                            Weeks
+                          </button>
+                        </h2>
+                        <div id="panelsStayOpen-collapseWeeks" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingWeeks">
+                          <div class="accordion-body">
+                                              <div class="container">
+                                          <div class="row">
+                                              <input class="form-check-input" type="checkbox"  id="field_week_enabled">
+                                              <select id="field_week_type" class="col form-control">
+                                                  <option>Every</option>
+                                                  <option>On the xth</option>
+                                              </select>
+                                      <input id="field_week_value" name="field_hour_every" type="range" class="form-control form-range col"
+                                             oninput="this.nextElementSibling.value = this.value"
+                                             step="1"
+                                             min="1"
+                                             max="52"
+                                             value="1"
+                                             data-bs-toggle="tooltip"
+                                             data-bs-title="number of weeks in between runs, or the specific week to run at"
+                                             data-bs-placement="bottom"/>
+                                      <output for="field_week_value" class="col">0</output> week(s)
+                                          </div>
+                                      </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="panelsStayOpen-headingMonths">
+                          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseMonths" aria-expanded="false" aria-controls="panelsStayOpen-collapseMonths">
+                            Months
+                          </button>
+                        </h2>
+                        <div id="panelsStayOpen-collapseMonths" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingMonths">
+                          <div class="accordion-body">
+                                      <div class="container">
+                                          <div class="row">
+                                              <input class="form-check-input" type="checkbox"  id="field_month_enabled">
+                                              <select id="field_month_type" class="col form-control">
+                                                  <option>Every</option>
+                                                  <option>On the xth</option>
+                                              </select>
+                                      <input id="field_month_value" name="field_hour_every" type="range" class="form-control form-range col"
+                                             oninput="this.nextElementSibling.value = this.value"
+                                             step="1"
+                                             min="1"
+                                             max="12"
+                                             value="1"
+                                             data-bs-toggle="tooltip"
+                                             data-bs-title="number of months in between runs, or the specific month"
+                                             data-bs-placement="bottom"/>
+                                      <output for="field_month_value" class="col">0</output>
+                                          </div>
+                                      </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                 </div>
+            </div>
+        </div>
+    <br/>
+    <div class="container-fluid bg-light">
+        <div class="row">
+            <div class="col-1 bg-secondary text-light">
+                Parameters
+            </div>
+            <div class="col">
+                <div class="container-fluid">
+                    <div class="row">
+                        {% include "explorer/files/_fields.html" %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-1">
+             <input class="btn btn-primary" type="submit" value="Schedule" >
+            </div>
+        </div>
+    </div>
+    </div>
+
+{% include "web/file_footer.html" %}

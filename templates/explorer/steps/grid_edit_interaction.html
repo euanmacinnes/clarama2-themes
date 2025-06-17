@@ -1,0 +1,17 @@
+<li class="dropdown-item slate-elem-dropdown-item" loop-index="{{ loop_index }}" elem-id="{{ current_element }}" target-id="{{ target }}" draggable="true">
+    <div class="list-group-item d-flex align-items-center">
+        <i class="bi bi-grip-vertical draggable-heading p-0" draggable="true"></i>
+        <div class="cElem mx-2 flex-grow-1 w-100 align-middle">{{ current_element }}</div>
+
+        <i class="bi bi-gear mx-1 mx-2" data-bs-toggle="modal"
+            data-bs-target="#interactionSettingsModal"
+            data-index="{{ loop_index }}"
+            data-element="{{ current_element }}"
+            data-target="{{ target }}"
+            data-url="{{ current_element_url }}"
+            data-params="{{ current_element_params }}"
+            data-menuName="{{ menu_item_name }}"
+            onclick="openInteractionSettings(this)" ></i>
+        <i class="bi bi-trash p-0 delete-grid-interaction" onClick="unlink_elements('{{ target }}', '{{ loop_index }}');"></i>
+    </div>
+</li>

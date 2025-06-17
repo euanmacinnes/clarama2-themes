@@ -1,0 +1,12 @@
+<div id="content_query_{{ loop_index }}"
+     name="task_step_field_{{ loop_index }}"
+     editor="sh"
+     class="source-editor form-control clarama-field-editor clarama-cell-content"
+     celltype="shell"
+     style="min-height: 100px">{{ content }}</div>
+
+<script type="text/javascript">
+    $(document).ready(() => {
+        $('.source-editor').editor();
+    });
+</script>

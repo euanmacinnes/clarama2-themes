@@ -1,0 +1,7 @@
+{% for field in fields %}
+<li id="{{"panel_field" + field | filebasename | washed}}" stream="{{stream}}"
+    class="panel col clarama-post-embedded"
+    source_url="{{ field }}"
+    url="{{ embedded_url(filename=field, fieldname="field" + field | filebasename | washed, default=request.args.get("field_" + field | filebasename | washed)) }}">
+</li>
+{% endfor %}

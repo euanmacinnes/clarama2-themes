@@ -1,0 +1,28 @@
+<div class="clarama-cell-content" celltype="notification" dataid="{{ loop_index }}">
+    <div class="bg-light rounded text-dark" style="padding: 5px">
+        <div class="btn-group rounded" role="group" aria-label="Basic example">
+            <i class="bi bi-chat-dots fs-4 mb-3"> Send Notification</i>
+        </div>
+
+        <div class="alert alert-secondary">
+            <div class="row">
+                <div class="col">
+                    <div>Notification Targets</div>
+                    <div id="content_query_{{ loop_index }}_targets"
+                         name="task_step_field_{{ loop_index }}_targets"
+                         class="form-control source-editor clarama-field-editor"
+                         editor="yaml"
+                         style="min-height: 100px">{{ targets or "email:\n    from: \n    to: \n    subject: " }}</div>
+                </div>
+                <div class="col">
+                    <div>Notification Message</div>
+                    <textarea id="content_query_{{ loop_index }}_message_content"
+                              name="task_step_field_{{ loop_index }}_message_content"
+                              class="form-control text-editor clarama-text-editor clarama-field-editor"
+                              style="min-height: 100px">{{ message_content }}</textarea>
+                </div>
+                <p>&nbsp;</p>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,45 @@
+<div class="container-fluid">
+    <div class="row justify-content-center flex-nowrap">
+        {% if file_index %}
+            <div class="col-2">
+                <div class="card bg-secondary help shadow">
+                    <nav class="card-header navbar navbar-expand-xl navbar-dark bg-dark">
+                        <div class="container-fluid">
+                            <h2 class="navbar-brand">Table of Contents</h2>
+                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#navbarFolder" aria-controls="navbarFolder" aria-expanded="false"
+                                    aria-label="Toggle navigation">
+                                <span class="navbar-toggler-icon"></span>
+                            </button>
+                        </div>
+                    </nav>
+                    {{ file_index | safe }}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="col-10">
+            <div class="card bg-light shadow">
+                <nav class="card-header navbar navbar-expand-xl navbar-dark bg-dark">
+                    <div class="container-fluid">
+                        <h1 class="navbar-brand">{{ active_content }}</h1>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#navbarFolder" aria-controls="navbarFolder" aria-expanded="false"
+                                aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                    </div>
+                </nav>
+                {% if file_content %}
+                    <div class="card-body bg-white help"
+                         style="font-size:16px; padding-left:50px; padding-right:50px;">
+                        <p class="card-text" style="font-size:16px;">{{ file_content | safe }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% include "web/file_footer.html" %}

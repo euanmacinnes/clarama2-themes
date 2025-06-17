@@ -1,0 +1,32 @@
+<div class="grid-reference grid-{{ grid_id }}" grid_id="{{ grid_id }}"></div>
+<script type="text/javascript">
+    var {{ grid_id }}elements = {{ element_json | to_json | safe }};
+
+    let {{ grid_id }}subOptions = {
+        cellHeight: 55, // should be 50 - top/bottom
+        column: 'auto', // size to match container. make sure to include gridstack-extra.min.css
+        acceptWidgets: true, // will accept .grid-stack-item by default
+        margin: 5,
+        staticGrid: true,
+        subGridDynamic: false, // make it recursive for all future sub-grids
+    };
+
+    let {{ grid_id }}options = { // main grid options
+        cellHeight: 55,
+        margin: 2,
+        float: true,
+        minRow: 1, // don't collapse when empty
+        acceptWidgets: true,
+        subGridOpts: {{ grid_id }}subOptions,
+        staticGrid: true,
+        removable: '.trash',
+        draggable: {cancel: '.no-drag'},
+        subGridDynamic: false, // v7 api to create sub-grids on the fly
+        children: {{ grid_json | safe }}
+    };
+
+    GridStack.renderCB = function (el, w) {
+        el.innerHTML = w.content;
+    };
+    let {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#containment-wrapper'), {{ grid_id }}options);
+</script>

@@ -1,0 +1,310 @@
+<template id="task_step_exception" target_class="cell-results">
+    <div class="row alert alert-danger">
+        <b>Exception</b><br/><br/>
+        <div class="input-group mb-3">
+            <div class="form-floating">
+                <span class="clarama-capitalize clarama-error" data-bs-toggle="collapse"
+                      data-bs-target="#collapse{instance_content}">{exception_content}</span>
+            </div>
+            <button class="btn btn-primary mt-0" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse{instance_content}"
+                    aria-expanded="false" aria-controls="collapse{instance_content}">
+                ...
+            </button>
+        </div>
+        <hr/>
+        <div class="collapse" id="collapse{instance_content}">
+            <div class="card card-body">
+                <pre class="pre_response"><code class="code_response">{last_traceback_content}</code></pre>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="task_step_error" target_class="cell-results">
+    <div class="row alert alert-danger">
+        <div>
+            <table>
+                <tr>
+                    <td>
+                        <b class="clarama-error">{message_content}</b>
+                    </td>
+                    <td>&nbsp;&nbsp;&nbsp;</td>
+                    <td>
+                        <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse{instance_content}"
+                                aria-expanded="false" aria-controls="collapse{instance_content}">
+                            ...
+                        </button>
+                    </td>
+            </table>
+        </div>
+        <div class="collapse" id="collapse{instance_content}">
+            <div class="card card-body">
+                <pre class="pre_response"><code class="code_response">{details_content}</code></pre>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="task_step_warn" target_class="cell-results">
+    <div class="row alert alert-warning">
+        <div><b>{message_content}</b>
+            <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse{instance_content}"
+                    aria-expanded="false" aria-controls="collapse{instance_content}">
+                ...
+            </button>
+        </div>
+        <div class="collapse" id="collapse{instance_content}">
+            <div class="card card-body">
+                <pre class="pre_response"><code class="code_response">{details_content}</code></pre>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="task_step_info" target_class="cell-results">
+    <div class="row alert alert-primary">
+        <div><b>{message_content}</b>
+            <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse{instance_content}"
+                    aria-expanded="false" aria-controls="collapse{instance_content}">
+                ...
+            </button>
+        </div>
+        <div class="collapse" id="collapse{instance_content}">
+            <div class="card card-body">
+                <pre class="pre_response"><code class="code_response">{details_content}</code></pre>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="task_step_completed" target_class="cell-timing">
+    <div class="container" style="opacity: 0.3">
+        <div class="row">
+            <div class="col">{duration_content}</div>
+        </div>
+        <br/>
+    </div>
+</template>
+
+<template id="task_step_result" target_class="cell-results">
+    <pre class="print_response"><code class="code_response">{output_content}</code></pre>
+</template>
+
+<template id="task_step_html" target_class="cell-results">
+    <div>{output_content}</div>
+</template>
+
+<template id="task_step_result_web_server" target_class="cell-results">
+    <div>{webpage_content}</div>
+</template>
+
+<template id="task_step_result_web_client" target_class="cell-results">
+    <div url="{url_content}" class="clarama-embedded">Loading {url_content}...</div>
+</template>
+
+<template id="task_step_result_bootstraptable" target_class="cell-results">
+    <div class="tight" style="overflow: auto; height: 100%">
+        <nav class="navbar navbar-expand-lg table-{style_content}-header table-header">
+            <ul class="navbar-nav table-header-nav-bar">
+                <li class="nav-item table-header-nav-text">
+                    {title_content}
+                </li>
+                <li class="nav-item table-header-nav-item">
+                    <div class="nav-link buttons-toolbar-{table_id_content} table-header-nav-toolbar">
+                    </div>
+                </li>
+            </ul>
+        </nav>
+        <table id="{table_id_content}"
+               data-show-columns="false"
+               data-filter-control="{filter_content}"
+               data-click-to-select="true"
+               data-checkbox="{checkbox_content}"
+               data-id-field="{id_content}"
+               data-show-footer="{footer_content}"
+               data-show-columns-toggle-all="true"
+               data-show-pagination-switch="false"
+               data-show-export="{export_content}"
+               data-pagination="{pagination_content}"
+               data-multiple-select-row="{multiselect_row_content}"
+               data-buttons-toolbar=".buttons-toolbar-{table_id_content}"
+               data-page-size="{pagesize_content}"
+               data-sortable="{sortable_content}"
+               data-search="{search_content}"
+               data-export-options="{exportTypes: ['json', 'xml', 'csv', 'txt', 'sql', 'excel', 'pdf']}"
+               class="table table-hover table-{style_content}"
+        ></table>
+    </div>
+</template>
+
+<template id="task_step_result_table" target_class="cell-results">
+    <table id="{table_id_content}"
+           data-toggle="table"
+           data-show-columns="true"
+           data-filter-control="true"
+           data-click-to-select="true"
+           data-id-field="id"
+           data-show-footer="true"
+           data-show-export="true"
+           data-pagination="true"
+           data-page-size="15"
+           data-search="true"
+           data-export-options="{exportTypes: ['json', 'xml', 'csv', 'txt', 'sql', 'excel', 'pdf']}"
+           class="table table-striped table-hover">
+        <thead>
+        <tr>
+            <!--{array:start}-->
+            <th>
+                <div>{array:value}</div>
+            </th>
+            <!--{array:end}-->
+        </tr>
+        </thead>
+        <tbody id="{table_id_content}_tbody" class="{table_id_content}_tbody">
+        </tbody>
+    </table>
+</template>
+
+<template id="task_step_result_table_row" target_class="{table_id_content}_tbody">
+    <tr>
+        <!--{array:start}-->
+        <td>
+            <div>{array:value}</div>
+        </td>
+        <!--{array:end}-->
+    </tr>
+</template>
+
+<template>
+    <li class="nav-item">
+        <input id="{chart_id_content}_title" type="text" class="form-control" placeholder="Title">
+    </li>
+    <li class="nav-item">
+        <input id="{chart_id_content}_subtitle" type="text" class="form-control" placeholder="Subtitle">
+    </li>
+    <li class="nav-item">
+        <select id="{chart_id_content}_legend" class="form-control">
+            <option>No Legend</option>
+            <option>Show Legend (Right)</option>
+            <option>Show Legend (Bottom)</option>
+            <option>Show Legend (Left)</option>
+            <option>Show Legend (Top)</option>
+        </select>
+    </li>
+    <li class="nav-item">
+        <select class="col form-control">
+            <option>Pie</option>
+            <option>Donut</option>
+            <option>Bar</option>
+            <option>Line</option>
+            <option>Radar</option>
+            <option>Scatter</option>
+        </select>
+    </li>
+    <li class="nav-item">
+        <div class="container">
+            <div class="row">
+                <label for="{chart_id_content}_x" class="col form-label nowrap">X Axis</label>
+                <select id="{chart_id_content}_x" class="col form-control">
+                    <option></option>
+                </select>
+            </div>
+        </div>
+    </li>
+    <li class="nav-item">
+        <div class="container">
+            <div class="row">
+                <label for="{chart_id_content}_y" class="col form-label nowrap">Y Axis</label>
+                <select id="{chart_id_content}_y" class="col form-control">
+                    <option></option>
+                </select>
+            </div>
+        </div>
+    </li>
+    <li class="nav-item">
+        <div class="container">
+            <div class="row">
+                <label for="{chart_id_content}_label" class="col form-label nowrap">Labels</label>
+                <select id="{chart_id_content}_label" class="col form-control">
+                    <option></option>
+                </select>
+            </div>
+        </div>
+    </li>
+    <li class="nav-item">
+        <div class="container">
+            <div class="row">
+                <label for="{chart_id_content}_series" class="col form-label nowrap">Series</label>
+                <select id="{chart_id_content}_series" class="col form-control">
+                    <option></option>
+                </select>
+            </div>
+        </div>
+    </li>
+    <li class="nav-item">
+        <div class="container">
+            <div class="row">
+                <label for="{chart_id_content}_lunits" class="col form-label nowrap">Left Axis Units</label>
+                <select id="{chart_id_content}_lunits" class="col form-control">
+                    <option></option>
+                </select>
+            </div>
+        </div>
+    </li>
+    <li class="nav-item">
+        <div class="container">
+            <div class="row">
+                <label for="{chart_id_content}_runits" class="col form-label nowrap">Right Axis
+                    Units</label>
+                <select id="{chart_id_content}_runits" class="col form-control">
+                    <option></option>
+                </select>
+            </div>
+        </div>
+    </li>
+</template>
+
+<template id="task_step_result_chart" target_class="cell-results">
+    <div class="container-fluid position-relative tight" style="height: 100%">
+        <div id="{chart_id_content}-holder" style="min-width: 100px; width:100%; height:100%; position: relative; "
+             class="chart-canvas-holder">
+            <canvas id="c_{chart_id_content}" class="no-drag" width="100%"/>
+        </div>
+    </div>
+    <script>
+        function resetZoom(chart_element) {
+            console.log("Resetting Zoom");
+            $("#" + chart_element).attr("chart").resetZoom();
+        }
+
+        var colorNames = Object.keys(window.chartColors);
+
+        $(window).resize(function () {
+            $('#c_{chart_id_content}').height($('#c_{chart_id_content}').width() / 1.7);
+        });
+
+        $(document).ready(() => {
+            $('#c_{chart_id_content}').height($('#c_{chart_id_content}').width() / 1.7);
+        });
+    </script>
+
+</template>
+
+<template id="grid_new_content" target_suffix="">
+    <div class="container-fluid row" style="height: 100%">
+        <div id="{target}" class="col clarama-embedded slate-panel-target" style="height: 100%"
+             url="/content/embedded/{ url }">
+        </div>
+        <div class="dropdown col col-sm-1 align-middle">
+            <i class="bi bi-three-dots-vertical element_editor" data-bs-toggle="dropdown" aria-expanded="false"></i>
+            <ul class="dropdown-menu embedded-dropdown-menu">
+                <li><a class="dropdown-item" href="/content/edit/{ url }" target="new">Edit</a></li>
+                <li><a class="dropdown-item" href="#" onclick="delete_element('{target}');">Delete</a></li>
+            </ul>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,117 @@
+{% if sformat is not defined %}
+    {% set sformat = {"format-col" : "", "format-col-back" : ""} %}
+{% endif %}
+{% set chartColors = {
+        "Default": "",
+        "Red": "rgb(255, 50, 50)",
+        "Orange": "rgb(255, 159, 64)",
+        "Yellow": "rgb(255, 205, 86)",
+        "Green": "rgb(75, 255, 192)",
+        "Blue": "rgb(54, 162, 235)",
+        "Purple": "rgb(153, 102, 255)",
+        "Grey": "rgb(201, 203, 207)",
+        "Medium Grey": "rgb(128, 128, 128)",
+        "Dark Grey": "rgb(64, 64, 64)",
+        "Black": "rgb(20, 20, 20)"
+    } %}
+<li class="chart-series-formats">
+    <div class="list-group-item d-flex row gx-2 align-items-center">
+        <div class="col">
+            <input type="string" class="form-control format-nrx" id="x{{ loop_index }}" name="x"
+                   value="{{ sformat['format-nrx'] }}" data-toggle="tooltip"
+                   title="Either the entire series name, or a RegEx. <br/><br/>RegEx examples include: <br/><b>Wash</b> which will search for all series containing Wash.<br/><b>^Wash</b> - all series starting with Wash. <br/><b>Wash$</b> - all series ending with Wash.">
+        </div>
+        <div class="col">
+            <input type="string" class="form-control format-title" id="title{{ loop_index }}" name="title"
+                   value="{{ sformat['format-title'] }}" data-toggle="tooltip"
+                   title="Name displayed on the chart legend">
+        </div>
+        <div class="col">
+            <input type="string" class="form-control format-ua" id="ua{{ loop_index }}" name="ua"
+                   value="{{ sformat['format-ua'] }}" data-toggle="tooltip"
+                   title="Named unit axis. All series with this value will be grouped on the same Y axis">
+        </div>
+        <div class="col d-flex justify-content-evenly">
+            <input type="checkbox" class="form-check-input format-f" id="f{{ loop_index }}" name="f" {% if
+        sformat['format-f'] %}checked{% endif %} title="Filled Lines" data-toggle="tooltip">
+            <input type="checkbox" class="form-check-input format-p" id="p{{ loop_index }}" name="p" {% if
+        sformat['format-p'] %}checked{% endif %} title="Stepped Lines" data-toggle="tooltip">
+            <input type="checkbox" class="form-check-input format-dt" id="dt{{ loop_index }}" name="dt"
+                   {% if sformat['format-dt'] %}checked{% endif %} title="Dotted Lines" data-toggle="tooltip">
+        </div>
+        <div class="col">
+            <input type="number" step="1" min="0" max="100" class="form-control format-pr"
+                   id="pr{{ loop_index }}" name="pr" value="{{ sformat['format-pr'] }}" data-toggle="tooltip"
+                   title="Set to 0 to disable points">
+        </div>
+        <div class="col">
+            <select id="ps{{ loop_index }}" class="form-control format-pointstyle" title="Point shape"
+                    data-toggle="tooltip">>
+                <option {{ selected("circle",sformat['format-ps']) }} id="circle">Circle (o)</option>
+                <option {{ selected("cross",sformat['format-ps']) }} id="cross">Plus (+)</option>
+                <option {{ selected("crossRot",sformat['format-ps']) }} id="crossRot">Cross (x)</option>
+                <option {{ selected("dash",sformat['format-ps']) }} id="dash">Dash (-)</option>
+                <option {{ selected("line",sformat['format-ps']) }} id="line">Line (__)</option>
+                <option {{ selected("rect",sformat['format-ps']) }} id="rect">Box</option>
+                <option {{ selected("rectRounded",sformat['format-ps']) }} id="rectRounded">Rounded Box</option>
+                <option {{ selected("rectRot",sformat['format-ps']) }} id="rectRot">Diamond</option>
+                <option {{ selected("star",sformat['format-ps']) }} id="star">Star (*)</option>
+                <option {{ selected("triangle",sformat['format-ps']) }} id="triangle">Triangle</option>
+            </select>
+        </div>
+        <div class="col">
+            <input type="number" step="1" min="0" max="100" class="form-control format-lw"
+                   id="lw{{ loop_index }}" name="lw" value="{{ sformat['format-lw'] }}" data-toggle="tooltip"
+                   title="Set to 0 to disable lines">
+        </div>
+        <div class="col">
+            <div class="color-picker-container d-flex align-items-center">
+                <select class="form-control format-col" id="col{{ loop_index }}" name="color"
+                        style="background-color: {{ sformat['format-col'] }}; " title="Line colour"
+                        data-toggle="tooltip">
+                    {% for key, value in chartColors.items() %}
+                        <option value="{{ value }}" {%- if sformat['format-col']==value -%}selected{%- endif -%}>
+                            {{ key }}
+                        </option>
+                    {% endfor %}
+                    {% if (sformat['format-col']  or '').startswith('#') %}
+                        <option value="{{ sformat['format-col'] }}" selected>{{ sformat['format-col'] }}</option>
+                    {% else %}
+                        <option value="custom">Custom Colour</option>
+                    {% endif %}
+                </select>
+                <i class="bi bi-three-dots-vertical ellipsis"></i>
+                <input type="color" selected="format-col" class="form-control format-col-picker"
+                       id="col{{ loop_index }}"
+                       name="cc" value="{{ sformat['format-col'] }}">
+            </div>
+        </div>
+        <div class="col">
+            <div class="color-picker-container d-flex align-items-center">
+                <select class="form-control format-col-back" id="col-back{{ loop_index }}"
+                        name="color-back" style="background-color: {{ sformat['format-col-back'] }}; "
+                        title="Fill colour" data-toggle="tooltip">
+                    {% for key, value in chartColors.items() %}
+                        <option value="{{ value }}" {%- if sformat['format-col-back']==value -%}selected{%- endif -%}>
+                            {{ key }}
+                        </option>
+                    {% endfor %}
+                    {% if (sformat['format-col-back'] or '').startswith('#') %}
+                        <option value="{{ sformat['format-col-back'] }}"
+                                selected>{{ sformat['format-col-back'] }}</option>
+                    {% else %}
+                        <option value="custom">Custom Colour</option>
+                    {% endif %}
+                </select>
+                <i class="bi bi-three-dots-vertical ellipsis"></i>
+                <input type="color" selected="format-col-back" class="form-control format-col-picker-back"
+                       id="col-back{{ loop_index }}"
+                       name="cc" value="{{ sformat['format-col-back'] }}">
+            </div>
+        </div>
+        <div style="width: 4%;">
+            <i class="bi bi-trash ps-3 cell-delete-series-format data-cell-icon-hover remove" title="Delete?"
+               data-toggle="tooltip"></i>
+        </div>
+    </div>
+</li>
