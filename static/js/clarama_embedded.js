@@ -167,7 +167,7 @@ function loadHTML(url, element) {
 
 $.fn.load_post = function (onfinished, args, json) {
     if (args === undefined)
-        args = {};
+        args = {debug_theme: $CLARAMA_DEBUG_THEME};
 
     if (json === undefined)
         json = {};
@@ -347,7 +347,7 @@ function reload(embedded, args) {
 
 $.fn.load = function (onfinished, args) {
     if (args === undefined)
-        args = {};
+        args = {debug_theme: $CLARAMA_DEBUG_THEME};
 
     return this.each(function () {
         var embedded = $(this);

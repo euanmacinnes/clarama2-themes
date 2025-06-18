@@ -90,6 +90,7 @@
     $CLARAMA_ROOT = {{ request.script_root|tojson }};
 
     $CLARAMA_USER = '{{username}}'
+    $CLARAMA_DEBUG_THEME = '{{ debug_theme }}'
 
     $CLARAMA_WEBSOCKET_DYNAMIC = '{{ clarama['Services']['Websocket_Dynamic'] or False }}';
     $CLARAMA_WEBSOCKET_REGISTER = '{{ url_for('clarama_websockets.socket_subscribe', topic="") }}';
