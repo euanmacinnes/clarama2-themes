@@ -1,4 +1,4 @@
-{% extends "explorer/files/fieldlayout_" + field_layout + ".html" %}
+{% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
     <inputgroup class="input-group">
@@ -25,7 +25,7 @@
                step="{{ get(field_config,'step','0.01') }}"
                min="{{ get(field_config,'minimum','0') }}"
                max="{{ get(field_config,'maximum','5') }}"
-                {% include "explorer/files/field_tooltip.html" %}
+                {% include theme("explorer/files/field_tooltip.html") %}
         >
     </inputgroup>
 {% endblock %}

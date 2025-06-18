@@ -1,4 +1,4 @@
-{% extends "explorer/files/fieldlayout_" + field_layout + ".html" %}
+{% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
     <div class="input-group mb-2">
@@ -13,7 +13,7 @@
                 {{ field_config | required }}
                 {{ field_config | readonly }}
                 class="form-control col clarama-field-select2 clarama-field clarama-select-field"
-                {% include "explorer/files/field_tooltip.html" %}
+                {% include theme("explorer/files/field_tooltip.html") %}
                 {% if field_config.get('data',{}).get('source') %}
                 sourceurl="{{ field_config['data'] | datasource }}"
                 {% endif %}

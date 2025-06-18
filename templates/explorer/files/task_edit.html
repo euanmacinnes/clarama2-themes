@@ -59,7 +59,7 @@
             <div class="col mb-3" style="padding: 0">
                 <hr/>
                 <div class="container-fluid">
-                    {% include "explorer/files/_fields_edit_task.html" %}
+                    {% include theme("explorer/files/_fields_edit_task.html") %}
                 </div>
             </div>
             <div id="startup_scripts" class="container-fluid">
@@ -96,14 +96,14 @@
                                 {% for step in steps %}
                                     {% with task_step = step, task_index=loop.index, task_last = loop.last, stream=stream,
                         task_topic=internal_topic %}
-                                        {% include "explorer/files/_cell.html" %}
+                                        {% include theme("explorer/files/_cell.html") %}
                                     {% endwith %}
 
                                 {% endfor %}
 
                             </ul>
 
-                            {% include "explorer/files/_cell_insert_new.html" %}
+                            {% include theme("explorer/files/_cell_insert_new.html") %}
                         </div>
                     </div>
                 {% endfor %}
@@ -134,6 +134,6 @@
     {% endfor %}
 </div>
 
-{% include "explorer/files/_grid_edit.html" %}
-{% include "explorer/files/task_response_templates.html" %}
-{% include "web/file_footer.html" %}
+{% include theme("explorer/files/_grid_edit.html") %}
+{% include theme("explorer/files/task_response_templates.html") %}
+{% include theme("web/file_footer.html") %}

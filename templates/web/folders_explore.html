@@ -294,7 +294,7 @@
         function getSelectedFilepaths() {
             // Find all checked checkboxes
             const paths = [];
-            $('.multi-select-checkbox:checked').each(function() {
+            $('.multi-select-checkbox:checked').each(function () {
                 const filepath = $(this).closest('.favorites-div').find('a').attr('listing_filepath');
                 if (filepath) {
                     paths.push(filepath);
@@ -314,7 +314,7 @@
                     var url = "/render/delete/" + file;
                     execute_json_url(url, true);
                 });
-            }   
+            }
             $("#context-menu").removeClass("show").hide();
             exitSelectMode();
         }
@@ -340,7 +340,7 @@
 
             if (files.length === 0) { // no selection
                 const file = $("#context-menu").attr("listing_filepath");
-                dataToCopy = encodeURIComponent(file) + "&mode=copy";    
+                dataToCopy = encodeURIComponent(file) + "&mode=copy";
             } else {
                 dataToCopy = encodeURIComponent(files.join(",")) + "&mode=copy";
             }
@@ -361,7 +361,7 @@
         // Pasting a folder inside it's own child
         // Can't paste to an empty folder
         // File pasting into current folder should create a duplicate
-        
+
         function context_paste() {
             navigator.clipboard.readText()
                 .then(source => {
@@ -756,7 +756,7 @@
             // Hide any open context menu
             $("#context-menu").removeClass("show").hide();
             $("#dropzone-context-menu").removeClass("show").hide();
-            
+
             const index = listings.index(this);
             const checkbox = $(this).closest('.favorites-div').find('.multi-select-checkbox');
 
@@ -824,6 +824,18 @@
 
             });
 
+<<<<<<< HEAD
+=======
+        $(document).on('keydown', function (e) {
+            if (e.key === KEY_ESCAPE && selecting) {        // Exit select mode on Escape ke
+                exitSelectMode();
+            }
+
+            if (e.key === KEY_DELETE && selecting) {        // Delete selected listings on Delete key
+                e.preventDefault();
+                context_delete();
+            }
+>>>>>>> main
         });
 
     </script>

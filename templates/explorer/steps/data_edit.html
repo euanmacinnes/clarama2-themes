@@ -213,90 +213,89 @@
                         </div>
                     </div>
 
-                    {% if chart is defined %}
-                        {% set seriesanno = chart['series-anno'] or [{}] %}
-                        {% set seriesgroups = chart['series-groups'] or [{}] %}
-                        {% set seriesformats = chart['series-formats'] or [{}] %}
-                    {% else %}
-                        {% set seriesanno = [{}] %}
-                        {% set seriesgroups = [{}] %}
-                        {% set seriesformats = [{}] %}
-                    {% endif %}
+            {% if chart is defined %}
+                {% set seriesanno = chart['series-anno'] or [{}] %}
+                {% set seriesgroups = chart['series-groups'] or [{}] %}
+                {% set seriesformats = chart['series-formats'] or [{}] %}
+            {% else %}
+                {% set seriesanno = [{}] %}
+                {% set seriesgroups = [{}] %}
+                {% set seriesformats = [{}] %}
+            {% endif %}
 
-                    <ul id="seriesGrp{{ loop_index }}" class="list-group">
-                        <label for="sg{{ loop_index }}" class="form-label mb-2">
-                            Series Groups
-                            <i id="addSG{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
-                        </label>
-                        <div class="list-group-item d-flex row gx-2 align-items-center">
-                            <div style="width: 2%;"></div>
-                            <div class="col-2">Type</div>
-                            <div class="col-1">X Axis</div>
-                            <div class="col-1">Y Axis</div>
-                            <div class="col-1">Z Axis</div>
-                            <div class="col-1">Y Min Axis</div>
-                            <div class="col-1">Y Max Axis</div>
-                            <div class="col-1">Series Axis</div>
-                            <div class="col-1">Unit Axis</div>
-                            <div class="col-2">Label Axis</div>
-                            <div style="width: 4%;"></div>
-                        </div>
-                        {% for sgroup in seriesgroups %}
-                            {% with loop_index=loop_index, series_index=loop.index %}
-                                {% include "explorer/steps/data_edit_chart_series_group.html" %}
-                            {% endwith %}
-                        {% endfor %}
-                    </ul>
-                    <ul id="seriesFormat{{ loop_index }}" class="list-group">
-                        <label for="sg{{ loop_index }}" class="form-label mb-2"><br/>
-                            Series Formats
-                            <i id="addSF{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
-                        </label>
-                        <div class="list-group-item d-flex row gx-2 align-items-center">
-                            <div class="col">Series Name/Regex</div>
-                            <div class="col">Display Name</div>
-                            <div class="col">Unit Axis</div>
-                            <div class="col text-center">Line</div>
-                            <div class="col">Point Size</div>
-                            <div class="col">Point Style</div>
-                            <div class="col">Line Width</div>
-                            <div class="col">Colour</div>
-                            <div class="col">Fill Colour</div>
-                            <div style="width: 4%;"></div>
-                        </div>
-                        {% for sformat in seriesformats %}
-                            {% with loop_index=loop_index, series_index=loop.index %}
-                                {% include "explorer/steps/data_edit_chart_series_format.html" %}
-                            {% endwith %}
-                        {% endfor %}
-                    </ul>
-                    <ul id="seriesAnno{{ loop_index }}" class="list-group">
-                        <label for="sa{{ loop_index }}" class="form-label mb-2">
-                            Series Annotations
-                            <i id="addAN{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
-                        </label>
-                        <div class="list-group-item d-flex row gx-2 align-items-center">
-                            <div class="col-1">Label</div>
-                            <div class="col-1">X Axis</div>
-                            <div class="col-1">Y Axis</div>
-                            <div class="col-1">X Max Axis</div>
-                            <div class="col-1">Y Max Axis</div>
-                            <div class="col-1">Unit Axis</div>
-                            <div class="col-1">Dotted Lines</div>
-                            <div class="col-1">Border Width</div>
-                            <div class="col-1">Type</div>
-                            <div class="col-1">Colour</div>
-                            <div class="col-1">Fill Colour</div>
-                            <div style="width: 4%;"></div>
-                        </div>
-                        {% for sanno in seriesanno %}
-                            {% with loop_index=loop_index, series_index=loop.index %}
-                                {% include "explorer/steps/data_edit_chart_series_annotation.html" %}
-                            {% endwith %}
-                        {% endfor %}
-                    </ul>
+            <ul id="seriesGrp{{ loop_index }}" class="list-group">
+                <label for="sg{{ loop_index }}" class="form-label mb-2">
+                    Series Groups
+                    <i id="addSG{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                </label>
+                <div class="list-group-item d-flex row gx-2 align-items-center">
+                    <div style="width: 2%;"></div>
+                    <div class="col-2">Type</div>
+                    <div class="col-1">X Axis</div>
+                    <div class="col-1">Y Axis</div>
+                    <div class="col-1">Z Axis</div>
+                    <div class="col-1">Y Min Axis</div>
+                    <div class="col-1">Y Max Axis</div>
+                    <div class="col-1">Series Axis</div>
+                    <div class="col-1">Unit Axis</div>
+                    <div class="col-2">Label Axis</div>
+                    <div style="width: 4%;"></div>
                 </div>
-            </div>
+                {% for sgroup in seriesgroups %}
+                    {% with loop_index=loop_index, series_index=loop.index %}
+                        {% include theme("explorer/steps/data_edit_chart_series_group.html") %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+            <ul id="seriesFormat{{ loop_index }}" class="list-group">
+                <label for="sg{{ loop_index }}" class="form-label mb-2"><br/>
+                    Series Formats
+                    <i id="addSF{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                </label>
+                <div class="list-group-item d-flex row gx-2 align-items-center">
+                    <div class="col">Series Name/Regex</div>
+                    <div class="col">Display Name</div>
+                    <div class="col">Unit Axis</div>
+                    <div class="col text-center">Line</div>
+                    <div class="col">Point Size</div>
+                    <div class="col">Point Style</div>
+                    <div class="col">Line Width</div>
+                    <div class="col">Colour</div>
+                    <div class="col">Fill Colour</div>
+                    <div style="width: 4%;"></div>
+                </div>
+                {% for sformat in seriesformats %}
+                    {% with loop_index=loop_index, series_index=loop.index %}
+                        {% include theme("explorer/steps/data_edit_chart_series_format.html") %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+            <ul id="seriesAnno{{ loop_index }}" class="list-group">
+                <label for="sa{{ loop_index }}" class="form-label mb-2">
+                    Series Annotations
+                    <i id="addAN{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                </label>
+                <div class="list-group-item d-flex row gx-2 align-items-center">
+                    <div class="col-1">Label</div>
+                    <div class="col-1">X Axis</div>
+                    <div class="col-1">Y Axis</div>
+                    <div class="col-1">X Max Axis</div>
+                    <div class="col-1">Y Max Axis</div>
+                    <div class="col-1">Unit Axis</div>
+                    <div class="col-1">Dotted Lines</div>
+                    <div class="col-1">Border Width</div>
+                    <div class="col-1">Type</div>
+                    <div class="col-1">Colour</div>
+                    <div class="col-1">Fill Colour</div>
+                    <div style="width: 4%;"></div>
+                </div>
+                {% for sanno in seriesanno %}
+                    {% with loop_index=loop_index, series_index=loop.index %}
+                        {% include theme("explorer/steps/data_edit_chart_series_annotation.html") %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+
         </div>
     </div>
     <div id="content_chart_{{ loop_index }}">

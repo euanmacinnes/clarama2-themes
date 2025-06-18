@@ -42,7 +42,7 @@
                                    id="required"
                                    name="required"
                                     {% if get(field_config,'required','') | lower == 'true' %} checked {% endif %}
-                                    {% include "explorer/files/field_tooltip.html" %}
+                                    {% include theme("explorer/files/field_tooltip.html") %}
                             >
                             <label class="form-check-label" for="required">Required</label>
                         </div>
@@ -55,7 +55,7 @@
                                    id="readonly"
                                    name="readonly"
                                     {% if get(field_config,'readonly','') | lower == 'true' %} checked {% endif %}
-                                    {% include "explorer/files/field_tooltip.html" %}
+                                    {% include theme("explorer/files/field_tooltip.html") %}
                             >
                             <label class="form-check-label" for="readonly">Read-Only</label>
                         </div>
@@ -78,7 +78,7 @@
                                autocomplete="on"
                                placeholder="field name"
                                value="{{ get(field_config,'name','') }}"
-                                {% include "explorer/files/field_tooltip.html" %}
+                                {% include theme("explorer/files/field_tooltip.html") %}
                         />
                     </td>
                 </tr>
@@ -94,7 +94,7 @@
                                   rows="5"
                                   placeholder="description"
                                   value=""
-                                {% include "explorer/files/field_tooltip.html" %}
+                                {% include theme("explorer/files/field_tooltip.html") %}
                         >{{ get(field_config,'description','') }}</textarea>
                     </td>
                 </tr>
@@ -108,7 +108,7 @@
                                autocomplete="on"
                                placeholder="default value"
                                value="{{ get(field_config,'default','') }}"
-                                {% include "explorer/files/field_tooltip.html" %}
+                                {% include theme("explorer/files/field_tooltip.html") %}
                         />
                         <div>For checkboxes, use a default value of True for checked (the value will be made lowercase,
                             a
@@ -129,7 +129,7 @@
                                autocomplete="on"
                                placeholder="placeholder value"
                                value="{{ get(field_config,'placeholder','') }}"
-                                {% include "explorer/files/field_tooltip.html" %}
+                                {% include theme("explorer/files/field_tooltip.html") %}
                         />
 
                     </td>
@@ -145,7 +145,7 @@
                              class="source-editor form-control clarama-field clarama-editor-field"
                              fieldtype="aceeditor"
                              style="min-height:{{ get(field_config,'min-height','64') }} ;height: 100%"
-                                {% include "explorer/files/field_tooltip.html" %}
+                                {% include theme("explorer/files/field_tooltip.html") %}
                         >{{ get(field_config,'data', 'source:\naction:\nparams:\n  query:\n  path:\noptions:\n') | yaml }}</div>
                         <p>
                             <b>source:</b> is the task/source/yaml file to get the data from. Relative to where the
@@ -174,7 +174,7 @@
                                            autocomplete="on"
                                            placeholder="0"
                                            value="{{ get(field_config,'minimum','') }}"
-                                            {% include "explorer/files/field_tooltip.html" %}
+                                            {% include theme("explorer/files/field_tooltip.html") %}
                                     />
                                 </td>
                                 <td>
@@ -185,7 +185,7 @@
                                            autocomplete="on"
                                            placeholder="100"
                                            value="{{ get(field_config,'maximum','') }}"
-                                            {% include "explorer/files/field_tooltip.html" %}
+                                            {% include theme("explorer/files/field_tooltip.html") %}
                                     />
                                 </td>
                                 <td>
@@ -196,7 +196,7 @@
                                            autocomplete="on"
                                            placeholder="100"
                                            value="{{ get(field_config,'step','') }}"
-                                            {% include "explorer/files/field_tooltip.html" %}
+                                            {% include theme("explorer/files/field_tooltip.html") %}
                                     />
                                 </td>
                                 <td>
@@ -207,7 +207,7 @@
                                            autocomplete="on"
                                            placeholder="4"
                                            value="{{ get(field_config,'size','4') }}"
-                                            {% include "explorer/files/field_tooltip.html" %}
+                                            {% include theme("explorer/files/field_tooltip.html") %}
                                     />
                                 </td>
                                 <td>
@@ -218,7 +218,7 @@
                                            autocomplete="on"
                                            placeholder="2"
                                            value="{{ get(field_config,'spacing','3') }}"
-                                            {% include "explorer/files/field_tooltip.html" %}
+                                            {% include theme("explorer/files/field_tooltip.html") %}
                                     />
                                 </td>
                             </tr>
@@ -261,7 +261,7 @@
     function update_preview() {
         var editor = ace.edit("data");
         var code = editor.getValue();
-        
+
         var url = "{{ embedded_url(filename=file_url) }}"
             + "?type=" + key
             + "&name=" + $("#name").val()
@@ -331,4 +331,4 @@
     }
 </script>
 
-{% include "web/file_footer.html" %}
+{% include theme("web/file_footer.html") %}
