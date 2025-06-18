@@ -58,7 +58,7 @@
 
     <div class="tab-content" id="dataSourceTabContent_{{ loop_index }}">
         <div class="tab-pane fade show active" id="tabContent_{{ loop_index }}_0" role="tabpanel" aria-labelledby="tab_{{ loop_index }}_0"></div>
-            {% include "explorer/steps/data_edit_tabs.html" %} 
+            {% include theme("explorer/steps/data_edit_tabs.html") %} 
             <div id="collapseTableOptions_{{ loop_index }}"
                 class="accordion-collapse collapse bg-dark text-light {% if output=='table' %}show{% endif %}">
                 <div class="accordion-body" aria-labelledby="table" style="padding: 8px;">
