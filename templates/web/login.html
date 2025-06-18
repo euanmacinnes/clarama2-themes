@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    {% include "web/common_header.html" %}
+    {% include theme("web/common_header.html") %}
     <link rel="stylesheet" type="text/css" href="{{ static( filename='css/animated_gradients.css') }}">
 </head>
 
@@ -61,7 +61,7 @@
                                     <div id="collapseOne" class="accordion-collapse collapse show"
                                          aria-labelledby="headingOne" data-bs-parent="#accordionExample">
                                         <div class="accordion-body">
-                                            {% include "web/login_ldap.html" %}
+                                            {% include theme("web/login_ldap.html") %}
                                         </div>
                                     </div>
                                 </div>
@@ -86,7 +86,7 @@
                                          class="accordion-collapse {% if show_basic %}collapse{% endif %}"
                                          aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
                                         <div class="accordion-body">
-                                            {% include "web/login_basic.html" %}
+                                            {% include theme("web/login_basic.html") %}
                                         </div>
                                     </div>
                                 </div>

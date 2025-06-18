@@ -262,7 +262,7 @@
                 </div>
                 {% for sgroup in seriesgroups %}
                     {% with loop_index=loop_index, series_index=loop.index %}
-                        {% include "explorer/steps/data_edit_chart_series_group.html" %}
+                        {% include theme("explorer/steps/data_edit_chart_series_group.html") %}
                     {% endwith %}
                 {% endfor %}
             </ul>
@@ -285,7 +285,7 @@
                 </div>
                 {% for sformat in seriesformats %}
                     {% with loop_index=loop_index, series_index=loop.index %}
-                        {% include "explorer/steps/data_edit_chart_series_format.html" %}
+                        {% include theme("explorer/steps/data_edit_chart_series_format.html") %}
                     {% endwith %}
                 {% endfor %}
             </ul>
@@ -310,7 +310,7 @@
                 </div>
                 {% for sanno in seriesanno %}
                     {% with loop_index=loop_index, series_index=loop.index %}
-                        {% include "explorer/steps/data_edit_chart_series_annotation.html" %}
+                        {% include theme("explorer/steps/data_edit_chart_series_annotation.html") %}
                     {% endwith %}
                 {% endfor %}
             </ul>

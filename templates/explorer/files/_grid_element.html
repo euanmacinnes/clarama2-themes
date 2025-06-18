@@ -87,7 +87,7 @@
                         {% set current_element_url = elements[link]['url'] %}
                         {% set current_element_params = elements[link]['params'] %}
                     {% endif %}
-                    {% include "explorer/steps/grid_edit_interaction.html" %}
+                    {% include theme("explorer/steps/grid_edit_interaction.html") %}
                 {% endfor %}
             </div>
             {% endif %}
