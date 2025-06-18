@@ -2,8 +2,8 @@
 <html>
 
 <head>
-    {% include "web/common_header.html" %}
-    <link rel="stylesheet" type="text/css" href="{{ static( filename='css/animated_gradients.css') }}">
+    {% include theme("web/common_header.html") %}
+    <link rel="stylesheet" href="{{ static('art/animated_gradients.css') }}">
 </head>
 
 <body class="d-flex flex-column v-100" style="height: 100%;">
@@ -43,7 +43,7 @@
                 <div class="card shadow-lg bg-light" style="width:400px; min-height:400px; background-color: gainsboro">
                     <div class="card-header bg-light text-secondary align-items-center justify-content-center text-center d-flex">
                         <div>
-                            <img src="{{ static("art/clarama_logo_c2_512.png") }}" width="256" height="256" alt="">
+                            <img src="{{ static('/art/clarama_logo_c2_512.png') }}" width="256" height="256" alt="">
                             <div>{{ clarama.build }}</div>
                         </div>
                     </div>
@@ -61,7 +61,7 @@
                                     <div id="collapseOne" class="accordion-collapse collapse show"
                                          aria-labelledby="headingOne" data-bs-parent="#accordionExample">
                                         <div class="accordion-body">
-                                            {% include "web/login_ldap.html" %}
+                                            {% include theme("web/login_ldap.html") %}
                                         </div>
                                     </div>
                                 </div>
@@ -86,7 +86,7 @@
                                          class="accordion-collapse {% if show_basic %}collapse{% endif %}"
                                          aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
                                         <div class="accordion-body">
-                                            {% include "web/login_basic.html" %}
+                                            {% include theme("web/login_basic.html") %}
                                         </div>
                                     </div>
                                 </div>

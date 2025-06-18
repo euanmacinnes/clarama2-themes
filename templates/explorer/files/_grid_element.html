@@ -75,20 +75,24 @@
                     data-bs-target="#interactionSettingsModal" onclick="openInteractionSettings('{{ target }}')" style="cursor: pointer;"></i></h6>
             </li>
             <div id="grid_element_target-{{ target }}">
-                {% for link in elements[target]['links'] %}
-                    {% set loop_index = loop.index-1 %}
-                    {% if link.element is defined %}
-                        {% set current_element = link.element %}
-                        {% set current_element_url = link.url %}
-                        {% set current_element_params = link.params %}
-                        {% set menu_item_name = link.menu_item_name %}
-                    {% else %}
-                        {% set current_element = link %}
-                        {% set current_element_url = elements[link]['url'] %}
-                        {% set current_element_params = elements[link]['params'] %}
-                    {% endif %}
-                    {% include "explorer/steps/grid_edit_interaction.html" %}
-                {% endfor %}
+                <ul class="interaction-sortable list-unstyled mb-0">
+                    {% for link in elements[target]['links'] %}
+                        {% set loop_index = loop.index-1 %}
+                        {% if link.element is defined %}
+                            {% set current_element = link.element %}
+                            {% set current_element_url = link.url %}
+                            {% set current_element_params = link.params %}
+                            {% set menu_item_name = link.menu_item_name %}
+                        {% else %}
+                            {% set current_element = link %}
+                            {% set current_element_url = elements[link]['url'] %}
+                            {% set current_element_params = elements[link]['params'] %}
+                        {% endif %}
+                        <li>
+                            {% include "explorer/steps/grid_edit_interaction.html" %}
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
             {% endif %}
         </ul>

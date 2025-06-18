@@ -11,7 +11,7 @@
           </ol>
         </nav>
 
-        <button type="button" class="btn btn-primary" onclick="add_selected_content('/content/element/{{ file_url }}', '')">Add Empty Grid</button>
+        <button type="button" class="btn btn-primary" onclick="add_selected_content('/content/element/{{ file_url }}', 'empty')">Add Empty Grid</button>
 
         <div class="d-flex align-items-center w-100">
           <p class="mb-1 pe-2">New: </p>
@@ -124,7 +124,7 @@
           <input type="hidden" id="interaction-element">
           <input type="hidden" id="interaction-target">
           <input type="hidden" id="interaction-index">
-  
+
           <div class="mb-3">
             <label class="form-label d-block">Interaction Type</label>
             <div class="btn-group" role="group" aria-label="Interaction Type">
@@ -139,7 +139,13 @@
 
               <input type="radio" class="btn-check" name="interactionType" id="menuType" autocomplete="off" value="menu" required>
               <label class="btn btn-outline-primary" for="menuType">Context Menu</label>
+
+              <input type="radio" class="btn-check" name="interactionType" id="tabType" autocomplete="off" value="tab" required>
+              <label class="btn btn-outline-primary" for="tabType">Tab</label>
               
+              <input type="radio" class="btn-check" name="interactionType" id="hiddenType" autocomplete="off" value="hidden" required>
+              <label class="btn btn-outline-primary" for="hiddenType">Hidden</label>
+
               <input type="radio" class="btn-check" name="interactionType" id="pauseType" autocomplete="off" value="pause" required>
               <label class="btn btn-outline-primary" for="pauseType">Pause</label>
             </div>
@@ -224,7 +230,7 @@
     if (typeof(button) === "object") {
       var type = button.getAttribute('data-element');
       var initialType = type;
-      const allowedTypes = ['popup', 'modal', 'pause', 'menu'];
+      const allowedTypes = ['popup', 'modal', 'pause', 'menu', 'tab', 'hidden'];
       if (!allowedTypes.includes(type)) type = 'element';
 
       const target = button.getAttribute('data-target');
@@ -533,9 +539,10 @@
   }
 
   function addContent(element, data, html) {
-    // console.log("element", element)
-    // console.log("data", data)
-    // console.log("html", html)
+    console.log("element", element)
+    console.log("data", data)
+    console.log("html", html)
+    console.log("type of html", typeof html)
     if (isDict({{ grid_id }}elements)) {
       {{ grid_id }}elements[element] = data;
     } else {
@@ -543,7 +550,6 @@
       elem[element] = data;
       {{ grid_id }}elements = elem;
     }
-
 
     //{{ grid_id }}elements[element] = data;
 
@@ -565,15 +571,7 @@
   }
 
   // function add_blank_content(element, data) {
-  //   if (isDict({{ grid_id }}elements)) {
-  //     {{ grid_id }}elements[element] = data;
-  //   } else {
-  //     var elem = {};
-  //     elem[element] = data;
-  //     {{ grid_id }}elements = elem;
-  //   }
-
-
+  
   //   {{ grid_id }}grid.addWidget({
   //     x: 0,
   //     y: 0,
@@ -620,7 +618,11 @@
 
   function add_selected_content(element_render_url, selected_v = "") {
     if (selected_v !== "") {
-      selected_val = selected_v;
+      if (selected_v == "empty") {
+        selected_val = "";
+      } else {
+        selected_val = selected_v;
+      }
     } else {
       selected_val = "./" + $("#add_content_addfield").val();
     }
@@ -661,7 +663,7 @@
       console.log(slate_data)
 
       // if (element_render_url === '') {
-      //   add_blank_content(element, new_element_data);
+      //   addContent(element, new_element_data, "");
       // } else {
         $.ajax({
           type: 'POST',
@@ -671,7 +673,21 @@
           data: JSON.stringify(slate_data),
           success: function (data) {
             if (data['data'] == 'ok') {
-              addContent(element, new_element_data, data['results']);
+              let html = data['results'];
+              // if (selected_val == '') {
+              //   let parser = new DOMParser();
+              //   let doc = parser.parseFromString(html, 'text/html');
+              //   console.log("doc", doc)
+              //   let elementDiv = doc.getElementById(element);
+              //   console.log("elementDiv", elementDiv)
+              //   if (elementDiv) {
+              //     elementDiv.setAttribute('url', '');
+              //     elementDiv.innerHTML = '';
+              //     html = elementDiv.outerHTML;
+              //   }
+              // }
+              
+              addContent(element, new_element_data, html);
             } else {
               console.log('Submission was not successful.');
               console.log(data);
@@ -712,7 +728,7 @@
         const currentUrl = parentDiv.getAttribute('url');
         parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_element_height=2&clarama_element_aspect=2.0");
         
-        // console.log("new url", document.getElementById(target).getAttribute('url'))
+        console.log("new url", document.getElementById(target).getAttribute('url'))
         enable_interactions($(`#${target}`).parent(), true);
       } else {
         targetInput.value = newSource;
@@ -773,7 +789,7 @@
     
     var checkedType = $('input[name="interactionType"]:checked').val();
     console.log("checkedType", checkedType)
-    const allowedTypes = ['popup', 'modal', 'pause', 'menu'];
+    const allowedTypes = ['popup', 'modal', 'pause', 'menu', 'tab', 'hidden'];
     if (!allowedTypes.includes(checkedType)) {
       checkedType = document.getElementById('selected-elem').value;
 

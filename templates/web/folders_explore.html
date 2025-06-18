@@ -1,4 +1,4 @@
-{% extends "web/root.html" %}
+{% extends theme("web/root.html") %}
 
 {% block content %}
 
@@ -795,21 +795,35 @@
                 e.preventDefault();
                 e.stopPropagation();
             }
-        });
 
+            $(document).on('keydown', function (e) {    
+                
+                if (e.key === "Escape" && selecting) {          // Exit select mode on Escape ke
+                    exitSelectMode();
+                }
+                
+                // if (e.key === "Delete" && selecting) {          // Delete selected listings on Delete key
+                //     e.preventDefault();
+                //     context_delete(); 
+                // }
 
-        const KEY_ESCAPE = "Escape";
-        const KEY_DELETE = "Delete";
+                if (e.ctrlKey && e.key === "c") {               // Ctrl + c (copy)
+                    e.preventDefault();
+                    context_copy();
+                }
+                
+                if (e.ctrlKey && e.key === "x") {               // Ctrl + c (cut)
+                    e.preventDefault();
+                    context_cut();
+                }
 
-        $(document).on('keydown', function (e) {    
-            if (e.key === KEY_ESCAPE && selecting) {        // Exit select mode on Escape ke
-                exitSelectMode();
-            }
-               
-            if (e.key === KEY_DELETE && selecting) {        // Delete selected listings on Delete key
-                e.preventDefault();
-                context_delete(); 
-            }
+                // if (e.ctrlKey && e.key === "v") {               // Ctrl + v (paste)
+                //     e.preventDefault();
+                //     context_paste();
+                // }
+
+            });
+
         });
 
     </script>

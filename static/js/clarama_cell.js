@@ -59,9 +59,11 @@ function get_data_cell(cell) {
 
     var chart_series_groups = [];
     var chart_series_formats = [];
+    var chart_series_annos = [];
 
     var series_groups = cell.find('.chart-series-groups');
     var series_formats = cell.find('.chart-series-formats');
+    var series_annos = cell.find('.chart-series-annotations');
 
     series_groups.each(function () {
         console.log(this);
@@ -91,12 +93,31 @@ function get_data_cell(cell) {
             'format-pr': $(this).find('.format-pr').val(),              // point size
             'format-ps': $(this).find('.format-pointstyle').find('option:selected').attr('id'),              // point size
             'format-lw': $(this).find('.format-lw').val(),              // line width
-            'format-col': $(this).find('.format-col').val(),            // colour
-            'format-col-back': $(this).find('.format-col-back').val(),  // background colour
+            'format-col': $(this).find('.chart-col').val(),            // colour
+            'format-col-back': $(this).find('.chart-col-back').val(),  // background colour
             'format-title': $(this).find('.format-title').val()         // series title
         };
         console.log(srs);
         chart_series_formats.push(srs);
+    })
+
+    series_annos.each(function () {
+        console.log(this);
+        srs = {
+            'anno-label': $(this).find('.anno-label').val(),            // label
+            'anno-x': $(this).find('.anno-x').val(),                    // X axis
+            'anno-y': $(this).find('.anno-y').val(),                    // Y axis
+            'anno-xm': $(this).find('.anno-xm').val(),                  // X MAX axis
+            'anno-ym': $(this).find('.anno-ym').val(),                  // Y MAX axis
+            'anno-u': $(this).find('.anno-u').val(),                    // unit axis
+            'anno-dt': $(this).find('.anno-dt').is(':checked'),         // dotted
+            'anno-width': $(this).find('.anno-width').val(),            // border width
+            'anno-type': $(this).find('.anno-type').find('option:selected').attr('id'),              // type
+            'anno-col': $(this).find('.chart-col').val(),                // colour
+            'anno-col-back': $(this).find('.chart-col-back').val(),      // background colour
+        };
+        console.log(srs);
+        chart_series_annos.push(srs);
     })
 
     var chart = {
@@ -105,7 +126,8 @@ function get_data_cell(cell) {
         'legend': chart_legend,
         'xaxis-type': chart_xaxis_type,
         'series-groups': chart_series_groups,
-        'series-formats': chart_series_formats
+        'series-formats': chart_series_formats,
+        'series-annos': chart_series_annos
     }
 
     var table = {

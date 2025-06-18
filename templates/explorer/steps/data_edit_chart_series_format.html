@@ -46,7 +46,7 @@
         </div>
         <div class="col">
             <select id="ps{{ loop_index }}" class="form-control format-pointstyle" title="Point shape"
-                    data-toggle="tooltip">>
+                    data-toggle="tooltip">
                 <option {{ selected("circle",sformat['format-ps']) }} id="circle">Circle (o)</option>
                 <option {{ selected("cross",sformat['format-ps']) }} id="cross">Plus (+)</option>
                 <option {{ selected("crossRot",sformat['format-ps']) }} id="crossRot">Cross (x)</option>
@@ -66,7 +66,7 @@
         </div>
         <div class="col">
             <div class="color-picker-container d-flex align-items-center">
-                <select class="form-control format-col" id="col{{ loop_index }}" name="color"
+                <select class="form-control chart-col" id="col{{ loop_index }}" name="color"
                         style="background-color: {{ sformat['format-col'] }}; " title="Line colour"
                         data-toggle="tooltip">
                     {% for key, value in chartColors.items() %}
@@ -76,19 +76,18 @@
                     {% endfor %}
                     {% if (sformat['format-col']  or '').startswith('#') %}
                         <option value="{{ sformat['format-col'] }}" selected>{{ sformat['format-col'] }}</option>
-                    {% else %}
-                        <option value="custom">Custom Colour</option>
                     {% endif %}
+                    <option value="custom">Custom Colour</option>
                 </select>
                 <i class="bi bi-three-dots-vertical ellipsis"></i>
-                <input type="color" selected="format-col" class="form-control format-col-picker"
+                <input type="color" selected="chart-col" class="form-control chart-col-picker"
                        id="col{{ loop_index }}"
                        name="cc" value="{{ sformat['format-col'] }}">
             </div>
         </div>
         <div class="col">
             <div class="color-picker-container d-flex align-items-center">
-                <select class="form-control format-col-back" id="col-back{{ loop_index }}"
+                <select class="form-control chart-col-back" id="col-back{{ loop_index }}"
                         name="color-back" style="background-color: {{ sformat['format-col-back'] }}; "
                         title="Fill colour" data-toggle="tooltip">
                     {% for key, value in chartColors.items() %}
@@ -99,12 +98,11 @@
                     {% if (sformat['format-col-back'] or '').startswith('#') %}
                         <option value="{{ sformat['format-col-back'] }}"
                                 selected>{{ sformat['format-col-back'] }}</option>
-                    {% else %}
-                        <option value="custom">Custom Colour</option>
                     {% endif %}
+                    <option value="custom">Custom Colour</option>
                 </select>
-                <i class="bi bi-three-dots-vertical ellipsis"></i>
-                <input type="color" selected="format-col-back" class="form-control format-col-picker-back"
+                <i class="bi bi-three-dots-vertical ellipsis2"></i>
+                <input type="color" selected="chart-col-back" class="form-control chart-col-picker-back"
                        id="col-back{{ loop_index }}"
                        name="cc" value="{{ sformat['format-col-back'] }}">
             </div>

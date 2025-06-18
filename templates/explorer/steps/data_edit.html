@@ -7,10 +7,11 @@
     {% do table.update({'sortable': True}) %}
 {% endif %}
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
-    <div class="bg-info rounded-top text-light" style="padding: 5px">
-        <div class="rounded-top text-light row">
-            <input id="task_step_{{ loop_index }}_output" type="hidden" value="{{ output or 'table' }}">
-            <div class="btn-group col align-items-center">
+    <!-- Top bar with buttons and tabs -->
+    <div class="bg-info rounded-top text-light px-2 py-1">
+        <div class="d-flex flex-wrap align-items-center">
+            <!-- Output type toggle buttons -->
+            <div class="btn-group me-2">
                 <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
                         data-bs-target="#collapseTableOptions_{{ loop_index }}"
                         aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
@@ -23,316 +24,295 @@
                         data-bs-target="#collapseOptions_{{ loop_index }}"
                         aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
                         aria-controls="collapseOptions_{{ loop_index }}"
-                        class="btn dropdown-togglew rounded-0 {% if output=='chart' %}btn-primary{% else %}btn-secondary{% endif %}"
+                        class="btn rounded-0 {% if output=='chart' %}btn-primary{% else %}btn-secondary{% endif %}"
                         onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
-                    <i
-                            class="bi bi-graph-up-arrow"></i></button>
-
+                    <i class="bi bi-graph-up-arrow"></i>
+                </button>
                 <button id="task_step_{{ loop_index }}_code" type="button"
                         class="rounded-0 btn {% if output=='code' %}btn-primary{% else %}btn-secondary{% endif %}"
                         onclick="datacell_setOutput('task_step_{{ loop_index }}', 'code', '{{ loop_index }}');">
                     <i class="bi bi-code"></i>
                 </button>
-
-                <div class="input-group">
-                    <input id="task_step_{{ loop_index }}_source" type="text"
-                           class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus"
-                           placeholder="Data Source Filename" aria-label="Data source relative filename"
-                           value="{{ source }}">
-                    <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
-                            data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                            inputId="task_step_{{ loop_index }}_source" filters="*.source.yaml|*.csv|*.xlsx">
-                        <i class="bi bi-folder2-open"></i>
-                    </button>
-                </div>
-
-                <!-- <button type="button" class="gridbrowsefile border border-0 bg-white input-group align-items-center" data-bs-toggle="modal" data-bs-target="#browseFileModal" inputId="task_step_{{ loop_index }}_source" filters="*.source.yaml|*.csv|*.xlsx">
-                    <input id="task_step_{{ loop_index }}_source" type="text" class="form-control border-0"
-                        placeholder="Data Source Filename" aria-label="Data source relative filename"
-                        value="{{ source }}">
-                        <i class="bi bi-folder2-open px-2"></i>
-                    </input>
-                </button> -->
-
-                {% if source %}
-                    <a href="{{ source }}" target="_blank" id="task_step_{{ loop_index }}_browse_link"
-                       class="text-decoration-none text-white">
-                        <button id="task_step_{{ loop_index }}_browse" type="button"
-                                class="btn btn-secondary datasource" aria-haspopup="true"
-                                aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
-                            <i class="bi bi-pen"></i>
-                        </button>
-                    </a>
-                {% else %}
-                    <a href="#" target="_blank" id="task_step_{{ loop_index }}_browse_link"
-                       class="text-decoration-none text-white" style="display:none;">
-                        <button id="task_step_{{ loop_index }}_browse" type="button"
-                                class="btn btn-secondary datasource" aria-haspopup="true"
-                                aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
-                            <i class="bi bi-pen"></i>
-                        </button>
-                    </a>
-                {% endif %}
             </div>
-        </div>
-    </div>
-    <div id="collapseTableOptions_{{ loop_index }}"
-         class="accordion-collapse collapse bg-dark text-light {% if output=='table' %}show{% endif %}">
-        <div class="accordion-body" aria-labelledby="table" style="padding: 8px;">
-            <div class="container-fluid">
-                <div class="d-flex align-items-center my-3">
-                    <label for="c{{ loop_index }}" class="form-label ps-0">Table Title</label>
-                    <div class="col">
-                        <input type="string" class="form-control table-title" id="c{{ loop_index }}" name="title"
-                               value="{% if table is defined %}{{ table['title'] }}{% endif %}">
-                    </div>
-                </div>
-                <div class="d-flex align-items-center my-3">
-                    <table width="100%" class="table-centered">
-                        <thead>
-                        <tr>
-                            <th>Format</th>
-                            <th>Search</th>
-                            <th>Export</th>
-                            <th>Filter</th>
-                            <th>Checkbox</th>
-                            <th>Multiselect</th>
-                            <th>Sortable</th>
-                            <th>Pagination</th>
-                            <th>Page Size</th>
-                            <th>Footer</th>
-                        </tr>
-                        </thead>
-                        <tr>
-                            {% set style = table.get('style','default') %}
 
-                            <td>
-                                <select id="style" name="style" class="form-control table-style">
-                                    <option {{ selected("default",style) }} id="default">Default</option>
-                                    <option {{ selected("light",style) }} id="light">Light</option>
-                                    <option {{ selected("dark",style) }} id="dark">Dark</option>
-                                    <option {{ selected("centered",style) }} id="centered">Centered</option>
-                                    <option {{ selected("metric",style) }} id="metric">Metric</option>
-                                    <option {{ selected("worksheet",style) }} id="worksheet">Worksheet</option>
-                                </select></td>
-                            <td><input class="form-check-input table-search" name="search"
-                                       type="checkbox" {{ table['search'] | checked }}
-                                       value="" id="search">
-                            </td>
-                            <td><input class="form-check-input table-export" name="export"
-                                       type="checkbox" {{ table['export'] | checked }}
-                                       name="export" id="export">
-                            </td>
-                            <td><input class="form-check-input table-filter"
-                                       type="checkbox" {{ table['filter'] | checked }}
-                                       name="filter" id="filter">
-                            </td>
-                            <td><input class="form-check-input table-checkbox"
-                                       type="checkbox" {{ table['checkbox'] | checked }}
-                                       name="checkbox" id="checkbox">
-                            </td>
-                            <td><input class="form-check-input table-multiselect-row"
-                                       type="checkbox" {{ table['multiselect_row'] | checked }}
-                                       name="multiselect_row" id="multiselect_row">
-                            </td>
-                            <td><input class="form-check-input table-sortable"
-                                       type="checkbox" {{ table['sortable'] | checked }}
-                                       name="sortable" id="sortable">
-                            </td>
-                            <td><input class="form-check-input table-pagination"
-                                       type="checkbox" {{ table['pagination'] | checked }}
-                                       name="pagination" id="pagination">
-                            </td>
-                            <td><input class="form-control table-pagesize" type="number" value="{{ table['pagesize'] }}"
-                                       name="pagesize" id="pagesize"></td>
-
-                            <td><input class="form-check-input table-footer"
-                                       type="checkbox" {{ table['footer'] | checked }}
-                                       name="footer" id="footer">
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+            <!-- Data Source Tabs -->
+            {% set filename = source.split('/')[-1].split('\\')[-1] if source else 'Untitled' %}
+            <div class="flex-grow-1">
+                <ul class="nav nav-tabs ..." id="dataSourceTabs_{{ loop_index }}" role="tablist">
+                    <li class="nav-item tab-item" role="presentation">
+                        <button class="nav-link source-tab active" id="tab_{{ loop_index }}_0" data-bs-toggle="tab" data-bs-target="#tabContent_{{ loop_index }}_0" 
+                           type="button" role="tab" aria-controls="tabContent_{{ loop_index }}_0" aria-selected="true">
+                            {{ filename }}
+                            <i class="bi bi-x-lg ms-2 close-tab" title="Close tab"></i>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button id="add-source-tab" type="button" class="nav-link" title="Add tab">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
 
-    <div id="collapseOptions_{{ loop_index }}"
-         class="accordion-collapse collapse bg-dark text-light {% if output=='chart' %}show{% endif %}">
-        <div class="accordion-body" aria-labelledby="chart" style="padding: 8px;">
-            <div class="container-fluid">
-                <div class="d-flex align-items-center my-3">
-                    <label for="c{{ loop_index }}" class="form-label ps-0">Chart Title</label>
-                    <div class="col">
-                        <input type="string" class="form-control chart-title" id="c{{ loop_index }}" name="title"
-                               value="{% if chart is defined %}{{ chart['title'] }}{% endif %}">
-                    </div>
+    <div class="tab-content" id="dataSourceTabContent_{{ loop_index }}">
+        <div class="tab-pane fade show active" id="tabContent_{{ loop_index }}_0" role="tabpanel" aria-labelledby="tab_{{ loop_index }}_0"></div>
+            {% include "explorer/steps/data_edit_tabs.html" %} 
+            <div id="collapseTableOptions_{{ loop_index }}"
+                class="accordion-collapse collapse bg-dark text-light {% if output=='table' %}show{% endif %}">
+                <div class="accordion-body" aria-labelledby="table" style="padding: 8px;">
+                    <div class="container-fluid">
+                        <div class="d-flex align-items-center my-3">
+                            <label for="c{{ loop_index }}" class="form-label ps-0">Table Title</label>
+                            <div class="col">
+                                <input type="string" class="form-control table-title" id="c{{ loop_index }}" name="title"
+                                    value="{% if table is defined %}{{ table['title'] }}{% endif %}">
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center my-3">
+                            <table width="100%" class="table-centered">
+                                <thead>
+                                <tr>
+                                    <th>Format</th>
+                                    <th>Search</th>
+                                    <th>Export</th>
+                                    <th>Filter</th>
+                                    <th>Checkbox</th>
+                                    <th>Multiselect</th>
+                                    <th>Sortable</th>
+                                    <th>Pagination</th>
+                                    <th>Page Size</th>
+                                    <th>Footer</th>
+                                </tr>
+                                </thead>
+                                <tr>
+                                    {% set style = table.get('style','default') %}
 
-                    <label for="ct{{ loop_index }}" class="form-label">Chart Subtitle</label>
-                    <div class="col">
-                        <input type="string" class="form-control chart-subtitle" id="ct{{ loop_index }}"
-                               name="subtitle"
-                               value="{% if chart is defined %}{{ chart['subtitle'] }}{% endif %}">
-                    </div>
+                                    <td>
+                                        <select id="style" name="style" class="form-control table-style">
+                                            <option {{ selected("default",style) }} id="default">Default</option>
+                                            <option {{ selected("light",style) }} id="light">Light</option>
+                                            <option {{ selected("dark",style) }} id="dark">Dark</option>
+                                            <option {{ selected("centered",style) }} id="centered">Centered</option>
+                                            <option {{ selected("metric",style) }} id="metric">Metric</option>
+                                            <option {{ selected("worksheet",style) }} id="worksheet">Worksheet</option>
+                                        </select></td>
+                                    <td><input class="form-check-input table-search" name="search"
+                                            type="checkbox" {{ table['search'] | checked }}
+                                            value="" id="search">
+                                    </td>
+                                    <td><input class="form-check-input table-export" name="export"
+                                            type="checkbox" {{ table['export'] | checked }}
+                                            name="export" id="export">
+                                    </td>
+                                    <td><input class="form-check-input table-filter"
+                                            type="checkbox" {{ table['filter'] | checked }}
+                                            name="filter" id="filter">
+                                    </td>
+                                    <td><input class="form-check-input table-checkbox"
+                                            type="checkbox" {{ table['checkbox'] | checked }}
+                                            name="checkbox" id="checkbox">
+                                    </td>
+                                    <td><input class="form-check-input table-multiselect-row"
+                                            type="checkbox" {{ table['multiselect_row'] | checked }}
+                                            name="multiselect_row" id="multiselect_row">
+                                    </td>
+                                    <td><input class="form-check-input table-sortable"
+                                            type="checkbox" {{ table['sortable'] | checked }}
+                                            name="sortable" id="sortable">
+                                    </td>
+                                    <td><input class="form-check-input table-pagination"
+                                            type="checkbox" {{ table['pagination'] | checked }}
+                                            name="pagination" id="pagination">
+                                    </td>
+                                    <td><input class="form-control table-pagesize" type="number" value="{{ table['pagesize'] }}"
+                                            name="pagesize" id="pagesize"></td>
 
-                    <label for="lg{{ loop_index }}" class="form-label">Legend</label>
-                    <div class="col">
-                        {% set legend = 'Off' %}
-                        {% if chart is defined %}
-                            {% set legend = chart['legend'] %}
-                        {% endif %}
-                        <select id="lg{{ loop_index }}" class="form-control chart-legend">
-                            <option {{ selected("Off",legend) }}>Off</option>
-                            <option {{ selected("Left",legend) }}>Left</option>
-                            <option {{ selected("Right",legend) }}>Right</option>
-                            <option {{ selected("Top",legend) }}>Top</option>
-                            <option {{ selected("Bottom",legend) }}>Bottom</option>
-                        </select>
+                                    <td><input class="form-check-input table-footer"
+                                            type="checkbox" {{ table['footer'] | checked }}
+                                            name="footer" id="footer">
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
-                    <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chartYamlEditor"
-                            role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advance
-                    </button>
                 </div>
             </div>
 
-            <div class="container-fluid mb-2 collapse" id="chartYamlEditor">
-                <div id="content_query_yaml_{{ loop_index }}"
-                     name="task_step_field_yaml_{{ loop_index }}"
-                     editor="yaml"
-                     class="source-editor form-control clarama-field-editor"
-                     celltype="code"
-                     style="min-height: 100px">
-                </div>
-            </div>
+            <div id="collapseOptions_{{ loop_index }}"
+                class="accordion-collapse collapse bg-dark text-light {% if output=='chart' %}show{% endif %}">
+                <div class="accordion-body" aria-labelledby="chart" style="padding: 8px;">
+                    <div class="container-fluid">
+                        <div class="d-flex align-items-center my-3">
+                            <label for="c{{ loop_index }}" class="form-label ps-0">Chart Title</label>
+                            <div class="col">
+                                <input type="string" class="form-control chart-title" id="c{{ loop_index }}" name="title"
+                                    value="{% if chart is defined %}{{ chart['title'] }}{% endif %}">
+                            </div>
 
-            <div class="container-fluid my-3">
-                <label for="xaxis{{ loop_index }}" class="form-label p-0 mb-2">X-Axis</label>
-                <div class="col">
-                    {% set xaxis = 'category' %}
+                            <label for="ct{{ loop_index }}" class="form-label">Chart Subtitle</label>
+                            <div class="col">
+                                <input type="string" class="form-control chart-subtitle" id="ct{{ loop_index }}"
+                                    name="subtitle"
+                                    value="{% if chart is defined %}{{ chart['subtitle'] }}{% endif %}">
+                            </div>
+
+                            <label for="lg{{ loop_index }}" class="form-label">Legend</label>
+                            <div class="col">
+                                {% set legend = 'Off' %}
+                                {% if chart is defined %}
+                                    {% set legend = chart['legend'] %}
+                                {% endif %}
+                                <select id="lg{{ loop_index }}" class="form-control chart-legend">
+                                    <option {{ selected("Off",legend) }}>Off</option>
+                                    <option {{ selected("Left",legend) }}>Left</option>
+                                    <option {{ selected("Right",legend) }}>Right</option>
+                                    <option {{ selected("Top",legend) }}>Top</option>
+                                    <option {{ selected("Bottom",legend) }}>Bottom</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chartYamlEditor" role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advance</button>
+                        </div>
+                    </div>
+
+                    <div class="container-fluid mb-2 collapse" id="chartYamlEditor">
+                        <div id="content_query_yaml_{{ loop_index }}"
+                            name="task_step_field_yaml_{{ loop_index }}"
+                            editor="yaml"
+                            class="source-editor form-control clarama-field-editor"
+                            celltype="code"
+                            style="min-height: 100px">
+                        </div>
+                    </div>
+
+                    <div class="container-fluid my-3">
+                        <label for="xaxis{{ loop_index }}" class="form-label p-0 mb-2">X-Axis</label>
+                        <div class="col">
+                            {% set xaxis = 'category' %}
+                            {% if chart is defined %}
+                                {% set xaxis = chart['xaxis-type'] %}
+                            {% endif %}
+                            <select id="xaxis{{ loop_index }}" class="form-control chart-xaxis-type">
+                                <option value="category" {{ selected("category",xaxis) }}>Category (X will convert to
+                                    string. Series will be contiguous)
+                                </option>
+                                <option value="category_grouped" {{ selected("category_grouped",xaxis) }}>Category Grouped
+                                    (ordered but repeated series names if not sorted)
+                                </option>
+                                <option value="category_bulk" {{ selected("category_bulk",xaxis) }}>Category Bulk (gaps in
+                                    data will be skipped)
+                                </option>
+                                <option value="linear" {{ selected("linear",xaxis) }}>Linear (X must be numeric)
+                                </option>
+                                <option value="time" {{ selected("time",xaxis) }}>Time (X must be datetime)</option>
+                                <option value="logarithmic" {{ selected("logarithmic",xaxis) }}>Logarithmic (X must be
+                                    numeric)
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
                     {% if chart is defined %}
-                        {% set xaxis = chart['xaxis-type'] %}
+                        {% set seriesanno = chart['series-anno'] or [{}] %}
+                        {% set seriesgroups = chart['series-groups'] or [{}] %}
+                        {% set seriesformats = chart['series-formats'] or [{}] %}
+                    {% else %}
+                        {% set seriesanno = [{}] %}
+                        {% set seriesgroups = [{}] %}
+                        {% set seriesformats = [{}] %}
                     {% endif %}
-                    <select id="xaxis{{ loop_index }}" class="form-control chart-xaxis-type">
-                        <option value="category" {{ selected("category",xaxis) }}>Category (X will convert to
-                            string. Series will be contiguous)
-                        </option>
-                        <option value="category_grouped" {{ selected("category_grouped",xaxis) }}>Category Grouped
-                            (ordered but repeated series names if not sorted)
-                        </option>
-                        <option value="category_bulk" {{ selected("category_bulk",xaxis) }}>Category Bulk (gaps in
-                            data will be skipped)
-                        </option>
-                        <option value="linear" {{ selected("linear",xaxis) }}>Linear (X must be numeric)
-                        </option>
-                        <option value="time" {{ selected("time",xaxis) }}>Time (X must be datetime)</option>
-                        <option value="logarithmic" {{ selected("logarithmic",xaxis) }}>Logarithmic (X must be
-                            numeric)
-                        </option>
-                    </select>
+
+                    <ul id="seriesGrp{{ loop_index }}" class="list-group">
+                        <label for="sg{{ loop_index }}" class="form-label mb-2">
+                            Series Groups
+                            <i id="addSG{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                        </label>
+                        <div class="list-group-item d-flex row gx-2 align-items-center">
+                            <div style="width: 2%;"></div>
+                            <div class="col-2">Type</div>
+                            <div class="col-1">X Axis</div>
+                            <div class="col-1">Y Axis</div>
+                            <div class="col-1">Z Axis</div>
+                            <div class="col-1">Y Min Axis</div>
+                            <div class="col-1">Y Max Axis</div>
+                            <div class="col-1">Series Axis</div>
+                            <div class="col-1">Unit Axis</div>
+                            <div class="col-2">Label Axis</div>
+                            <div style="width: 4%;"></div>
+                        </div>
+                        {% for sgroup in seriesgroups %}
+                            {% with loop_index=loop_index, series_index=loop.index %}
+                                {% include "explorer/steps/data_edit_chart_series_group.html" %}
+                            {% endwith %}
+                        {% endfor %}
+                    </ul>
+                    <ul id="seriesFormat{{ loop_index }}" class="list-group">
+                        <label for="sg{{ loop_index }}" class="form-label mb-2"><br/>
+                            Series Formats
+                            <i id="addSF{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                        </label>
+                        <div class="list-group-item d-flex row gx-2 align-items-center">
+                            <div class="col">Series Name/Regex</div>
+                            <div class="col">Display Name</div>
+                            <div class="col">Unit Axis</div>
+                            <div class="col text-center">Line</div>
+                            <div class="col">Point Size</div>
+                            <div class="col">Point Style</div>
+                            <div class="col">Line Width</div>
+                            <div class="col">Colour</div>
+                            <div class="col">Fill Colour</div>
+                            <div style="width: 4%;"></div>
+                        </div>
+                        {% for sformat in seriesformats %}
+                            {% with loop_index=loop_index, series_index=loop.index %}
+                                {% include "explorer/steps/data_edit_chart_series_format.html" %}
+                            {% endwith %}
+                        {% endfor %}
+                    </ul>
+                    <ul id="seriesAnno{{ loop_index }}" class="list-group">
+                        <label for="sa{{ loop_index }}" class="form-label mb-2">
+                            Series Annotations
+                            <i id="addAN{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                        </label>
+                        <div class="list-group-item d-flex row gx-2 align-items-center">
+                            <div class="col-1">Label</div>
+                            <div class="col-1">X Axis</div>
+                            <div class="col-1">Y Axis</div>
+                            <div class="col-1">X Max Axis</div>
+                            <div class="col-1">Y Max Axis</div>
+                            <div class="col-1">Unit Axis</div>
+                            <div class="col-1">Dotted Lines</div>
+                            <div class="col-1">Border Width</div>
+                            <div class="col-1">Type</div>
+                            <div class="col-1">Colour</div>
+                            <div class="col-1">Fill Colour</div>
+                            <div style="width: 4%;"></div>
+                        </div>
+                        {% for sanno in seriesanno %}
+                            {% with loop_index=loop_index, series_index=loop.index %}
+                                {% include "explorer/steps/data_edit_chart_series_annotation.html" %}
+                            {% endwith %}
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
-
-            {% if chart is defined %}
-                {% set seriesanno = chart['series-anno'] or [{}] %}
-                {% set seriesgroups = chart['series-groups'] or [{}] %}
-                {% set seriesformats = chart['series-formats'] or [{}] %}
-            {% else %}
-                {% set seriesanno = [{}] %}
-                {% set seriesgroups = [{}] %}
-                {% set seriesformats = [{}] %}
-            {% endif %}
-
-            <ul id="seriesGrp{{ loop_index }}" class="list-group">
-                <label for="sg{{ loop_index }}" class="form-label mb-2">
-                    Series Groups
-                    <i id="addSG{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
-                </label>
-                <div class="list-group-item d-flex row gx-2 align-items-center">
-                    <div style="width: 2%;"></div>
-                    <div class="col-2">Type</div>
-                    <div class="col-1">X Axis</div>
-                    <div class="col-1">Y Axis</div>
-                    <div class="col-1">Z Axis</div>
-                    <div class="col-1">Y Min Axis</div>
-                    <div class="col-1">Y Max Axis</div>
-                    <div class="col-1">Series Axis</div>
-                    <div class="col-1">Unit Axis</div>
-                    <div class="col-2">Label Axis</div>
-                    <div style="width: 4%;"></div>
-                </div>
-                {% for sgroup in seriesgroups %}
-                    {% with loop_index=loop_index, series_index=loop.index %}
-                        {% include "explorer/steps/data_edit_chart_series_group.html" %}
-                    {% endwith %}
-                {% endfor %}
-            </ul>
-            <ul id="seriesFormat{{ loop_index }}" class="list-group">
-                <label for="sg{{ loop_index }}" class="form-label mb-2"><br/>
-                    Series Formats
-                    <i id="addSF{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
-                </label>
-                <div class="list-group-item d-flex row gx-2 align-items-center">
-                    <div class="col">Series Name/Regex</div>
-                    <div class="col">Display Name</div>
-                    <div class="col">Unit Axis</div>
-                    <div class="col text-center">Line</div>
-                    <div class="col">Point Size</div>
-                    <div class="col">Point Style</div>
-                    <div class="col">Line Width</div>
-                    <div class="col">Colour</div>
-                    <div class="col">Fill Colour</div>
-                    <div style="width: 4%;"></div>
-                </div>
-                {% for sformat in seriesformats %}
-                    {% with loop_index=loop_index, series_index=loop.index %}
-                        {% include "explorer/steps/data_edit_chart_series_format.html" %}
-                    {% endwith %}
-                {% endfor %}
-            </ul>
-            <ul id="seriesAnno{{ loop_index }}" class="list-group">
-                <label for="sa{{ loop_index }}" class="form-label mb-2">
-                    Series Annotations
-                    <i id="addAN{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
-                </label>
-                <div class="list-group-item d-flex row gx-2 align-items-center">
-                    <div class="col-1">Label</div>
-                    <div class="col-1">X Axis</div>
-                    <div class="col-1">Y Axis</div>
-                    <div class="col-1">X Max Axis</div>
-                    <div class="col-1">Y Max Axis</div>
-                    <div class="col-1">Unit Axis</div>
-                    <div class="col-1">Dotted Lines</div>
-                    <div class="col-1">Border Width</div>
-                    <div class="col-1">Type</div>
-                    <div class="col-1">Colour</div>
-                    <div class="col-1">Fill Colour</div>
-                    <div style="width: 4%;"></div>
-                </div>
-                {% for sanno in seriesanno %}
-                    {% with loop_index=loop_index, series_index=loop.index %}
-                        {% include "explorer/steps/data_edit_chart_series_annotation.html" %}
-                    {% endwith %}
-                {% endfor %}
-            </ul>
         </div>
     </div>
-    <div id="content_query_{{ loop_index }}" name="task_step_field_{{ loop_index }}" editor="sql"
-         class="source-editor form-control clarama-field-editor" style="min-height: 100px">{{ content }}</div>
-</div>
-<div id="content_chart_{{ loop_index }}">
+    <div id="content_chart_{{ loop_index }}">
 
+    </div>
 </div>
 
 <script type="text/javascript">
     $(document).ready(() => {
-        chart_options_initialize('{{  loop_index }}')
+        chart_options_initialize('{{ loop_index }}');
         $('[data-toggle="tooltip"]').tooltip({html: true});
-
+    
         function updateSeriesFields($selectElem) {
             const seriesType = $selectElem.val();
-            const fields = ['series-x', 'series-y', 'series-z', 'series-ymin', 'series-ymax', 'series-s', 'series-u', 'series-l'];
-
-            // fields to disable based on series type
+            const fields = ['series-x','series-y','series-z','series-ymin','series-ymax','series-s','series-u','series-l'];
+    
             const disableRules = {
                 "Bubble": ['series-ymin', 'series-ymax'],
                 "Line": ['series-z'],
@@ -343,27 +323,190 @@
                 "Polar Area": ['series-y', 'series-z', 'series-ymin', 'series-ymax', 'series-s'],
                 "Radar": ['series-y', 'series-z', 'series-ymin', 'series-ymax']
             };
-
+    
             const group = $selectElem.closest('.chart-series-groups');
-
-            // enable all fields first
-            fields.forEach(function (field) {
+    
+            fields.forEach(field => {
                 group.find('input.' + field).prop('disabled', false);
             });
-
-            // thn disable fields per rules
+    
             const toDisable = disableRules[seriesType] || [];
-            toDisable.forEach(function (field) {
+            toDisable.forEach(field => {
                 group.find('input.' + field).prop('disabled', true);
             });
         }
-
+    
         $('.series-type').each(function () {
             updateSeriesFields($(this));
         });
-
+    
         $(document).on('change', '.series-type', function () {
             updateSeriesFields($(this));
         });
+    
+        // --- TAB MANAGEMENT ---
+    
+        let tabCounter = 0; // Initialize tab counter
+        const loopIndex = '{{ loop_index }}';
+        const tabsContainer = $(`#dataSourceTabs_${loopIndex}`);
+        const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`); // The div that holds all the stacked content blocks
+        const addSourceTabBtn = $('#add-source-tab'); 
+
+        // Function to create and return the HTML for a new data_edit_tabs.html block
+        function generateTabContentBlockHtml(tabId, data = {}) {
+            const sourceValue = data.source || '';
+            const contentValue = data.content || '';
+            const browseLinkDisplay = sourceValue ? 'block' : 'none';
+
+            return `
+                <div class="tab-content-block tab-content-block-${loopIndex}_${tabId}" 
+                     id="tabContentBlock_${loopIndex}_${tabId}" 
+                     data-tab-id="${tabId}" 
+                     style="display: none;">
+                    <div class="input-group w-100 my-2 shadow-sm border border-2 border-primary rounded">
+                        <input id="task_step_${loopIndex}_source_${tabId}" type="text"
+                               class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus"
+                               placeholder="Data Source Filename" aria-label="Data source relative filename"
+                               value="${sourceValue}">
+                        <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                                data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                                inputId="task_step_${loopIndex}_source_${tabId}" filters="*.source.yaml|*.csv|*.xlsx">
+                            <i class="bi bi-folder2-open"></i>
+                        </button>
+                        <a href="${sourceValue}" target="_blank" id="task_step_${loopIndex}_browse_link_${tabId}" class="text-decoration-none text-white" style="display:${browseLinkDisplay};">
+                            <button id="task_step_${loopIndex}_browse_${tabId}" type="button"
+                                    class="btn btn-secondary datasource" aria-haspopup="true"
+                                    aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                                <i class="bi bi-pen"></i>
+                            </button>
+                        </a>
+                    </div>
+                    <div id="content_query_${loopIndex}_${tabId}" 
+                         name="task_step_field_${loopIndex}_${tabId}" 
+                         editor="sql"
+                         class="source-editor form-control clarama-field-editor" 
+                         style="min-height: 100px">${contentValue}</div>
+                </div>
+            `;
+        }
+    
+        function createTab(id, name) {
+            const $tabItem = $(`
+                <li class="nav-item" role="presentation" style="flex: 1 1 auto; min-width: 100px;">
+                    <button class="nav-link" id="tab_${loopIndex}_${id}" data-bs-toggle="tab" data-bs-target="#tabContentBlock_${loopIndex}_${id}"
+                            type="button" role="tab" aria-controls="tabContentBlock_${loopIndex}_${id}" aria-selected="false" title="${name}">
+                        <span class="tab-title">${name}</span>
+                        <span class="close-tab ms-2" title="Close tab" style="cursor: pointer;">&times;</span>
+                    </button>
+                </li>
+            `);
+    
+            // Close tab handler
+            $tabItem.find('.close-tab').on('click', e => {
+                e.stopPropagation();
+                const tabId = id;
+    
+                $(`#tab_${loopIndex}_${tabId}`).closest('li').remove();
+                $(`#tabContentBlock_${loopIndex}_${tabId}`).remove(); // Remove the associated content block
+    
+                // Activate last remaining tab if any
+                const $remainingTabs = tabsContainer.find('button.nav-link').not('#add-source-tab');
+                if ($remainingTabs.length > 0) {
+                    $remainingTabs.last().tab('show');
+                } else {
+                    // If no tabs left, re-initialize with a default tab
+                    addNewTab(null);
+                }
+            });
+    
+            // Tab activation handler
+            $tabItem.find('button').on('shown.bs.tab', e => {
+                const activeId = $(e.target).attr('id').split('_').pop(); 
+                console.log("Switched to tab", activeId);
+                showTabContent(activeId);
+                // Initialize SQL editor for the newly shown tab
+                if (window.initializeSourceEditor) {
+                    initializeSourceEditor($(`#content_query_${loopIndex}_${activeId}`));
+                }
+            });
+    
+            return $tabItem;
+        }
+
+        function showTabContent(tabIdToShow) {
+            // Hide all tab content blocks for this loop_index
+            $(`.tab-content-block-${loopIndex}_*`).hide();
+            // Show only the selected tab's content block
+            $(`#tabContentBlock_${loopIndex}_${tabIdToShow}`).show();
+        }
+    
+        // Add new tab, optionally duplicating data
+        function addNewTab(duplicateData) {
+            tabCounter++;
+            const tabId = tabCounter;
+            const tabName = duplicateData?.title || `Tab ${tabId}`;
+    
+            const newTab = createTab(tabId, tabName);
+            const newContentHtml = generateTabContentBlockHtml(tabId, duplicateData); // Generate HTML string
+    
+            addSourceTabBtn.closest('li').before(newTab);
+            contentContainer.append(newContentHtml); // Append the HTML string
+    
+            newTab.find('button').tab('show'); // This will trigger the 'shown.bs.tab' event and show the content
+            return tabId;
+        }
+    
+        // Add tab button click handler
+        if (addSourceTabBtn.length) {
+            addSourceTabBtn.on('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
+    
+                const currentTabBtn = tabsContainer.find('button.nav-link.active').not('#add-source-tab');
+                let duplicateData = null;
+    
+                if (currentTabBtn.length) {
+                    const currentTabId = currentTabBtn.attr('id').split('_').pop();
+                    const currentContentBlock = $(`#tabContentBlock_${loopIndex}_${currentTabId}`);
+                    
+                    let title = `Tab ${tabCounter + 1}`;
+                    const currentInput = currentContentBlock.find(`input#task_step_${loopIndex}_source_${currentTabId}`);
+                    const currentSqlEditor = currentContentBlock.find(`div#content_query_${loopIndex}_${currentTabId}`);
+
+                    if (currentInput.length) {
+                        const fullPath = currentInput.val();
+                        title = fullPath?.split(/[\\/]/).pop() || title;
+                    }
+    
+                    duplicateData = { 
+                        title: title, 
+                        source: currentInput.val(),
+                        content: currentSqlEditor.text() // Assuming content is directly in text for now
+                    };
+                }
+    
+                addNewTab(duplicateData);
+            });
+        } else {
+            console.warn('Add Source Tab button (#add-source-tab) not found.');
+        }
+    
+        // Initialize: Set up the first tab's content visibility
+        // This is called AFTER the initial include of data_edit_tabs.html
+        // and AFTER any potential initialization of the first tab's editor
+        if (tabsContainer.find('button.nav-link').not('#add-source-tab').length === 0) {
+            // This case should ideally not happen if data_edit_tabs.html is always included for tab_id=0
+            addNewTab(null); 
+        } else {
+            // Ensure the first tab's content block is visible and its editor is initialized
+            const firstTabId = tabsContainer.find('button.nav-link.source-tab').first().attr('id').split('_').pop();
+            showTabContent(firstTabId);
+            if (window.initializeSourceEditor) {
+                initializeSourceEditor($(`#content_query_${loopIndex}_${firstTabId}`));
+            }
+        }
+
+        // Make sure the initial tab has its content block visible
+        showTabContent(0);
     });
 </script>

@@ -14,7 +14,7 @@
 function chart_colour_select_custom(jqthis, variant) {
     if (jqthis.val() === "custom") {
         // trigger the ellipsis, which triggers color picker
-        jqthis.siblings(".format-col-picker" + variant).trigger("click");
+        jqthis.siblings(".chart-col-picker" + variant).trigger("click");
     } else {
         const color = jqthis.val();
         jqthis.css("background-color", color);
@@ -31,7 +31,7 @@ function chart_colour_select_custom(jqthis, variant) {
  */
 function pick_colour(jqthis, variant) {
     const color = jqthis.val();
-    const selectField = jqthis.siblings(".format-col" + variant);
+    const selectField = jqthis.siblings(".chart-col" + variant);
     selectField.css("background-color", color);
     selectField.css("color", isDarkColor(color) ? "white" : "black");
 }
@@ -45,7 +45,7 @@ function pick_colour(jqthis, variant) {
  */
 function update_colour(jqthis, variant) {
     const color = jqthis.val();
-    const selectField = jqthis.siblings(".format-col" + variant);
+    const selectField = jqthis.siblings(".chart-col" + variant);
     selectField.css("background-color", color);
     selectField.css("color", isDarkColor(color) ? "white" : "black");
 
@@ -68,6 +68,10 @@ function chart_options_initialize(loop_index) {
     const addSFBtn = document.getElementById("addSF" + loop_index);
     const seriesFormat = document.getElementById("seriesFormat" + loop_index);
     const seriesFormatJQ = $("#seriesFormat" + loop_index);
+
+    const addANBtn = document.getElementById("addAN" + loop_index);
+    const seriesAnno = document.getElementById("seriesAnno" + loop_index);
+    const seriesAnnoJQ = $("#seriesAnno" + loop_index);
 
     // ==== DRAG N DROP ====
     $(document).ready(function () {
@@ -96,42 +100,53 @@ function chart_options_initialize(loop_index) {
         enable_interactions(seriesFormatJQ); // This loads the URL defined in the DIV
     });
 
+    // jQuery to handle click event for all AN remove buttons
+    $(document).on('click', '.cell-delete-series-annotations', function () {
+        $(this).closest('li').remove();
+    });
+
+    addANBtn.addEventListener("click", function () {
+        // append new li to series format
+        seriesAnno.appendChild(addSeriesAnno());
+        enable_interactions(seriesAnnoJQ); // This loads the URL defined in the DIV
+    });
+
     // add event listener to dynamically added color select elements
-    $(document).on("change", ".format-col", function () {
+    $(document).on("change", ".chart-col", function () {
         chart_colour_select_custom($(this), '');
     });
 
     // add event listener to dynamically added color select elements
-    $(document).on("change", ".format-col-back", function () {
+    $(document).on("change", ".chart-col-back", function () {
         chart_colour_select_custom($(this), '-back');
     });
 
     // when ellipsis is clicked, open color picker dialog
     $(".ellipsis").on("click", function () {
-        $(this).next(".format-col-picker").trigger("click");
+        $(this).next(".chart-col-picker").trigger("click");
     })
 
     $(".ellipsis2").on("click", function () {
-        $(this).next(".format-col-picker-back").trigger("click");
+        $(this).next(".chart-col-picker-back").trigger("click");
     })
 
     // this is so that when user is choosing the color from the color picker, the select field changes the bg color immediately
-    $(document).on("input", ".format-col-picker", function () {
+    $(document).on("input", ".chart-col-picker", function () {
         pick_colour($(this), '');
     });
 
     // this is so that when user is choosing the color from the color picker, the select field changes the bg color immediately
-    $(document).on("input", ".format-col-picker-back", function () {
+    $(document).on("input", ".chart-col-picker-back", function () {
         pick_colour($(this), '-back');
     });
 
     // the select option will be updated to the latest color the user picked once the color picker dialog is closed
-    $(document).on("change", ".format-col-picker", function () {
+    $(document).on("change", ".chart-col-picker", function () {
         update_colour($(this), '');
     });
 
     // the select option will be updated to the latest color the user picked once the color picker dialog is closed
-    $(document).on("change", ".format-col-picker-back", function () {
+    $(document).on("change", ".chart-col-picker-back", function () {
         update_colour($(this), '-back');
     });
 }
@@ -175,6 +190,21 @@ function addSeriesFormat() {
     newSF.className = "clarama-post-embedded clarama-replaceable"; // clarama-replaceable means that the div itself gets replaced.
     newSF.setAttribute("url", `/template/render/explorer/steps/data_edit_chart_series_format?loop_index=${newIndex}`);
     return newSF;
+}
+
+/**
+ * Creates a new series annotation element
+ * @returns {HTMLElement} A new div element configured for series format
+ * @description Creates a new div element with appropriate classes and URL attribute
+ * for loading a series format template via AJAX.
+ */
+function addSeriesAnno() {
+    const newIndex = $(".chart-series-annotations").length;
+
+    const newSA = document.createElement("div");
+    newSA.className = "clarama-post-embedded clarama-replaceable"; // clarama-replaceable means that the div itself gets replaced.
+    newSA.setAttribute("url", `/template/render/explorer/steps/data_edit_chart_series_annotation?loop_index=${newIndex}`);
+    return newSA;
 }
 
 /**
