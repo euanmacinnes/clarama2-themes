@@ -6,11 +6,11 @@
     {% do table.update({'pagesize': 15}) %}
     {% do table.update({'sortable': True}) %}
 {% endif %}
+
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
-    <!-- Top bar with buttons and tabs -->
     <div class="bg-info rounded-top text-light px-2 py-1">
+        <!-- Toggle buttons -->
         <div class="d-flex flex-wrap align-items-center">
-            <!-- Output type toggle buttons -->
             <div class="btn-group me-2">
                 <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
                         data-bs-target="#collapseTableOptions_{{ loop_index }}"
@@ -35,18 +35,31 @@
                 </button>
             </div>
 
-            <!-- Data Source Tabs -->
-            {% set filename = source.split('/')[-1].split('\\')[-1] if source else 'Untitled' %}
             <div class="flex-grow-1">
                 <ul class="nav nav-tabs ..." id="dataSourceTabs_{{ loop_index }}" role="tablist">
-                    <li class="nav-item tab-item" role="presentation">
-                        <button class="nav-link source-tab active" id="tab_{{ loop_index }}_0" data-bs-toggle="tab" data-bs-target="#tabContent_{{ loop_index }}_0" 
-                           type="button" role="tab" aria-controls="tabContent_{{ loop_index }}_0" aria-selected="true">
-                            {{ filename }}
-                            <i class="bi bi-x-lg ms-2 close-tab" title="Close tab"></i>
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
+                    {# Define initial_tab_sources. If not provided, default to current 'source' and 'content'. #}
+                    {% if initial_tab_sources is not defined or not initial_tab_sources %}
+                        {% set initial_tab_sources = [{'source': source, 'content': content}] %}
+                    {% endif %}
+
+                    {% for item in initial_tab_sources %}
+                        {% set tab_id = loop.index0 %} {# Use 0-based index for tab_id #}
+                        {% set filename = item.source.split('/')[-1].split('\\')[-1] if item.source else 'Untitled' %}
+                        <li class="nav-item tab-item" role="presentation" style="min-width: 100px;"> {# Adjusted style #}
+                            <button class="nav-link source-tab {% if loop.first %}active{% endif %}"
+                                    id="tab_{{ loop_index }}_{{ tab_id }}"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                                    type="button" role="tab"
+                                    aria-controls="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                                    aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                                <span class="tab-title">{{ filename }}</span>
+                                <i class="bi bi-x-lg ms-2 close-tab" title="Close tab"></i> {# Removed redundant &times; #}
+                            </button>
+                        </li>
+                    {% endfor %}
+
+                    <li class="nav-item" role="presentation" style="min-width: 40px;"> {# Adjusted style #}
                         <button id="add-source-tab" type="button" class="nav-link" title="Add tab">
                             <i class="bi bi-plus-lg"></i>
                         </button>
@@ -56,162 +69,177 @@
         </div>
     </div>
 
-    <div class="tab-content" id="dataSourceTabContent_{{ loop_index }}">
-        <div class="tab-pane fade show active" id="tabContent_{{ loop_index }}_0" role="tabpanel" aria-labelledby="tab_{{ loop_index }}_0"></div>
-            {% include "explorer/steps/data_edit_tabs.html" %} 
-            <div id="collapseTableOptions_{{ loop_index }}"
-                class="accordion-collapse collapse bg-dark text-light {% if output=='table' %}show{% endif %}">
-                <div class="accordion-body" aria-labelledby="table" style="padding: 8px;">
-                    <div class="container-fluid">
-                        <div class="d-flex align-items-center my-3">
-                            <label for="c{{ loop_index }}" class="form-label ps-0">Table Title</label>
-                            <div class="col">
-                                <input type="string" class="form-control table-title" id="c{{ loop_index }}" name="title"
-                                    value="{% if table is defined %}{{ table['title'] }}{% endif %}">
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center my-3">
-                            <table width="100%" class="table-centered">
-                                <thead>
-                                <tr>
-                                    <th>Format</th>
-                                    <th>Search</th>
-                                    <th>Export</th>
-                                    <th>Filter</th>
-                                    <th>Checkbox</th>
-                                    <th>Multiselect</th>
-                                    <th>Sortable</th>
-                                    <th>Pagination</th>
-                                    <th>Page Size</th>
-                                    <th>Footer</th>
-                                </tr>
-                                </thead>
-                                <tr>
-                                    {% set style = table.get('style','default') %}
+    {# Container for all tab content blocks #}
+    <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
+        {# Loop through initial tab sources to render each content block #}
+        {% for item in initial_tab_sources %}
+            {% set tab_id = loop.index0 %}
+            <div class="tab-content-block tab-content-block-{{ loop_index }}_{{ tab_id }} show active" {# ALWAYS show active #}
+                 id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                 data-tab-id="{{ tab_id }}"
+                 style="display: block;"> {# ALWAYS display block #}
+                {# Include the sub-template for each tab's content #}
+                <!-- Input Source File & SQL Query -->
+                {% include theme("explorer/steps/data_edit_tabs.html") %}
+            </div>
+        {% endfor %}
+    </div>
 
-                                    <td>
-                                        <select id="style" name="style" class="form-control table-style">
-                                            <option {{ selected("default",style) }} id="default">Default</option>
-                                            <option {{ selected("light",style) }} id="light">Light</option>
-                                            <option {{ selected("dark",style) }} id="dark">Dark</option>
-                                            <option {{ selected("centered",style) }} id="centered">Centered</option>
-                                            <option {{ selected("metric",style) }} id="metric">Metric</option>
-                                            <option {{ selected("worksheet",style) }} id="worksheet">Worksheet</option>
-                                        </select></td>
-                                    <td><input class="form-check-input table-search" name="search"
-                                            type="checkbox" {{ table['search'] | checked }}
-                                            value="" id="search">
-                                    </td>
-                                    <td><input class="form-check-input table-export" name="export"
-                                            type="checkbox" {{ table['export'] | checked }}
-                                            name="export" id="export">
-                                    </td>
-                                    <td><input class="form-check-input table-filter"
-                                            type="checkbox" {{ table['filter'] | checked }}
-                                            name="filter" id="filter">
-                                    </td>
-                                    <td><input class="form-check-input table-checkbox"
-                                            type="checkbox" {{ table['checkbox'] | checked }}
-                                            name="checkbox" id="checkbox">
-                                    </td>
-                                    <td><input class="form-check-input table-multiselect-row"
-                                            type="checkbox" {{ table['multiselect_row'] | checked }}
-                                            name="multiselect_row" id="multiselect_row">
-                                    </td>
-                                    <td><input class="form-check-input table-sortable"
-                                            type="checkbox" {{ table['sortable'] | checked }}
-                                            name="sortable" id="sortable">
-                                    </td>
-                                    <td><input class="form-check-input table-pagination"
-                                            type="checkbox" {{ table['pagination'] | checked }}
-                                            name="pagination" id="pagination">
-                                    </td>
-                                    <td><input class="form-control table-pagesize" type="number" value="{{ table['pagesize'] }}"
-                                            name="pagesize" id="pagesize"></td>
-
-                                    <td><input class="form-check-input table-footer"
-                                            type="checkbox" {{ table['footer'] | checked }}
-                                            name="footer" id="footer">
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
+    <div id="collapseTableOptions_{{ loop_index }}"
+         class="accordion-collapse collapse bg-dark text-light {% if output=='table' %}show{% endif %}">
+        <div class="accordion-body" aria-labelledby="table" style="padding: 8px;">
+            <div class="container-fluid">
+                <div class="d-flex align-items-center my-3">
+                    <label for="c{{ loop_index }}" class="form-label ps-0">Table Title</label>
+                    <div class="col">
+                        <input type="string" class="form-control table-title" id="c{{ loop_index }}" name="title"
+                               value="{% if table is defined %}{{ table['title'] }}{% endif %}">
                     </div>
+                </div>
+                <div class="d-flex align-items-center my-3">
+                    <table width="100%" class="table-centered">
+                        <thead>
+                        <tr>
+                            <th>Format</th>
+                            <th>Search</th>
+                            <th>Export</th>
+                            <th>Filter</th>
+                            <th>Checkbox</th>
+                            <th>Multiselect</th>
+                            <th>Sortable</th>
+                            <th>Pagination</th>
+                            <th>Page Size</th>
+                            <th>Footer</th>
+                        </tr>
+                        </thead>
+                        <tr>
+                            {% set style = table.get('style','default') %}
+
+                            <td>
+                                <select id="style" name="style" class="form-control table-style">
+                                    <option {{ selected("default",style) }} id="default">Default</option>
+                                    <option {{ selected("light",style) }} id="light">Light</option>
+                                    <option {{ selected("dark",style) }} id="dark">Dark</option>
+                                    <option {{ selected("centered",style) }} id="centered">Centered</option>
+                                    <option {{ selected("metric",style) }} id="metric">Metric</option>
+                                    <option {{ selected("worksheet",style) }} id="worksheet">Worksheet</option>
+                                </select></td>
+                            <td><input class="form-check-input table-search" name="search"
+                                       type="checkbox" {{ table['search'] | checked }}
+                                       value="" id="search">
+                            </td>
+                            <td><input class="form-check-input table-export" name="export"
+                                       type="checkbox" {{ table['export'] | checked }}
+                                       name="export" id="export">
+                            </td>
+                            <td><input class="form-check-input table-filter"
+                                       type="checkbox" {{ table['filter'] | checked }}
+                                       name="filter" id="filter">
+                            </td>
+                            <td><input class="form-check-input table-checkbox"
+                                       type="checkbox" {{ table['checkbox'] | checked }}
+                                       name="checkbox" id="checkbox">
+                            </td>
+                            <td><input class="form-check-input table-multiselect-row"
+                                       type="checkbox" {{ table['multiselect_row'] | checked }}
+                                       name="multiselect_row" id="multiselect_row">
+                            </td>
+                            <td><input class="form-check-input table-sortable"
+                                       type="checkbox" {{ table['sortable'] | checked }}
+                                       name="sortable" id="sortable">
+                            </td>
+                            <td><input class="form-check-input table-pagination"
+                                       type="checkbox" {{ table['pagination'] | checked }}
+                                       name="pagination" id="pagination">
+                            </td>
+                            <td><input class="form-control table-pagesize" type="number" value="{{ table['pagesize'] }}"
+                                       name="pagesize" id="pagesize"></td>
+
+                            <td><input class="form-check-input table-footer"
+                                       type="checkbox" {{ table['footer'] | checked }}
+                                       name="footer" id="footer">
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="collapseOptions_{{ loop_index }}"
+         class="accordion-collapse collapse bg-dark text-light {% if output=='chart' %}show{% endif %}">
+        <div class="accordion-body" aria-labelledby="chart" style="padding: 8px;">
+            <div class="container-fluid">
+                <div class="d-flex align-items-center my-3">
+                    <label for="c{{ loop_index }}" class="form-label ps-0">Chart Title</label>
+                    <div class="col">
+                        <input type="string" class="form-control chart-title" id="c{{ loop_index }}" name="title"
+                               value="{% if chart is defined %}{{ chart['title'] }}{% endif %}">
+                    </div>
+
+                    <label for="ct{{ loop_index }}" class="form-label">Chart Subtitle</label>
+                    <div class="col">
+                        <input type="string" class="form-control chart-subtitle" id="ct{{ loop_index }}"
+                               name="subtitle"
+                               value="{% if chart is defined %}{{ chart['subtitle'] }}{% endif %}">
+                    </div>
+
+                    <label for="lg{{ loop_index }}" class="form-label">Legend</label>
+                    <div class="col">
+                        {% set legend = 'Off' %}
+                        {% if chart is defined %}
+                            {% set legend = chart['legend'] %}
+                        {% endif %}
+                        <select id="lg{{ loop_index }}" class="form-control chart-legend">
+                            <option {{ selected("Off",legend) }}>Off</option>
+                            <option {{ selected("Left",legend) }}>Left</option>
+                            <option {{ selected("Right",legend) }}>Right</option>
+                            <option {{ selected("Top",legend) }}>Top</option>
+                            <option {{ selected("Bottom",legend) }}>Bottom</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chartYamlEditor"
+                            role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advance
+                    </button>
                 </div>
             </div>
 
-            <div id="collapseOptions_{{ loop_index }}"
-                class="accordion-collapse collapse bg-dark text-light {% if output=='chart' %}show{% endif %}">
-                <div class="accordion-body" aria-labelledby="chart" style="padding: 8px;">
-                    <div class="container-fluid">
-                        <div class="d-flex align-items-center my-3">
-                            <label for="c{{ loop_index }}" class="form-label ps-0">Chart Title</label>
-                            <div class="col">
-                                <input type="string" class="form-control chart-title" id="c{{ loop_index }}" name="title"
-                                    value="{% if chart is defined %}{{ chart['title'] }}{% endif %}">
-                            </div>
+            <div class="container-fluid mb-2 collapse" id="chartYamlEditor">
+                <div id="content_query_yaml_{{ loop_index }}"
+                     name="task_step_field_yaml_{{ loop_index }}"
+                     editor="yaml"
+                     class="source-editor form-control clarama-field-editor"
+                     celltype="code"
+                     style="min-height: 100px">
+                </div>
+            </div>
 
-                            <label for="ct{{ loop_index }}" class="form-label">Chart Subtitle</label>
-                            <div class="col">
-                                <input type="string" class="form-control chart-subtitle" id="ct{{ loop_index }}"
-                                    name="subtitle"
-                                    value="{% if chart is defined %}{{ chart['subtitle'] }}{% endif %}">
-                            </div>
-
-                            <label for="lg{{ loop_index }}" class="form-label">Legend</label>
-                            <div class="col">
-                                {% set legend = 'Off' %}
-                                {% if chart is defined %}
-                                    {% set legend = chart['legend'] %}
-                                {% endif %}
-                                <select id="lg{{ loop_index }}" class="form-control chart-legend">
-                                    <option {{ selected("Off",legend) }}>Off</option>
-                                    <option {{ selected("Left",legend) }}>Left</option>
-                                    <option {{ selected("Right",legend) }}>Right</option>
-                                    <option {{ selected("Top",legend) }}>Top</option>
-                                    <option {{ selected("Bottom",legend) }}>Bottom</option>
-                                </select>
-                            </div>
-                            <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chartYamlEditor" role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advance</button>
-                        </div>
-                    </div>
-
-                    <div class="container-fluid mb-2 collapse" id="chartYamlEditor">
-                        <div id="content_query_yaml_{{ loop_index }}"
-                            name="task_step_field_yaml_{{ loop_index }}"
-                            editor="yaml"
-                            class="source-editor form-control clarama-field-editor"
-                            celltype="code"
-                            style="min-height: 100px">
-                        </div>
-                    </div>
-
-                    <div class="container-fluid my-3">
-                        <label for="xaxis{{ loop_index }}" class="form-label p-0 mb-2">X-Axis</label>
-                        <div class="col">
-                            {% set xaxis = 'category' %}
-                            {% if chart is defined %}
-                                {% set xaxis = chart['xaxis-type'] %}
-                            {% endif %}
-                            <select id="xaxis{{ loop_index }}" class="form-control chart-xaxis-type">
-                                <option value="category" {{ selected("category",xaxis) }}>Category (X will convert to
-                                    string. Series will be contiguous)
-                                </option>
-                                <option value="category_grouped" {{ selected("category_grouped",xaxis) }}>Category Grouped
-                                    (ordered but repeated series names if not sorted)
-                                </option>
-                                <option value="category_bulk" {{ selected("category_bulk",xaxis) }}>Category Bulk (gaps in
-                                    data will be skipped)
-                                </option>
-                                <option value="linear" {{ selected("linear",xaxis) }}>Linear (X must be numeric)
-                                </option>
-                                <option value="time" {{ selected("time",xaxis) }}>Time (X must be datetime)</option>
-                                <option value="logarithmic" {{ selected("logarithmic",xaxis) }}>Logarithmic (X must be
-                                    numeric)
-                                </option>
-                            </select>
-                        </div>
-                    </div>
+            <div class="container-fluid my-3">
+                <label for="xaxis{{ loop_index }}" class="form-label p-0 mb-2">X-Axis</label>
+                <div class="col">
+                    {% set xaxis = 'category' %}
+                    {% if chart is defined %}
+                        {% set xaxis = chart['xaxis-type'] %}
+                    {% endif %}
+                    <select id="xaxis{{ loop_index }}" class="form-control chart-xaxis-type">
+                        <option value="category" {{ selected("category",xaxis) }}>Category (X will convert to
+                            string. Series will be contiguous)
+                        </option>
+                        <option value="category_grouped" {{ selected("category_grouped",xaxis) }}>Category Grouped
+                            (ordered but repeated series names if not sorted)
+                        </option>
+                        <option value="category_bulk" {{ selected("category_bulk",xaxis) }}>Category Bulk (gaps in
+                            data will be skipped)
+                        </option>
+                        <option value="linear" {{ selected("linear",xaxis) }}>Linear (X must be numeric)
+                        </option>
+                        <option value="time" {{ selected("time",xaxis) }}>Time (X must be datetime)</option>
+                        <option value="logarithmic" {{ selected("logarithmic",xaxis) }}>Logarithmic (X must be
+                            numeric)
+                        </option>
+                    </select>
+                </div>
+            </div>
 
             {% if chart is defined %}
                 {% set seriesanno = chart['series-anno'] or [{}] %}
@@ -304,14 +332,36 @@
 </div>
 
 <script type="text/javascript">
+    const loopIndex = '{{ loop_index }}';
+
     $(document).ready(() => {
-        chart_options_initialize('{{ loop_index }}');
-        $('[data-toggle="tooltip"]').tooltip({html: true});
-    
+        console.log("data_edit.html Document Ready. JS loopIndex:", loopIndex);
+
+        chart_options_initialize(loopIndex); // Use loopIndex
+
+        $('[data-toggle="tooltip"]').tooltip('dispose');
+
+        let currentModalInputFieldId = null;
+
+        $('#browseFileModal').on('show.bs.modal', function(event) {
+            const button = $(event.relatedTarget);
+            currentModalInputFieldId = button.attr('inputId');
+        });
+
+        $('#browseFileModal').on('hidden.bs.modal', function() {
+            if (currentModalInputFieldId) {
+                const $targetInput = $(`#${currentModalInputFieldId}`);
+                if ($targetInput.length) {
+                    $targetInput.trigger('change');
+                }
+                currentModalInputFieldId = null; 
+            }
+        });
+
         function updateSeriesFields($selectElem) {
             const seriesType = $selectElem.val();
-            const fields = ['series-x','series-y','series-z','series-ymin','series-ymax','series-s','series-u','series-l'];
-    
+            const fields = ['series-x', 'series-y', 'series-z', 'series-ymin', 'series-ymax', 'series-s', 'series-u', 'series-l'];
+
             const disableRules = {
                 "Bubble": ['series-ymin', 'series-ymax'],
                 "Line": ['series-z'],
@@ -322,190 +372,219 @@
                 "Polar Area": ['series-y', 'series-z', 'series-ymin', 'series-ymax', 'series-s'],
                 "Radar": ['series-y', 'series-z', 'series-ymin', 'series-ymax']
             };
-    
+
             const group = $selectElem.closest('.chart-series-groups');
-    
+
             fields.forEach(field => {
                 group.find('input.' + field).prop('disabled', false);
             });
-    
+
             const toDisable = disableRules[seriesType] || [];
             toDisable.forEach(field => {
                 group.find('input.' + field).prop('disabled', true);
             });
         }
-    
+
         $('.series-type').each(function () {
             updateSeriesFields($(this));
         });
-    
+
         $(document).on('change', '.series-type', function () {
             updateSeriesFields($(this));
         });
-    
+
         // --- TAB MANAGEMENT ---
-    
-        let tabCounter = 0; // Initialize tab counter
-        const loopIndex = '{{ loop_index }}';
+        let tabCounter = {{ initial_tab_sources|length if initial_tab_sources is defined else 0 }};
+
         const tabsContainer = $(`#dataSourceTabs_${loopIndex}`);
-        const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`); // The div that holds all the stacked content blocks
-        const addSourceTabBtn = $('#add-source-tab'); 
+        const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`);
+        const addSourceTabBtn = $('#add-source-tab');
+        const addSourceTabLi = addSourceTabBtn.closest('li'); // Reference to the add tab button's <li>
 
-        // Function to create and return the HTML for a new data_edit_tabs.html block
-        function generateTabContentBlockHtml(tabId, data = {}) {
-            const sourceValue = data.source || '';
-            const contentValue = data.content || '';
-            const browseLinkDisplay = sourceValue ? 'block' : 'none';
+        // Function to create and add a new tab button and its content block
+        function addNewTab(duplicateData = null) {
+            const tabId = tabCounter++;
+            let tabName = duplicateData?.title || `Tab ${tabId}`;
+            let initialSource = duplicateData?.source || '';
+            let initialContent = (duplicateData?.content || '');
 
-            return `
-                <div class="tab-content-block tab-content-block-${loopIndex}_${tabId}" 
-                     id="tabContentBlock_${loopIndex}_${tabId}" 
-                     data-tab-id="${tabId}" 
-                     style="display: none;">
-                    <div class="input-group w-100 my-2 shadow-sm border border-2 border-primary rounded">
-                        <input id="task_step_${loopIndex}_source_${tabId}" type="text"
-                               class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus"
-                               placeholder="Data Source Filename" aria-label="Data source relative filename"
-                               value="${sourceValue}">
-                        <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
-                                data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                                inputId="task_step_${loopIndex}_source_${tabId}" filters="*.source.yaml|*.csv|*.xlsx">
-                            <i class="bi bi-folder2-open"></i>
-                        </button>
-                        <a href="${sourceValue}" target="_blank" id="task_step_${loopIndex}_browse_link_${tabId}" class="text-decoration-none text-white" style="display:${browseLinkDisplay};">
-                            <button id="task_step_${loopIndex}_browse_${tabId}" type="button"
-                                    class="btn btn-secondary datasource" aria-haspopup="true"
-                                    aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
-                                <i class="bi bi-pen"></i>
-                            </button>
-                        </a>
-                    </div>
-                    <div id="content_query_${loopIndex}_${tabId}" 
-                         name="task_step_field_${loopIndex}_${tabId}" 
-                         editor="sql"
-                         class="source-editor form-control clarama-field-editor" 
-                         style="min-height: 100px">${contentValue}</div>
-                </div>
-            `;
-        }
-    
-        function createTab(id, name) {
-            const $tabItem = $(`
-                <li class="nav-item" role="presentation" style="flex: 1 1 auto; min-width: 100px;">
-                    <button class="nav-link" id="tab_${loopIndex}_${id}" data-bs-toggle="tab" data-bs-target="#tabContentBlock_${loopIndex}_${id}"
-                            type="button" role="tab" aria-controls="tabContentBlock_${loopIndex}_${id}" aria-selected="false" title="${name}">
-                        <span class="tab-title">${name}</span>
-                        <span class="close-tab ms-2" title="Close tab" style="cursor: pointer;">&times;</span>
+            // Clean initial content (leading digits/whitespace and trailing junk characters)
+            initialContent = initialContent.replace(/^\s*\d+\s*/, '');
+            initialContent = initialContent.replace(/[\W\sX\u05D4]+$/gi, '').trim();
+
+            initialContent = initialContent
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#039;');
+
+            if (initialSource) {
+                const fullPath = initialSource;
+                tabName = fullPath.split(/[\\/]/).pop() || `Tab ${tabId}`;
+            }
+
+            // Create tab button HTML
+            const newTabButtonHtml = `
+                <li class="nav-item" role="presentation" style="min-width: 100px;">
+                    <button class="nav-link" id="tab_${loopIndex}_${tabId}"
+                            type="button" role="tab"
+                            aria-controls="tabContentBlock_${loopIndex}_${tabId}" aria-selected="false" title="${tabName}">
+                        <span class="tab-title">${tabName}</span>
+                        <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i>
                     </button>
                 </li>
-            `);
-    
-            // Close tab handler
-            $tabItem.find('.close-tab').on('click', e => {
-                e.stopPropagation();
-                const tabId = id;
-    
-                $(`#tab_${loopIndex}_${tabId}`).closest('li').remove();
-                $(`#tabContentBlock_${loopIndex}_${tabId}`).remove(); // Remove the associated content block
-    
-                // Activate last remaining tab if any
-                const $remainingTabs = tabsContainer.find('button.nav-link').not('#add-source-tab');
-                if ($remainingTabs.length > 0) {
-                    $remainingTabs.last().tab('show');
-                } else {
-                    // If no tabs left, re-initialize with a default tab
-                    addNewTab(null);
-                }
-            });
-    
-            // Tab activation handler
-            $tabItem.find('button').on('shown.bs.tab', e => {
-                const activeId = $(e.target).attr('id').split('_').pop(); 
-                console.log("Switched to tab", activeId);
-                showTabContent(activeId);
-                // Initialize SQL editor for the newly shown tab
-                if (window.initializeSourceEditor) {
-                    initializeSourceEditor($(`#content_query_${loopIndex}_${activeId}`));
-                }
-            });
-    
-            return $tabItem;
-        }
+            `;
 
-        function showTabContent(tabIdToShow) {
-            // Hide all tab content blocks for this loop_index
-            $(`.tab-content-block-${loopIndex}_*`).hide();
-            // Show only the selected tab's content block
-            $(`#tabContentBlock_${loopIndex}_${tabIdToShow}`).show();
-        }
-    
-        // Add new tab, optionally duplicating data
-        function addNewTab(duplicateData) {
-            tabCounter++;
-            const tabId = tabCounter;
-            const tabName = duplicateData?.title || `Tab ${tabId}`;
-    
-            const newTab = createTab(tabId, tabName);
-            const newContentHtml = generateTabContentBlockHtml(tabId, duplicateData); // Generate HTML string
-    
-            addSourceTabBtn.closest('li').before(newTab);
-            contentContainer.append(newContentHtml); // Append the HTML string
-    
-            newTab.find('button').tab('show'); // This will trigger the 'shown.bs.tab' event and show the content
+            addSourceTabLi.before(newTabButtonHtml);
+
+            // Directly construct the HTML for the new content block
+            const newContentBlockHtml = `
+                <div class="tab-content-block"
+                     id="tabContentBlock_${loopIndex}_${tabId}"
+                     data-tab-id="${tabId}"
+                     style="display: block; margin-bottom: 20px;">
+
+                    <div class="input-group w-100 my-2 shadow-sm border border-2 border-primary rounded">
+                        <input id="task_step_${loopIndex}_source_${tabId}" type="text"
+                               class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
+                               placeholder="Data Source Filename" aria-label="Data source relative filename"
+                               value="${initialSource}">
+                        <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                                 data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                                 inputId="task_step_${loopIndex}_source_${tabId}">
+                            <i class="bi bi-folder2-open"></i>
+                        </button>
+                        ${initialSource ? `
+                            <a href="${initialSource}" target="_blank" id="task_step_${loopIndex}_browse_link_${tabId}" class="text-decoration-none text-white">
+                                <button id="task_step_${loopIndex}_browse_${tabId}" type="button"
+                                        class="btn btn-secondary datasource" aria-haspopup="true"
+                                        aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                                    <i class="bi bi-pen"></i>
+                                </button>
+                            </a>` : ''}
+                    </div>
+
+                    <div id="content_query_${loopIndex}_${tabId}"
+                         name="task_step_field_${loopIndex}_${tabId}"
+                         editor="sql"
+                         class="source-editor form-control clarama-field-editor" style="min-height: 100px; white-space: pre-wrap; word-break: break-all;">${initialContent}</div>
+                </div>
+            `;
+
+            contentContainer.append(newContentBlockHtml);
             return tabId;
         }
-    
+
+        // Close tab functionality
+        tabsContainer.on('click', '.close-tab', function (e) {
+            e.stopPropagation();
+            const $tabButton = $(this).closest('button');
+            const tabIdToClose = $tabButton.attr('id').split('_').pop();
+
+            const $editorDiv = $(`#content_query_${loopIndex}_${tabIdToClose}`);
+            const editorInstance = $editorDiv.data('monacoEditor');
+            if (editorInstance && typeof editorInstance.dispose === 'function') {
+                editorInstance.dispose();
+            }
+
+            $tabButton.closest('li').remove();
+            $(`#tabContentBlock_${loopIndex}_${tabIdToClose}`).remove();
+        });
+
         // Add tab button click handler
         if (addSourceTabBtn.length) {
             addSourceTabBtn.on('click', e => {
                 e.preventDefault();
                 e.stopPropagation();
-    
-                const currentTabBtn = tabsContainer.find('button.nav-link.active').not('#add-source-tab');
-                let duplicateData = null;
-    
-                if (currentTabBtn.length) {
-                    const currentTabId = currentTabBtn.attr('id').split('_').pop();
-                    const currentContentBlock = $(`#tabContentBlock_${loopIndex}_${currentTabId}`);
-                    
-                    let title = `Tab ${tabCounter + 1}`;
-                    const currentInput = currentContentBlock.find(`input#task_step_${loopIndex}_source_${currentTabId}`);
-                    const currentSqlEditor = currentContentBlock.find(`div#content_query_${loopIndex}_${currentTabId}`);
 
-                    if (currentInput.length) {
-                        const fullPath = currentInput.val();
-                        title = fullPath?.split(/[\\/]/).pop() || title;
+                let duplicateData = null;
+                const $lastContentBlock = contentContainer.find('.tab-content-block').last();
+
+                if ($lastContentBlock.length) {
+                    const currentTabId = $lastContentBlock.data('tab-id');
+
+                    let title = `Tab ${tabCounter}`;
+
+                    const currentInput = $lastContentBlock.find(`input#task_step_${loopIndex}_source_${currentTabId}`);
+                    const currentSqlEditorContainer = $lastContentBlock.find(`div#content_query_${loopIndex}_${currentTabId}`);
+
+                    let currentContent = '';
+                    const monacoEditorInstance = currentSqlEditorContainer.data('monacoEditor');
+                    if (monacoEditorInstance && typeof monacoEditorInstance.getValue === 'function') {
+                        currentContent = monacoEditorInstance.getValue();
+                    } else {
+                        currentContent = currentSqlEditorContainer.text();
                     }
-    
-                    duplicateData = { 
-                        title: title, 
-                        source: currentInput.val(),
-                        content: currentSqlEditor.text() // Assuming content is directly in text for now
+
+                    if (currentInput.length && currentInput.val()) {
+                        const fullPath = currentInput.val();
+                        title = fullPath.split(/[\\/]/).pop();
+                    }
+
+                    duplicateData = {
+                        title: title,
+                        source: currentInput.val() || '',
+                        content: currentContent
                     };
                 }
-    
-                addNewTab(duplicateData);
+
+                const newTabId = addNewTab(duplicateData);
+                $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
             });
         } else {
             console.warn('Add Source Tab button (#add-source-tab) not found.');
         }
-    
-        // Initialize: Set up the first tab's content visibility
-        // This is called AFTER the initial include of data_edit_tabs.html
-        // and AFTER any potential initialization of the first tab's editor
+
+        // Fallback: If no initial tabs, add a default one
         if (tabsContainer.find('button.nav-link').not('#add-source-tab').length === 0) {
-            // This case should ideally not happen if data_edit_tabs.html is always included for tab_id=0
-            addNewTab(null); 
-        } else {
-            // Ensure the first tab's content block is visible and its editor is initialized
-            const firstTabId = tabsContainer.find('button.nav-link.source-tab').first().attr('id').split('_').pop();
-            showTabContent(firstTabId);
-            if (window.initializeSourceEditor) {
-                initializeSourceEditor($(`#content_query_${loopIndex}_${firstTabId}`));
-            }
+            const newTabId = addNewTab(null);
+            $(`#tab_${loopIndex}_${newTabId}`).addClass('active').attr('aria-selected', 'true');
         }
 
-        // Make sure the initial tab has its content block visible
-        showTabContent(0);
+        // --- DYNAMIC TAB NAMING ---
+        $(document).on('change keyup', '.source-input-field', function() {
+            const $thisInput = $(this);
+            const inputId = $thisInput.attr('id');
+            const parts = inputId.split('_');
+            const currentLoopIndex = parts[2];
+            const currentTabId = parts[4];
+
+            const $tabButton = $(`#tab_${currentLoopIndex}_${currentTabId}`);
+            const $tabTitleSpan = $tabButton.find('.tab-title');
+
+            let newName = $thisInput.val();
+            if (newName) {
+                newName = newName.split(/[\\/]/).pop();
+            } else {
+                newName = `Tab ${currentTabId}`;
+            }
+
+            $tabTitleSpan.text(newName);
+            $tabButton.attr('title', newName);
+        });
+
+        // --- TAB ACTIVATION ---
+        function activateTab(tabId) {
+            $(`#dataSourceTabs_${loopIndex} .nav-link`).removeClass('active').attr('aria-selected', 'false');
+            $(`#tabContentBlock_${loopIndex}_${tabId}`).show();
+            $(`#tab_${loopIndex}_${tabId}`).addClass('active').attr('aria-selected', 'true');
+        }
+
+        $(document).on('click', `.nav-item button.nav-link`, function() {
+            const $thisButton = $(this);
+            if ($thisButton.attr('id') === 'add-source-tab') {
+                return;
+            }
+            const tabIdToActivate = $thisButton.attr('id').split('_').pop();
+            activateTab(tabIdToActivate);
+        });
+
+        // Initial activation for the first tab or pre-existing tabs
+        const $initialTabs = tabsContainer.find('button.nav-link').not('#add-source-tab');
+        if ($initialTabs.length > 0) {
+            const firstTabId = $initialTabs.first().attr('id').split('_').pop();
+            activateTab(firstTabId);
+        }
     });
 </script>
