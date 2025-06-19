@@ -37,7 +37,6 @@
 
             <div class="flex-grow-1">
                 <ul class="nav nav-tabs ..." id="dataSourceTabs_{{ loop_index }}" role="tablist">
-                    {# Define initial_tab_sources. If not provided, default to current 'source' and 'content'. #}
                     {% if initial_tab_sources is not defined or not initial_tab_sources %}
                         {% set initial_tab_sources = [{'source': source, 'content': content}] %}
                     {% endif %}
@@ -45,16 +44,16 @@
                     {% for item in initial_tab_sources %}
                         {% set tab_id = loop.index0 %} {# Use 0-based index for tab_id #}
                         {% set filename = item.source.split('/')[-1].split('\\')[-1] if item.source else 'Untitled' %}
-                        <li class="nav-item tab-item" role="presentation" style="min-width: 100px;"> {# Adjusted style #}
-                            <button class="nav-link source-tab {% if loop.first %}active{% endif %}"
+                        <li class="nav-item tab-item" role="presentation" style="min-width: 100px;">
+                            <button class="nav-link source-tab {% if loop.first %}active{% endif %}" 
                                     id="tab_{{ loop_index }}_{{ tab_id }}"
                                     data-bs-toggle="tab"
                                     data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
                                     type="button" role="tab"
                                     aria-controls="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
-                                    aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                                    aria-selected="{% if loop.first %}true{% else %}false{% endif %}" title="{{ filename }}">
                                 <span class="tab-title">{{ filename }}</span>
-                                <i class="bi bi-x-lg ms-2 close-tab" title="Close tab"></i> {# Removed redundant &times; #}
+                                <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i> {# Removed redundant &times; #}
                             </button>
                         </li>
                     {% endfor %}
@@ -74,13 +73,17 @@
         {# Loop through initial tab sources to render each content block #}
         {% for item in initial_tab_sources %}
             {% set tab_id = loop.index0 %}
-            <div class="tab-content-block tab-content-block-{{ loop_index }}_{{ tab_id }} show active" {# ALWAYS show active #}
-                 id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
-                 data-tab-id="{{ tab_id }}"
-                 style="display: block;"> {# ALWAYS display block #}
+            {# --- MODIFIED LINE --- #}
+            {# Only the first tab pane is 'show active' #}
+            <div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }} {% if loop.first %}show active{% endif %}"
+                id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                data-tab-id="{{ tab_id }}"
+                role="tabpanel" aria-labelledby="tab_{{ loop_index }}_{{ tab_id }}">
                 {# Include the sub-template for each tab's content #}
-                <!-- Input Source File & SQL Query -->
-                {% include theme("explorer/steps/data_edit_tabs.html") %}
+                {% with source=item.source, content=item.content %}
+                    <!-- Input source file & SQL code editor -->
+                    {% include theme("explorer/steps/data_edit_tab_contents.html") %}
+                {% endwith %}
             </div>
         {% endfor %}
     </div>
@@ -337,7 +340,7 @@
     $(document).ready(() => {
         console.log("data_edit.html Document Ready. JS loopIndex:", loopIndex);
 
-        chart_options_initialize(loopIndex); // Use loopIndex
+        chart_options_initialize(loopIndex);
 
         $('[data-toggle="tooltip"]').tooltip('dispose');
 
@@ -393,6 +396,26 @@
             updateSeriesFields($(this));
         });
 
+        function initializeNewEditor(loopIndex, tabId) {
+            const editorDivId = `content_query_${loopIndex}_${tabId}`;
+            const editorDiv = document.getElementById(editorDivId);
+
+            if (editorDiv) {
+                if ($(editorDiv).data('aceEditor')) {
+                    return;
+                }
+
+                const editor = ace.edit(editorDiv);
+                editor.setTheme("ace/theme/tomorrow"); 
+                editor.session.setMode("ace/mode/sql");  
+
+                $(editorDiv).data('aceEditor', editor);
+                console.log(`ACE Editor initialized for ${editorDivId}`);
+            } else {
+                console.error(`Could not find new editor div to initialize: #${editorDivId}`);
+            }
+        }
+
         // --- TAB MANAGEMENT ---
         let tabCounter = {{ initial_tab_sources|length if initial_tab_sources is defined else 0 }};
 
@@ -427,7 +450,7 @@
             // Create tab button HTML
             const newTabButtonHtml = `
                 <li class="nav-item" role="presentation" style="min-width: 100px;">
-                    <button class="nav-link" id="tab_${loopIndex}_${tabId}"
+                    <button class="nav-link tab-item" id="tab_${loopIndex}_${tabId}"
                             type="button" role="tab"
                             aria-controls="tabContentBlock_${loopIndex}_${tabId}" aria-selected="false" title="${tabName}">
                         <span class="tab-title">${tabName}</span>
@@ -440,10 +463,10 @@
 
             // Directly construct the HTML for the new content block
             const newContentBlockHtml = `
-                <div class="tab-content-block"
+                <div class="tab-content-block tab-pane"
                      id="tabContentBlock_${loopIndex}_${tabId}"
                      data-tab-id="${tabId}"
-                     style="display: block; margin-bottom: 20px;">
+                     role="tabpanel" aria-labelledby="tab_${loopIndex}_${tabId}">
 
                     <div class="input-group w-100 my-2 shadow-sm border border-2 border-primary rounded">
                         <input id="task_step_${loopIndex}_source_${tabId}" type="text"
@@ -473,6 +496,7 @@
             `;
 
             contentContainer.append(newContentBlockHtml);
+            initializeNewEditor(loopIndex, tabId);
             return tabId;
         }
 
@@ -543,9 +567,8 @@
         }
 
         // --- DYNAMIC TAB NAMING ---
-        $(document).on('change keyup', '.source-input-field', function() {
-            const $thisInput = $(this);
-            const inputId = $thisInput.attr('id');
+        function updateTabNameFromInput($input) { 
+            const inputId = $input.attr('id');
             const parts = inputId.split('_');
             const currentLoopIndex = parts[2];
             const currentTabId = parts[4];
@@ -553,32 +576,56 @@
             const $tabButton = $(`#tab_${currentLoopIndex}_${currentTabId}`);
             const $tabTitleSpan = $tabButton.find('.tab-title');
 
-            let newName = $thisInput.val();
+            let newName = $input.val();
             if (newName) {
                 newName = newName.split(/[\\/]/).pop();
             } else {
                 newName = `Tab ${currentTabId}`;
             }
-
             $tabTitleSpan.text(newName);
             $tabButton.attr('title', newName);
+        }
+
+        $(document).on('change keyup', '.source-input-field', function() {
+            updateTabNameFromInput($(this));
+        });
+
+        $('.source-input-field').each(function() {
+            updateTabNameFromInput($(this));
         });
 
         // --- TAB ACTIVATION ---
-        function activateTab(tabId) {
+        function activateTab(tabButton) {
+            const $tabButton = $(tabButton);
+            const targetContentId = $tabButton.attr('aria-controls');
+            // 1. Deactivate all tab buttons within this group
             $(`#dataSourceTabs_${loopIndex} .nav-link`).removeClass('active').attr('aria-selected', 'false');
-            $(`#tabContentBlock_${loopIndex}_${tabId}`).show();
-            $(`#tab_${loopIndex}_${tabId}`).addClass('active').attr('aria-selected', 'true');
+            // 2. Hide all tab content panes within this container
+            $(`#dataEditTabContentContainer_${loopIndex} .tab-pane`).removeClass('show active');
+            // 3. Activate the clicked tab button
+            $tabButton.addClass('active').attr('aria-selected', 'true');
+            // 4. Show the corresponding tab content pane
+            $(`#${targetContentId}`).addClass('show active');
         }
 
-        $(document).on('click', `.nav-item button.nav-link`, function() {
+        $(document).on('click', `ul#dataSourceTabs_${loopIndex} button.nav-link`, function(e) {
+            e.preventDefault();
             const $thisButton = $(this);
+            // Ignore the 'add tab' button
             if ($thisButton.attr('id') === 'add-source-tab') {
                 return;
             }
-            const tabIdToActivate = $thisButton.attr('id').split('_').pop();
-            activateTab(tabIdToActivate);
+            activateTab(this);
         });
+
+        const $initialActiveTab = $(`#dataSourceTabs_${loopIndex} button.nav-link.active`);
+        if ($initialActiveTab.length) {
+        } else {
+            const $firstTab = $(`#dataSourceTabs_${loopIndex} button.nav-link`).not('#add-source-tab').first();
+            if ($firstTab.length) {
+            activateTab($firstTab);
+            }
+        }
 
         // Initial activation for the first tab or pre-existing tabs
         const $initialTabs = tabsContainer.find('button.nav-link').not('#add-source-tab');
