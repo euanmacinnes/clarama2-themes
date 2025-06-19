@@ -174,12 +174,17 @@ input[type="search"]::-webkit-search-cancel-button {
     background-color: #f3f3f3 !important;
 }
 
-.tab-item {
-    position: relative;
+.nav-tabs {
     border: none;
 }
 
-.tab-item::after {
+.nav-item {
+    position: relative;
+    border: none;
+    width:fit-content;
+}
+
+.nav-item::after {
     content: "";
     position: absolute;
     right: 0;

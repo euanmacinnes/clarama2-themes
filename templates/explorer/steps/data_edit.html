@@ -8,73 +8,69 @@
 {% endif %}
 
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
-    <div class="bg-info rounded-top text-light px-2 py-1">
-        <!-- Toggle buttons -->
-        <div class="d-flex flex-wrap align-items-center">
-            <div class="btn-group me-2">
-                <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapseTableOptions_{{ loop_index }}"
-                        aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
-                        aria-controls="collapseTableOptions_{{ loop_index }}"
-                        class="btn {% if output=='table' %}btn-primary{% else %}btn-secondary{% endif %}"
-                        onclick="datacell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
-                    <i class="bi bi-table"></i>
-                </button>
-                <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapseOptions_{{ loop_index }}"
-                        aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
-                        aria-controls="collapseOptions_{{ loop_index }}"
-                        class="btn rounded-0 {% if output=='chart' %}btn-primary{% else %}btn-secondary{% endif %}"
-                        onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
-                    <i class="bi bi-graph-up-arrow"></i>
-                </button>
-                <button id="task_step_{{ loop_index }}_code" type="button"
-                        class="rounded-0 btn {% if output=='code' %}btn-primary{% else %}btn-secondary{% endif %}"
-                        onclick="datacell_setOutput('task_step_{{ loop_index }}', 'code', '{{ loop_index }}');">
-                    <i class="bi bi-code"></i>
-                </button>
-            </div>
-
-            <div class="flex-grow-1">
-                <ul class="nav nav-tabs ..." id="dataSourceTabs_{{ loop_index }}" role="tablist">
-                    {% if initial_tab_sources is not defined or not initial_tab_sources %}
-                        {% set initial_tab_sources = [{'source': source, 'content': content}] %}
-                    {% endif %}
-
-                    {% for item in initial_tab_sources %}
-                        {% set tab_id = loop.index0 %} {# Use 0-based index for tab_id #}
-                        {% set filename = item.source.split('/')[-1].split('\\')[-1] if item.source else 'Untitled' %}
-                        <li class="nav-item tab-item" role="presentation" style="min-width: 100px;">
-                            <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}" 
-                                    id="tab_{{ loop_index }}_{{ tab_id }}"
-                                    data-bs-toggle="tab"
-                                    data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
-                                    type="button" role="tab"
-                                    aria-controls="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
-                                    aria-selected="{% if loop.first %}true{% else %}false{% endif %}" title="{{ filename }}">
-                                <span class="tab-title">{{ filename }}</span>
-                                <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i> {# Removed redundant &times; #}
+    <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
+        <div class="bg-info rounded-top text-light px-2 py-1">
+            <!-- Toggle buttons -->
+            <div class="d-flex flex-wrap align-items-center">
+                <div class="flex-grow-1">
+                    <ul class="nav nav-tabs gap-1" id="dataSourceTabs_{{ loop_index }}" role="tablist">
+                        <div class="nav-item btn-group me-2">
+                            <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseTableOptions_{{ loop_index }}"
+                                    aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
+                                    aria-controls="collapseTableOptions_{{ loop_index }}"
+                                    class="btn {% if output=='table' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    onclick="datacell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
+                                <i class="bi bi-table"></i>
+                            </button>
+                            <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseOptions_{{ loop_index }}"
+                                    aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
+                                    aria-controls="collapseOptions_{{ loop_index }}"
+                                    class="btn rounded-0 {% if output=='chart' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </button>
+                            <button id="task_step_{{ loop_index }}_code" type="button"
+                                    class="btn {% if output=='code' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    onclick="datacell_setOutput('task_step_{{ loop_index }}', 'code', '{{ loop_index }}');">
+                                <i class="bi bi-code"></i>
+                            </button>
+                        </div>
+                        {% if initial_tab_sources is not defined or not initial_tab_sources %}
+                            {% set initial_tab_sources = [{'source': source, 'content': content}] %}
+                        {% endif %}
+    
+                        {% for item in initial_tab_sources %}
+                            {% set tab_id = loop.index0 %} {# Use 0-based index for tab_id #}
+                            {% set filename = item.source.split('/')[-1].split('\\')[-1] if item.source else 'Untitled' %}
+                            <!-- Tabs -->
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}" 
+                                        id="tab_{{ loop_index }}_{{ tab_id }}"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                                        type="button" role="tab"
+                                        aria-controls="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                                        aria-selected="{% if loop.first %}true{% else %}false{% endif %}" title="{{ filename }}">
+                                    <span class="tab-title">{{ filename }}</span>
+                                    <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i> {# Removed redundant &times; #}
+                                </button>
+                            </li>
+                        {% endfor %}
+    
+                        <li class="add-tab-button" role="presentation">
+                            <button id="add-source-tab" type="button" class="nav-link" title="Add tab">
+                                <i class="bi bi-plus-lg"></i>
                             </button>
                         </li>
-                    {% endfor %}
-
-                    <li class="nav-item" role="presentation" style="min-width: 40px;"> {# Adjusted style #}
-                        <button id="add-source-tab" type="button" class="nav-link" title="Add tab">
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
-                    </li>
-                </ul>
+                    </ul>
+                </div>
             </div>
         </div>
-    </div>
-
-    {# Container for all tab content blocks #}
-    <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
         {# Loop through initial tab sources to render each content block #}
         {% for item in initial_tab_sources %}
             {% set tab_id = loop.index0 %}
-            {# --- MODIFIED LINE --- #}
-            {# Only the first tab pane is 'show active' #}
             <div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }} {% if loop.first %}show active{% endif %}"
                 id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
                 data-tab-id="{{ tab_id }}"
@@ -335,9 +331,8 @@
 </div>
 
 <script type="text/javascript">
-    const loopIndex = '{{ loop_index }}';
-
     $(document).ready(() => {
+        const loopIndex = '{{ loop_index }}';
         console.log("data_edit.html Document Ready. JS loopIndex:", loopIndex);
 
         chart_options_initialize(loopIndex);
@@ -410,29 +405,35 @@
                 editor.session.setMode("ace/mode/sql");  
 
                 $(editorDiv).data('aceEditor', editor);
-                console.log("ACE Editor Instance:", editor); 
             } else {
                 console.error(`Could not find new editor div to initialize: #${editorDivId}`);
             }
         }
 
         // --- TAB MANAGEMENT ---
-        let tabCounter = {{ initial_tab_sources|length if initial_tab_sources is defined else 0 }};
+        let tabCounter = 0;
+        const existingTabs = $(`#dataSourceTabs_${loopIndex} button.nav-link`).not('#add-source-tab');
+        existingTabs.each(function() {
+            const tabId = parseInt($(this).attr('id').split('_').pop());
+            if (tabId >= tabCounter) {
+                tabCounter = tabId + 1;
+            }
+        });
 
         const tabsContainer = $(`#dataSourceTabs_${loopIndex}`);
         const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`);
         const addSourceTabBtn = $('#add-source-tab');
-        const addSourceTabLi = addSourceTabBtn.closest('li'); // Reference to the add tab button's <li>
+        const addSourceTabLi = addSourceTabBtn.closest('li'); 
 
-        // Function to create and add a new tab button and its blank content block
         function addNewTab() {
+            console.log('TabCounter: ', tabCounter);
             const tabId = tabCounter++;
             let tabName = `Tab ${tabId}`;
             let initialSource = '';
             let initialContent = '';
 
             const newTabButtonHtml = `
-                <li class="nav-item" role="presentation" style="min-width: 100px;">
+                <li class="nav-item" role="presentation">
                     <button class="nav-link tab-item" id="tab_${loopIndex}_${tabId}"
                             type="button" role="tab"
                             aria-controls="tabContentBlock_${loopIndex}_${tabId}" aria-selected="false" title="${tabName}">
