@@ -424,30 +424,13 @@
         const addSourceTabBtn = $('#add-source-tab');
         const addSourceTabLi = addSourceTabBtn.closest('li'); // Reference to the add tab button's <li>
 
-        // Function to create and add a new tab button and its content block
-        function addNewTab(duplicateData = null) {
+        // Function to create and add a new tab button and its blank content block
+        function addNewTab() {
             const tabId = tabCounter++;
-            let tabName = duplicateData?.title || `Tab ${tabId}`;
-            let initialSource = duplicateData?.source || '';
-            let initialContent = (duplicateData?.content || '');
+            let tabName = `Tab ${tabId}`;
+            let initialSource = '';
+            let initialContent = '';
 
-            // Clean initial content (leading digits/whitespace and trailing junk characters)
-            initialContent = initialContent.replace(/^\s*\d+\s*/, '');
-            initialContent = initialContent.replace(/[\W\sX\u05D4]+$/gi, '').trim();
-
-            initialContent = initialContent
-                                .replace(/&/g, '&amp;')
-                                .replace(/</g, '&lt;')
-                                .replace(/>/g, '&gt;')
-                                .replace(/"/g, '&quot;')
-                                .replace(/'/g, '&#039;');
-
-            if (initialSource) {
-                const fullPath = initialSource;
-                tabName = fullPath.split(/[\\/]/).pop() || `Tab ${tabId}`;
-            }
-
-            // Create tab button HTML
             const newTabButtonHtml = `
                 <li class="nav-item" role="presentation" style="min-width: 100px;">
                     <button class="nav-link tab-item" id="tab_${loopIndex}_${tabId}"
@@ -461,7 +444,6 @@
 
             addSourceTabLi.before(newTabButtonHtml);
 
-            // Directly construct the HTML for the new content block
             const newContentBlockHtml = `
                 <div class="tab-content-block tab-pane"
                      id="tabContentBlock_${loopIndex}_${tabId}"
@@ -522,15 +504,7 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                const $lastContentBlock = contentContainer.find('.tab-content-block').last();
-
-                let tabData = {
-                        title: `Tab ${tabCounter}`,
-                        source: '',
-                        content: ''
-                    };
-
-                const newTabId = addNewTab(tabData);
+                const newTabId = addNewTab();
                 $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
             });
         } else {
