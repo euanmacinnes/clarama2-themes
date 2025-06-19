@@ -45,7 +45,7 @@
                         {% set tab_id = loop.index0 %} {# Use 0-based index for tab_id #}
                         {% set filename = item.source.split('/')[-1].split('\\')[-1] if item.source else 'Untitled' %}
                         <li class="nav-item tab-item" role="presentation" style="min-width: 100px;">
-                            <button class="nav-link source-tab {% if loop.first %}active{% endif %}" 
+                            <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}" 
                                     id="tab_{{ loop_index }}_{{ tab_id }}"
                                     data-bs-toggle="tab"
                                     data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
@@ -410,7 +410,7 @@
                 editor.session.setMode("ace/mode/sql");  
 
                 $(editorDiv).data('aceEditor', editor);
-                console.log(`ACE Editor initialized for ${editorDivId}`);
+                console.log("ACE Editor Instance:", editor); 
             } else {
                 console.error(`Could not find new editor div to initialize: #${editorDivId}`);
             }
@@ -522,48 +522,19 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                let duplicateData = null;
                 const $lastContentBlock = contentContainer.find('.tab-content-block').last();
 
-                if ($lastContentBlock.length) {
-                    const currentTabId = $lastContentBlock.data('tab-id');
-
-                    let title = `Tab ${tabCounter}`;
-
-                    const currentInput = $lastContentBlock.find(`input#task_step_${loopIndex}_source_${currentTabId}`);
-                    const currentSqlEditorContainer = $lastContentBlock.find(`div#content_query_${loopIndex}_${currentTabId}`);
-
-                    let currentContent = '';
-                    const monacoEditorInstance = currentSqlEditorContainer.data('monacoEditor');
-                    if (monacoEditorInstance && typeof monacoEditorInstance.getValue === 'function') {
-                        currentContent = monacoEditorInstance.getValue();
-                    } else {
-                        currentContent = currentSqlEditorContainer.text();
-                    }
-
-                    if (currentInput.length && currentInput.val()) {
-                        const fullPath = currentInput.val();
-                        title = fullPath.split(/[\\/]/).pop();
-                    }
-
-                    duplicateData = {
-                        title: title,
-                        source: currentInput.val() || '',
-                        content: currentContent
+                let tabData = {
+                        title: `Tab ${tabCounter}`,
+                        source: '',
+                        content: ''
                     };
-                }
 
-                const newTabId = addNewTab(duplicateData);
+                const newTabId = addNewTab(tabData);
                 $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
             });
         } else {
             console.warn('Add Source Tab button (#add-source-tab) not found.');
-        }
-
-        // Fallback: If no initial tabs, add a default one
-        if (tabsContainer.find('button.nav-link').not('#add-source-tab').length === 0) {
-            const newTabId = addNewTab(null);
-            $(`#tab_${loopIndex}_${newTabId}`).addClass('active').attr('aria-selected', 'true');
         }
 
         // --- DYNAMIC TAB NAMING ---
