@@ -1,5 +1,4 @@
 {% extends theme("web/root.html") %}
-
 {% block content %}
 
     <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
@@ -803,7 +802,7 @@
                 }
                 
                 // if (e.key === "Delete" && selecting) {          // Delete selected listings on Delete key
-                //     e.preventDefault();
+                //     e.preventDefault();                         // Should add a "confirm delete" prompt before deleting
                 //     context_delete(); 
                 // }
 
@@ -824,18 +823,6 @@
 
             });
 
-<<<<<<< HEAD
-=======
-        $(document).on('keydown', function (e) {
-            if (e.key === KEY_ESCAPE && selecting) {        // Exit select mode on Escape ke
-                exitSelectMode();
-            }
-
-            if (e.key === KEY_DELETE && selecting) {        // Delete selected listings on Delete key
-                e.preventDefault();
-                context_delete();
-            }
->>>>>>> main
         });
 
     </script>
