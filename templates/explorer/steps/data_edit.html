@@ -204,7 +204,7 @@
             </div>
 
             <div class="container-fluid mb-2 collapse" id="chartYamlEditor">
-                <div id="content_query_yaml_{{ loop_index }}"
+                <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}"
                      name="task_step_field_yaml_{{ loop_index }}"
                      editor="yaml"
                      class="source-editor form-control clarama-field-editor"
@@ -392,7 +392,8 @@
         });
 
         function initializeNewEditor(loopIndex, tabId) {
-            const editorDivId = `content_query_${loopIndex}_${tabId}`;
+            const editorDivId = `content_query_${loopIndex}_tab_${tabId}`;
+            console.log("editorDivId: ", editorDivId);
             const editorDiv = document.getElementById(editorDivId);
 
             if (editorDiv) {
@@ -471,7 +472,7 @@
                             </a>` : ''}
                     </div>
 
-                    <div id="content_query_${loopIndex}_${tabId}"
+                    <div id="content_query_${loopIndex}_tab_${tabId}"
                          name="task_step_field_${loopIndex}_${tabId}"
                          editor="sql"
                          class="source-editor form-control clarama-field-editor" style="min-height: 100px; white-space: pre-wrap; word-break: break-all;">${initialContent}</div>
@@ -489,7 +490,7 @@
             const $tabButton = $(this).closest('button');
             const tabIdToClose = $tabButton.attr('id').split('_').pop();
 
-            const $editorDiv = $(`#content_query_${loopIndex}_${tabIdToClose}`);
+            const $editorDiv = $(`#content_query_${loopIndex}_tab_${tabIdToClose}`);
             const editorInstance = $editorDiv.data('monacoEditor');
             if (editorInstance && typeof editorInstance.dispose === 'function') {
                 editorInstance.dispose();

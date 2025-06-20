@@ -22,24 +22,97 @@ function get_code_cell(cell) {
 }
 
 /**
- * Extracts data from a data cell including table and chart configurations
+ * Gets all tab IDs for a given data cell
  * @param {jQuery} cell - jQuery object representing the data cell
- * @returns {Object} Object containing the cell type, source, output, table and chart configurations, and code content
+ * @returns {Array} Array of tab IDs
+ */
+function get_tab_ids(cell) {
+    var tab_ids = [];
+    
+    // Find all tab content blocks for this cell
+    cell.find('.tab-content-block').each(function() {
+        var tab_id = $(this).data('tab-id');
+        if (tab_id !== undefined) {
+            tab_ids.push(tab_id);
+            console.log("loop: ", tab_id);
+        }
+    });
+    tab_ids.shift(); // remove the first element (the dummy tabid)
+    console.log("tabids: ", tab_ids)
+    return tab_ids;
+}
+
+/**
+ * Extracts data from a single tab within a data cell
+ * @param {jQuery} cell - jQuery object representing the data cell
+ * @param {number} tab_id - The tab ID to extract data from
+ * @returns {Object} Object containing the tab's source, content, and editor data
+ */
+function get_tab_data(cell, tab_id) {
+    var dataid = cell.attr('dataid');
+    var editor_id = "content_query_" + dataid + "_tab_" + tab_id;
+    
+    try {
+        var editor = ace.edit(editor_id);
+        var code = editor.getValue();
+    } catch (e) {
+        console.warn("Editor not found for " + editor_id + ", using empty content");
+        var code = "";
+    }
+    
+    // Get source file path from the tab content block
+    var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
+    var source = $("#" + source_input_id).val() || "";
+    
+    return {
+        "tab_id": tab_id,
+        "source": source,
+        "content": code
+    };
+}
+
+/**
+ * Extracts data from a data cell including table and chart configurations and all tabs
+ * @param {jQuery} cell - jQuery object representing the data cell
+ * @returns {Object} Object containing the cell type, tabs data, output, table and chart configurations
  */
 function get_data_cell(cell) {
     var dataid = cell.attr('dataid');
-
-    var id = "content_query_" + dataid;
-    var editor = ace.edit(id);
-    var code = editor.getValue();
-
-    console.log("Getting data " + id);
-
-    var source_id = "task_step_" + dataid + "_source";
+    
+    console.log("Getting data cell " + dataid);
+    
+    // Get output type
     var output_id = "task_step_" + dataid + "_output";
-    var source = $("#" + source_id).val();
     var output = $("#" + output_id).val();
-
+    
+    // Get all tab data
+    var tab_ids = get_tab_ids(cell);
+    var tabs_data = [];
+    
+    tab_ids.forEach(function(tab_id) {
+        var tab_data = get_tab_data(cell, tab_id);
+        tabs_data.push(tab_data);
+    });
+    
+    if (tabs_data.length === 0) {
+        var legacy_id = "content_query_" + dataid;
+        try {
+            var editor = ace.edit(legacy_id);
+            var code = editor.getValue();
+            var source_id = "task_step_" + dataid + "_source";
+            var source = $("#" + source_id).val();
+            
+            tabs_data.push({
+                "tab_id": 0,
+                "source": source,
+                "content": code
+            });
+        } catch (e) {
+            console.warn("No editor found for legacy or tab format");
+        }
+    }
+    
+    // Extract table configuration
     var table_style = cell.find('.table-style').find('option:selected').attr('id');
     var table_title = cell.find('.table-title').val();
     var table_search = cell.find('.table-search').prop('checked');
@@ -51,23 +124,22 @@ function get_data_cell(cell) {
     var table_sortable = cell.find('.table-sortable').prop('checked');
     var table_pagesize = cell.find('.table-pagesize').val();
     var table_footer = cell.find('.table-footer').prop('checked');
-
+    
+    // Extract chart configuration
     var chart_title = cell.find('.chart-title').val();
     var chart_subtitle = cell.find('.chart-subtitle').val();
     var chart_legend = cell.find('.chart-legend').val();
     var chart_xaxis_type = cell.find('.chart-xaxis-type').val();
-
+    
     var chart_series_groups = [];
     var chart_series_formats = [];
     var chart_series_annos = [];
-
+    
+    // Extract series groups
     var series_groups = cell.find('.chart-series-groups');
-    var series_formats = cell.find('.chart-series-formats');
-    var series_annos = cell.find('.chart-series-annotations');
-
     series_groups.each(function () {
         console.log(this);
-        srs = {
+        var srs = {
             'series-type': $(this).find('.series-type').val(),          // Series type
             'series-x': $(this).find('.series-x').val(),                // X axis
             'series-y': $(this).find('.series-y').val(),                // Y axis
@@ -80,18 +152,20 @@ function get_data_cell(cell) {
         };
         console.log(srs);
         chart_series_groups.push(srs);
-    })
-
+    });
+    
+    // Extract series formats
+    var series_formats = cell.find('.chart-series-formats');
     series_formats.each(function () {
         console.log(this);
-        srs = {
+        var srs = {
             'format-nrx': $(this).find('.format-nrx').val(),            // name regex
             'format-ua': $(this).find('.format-ua').val(),              // unit axis
             'format-f': $(this).find('.format-f').is(':checked'),       // filled
             'format-p': $(this).find('.format-p').is(':checked'),       // stepped
             'format-dt': $(this).find('.format-dt').is(':checked'),     // dotted
             'format-pr': $(this).find('.format-pr').val(),              // point size
-            'format-ps': $(this).find('.format-pointstyle').find('option:selected').attr('id'),              // point size
+            'format-ps': $(this).find('.format-pointstyle').find('option:selected').attr('id'), // point style
             'format-lw': $(this).find('.format-lw').val(),              // line width
             'format-col': $(this).find('.chart-col').val(),            // colour
             'format-col-back': $(this).find('.chart-col-back').val(),  // background colour
@@ -99,11 +173,13 @@ function get_data_cell(cell) {
         };
         console.log(srs);
         chart_series_formats.push(srs);
-    })
-
+    });
+    
+    // Extract series annotations
+    var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
         console.log(this);
-        srs = {
+        var srs = {
             'anno-label': $(this).find('.anno-label').val(),            // label
             'anno-x': $(this).find('.anno-x').val(),                    // X axis
             'anno-y': $(this).find('.anno-y').val(),                    // Y axis
@@ -112,14 +188,14 @@ function get_data_cell(cell) {
             'anno-u': $(this).find('.anno-u').val(),                    // unit axis
             'anno-dt': $(this).find('.anno-dt').is(':checked'),         // dotted
             'anno-width': $(this).find('.anno-width').val(),            // border width
-            'anno-type': $(this).find('.anno-type').find('option:selected').attr('id'),              // type
+            'anno-type': $(this).find('.anno-type').find('option:selected').attr('id'), // type
             'anno-col': $(this).find('.chart-col').val(),                // colour
             'anno-col-back': $(this).find('.chart-col-back').val(),      // background colour
         };
         console.log(srs);
         chart_series_annos.push(srs);
-    })
-
+    });
+    
     var chart = {
         'title': chart_title,
         'subtitle': chart_subtitle,
@@ -128,8 +204,8 @@ function get_data_cell(cell) {
         'series-groups': chart_series_groups,
         'series-formats': chart_series_formats,
         'series-annos': chart_series_annos
-    }
-
+    };
+    
     var table = {
         'title': table_title,
         'search': table_search,
@@ -142,17 +218,18 @@ function get_data_cell(cell) {
         'pagination': table_pagination,
         'sortable': table_sortable,
         'pagesize': table_pagesize
-    }
-
-    console.log(table);
-
+    };
+    
+    console.log("Table config:", table);
+    console.log("Chart config:", chart);
+    console.log("Tabs data:", tabs_data);
+    
     return {
         "type": "data",
-        "source": source,
         "output": output,
+        "tabs": tabs_data,
         "table": table,
-        "chart": chart,
-        "content": code
+        "chart": chart
     };
 }
 
