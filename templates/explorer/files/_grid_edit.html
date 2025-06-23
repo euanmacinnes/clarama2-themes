@@ -840,6 +840,11 @@
       alert("Please select an interaction type");
       return;
     }
+
+    if (isContextMenu && menuItem == "") {
+      alert("Please input the menu item name");
+      return;
+    }
     
     if (checkedType == "element") {
       checkedType = document.getElementById('selected-elem').value;

@@ -50,10 +50,15 @@
         if (menuInteractions.length === 0) return;
 
         contextMenu.innerHTML = menuInteractions.map((interaction, i) => {
-            return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
+            if (interaction.element == "tab") {
+                return `<a href="${interaction.url}" target="_blank" class="text-decoration-none text-black">
+                    <button class="dropdown-item datasource" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
+                </a>`
+            } else {
+                return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
+            }            
         }).join('');
 
-        // need to handle the onclick btn logic
         contextMenu.querySelectorAll('button').forEach(button => {
             button.addEventListener('click', (e) => {
                 const url = button.dataset.url;
@@ -62,17 +67,14 @@
                 console.log('Clicked menu item elem:', elem);
                 const params = button.dataset.params;
                 console.log('Clicked menu item params:', params);
-                console.log('new url', updateUrlToDefault(url))
-                // if (elem == "tab") window.open(updateUrlToDefault(url), '_blank');
-                // else if (elem == "modal") showModalWithContent(url);
-                // else if (elem == "element") {
-                    
-                //     linked_element[0].innerHTML = "";
-                //     linked_element[0].append(showInteractionContent('run', url+"?"+params));
-                //     enable_interactions($(`#${elem}`));
-                //     break;
-                // }
-                // else 
+                if (elem == "modal") showModalWithContent(url);
+                else if (elem.includes("element_")) {
+                    document.getElementById(elem).innerHTML = "";
+                    document.getElementById(elem).append(showInteractionContent('run', url+"?"+params));
+                    enable_interactions($(`#${elem}`));
+                } else if (elem == "hidden") {
+                    // need to handle the logic
+                } 
                 
                 contextMenu.classList.add('d-none');
             });
