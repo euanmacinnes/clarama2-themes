@@ -41,7 +41,7 @@
         if (elementInteractions.length === 0) return;
         for (let i = 0; i < elementInteractions.length; i++) {
             const interaction = elementInteractions[i];
-            if (interaction.element == "menu") {
+            if (interaction.contextMenu) {
                 menuInteractions.push(interaction);
             }
         }
@@ -50,10 +50,33 @@
         if (menuInteractions.length === 0) return;
 
         contextMenu.innerHTML = menuInteractions.map((interaction, i) => {
-            return `<button class="dropdown-item" data-url="${interaction.url}">${interaction.menu_item_name}</button>`;
+            return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
         }).join('');
 
         // need to handle the onclick btn logic
+        contextMenu.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const url = button.dataset.url;
+                console.log('Clicked menu item URL:', url);
+                const elem = button.dataset.elem;
+                console.log('Clicked menu item elem:', elem);
+                const params = button.dataset.params;
+                console.log('Clicked menu item params:', params);
+                console.log('new url', updateUrlToDefault(url))
+                // if (elem == "tab") window.open(updateUrlToDefault(url), '_blank');
+                // else if (elem == "modal") showModalWithContent(url);
+                // else if (elem == "element") {
+                    
+                //     linked_element[0].innerHTML = "";
+                //     linked_element[0].append(showInteractionContent('run', url+"?"+params));
+                //     enable_interactions($(`#${elem}`));
+                //     break;
+                // }
+                // else 
+                
+                contextMenu.classList.add('d-none');
+            });
+        });
 
         contextMenu.style.top = `${event.pageY-100}px`;
         contextMenu.style.left = `${event.pageX}px`;
@@ -62,11 +85,17 @@
         contextMenu.dataset.elementId = elementId;
     });
 
+    document.addEventListener('click', (event) => {
+        if (contextMenu.classList.contains('d-none')) return;
+        if (contextMenu.contains(event.target)) return;
+        contextMenu.classList.add('d-none');
+    });
+
     document.addEventListener('mousemove', function (e) {
         lastMouseEvent = e;
     });
 
-    function showModalWithContent(url, parameters) {
+    function showModalWithContent(url, parameters = "") {
         $('#interactionModal').modal('show');
         const iModal = document.getElementById("interactionModalBody");
         iModal.innerHTML = '';
@@ -74,7 +103,7 @@
         enable_interactions($("#interactionModalBody"), true);
     }
 
-    function showPopupNearMouse(url, parameters) {
+    function showPopupNearMouse(url, parameters = "") {
         const ipopup = document.getElementById('interactionPopup');
         console.log("ipopup", ipopup)
 
