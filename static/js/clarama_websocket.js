@@ -15,6 +15,7 @@ function reset_environment(environment) {
     $('#environment').html('...');
     let socket = $("#edit_socket");
     socket.attr("environment", environment);
+    socket_starting = false;
     run_socket(socket, true);
 }
 
