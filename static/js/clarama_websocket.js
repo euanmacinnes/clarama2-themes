@@ -119,7 +119,7 @@ function socket_task(embedded, task, topic, reset_environment) {
     enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun);
 }
 
-function start_socket(reconnect = false) {
+function start_socket(reconnect = false, embedded) {
     let webSocket = new WebSocket(socket_address);
 
     socket = webSocket;
@@ -134,7 +134,7 @@ function start_socket(reconnect = false) {
     };
 
     webSocket.onclose = function (event) {
-        onClose(event, socket_address, webSocket)
+        onClose(event, socket_address, webSocket, embedded)
     };
 
     webSocket.onmessage = function (event) {
@@ -184,7 +184,7 @@ function run_socket(embedded, reset_environment) {
                 console.log("CLARAMA_WEBSOCKET.js: Creating " + socket_url + " Websocket on " + websocket_address + " for " + startingTopic);
 
                 socket_address = websocket_address;
-                start_socket(false)
+                start_socket(false, embedded)
 
 
             });
@@ -424,11 +424,11 @@ function onOpen(event, socket_url, reconnect) {
     }
 }
 
-function onClose(event, socket_url, webSocket) {
+function onClose(event, socket_url, webSocket, embedded) {
     console.log('CLARAMA_WEBSOCKET.js: WebSocket Connection CLOSED ' + Date.now() + ' on ' + socket_url + " on socket " + webSocket);
     // flash("SOCKET lost", "danger");
     setTimeout(function () {
-        start_socket(true);
+        run_socket(embedded, false);
     }, 100)
 }
 
