@@ -391,7 +391,7 @@
             updateSeriesFields($(this));
         });
 
-        function initializeNewEditor(loopIndex, tabId) {
+        function initializeNewSQLEditor(loopIndex, tabId) {
             const editorDivId = `content_query_${loopIndex}_tab_${tabId}`;
             console.log("editorDivId: ", editorDivId);
             const editorDiv = document.getElementById(editorDivId);
@@ -480,7 +480,7 @@
             `;
 
             contentContainer.append(newContentBlockHtml);
-            initializeNewEditor(loopIndex, tabId);
+            initializeNewSQLEditor(loopIndex, tabId);
             return tabId;
         }
 
