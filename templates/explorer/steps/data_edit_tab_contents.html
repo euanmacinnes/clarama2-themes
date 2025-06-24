@@ -3,31 +3,35 @@
      data-tab-id="{{ tab_id }}"
      style="display: block;"> {# Ensure it's always block #}
 
-     <!-- Input source file -->
-    <div class="input-group w-100 my-2 shadow-sm border border-2 border-primary rounded">
-        <input id="task_step_{{ loop_index }}_source_{{ tab_id }}" type="text"
-               class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
-               placeholder="Data Source Filename" aria-label="Data source relative filename"
-               value="{{ source }}">
-        <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
-                data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                inputId="task_step_{{ loop_index }}_source_{{ tab_id }}" filters="*.source.yaml|*.csv|*.xlsx">
-            <i class="bi bi-folder2-open"></i>
-        </button>
-        {% if source %}
-            <a href="{{ source }}" target="_blank" id="task_step_{{ loop_index }}_browse_link_{{ tab_id }}" class="text-decoration-none text-white">
-                <button id="task_step_{{ loop_index }}_browse_{{ tab_id }}" type="button"
-                        class="btn btn-secondary datasource" aria-haspopup="true"
-                        aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
-                    <i class="bi bi-pen"></i>
-                </button>
-            </a>
-        {% endif %}
-    </div>
+    <!-- Input source file -->
+    <div class="border border-3 border-info">
+        <div class="input-group w-100 border-1 border-bottom border-info">
+            <input id="task_step_{{ loop_index }}_source_{{ tab_id }}" type="text"
+                   class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
+                   placeholder="Data Source Filename" aria-label="Data source relative filename"
+                   value="{{ source }}">
+            <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                    data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                    inputId="task_step_{{ loop_index }}_source_{{ tab_id }}" filters="*.source.yaml|*.csv|*.xlsx">
+                <i class="bi bi-folder2-open"></i>
+            </button>
+            {% if source %}
+                <a href="{{ source }}" target="_blank" id="task_step_{{ loop_index }}_browse_link_{{ tab_id }}"
+                   class="text-decoration-none text-white">
+                    <button id="task_step_{{ loop_index }}_browse_{{ tab_id }}" type="button"
+                            class="btn btn-secondary datasource" aria-haspopup="true"
+                            aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                        <i class="bi bi-pen"></i>
+                    </button>
+                </a>
+            {% endif %}
+        </div>
 
-    <!-- SQL code editor -->
-    <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}"
-         name="task_step_field_{{ loop_index }}_{{ tab_id }}"
-         editor="sql"
-         class="source-editor form-control clarama-field-editor" style="min-height: 100px">{{ content }}</div>
+        <!-- SQL code editor -->
+        <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}"
+             name="task_step_field_{{ loop_index }}_{{ tab_id }}"
+             editor="sql"
+             class="source-editor form-control clarama-field-editor"
+             style="min-height: 100px">{{ content }}</div>
+    </div>
 </div>

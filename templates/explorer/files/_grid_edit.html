@@ -125,8 +125,24 @@
           <input type="hidden" id="interaction-target">
           <input type="hidden" id="interaction-index">
 
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" value="" id="cMenu">
+            <label class="form-check-label" for="cMenu" id="contextLabel">
+              Show this in Context Menu
+            </label>
+            <input type="text" id="menu-item" class="form-control mt-2 d-none" name="checkMenuItemName" placeholder="Menu Item Name">
+          </div>
+          <!-- <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" value="" id="checkMenu">
+            <label class="form-check-label" for="checkMenu">
+              Context Menu
+            </label>
+          </div>
+
+          <input type="text" id="menu-item" class="form-control mb-3 d-none" name="contentMenuItemName" placeholder="Menu Item Name" value="">  -->
+
           <div class="mb-3">
-            <label class="form-label d-block">Interaction Type</label>
+            <label class="form-label d-block p-0">Interaction Type</label>
             <div class="btn-group" role="group" aria-label="Interaction Type">
               <input type="radio" class="btn-check" name="interactionType" id="elementType" autocomplete="off" value="element" required>
               <label class="btn btn-outline-primary" for="elementType">Element</label>
@@ -137,25 +153,22 @@
               <input type="radio" class="btn-check" name="interactionType" id="modalType" autocomplete="off" value="modal" required>
               <label class="btn btn-outline-primary" for="modalType">Modal</label>
 
-              <input type="radio" class="btn-check" name="interactionType" id="menuType" autocomplete="off" value="menu" required>
-              <label class="btn btn-outline-primary" for="menuType">Context Menu</label>
+              <!-- <input type="radio" class="btn-check" name="interactionType" id="menuType" autocomplete="off" value="menu" required>
+              <label class="btn btn-outline-primary" for="menuType">Context Menu</label> -->
 
               <input type="radio" class="btn-check" name="interactionType" id="tabType" autocomplete="off" value="tab" required>
               <label class="btn btn-outline-primary" for="tabType">Tab</label>
               
-              <input type="radio" class="btn-check" name="interactionType" id="hiddenType" autocomplete="off" value="hidden" required>
-              <label class="btn btn-outline-primary" for="hiddenType">Hidden</label>
-
               <input type="radio" class="btn-check" name="interactionType" id="pauseType" autocomplete="off" value="pause" required>
               <label class="btn btn-outline-primary" for="pauseType">Pause</label>
+
+              <input type="radio" class="btn-check" name="interactionType" id="hiddenType" autocomplete="off" value="hidden" required>
+              <label class="btn btn-outline-primary" for="hiddenType">Hidden</label>
             </div>
           </div>
 
           <input type="hidden" id="selected-elem" name="selectedElementUrl" value=""> 
-          <div class="mb-3 dropdown-container d-none" id="elementDropdownContainer">
-          </div>
-
-          <input type="text" id="menu-item" class="form-control mb-3 d-none" name="contentMenuItemName" placeholder="Menu Item Name" value=""> 
+          <div class="mb-3 dropdown-container d-none" id="elementDropdownContainer"></div>
 
           <div class="input-group mb-3">
             <button type="button" class="btn btn-outline-primary input-group-text" data-bs-toggle="modal" id="browseFileBtn"
@@ -212,9 +225,15 @@
     const dropdownContainer = document.getElementById('elementDropdownContainer');
     const cmItem_field = document.getElementById('menu-item');
     const inputId_field = document.getElementById('grid-elem');
+    const cMenu = document.getElementById('cMenu');
+    const label = document.getElementById('contextLabel');
 
     document.getElementById('interaction-target').value = button;
     browseBtn.setAttribute('gridElem', button);
+
+    cMenu.checked = false;
+    label.classList.remove('d-none');
+    updateContextMenuUI(false);
 
     document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
       radio.checked = false;
@@ -245,7 +264,12 @@
       document.getElementById('interaction-params').value = params;
 
       if (type == "element") showElementOptions(url, initialType);
-      if (type == "menu") cmItem_field.classList.remove('d-none');
+      if (menuItem) {
+        cmItem_field.classList.remove('d-none');
+        cMenu.checked = true;
+        label.classList.add('d-none');
+        updateContextMenuUI(true);
+      }
 
       inputId_field.value = url;
       cmItem_field.value = menuItem;
@@ -347,21 +371,42 @@
     }
   }
 
+  const cMenu = document.getElementById('cMenu');
+  cMenu.addEventListener('change', () => {
+    updateContextMenuUI(cMenu.checked);
+  });
+
+  function updateContextMenuUI(isChecked) {
+    const input = document.getElementById('menu-item');
+    const label = document.getElementById('contextLabel');
+    label.classList.toggle('d-none', isChecked);
+    input.classList.toggle('d-none', !isChecked);
+    if (isChecked) input.focus();
+    
+    ['popupType', 'pauseType'].forEach(id => {
+      const radio = document.getElementById(id);
+      const label = document.querySelector(`label[for="${id}"]`);
+      radio.classList.toggle('d-none', isChecked);
+      label.classList.toggle('d-none', isChecked);
+    });
+    
+    document.querySelectorAll('input[name="interactionType"]').forEach(r => {
+      r.checked = false;
+    });
+  }
+
   document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const dropdownContainer = document.getElementById('elementDropdownContainer');
-      const cmItem_field = document.getElementById('menu-item');
+      const isContextMenu = cMenu.checked;
+
       if (radio.checked && radio.value === 'element') {
         showElementOptions();
-        cmItem_field.classList.add('d-none');
-      } else if (radio.checked && radio.value === 'menu') {
-        cmItem_field.classList.remove('d-none');
-        dropdownContainer.classList.add('d-none');
-        dropdownContainer.innerHTML = '';
+        input.classList.toggle('d-none', !isContextMenu);
       } else {
         dropdownContainer.classList.add('d-none');
         dropdownContainer.innerHTML = '';
-        cmItem_field.classList.add('d-none');
+        input.classList.toggle('d-none', !isContextMenu);
       }
     });
   });
@@ -720,13 +765,13 @@
     if (targetInput) {
       const newSource = $CLARAMA_ROOT + selected_val;
       if (inputId.includes('_elemInput')) {
-        targetInput.href = "/content/edit/" + resolveRelativeFilePath(newSource);
+        targetInput.href = "/content/edit/" + resolveRelativeFilePath(currentPath, newSource);
         targetInput.textContent = newSource;
         {{ grid_id }}elements[target]['url'] = newSource;
 
         let parentDiv = document.getElementById(target);
         const currentUrl = parentDiv.getAttribute('url');
-        parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_element_height=2&clarama_element_aspect=2.0");
+        parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(currentPath, newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_element_height=2&clarama_element_aspect=2.0");
         
         console.log("new url", document.getElementById(target).getAttribute('url'))
         enable_interactions($(`#${target}`).parent(), true);
@@ -788,9 +833,20 @@
     const menuItem = document.getElementById("menu-item").value.trim();
     
     var checkedType = $('input[name="interactionType"]:checked').val();
-    console.log("checkedType", checkedType)
-    const allowedTypes = ['popup', 'modal', 'pause', 'menu', 'tab', 'hidden'];
-    if (!allowedTypes.includes(checkedType)) {
+    const isContextMenu = $('#cMenu').is(':checked');
+    console.log("isContextMenu", isContextMenu)
+    const allowedTypes = ['popup', 'modal', 'pause', 'tab', 'hidden'];
+    if (!checkedType) {
+      alert("Please select an interaction type");
+      return;
+    }
+
+    if (isContextMenu && menuItem == "") {
+      alert("Please input the menu item name");
+      return;
+    }
+    
+    if (checkedType == "element") {
       checkedType = document.getElementById('selected-elem').value;
 
       if (checkedType == "") {
@@ -812,8 +868,8 @@
     let grid_element_target = document.getElementById('grid_element_target-'+gridElem);
 
     if (elemIndex == "") {
-      if (checkedType == "menu") {
-        elementToAddInteraction.links.push({ element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
+      if (isContextMenu) {
+        elementToAddInteraction.links.push({ contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
         grid_element_target.appendChild(addGridInteraction(gridElem, checkedType, file_url, elementToAddInteraction.links.length -1, urlParams, menuItem));
       } else {
         elementToAddInteraction.links.push({ element: checkedType, url: file_url, params: urlParams });
@@ -821,8 +877,8 @@
       }
       enable_interactions($("#grid_element_target-" + gridElem));
     } else {
-      if (checkedType == "menu") {
-        elementToAddInteraction.links[elemIndex] = { element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
+      if (isContextMenu) {
+        elementToAddInteraction.links[elemIndex] = { contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
       } else {
         elementToAddInteraction.links[elemIndex] = { element: checkedType, url: file_url, params: urlParams };
       }
@@ -842,8 +898,10 @@
         gearIcon.setAttribute('data-element', checkedType);
         gearIcon.setAttribute('data-url', file_url);
         gearIcon.setAttribute('data-params', urlParams);
-        if (checkedType == "menu") {
+        if (isContextMenu) {
           gearIcon.setAttribute('data-menuName', menuItem);
+        } else {
+          gearIcon.removeAttribute('data-menuName');
         }
       }
     }
@@ -1061,7 +1119,7 @@
       renderFilesNFolder(path, breadcrumbId, selectId);
     }
 
-    function resolveRelativeFilePath(relativePath) {
+    function resolveRelativeFilePath(currentPath, relativePath) {
       const baseParts = currentPath.split('/').filter(Boolean);
       const relativeParts = relativePath.split('/').filter(Boolean);
       for (const part of relativeParts) {
