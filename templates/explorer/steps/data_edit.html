@@ -37,13 +37,13 @@
                                 <i class="bi bi-code"></i>
                             </button>
                         </div>
-                        {% if initial_tab_sources is not defined or not initial_tab_sources %}
-                            {% set initial_tab_sources = [{'source': source, 'content': content}] %}
+                        {% if tabs is not defined or not tabs %}
+                            {% set tabs = [{'source': source, 'content': content}] %}
                         {% endif %}
     
-                        {% for item in initial_tab_sources %}
+                        {% for tab in tabs %}
                             {% set tab_id = loop.index0 %} {# Use 0-based index for tab_id #}
-                            {% set filename = item.source.split('/')[-1].split('\\')[-1] if item.source else 'Untitled' %}
+                            {% set filename = tab.source.split('/')[-1].split('\\')[-1] if tab.source else 'Untitled' %}
                             <!-- Tabs -->
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}" 
@@ -68,15 +68,14 @@
                 </div>
             </div>
         </div>
-        {# Loop through initial tab sources to render each content block #}
-        {% for item in initial_tab_sources %}
+        {% for tab in tabs %}
             {% set tab_id = loop.index0 %}
             <div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }} {% if loop.first %}show active{% endif %}"
                 id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
                 data-tab-id="{{ tab_id }}"
                 role="tabpanel" aria-labelledby="tab_{{ loop_index }}_{{ tab_id }}">
                 {# Include the sub-template for each tab's content #}
-                {% with source=item.source, content=item.content %}
+                {% with source=tab.source, content=tab.content %}
                     <!-- Input source file & SQL code editor -->
                     {% include theme("explorer/steps/data_edit_tab_contents.html") %}
                 {% endwith %}

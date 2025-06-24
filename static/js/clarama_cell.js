@@ -32,13 +32,12 @@ function get_tab_ids(cell) {
     // Find all tab content blocks for this cell
     cell.find('.tab-content-block').each(function() {
         var tab_id = $(this).data('tab-id');
-        if (tab_id !== undefined) {
+        if (tab_id !== undefined && tab_id !== null) {
             tab_ids.push(tab_id);
-            console.log("loop: ", tab_id);
+            console.log("found tab_id: ", tab_id);
         }
     });
-    tab_ids.shift(); // remove the first element (the dummy tabid)
-    console.log("tabids: ", tab_ids)
+    tab_ids = [...new Set(tab_ids)];
     return tab_ids;
 }
 
@@ -347,7 +346,8 @@ function get_cell_values(cell) {
     // Get the cell-type specific details
     cell_data = window["get_" + cell_type + "_cell"](cell);
 
-    console.log(cell_data);
+
+    console.log('cell data: ', cell_data);
     return cell_data;
 }
 
