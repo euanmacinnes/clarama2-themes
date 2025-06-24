@@ -441,6 +441,7 @@ function onClose(event, socket_url, webSocket, embedded) {
     console.log('CLARAMA_WEBSOCKET.js: WebSocket Connection CLOSED ' + Date.now() + ' on ' + socket_url + " on socket " + webSocket);
     // flash("SOCKET lost", "danger");
     setTimeout(function () {
+        socket_starting = false;
         run_socket(embedded, false);
     }, 100)
 }
