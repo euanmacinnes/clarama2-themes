@@ -3,20 +3,20 @@ function set_environment(environment) {
     $('#kernel_status').html('Loading');
     $('#environment').html('...');
 
-    let socket = $("#edit_socket");
-    socket.attr("environment", environment);
+    let socket_element = $("#edit_socket");
+    socket_element.attr("environment", environment);
     socket_starting = false;
-    run_socket(socket, false);
+    run_socket(socket_element, false);
 }
 
 function reset_environment(environment) {
     flash("Resetting environment to " + environment);
     $('#kernel_status').html('Restarting..');
     $('#environment').html('...');
-    let socket = $("#edit_socket");
-    socket.attr("environment", environment);
+    let socket_element = $("#edit_socket");
+    socket_element.attr("environment", environment);
     socket_starting = false;
-    run_socket(socket, true);
+    run_socket(socket_element, true);
 }
 
 let socket = undefined;
@@ -133,6 +133,8 @@ function start_socket(reconnect = false, embedded) {
     let webSocket = new WebSocket(socket_address);
 
     socket = webSocket;
+
+    console.log("CLARAMA_WEBSOCKET.JS start_socket " + socket);
 
     webSocket.onerror = function (event) {
         onError(event, socket_address, webSocket)
