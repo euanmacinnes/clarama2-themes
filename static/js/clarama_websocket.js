@@ -304,7 +304,9 @@ function onMessage(event, socket_url, webSocket) {
         console.log("WEBSOCKET.js: Processing Socket Message " + dict['class']);
         try {
             if (dict['class'] === "ping") {
-                console.log("ping");
+                socket.send('ping');
+                console.log('ping back ' + new Date());
+                // ping right back. Ping is sent from the kernel to the client
             }
 
             if (dict['class'] === "layout") {
