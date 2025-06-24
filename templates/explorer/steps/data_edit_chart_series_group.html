@@ -28,7 +28,7 @@
         </div>
         <div class="col-1">
             <input type="string" class="form-control series-z" id="z{{ loop_index }}" name="z"
-                   value="{{ sgroup['series-z'] }}">
+                   value="{{ sgroup['series-z'] }}" {% if (sgroup['series-type'] == "Line") %}disabled{% endif %} >
         </div>
         <div class="col-1">
             <input type="string" class="form-control series-ymin" id="ymin{{ loop_index }}" name="ymin"

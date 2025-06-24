@@ -6,76 +6,83 @@
     {% do table.update({'pagesize': 15}) %}
     {% do table.update({'sortable': True}) %}
 {% endif %}
+
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
-    <div class="bg-info rounded-top text-light" style="padding: 5px">
-        <div class="rounded-top text-light row">
-            <input id="task_step_{{ loop_index }}_output" type="hidden" value="{{ output or 'table' }}">
-            <div class="btn-group col align-items-center">
-                <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapseTableOptions_{{ loop_index }}"
-                        aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
-                        aria-controls="collapseTableOptions_{{ loop_index }}"
-                        class="btn {% if output=='table' %}btn-primary{% else %}btn-secondary{% endif %}"
-                        onclick="datacell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
-                    <i class="bi bi-table"></i>
-                </button>
-                <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapseOptions_{{ loop_index }}"
-                        aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
-                        aria-controls="collapseOptions_{{ loop_index }}"
-                        class="btn dropdown-togglew rounded-0 {% if output=='chart' %}btn-primary{% else %}btn-secondary{% endif %}"
-                        onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
-                    <i
-                            class="bi bi-graph-up-arrow"></i></button>
-
-                <button id="task_step_{{ loop_index }}_code" type="button"
-                        class="rounded-0 btn {% if output=='code' %}btn-primary{% else %}btn-secondary{% endif %}"
-                        onclick="datacell_setOutput('task_step_{{ loop_index }}', 'code', '{{ loop_index }}');">
-                    <i class="bi bi-code"></i>
-                </button>
-
-                <div class="input-group">
-                    <input id="task_step_{{ loop_index }}_source" type="text"
-                           class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus"
-                           placeholder="Data Source Filename" aria-label="Data source relative filename"
-                           value="{{ source }}">
-                    <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
-                            data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                            inputId="task_step_{{ loop_index }}_source" filters="*.source.yaml|*.csv|*.xlsx">
-                        <i class="bi bi-folder2-open"></i>
-                    </button>
+    <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
+        <div class="bg-info rounded-top text-light px-2 py-1">
+            <!-- Toggle buttons -->
+            <div class="d-flex flex-wrap align-items-center">
+                <div class="flex-grow-1">
+                    <ul class="nav nav-tabs gap-1" id="dataSourceTabs_{{ loop_index }}" role="tablist">
+                        <div class="nav-item btn-group me-2">
+                            <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseTableOptions_{{ loop_index }}"
+                                    aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
+                                    aria-controls="collapseTableOptions_{{ loop_index }}"
+                                    class="btn {% if output=='table' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    onclick="datacell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
+                                <i class="bi bi-table"></i>
+                            </button>
+                            <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseOptions_{{ loop_index }}"
+                                    aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
+                                    aria-controls="collapseOptions_{{ loop_index }}"
+                                    class="btn rounded-0 {% if output=='chart' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </button>
+                            <button id="task_step_{{ loop_index }}_code" type="button"
+                                    class="btn {% if output=='code' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    onclick="datacell_setOutput('task_step_{{ loop_index }}', 'code', '{{ loop_index }}');">
+                                <i class="bi bi-code"></i>
+                            </button>
+                        </div>
+                        {% if tabs is not defined or not tabs %}
+                            {% set tabs = [{'source': source, 'content': content}] %}
+                        {% endif %}
+    
+                        {% for tab in tabs %}
+                            {% set tab_id = loop.index0 %} {# Use 0-based index for tab_id #}
+                            {% set filename = tab.source.split('/')[-1].split('\\')[-1] if tab.source else 'Untitled' %}
+                            <!-- Tabs -->
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}" 
+                                        id="tab_{{ loop_index }}_{{ tab_id }}"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                                        type="button" role="tab"
+                                        aria-controls="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                                        aria-selected="{% if loop.first %}true{% else %}false{% endif %}" title="{{ filename }}">
+                                    <span class="tab-title">{{ filename }}</span>
+                                    <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i> {# Removed redundant &times; #}
+                                </button>
+                            </li>
+                        {% endfor %}
+    
+                        <li class="add-tab-button" role="presentation">
+                            <button id="add-source-tab-{{ loop_index }}" type="button" class="nav-link add-source-tab" title="Add tab" data-loop-index="{{ loop_index }}">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </li>
+                    </ul>
                 </div>
-
-                <!-- <button type="button" class="gridbrowsefile border border-0 bg-white input-group align-items-center" data-bs-toggle="modal" data-bs-target="#browseFileModal" inputId="task_step_{{ loop_index }}_source" filters="*.source.yaml|*.csv|*.xlsx">
-                    <input id="task_step_{{ loop_index }}_source" type="text" class="form-control border-0"
-                        placeholder="Data Source Filename" aria-label="Data source relative filename"
-                        value="{{ source }}">
-                        <i class="bi bi-folder2-open px-2"></i>
-                    </input>
-                </button> -->
-
-                {% if source %}
-                    <a href="{{ source }}" target="_blank" id="task_step_{{ loop_index }}_browse_link"
-                       class="text-decoration-none text-white">
-                        <button id="task_step_{{ loop_index }}_browse" type="button"
-                                class="btn btn-secondary datasource" aria-haspopup="true"
-                                aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
-                            <i class="bi bi-pen"></i>
-                        </button>
-                    </a>
-                {% else %}
-                    <a href="#" target="_blank" id="task_step_{{ loop_index }}_browse_link"
-                       class="text-decoration-none text-white" style="display:none;">
-                        <button id="task_step_{{ loop_index }}_browse" type="button"
-                                class="btn btn-secondary datasource" aria-haspopup="true"
-                                aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
-                            <i class="bi bi-pen"></i>
-                        </button>
-                    </a>
-                {% endif %}
             </div>
         </div>
+        {% for tab in tabs %}
+            {% set tab_id = loop.index0 %}
+            <div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }} {% if loop.first %}show active{% endif %}"
+                id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                data-tab-id="{{ tab_id }}"
+                role="tabpanel" aria-labelledby="tab_{{ loop_index }}_{{ tab_id }}">
+                {# Include the sub-template for each tab's content #}
+                {% with source=tab.source, content=tab.content %}
+                    <!-- Input source file & SQL code editor -->
+                    {% include theme("explorer/steps/data_edit_tab_contents.html") %}
+                {% endwith %}
+            </div>
+        {% endfor %}
     </div>
+
     <div id="collapseTableOptions_{{ loop_index }}"
          class="accordion-collapse collapse bg-dark text-light {% if output=='table' %}show{% endif %}">
         <div class="accordion-body" aria-labelledby="table" style="padding: 8px;">
@@ -196,7 +203,7 @@
             </div>
 
             <div class="container-fluid mb-2 collapse" id="chartYamlEditor">
-                <div id="content_query_yaml_{{ loop_index }}"
+                <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}"
                      name="task_step_field_yaml_{{ loop_index }}"
                      editor="yaml"
                      class="source-editor form-control clarama-field-editor"
@@ -314,25 +321,44 @@
                     {% endwith %}
                 {% endfor %}
             </ul>
+
         </div>
     </div>
-    <div id="content_query_{{ loop_index }}" name="task_step_field_{{ loop_index }}" editor="sql"
-         class="source-editor form-control clarama-field-editor" style="min-height: 100px">{{ content }}</div>
-</div>
-<div id="content_chart_{{ loop_index }}">
+    <div id="content_chart_{{ loop_index }}">
 
+    </div>
 </div>
 
 <script type="text/javascript">
     $(document).ready(() => {
-        chart_options_initialize('{{  loop_index }}')
-        $('[data-toggle="tooltip"]').tooltip({html: true});
+        const loopIndex = '{{ loop_index }}';
+        console.log("data_edit.html Document Ready. JS loopIndex:", loopIndex);
+
+        chart_options_initialize(loopIndex);
+
+        $('[data-toggle="tooltip"]').tooltip('dispose');
+
+        let currentModalInputFieldId = null;
+
+        $('#browseFileModal').on('show.bs.modal', function(event) {
+            const button = $(event.relatedTarget);
+            currentModalInputFieldId = button.attr('inputId');
+        });
+
+        $('#browseFileModal').on('hidden.bs.modal', function() {
+            if (currentModalInputFieldId) {
+                const $targetInput = $(`#${currentModalInputFieldId}`);
+                if ($targetInput.length) {
+                    $targetInput.trigger('change');
+                }
+                currentModalInputFieldId = null; 
+            }
+        });
 
         function updateSeriesFields($selectElem) {
             const seriesType = $selectElem.val();
             const fields = ['series-x', 'series-y', 'series-z', 'series-ymin', 'series-ymax', 'series-s', 'series-u', 'series-l'];
 
-            // fields to disable based on series type
             const disableRules = {
                 "Bubble": ['series-ymin', 'series-ymax'],
                 "Line": ['series-z'],
@@ -346,14 +372,12 @@
 
             const group = $selectElem.closest('.chart-series-groups');
 
-            // enable all fields first
-            fields.forEach(function (field) {
+            fields.forEach(field => {
                 group.find('input.' + field).prop('disabled', false);
             });
 
-            // thn disable fields per rules
             const toDisable = disableRules[seriesType] || [];
-            toDisable.forEach(function (field) {
+            toDisable.forEach(field => {
                 group.find('input.' + field).prop('disabled', true);
             });
         }
@@ -365,5 +389,191 @@
         $(document).on('change', '.series-type', function () {
             updateSeriesFields($(this));
         });
+
+        function initializeNewSQLEditor(loopIndex, tabId) {
+            const editorDivId = `content_query_${loopIndex}_tab_${tabId}`;
+            console.log("editorDivId: ", editorDivId);
+            const editorDiv = document.getElementById(editorDivId);
+
+            if (editorDiv) {
+                if ($(editorDiv).data('aceEditor')) {
+                    return;
+                }
+
+                const editor = ace.edit(editorDiv);
+                editor.setTheme("ace/theme/tomorrow"); 
+                editor.session.setMode("ace/mode/sql");  
+
+                $(editorDiv).data('aceEditor', editor);
+            } else {
+                console.error(`Could not find new editor div to initialize: #${editorDivId}`);
+            }
+        }
+
+        // --- TAB MANAGEMENT ---
+        let tabCounter = 0;
+        const existingTabs = $(`#dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab');
+        existingTabs.each(function() {
+            const tabId = parseInt($(this).attr('id').split('_').pop());
+            if (tabId >= tabCounter) {
+                tabCounter = tabId + 1;
+            }
+        });
+
+        const tabsContainer = $(`#dataSourceTabs_${loopIndex}`);
+        const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`);
+        const addSourceTabBtn = $(`#add-source-tab-${loopIndex}`);
+        const addSourceTabLi = addSourceTabBtn.closest('li'); 
+
+        function addNewTab() {
+            console.log('TabCounter for cell', loopIndex, ':', tabCounter);
+            const tabId = tabCounter++;
+            let tabName = `Tab ${tabId}`;
+            let initialSource = '';
+            let initialContent = '';
+
+            const newTabButtonHtml = `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link tab-item" id="tab_${loopIndex}_${tabId}"
+                            type="button" role="tab"
+                            aria-controls="tabContentBlock_${loopIndex}_${tabId}" aria-selected="false" title="${tabName}">
+                        <span class="tab-title">${tabName}</span>
+                        <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i>
+                    </button>
+                </li>
+            `;
+
+            addSourceTabLi.before(newTabButtonHtml);
+
+            const newContentBlockHtml = `
+                <div class="tab-content-block tab-pane"
+                     id="tabContentBlock_${loopIndex}_${tabId}"
+                     data-tab-id="${tabId}"
+                     role="tabpanel" aria-labelledby="tab_${loopIndex}_${tabId}">
+
+                    <div class="input-group w-100 my-2 shadow-sm border border-2 border-primary rounded">
+                        <input id="task_step_${loopIndex}_source_${tabId}" type="text"
+                               class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
+                               placeholder="Data Source Filename" aria-label="Data source relative filename"
+                               value="${initialSource}">
+                        <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                                 data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                                 inputId="task_step_${loopIndex}_source_${tabId}">
+                            <i class="bi bi-folder2-open"></i>
+                        </button>
+                        ${initialSource ? `
+                            <a href="${initialSource}" target="_blank" id="task_step_${loopIndex}_browse_link_${tabId}" class="text-decoration-none text-white">
+                                <button id="task_step_${loopIndex}_browse_${tabId}" type="button"
+                                        class="btn btn-secondary datasource" aria-haspopup="true"
+                                        aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                                    <i class="bi bi-pen"></i>
+                                </button>
+                            </a>` : ''}
+                    </div>
+
+                    <div id="content_query_${loopIndex}_tab_${tabId}"
+                         name="task_step_field_${loopIndex}_${tabId}"
+                         editor="sql"
+                         class="source-editor form-control clarama-field-editor" style="min-height: 100px; white-space: pre-wrap; word-break: break-all;">${initialContent}</div>
+                </div>
+            `;
+
+            contentContainer.append(newContentBlockHtml);
+            initializeNewSQLEditor(loopIndex, tabId);
+            return tabId;
+        }
+
+        // Close tab functionality
+        tabsContainer.on('click', '.close-tab', function (e) {
+            e.stopPropagation();
+            const $tabButton = $(this).closest('button');
+            const tabIdToClose = $tabButton.attr('id').split('_').pop();
+
+            const $editorDiv = $(`#content_query_${loopIndex}_tab_${tabIdToClose}`);
+            const editorInstance = $editorDiv.data('monacoEditor');
+            if (editorInstance && typeof editorInstance.dispose === 'function') {
+                editorInstance.dispose();
+            }
+
+            $tabButton.closest('li').remove();
+            $(`#tabContentBlock_${loopIndex}_${tabIdToClose}`).remove();
+        });
+
+        // Add tab button click handler
+        if (addSourceTabBtn.length) {
+            addSourceTabBtn.on('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const newTabId = addNewTab();
+                $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
+            });
+        } else {
+            console.warn(`Add Source Tab button (#add-source-tab-${loopIndex}) not found for cell ${loopIndex}.`);
+        }
+
+        // --- DYNAMIC TAB NAMING ---
+        function updateTabNameFromInput($input) { 
+            const inputId = $input.attr('id');
+            const parts = inputId.split('_');
+            const currentLoopIndex = parts[2];
+            const currentTabId = parts[4];
+
+            // Only update if this input belongs to the current cell
+            if (currentLoopIndex === loopIndex) {
+                const $tabButton = $(`#tab_${currentLoopIndex}_${currentTabId}`);
+                const $tabTitleSpan = $tabButton.find('.tab-title');
+
+                let newName = $input.val();
+                if (newName) {
+                    newName = newName.split(/[\\/]/).pop();
+                } else {
+                    newName = `Tab ${currentTabId}`;
+                }
+                $tabTitleSpan.text(newName);
+                $tabButton.attr('title', newName);
+            }
+        }
+
+        contentContainer.on('change keyup', '.source-input-field', function() {
+            updateTabNameFromInput($(this));
+        });
+
+        contentContainer.find('.source-input-field').each(function() {
+            updateTabNameFromInput($(this));
+        });
+
+        // --- TAB ACTIVATION ---
+        function activateTab(tabButton) {
+            const $tabButton = $(tabButton);
+            const targetContentId = $tabButton.attr('aria-controls');
+            // 1. Deactivate all tab buttons within this cell's tabs
+            $(`#dataSourceTabs_${loopIndex} .nav-link`).removeClass('active').attr('aria-selected', 'false');
+            // 2. Hide all tab content panes within this cell's container
+            $(`#dataEditTabContentContainer_${loopIndex} .tab-pane`).removeClass('show active');
+            // 3. Activate the clicked tab button
+            $tabButton.addClass('active').attr('aria-selected', 'true');
+            // 4. Show the corresponding tab content pane
+            $(`#${targetContentId}`).addClass('show active');
+        }
+
+        tabsContainer.on('click', 'button.nav-link', function(e) {
+            e.preventDefault();
+            const $thisButton = $(this);
+            // Ignore the 'add tab' button
+            if ($thisButton.hasClass('add-source-tab')) {
+                return;
+            }
+            activateTab(this);
+        });
+
+        const $initialActiveTab = $(`#dataSourceTabs_${loopIndex} button.nav-link.active`);
+        if ($initialActiveTab.length) {
+        } else {
+            const $firstTab = $(`#dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').first();
+            if ($firstTab.length) {
+                activateTab($firstTab[0]);
+            }
+        }
     });
 </script>

@@ -2,7 +2,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="interactionModalTitle">Interaction</h5>
+                <h5 class="modal-title" id="interactionModalTitle">fsdfgdgwasf</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="interactionModalBody">
@@ -17,9 +17,50 @@
 <div id="interactionPopup" class="w-100">
 </div>
 
+<div id="contextMenu" class="dropdown-menu show position-absolute d-none"></div>
+
 <script type="text/javascript">
     let lastMouseEvent = null;
     var currentModalAddContentPath = "";
+
+    document.addEventListener('contextmenu', (event) => {
+        const target = event.target.closest('.grid-stack-item');
+        if (!target) return;
+
+        event.preventDefault();
+
+        const elementId = target.getAttribute('gs-id');
+        console.log("elementId", elementId);
+
+        const elementInteractions = {{ grid_id }}elements[elementId]['links'];
+        console.log("{{ grid_id }}elements", {{ grid_id }}elements);
+        console.log("elementInteractions", elementInteractions);
+        console.log("elementInteractions length", elementInteractions.length);
+        const menuInteractions = [];
+
+        if (elementInteractions.length === 0) return;
+        for (let i = 0; i < elementInteractions.length; i++) {
+            const interaction = elementInteractions[i];
+            if (interaction.element == "menu") {
+                menuInteractions.push(interaction);
+            }
+        }
+        console.log("menuInteractions", menuInteractions);
+        console.log("menuInteractions length", menuInteractions.length);
+        if (menuInteractions.length === 0) return;
+
+        contextMenu.innerHTML = menuInteractions.map((interaction, i) => {
+            return `<button class="dropdown-item" data-url="${interaction.url}">${interaction.menu_item_name}</button>`;
+        }).join('');
+
+        // need to handle the onclick btn logic
+
+        contextMenu.style.top = `${event.pageY-100}px`;
+        contextMenu.style.left = `${event.pageX}px`;
+        contextMenu.classList.remove('d-none');
+
+        contextMenu.dataset.elementId = elementId;
+    });
 
     document.addEventListener('mousemove', function (e) {
         lastMouseEvent = e;
@@ -30,8 +71,6 @@
         const iModal = document.getElementById("interactionModalBody");
         iModal.innerHTML = '';
         iModal.append(showInteractionContent('modal', url, parameters));
-        // iModal.innerHTML = '';
-        // iModal.append(showInteractionContent(url, 'interactionModalContent'));
         enable_interactions($("#interactionModalBody"), true);
     }
 
@@ -61,8 +100,6 @@
         ipopup.style.display = 'block';
         ipopup.innerHTML = '';
         ipopup.append(showInteractionContent('popup', url, parameters));
-        // ipopup.innerHTML = '';
-        // ipopup.append(showInteractionContent(url, 'interactionPopupContent'));
         enable_interactions($("#interactionPopup"), true);
 
         document.addEventListener('click', function hideOnClick(e) {
@@ -74,7 +111,6 @@
     }
 
     function showInteractionContent(interaction, relativeP, parameters) {
-        // console.log("inside showinteractioncontent fn");
         let currentP;
         let ICurl;
 
@@ -92,20 +128,18 @@
             let relativeSegments = relativeP.split('/');
             for (let segment of relativeSegments) {
                 if (segment === '..') {
-                    currentSegments.pop(); // Move up one directory
+                    currentSegments.pop(); 
                 } else if (segment !== '.' && segment !== '') {
-                    currentSegments.push(segment); // Move into subdirectory
+                    currentSegments.push(segment);
                 }
             }
 
             ICurl = $CLARAMA_ROOT + currentSegments.join('/');
-            // document.getElementById(displayContentID).setAttribute("url", ICurl);
         }
         console.log("$CLARAMA_ROOT", $CLARAMA_ROOT)
         console.log("ICurl", ICurl)
 
         const newIC = document.createElement("div");
-        // newIC.id = newDivID;
         newIC.className = "clarama-post-embedded clarama-replaceable";
         newIC.setAttribute("url", `${ICurl}`);
         newIC.setAttribute("json", JSON.stringify(parameters));
