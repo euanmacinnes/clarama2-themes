@@ -105,6 +105,12 @@
         enable_interactions($("#interactionModalBody"), true);
     }
 
+    function triggerTabInteraction(url, parameters = "") {
+        console.log("parameters", parameters)
+        let fullUrl = "/content/default/" + resolveRelativeFilePath("{{ file_url | path }}", url);
+        window.open(fullUrl, "_blank");
+    }
+
     function showPopupNearMouse(url, parameters = "") {
         const ipopup = document.getElementById('interactionPopup');
         console.log("ipopup", ipopup)

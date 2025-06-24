@@ -765,13 +765,13 @@
     if (targetInput) {
       const newSource = $CLARAMA_ROOT + selected_val;
       if (inputId.includes('_elemInput')) {
-        targetInput.href = "/content/edit/" + resolveRelativeFilePath(newSource);
+        targetInput.href = "/content/edit/" + resolveRelativeFilePath(currentPath, newSource);
         targetInput.textContent = newSource;
         {{ grid_id }}elements[target]['url'] = newSource;
 
         let parentDiv = document.getElementById(target);
         const currentUrl = parentDiv.getAttribute('url');
-        parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_element_height=2&clarama_element_aspect=2.0");
+        parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(currentPath, newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_element_height=2&clarama_element_aspect=2.0");
         
         console.log("new url", document.getElementById(target).getAttribute('url'))
         enable_interactions($(`#${target}`).parent(), true);
@@ -1119,7 +1119,7 @@
       renderFilesNFolder(path, breadcrumbId, selectId);
     }
 
-    function resolveRelativeFilePath(relativePath) {
+    function resolveRelativeFilePath(currentPath, relativePath) {
       const baseParts = currentPath.split('/').filter(Boolean);
       const relativeParts = relativePath.split('/').filter(Boolean);
       for (const part of relativeParts) {
