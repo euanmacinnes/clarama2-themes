@@ -99,3 +99,7 @@
     color: #5DACFC;
     text-decoration: none;
 }
+
+.help-folder img {
+    max-width: 100%;
+}
