@@ -139,6 +139,7 @@ function get_data_cell(cell) {
     series_groups.each(function () {
         console.log(this);
         var srs = {
+            'series-tab': $(this).find('.series-tab').val(),            // Input Source Tab
             'series-type': $(this).find('.series-type').val(),          // Series type
             'series-x': $(this).find('.series-x').val(),                // X axis
             'series-y': $(this).find('.series-y').val(),                // Y axis
@@ -179,6 +180,7 @@ function get_data_cell(cell) {
     series_annos.each(function () {
         console.log(this);
         var srs = {
+            'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
             'anno-label': $(this).find('.anno-label').val(),            // label
             'anno-x': $(this).find('.anno-x').val(),                    // X axis
             'anno-y': $(this).find('.anno-y').val(),                    // Y axis
