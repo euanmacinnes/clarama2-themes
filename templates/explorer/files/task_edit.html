@@ -29,6 +29,16 @@
                             <span class="dropdown-item-text"><h4>Available Environments</h4></span>
                         </li>
                         <table width="100%">
+                            <td width="90%"><a
+                                    class="dropdown-item environments {% if environment is not defined or environment=='default'%}active{% endif %}"
+                                    href="#"
+                                    id="environment_default"
+                                    env=""
+                                    onclick="set_environment('default')"><i>System Default</i></a>
+                            </td>
+                        <td>
+                            &nbsp;
+                        </td>
                             {% for key, env in environments.items() %}
                                 <tr>
                                     <td width="90%"><a
