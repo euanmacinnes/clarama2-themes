@@ -25,6 +25,9 @@
 .shaking {
     display: inline-block;
     animation: shake 0.5s infinite ease-in-out;
+}
+
+.shaking.danger {
     color: #ff475a;
     font-size: 16px;
     text-shadow: 0 0 5px #ff0018, 0 0 10px #dc3545;

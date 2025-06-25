@@ -113,9 +113,9 @@ function cell_item_run(cell_button) {
 
                     moveToNextCell(cell_button);
                 } else {
-                    console.log('CLARAMA_TASK.js: Submission was successful.');
+                    console.log('CLARAMA_TASK.js: Submission was not successful.');
                     console.log(data);
-                    flash("Couldn't run content: " + data['error']);
+                    flash("Couldn't run content: " + data['error'], "danger");
                 }
             },
             error: function (data) {

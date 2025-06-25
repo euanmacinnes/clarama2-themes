@@ -47,9 +47,30 @@ function flash(message, category = "info") {
     const now = new Date();
     const relativeTime = getRelativeTime(now);
 
-
-    html = '<div class="row alert flash-alert alert-' + category + '">' + message + '</div>'
-    $("#notification_popup").append(html);
+    const toastId = 'toast_' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast text-dark bg-${category}-subtle border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body w-100 py-3 px-4" style="word-break: break-word;">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-dark me-2 mt-2" style="font-size: 8px;" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+    
+    $('#toast_container').append(toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 }); 
+    bsToast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove(); 
+    });
+    
+    // html = '<div class="row alert flash-alert alert-' + category + '">' + message + '</div>'
+    // $("#notification_popup").append(html);
 
     const alert_html = `
         <li class="list-group-item d-flex flex-row align-items-start justify-content-left border-0 pb-1" data-timestamp="${now.toISOString()}">
@@ -66,19 +87,34 @@ function flash(message, category = "info") {
     $("#alerts").prepend(alert_html);
     $("#alertsmenu").removeClass("hidden");
     const $bellIcon = $('#alertsmenu i.bi');
+    hasUnseenDanger = true;
+    $bellIcon.addClass('shaking');
 
     if (category === 'danger') {
-        hasUnseenDanger = true;
-        $bellIcon.addClass('shaking');
+        // hasUnseenDanger = true;
+        // $bellIcon.addClass('shaking');
+        $bellIcon.addClass('danger');
     } else {
         if (!hasUnseenDanger) {
             $bellIcon.removeClass('shaking');
+            $bellIcon.removeClass('danger');
         }
     }
 
-    $(".flash-alert").delay(3200).fadeOut(300);
+    $(".flash-alert").delay(5000).fadeOut(300);
     console.log(`${category}: ${message}`);
 }
+
+window.addEventListener('scroll', function () {
+    const toastContainer = document.getElementById('toast_container');
+    const scrollY = window.scrollY;
+   
+    if (scrollY > 10) {
+      toastContainer.style.top = '12px';
+    } else {
+      toastContainer.style.top = '80px';
+    }
+});
 
 setInterval(() => {
     $("#alerts li").each(function () {
