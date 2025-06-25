@@ -175,23 +175,24 @@ function get_data_cell(cell) {
         chart_series_formats.push(srs);
     });
     
-    // Extract series annotations
+    // Extract series annotations - FIXED VERSION
     var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
         console.log(this);
+        var $this = $(this);
         var srs = {
-            'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
-            'anno-label': $(this).find('.anno-label').val(),            // label
-            'anno-x': $(this).find('.anno-x').val(),                    // X axis
-            'anno-y': $(this).find('.anno-y').val(),                    // Y axis
-            'anno-xm': $(this).find('.anno-xm').val(),                  // X MAX axis
-            'anno-ym': $(this).find('.anno-ym').val(),                  // Y MAX axis
-            'anno-u': $(this).find('.anno-u').val(),                    // unit axis
-            'anno-dt': $(this).find('.anno-dt').is(':checked'),         // dotted
-            'anno-width': $(this).find('.anno-width').val(),            // border width
-            'anno-type': $(this).find('.anno-type').find('option:selected').attr('id'), // type
-            'anno-col': $(this).find('.chart-col').val(),                // colour
-            'anno-col-back': $(this).find('.chart-col-back').val(),      // background colour
+            'anno-tab': $this.find('.anno-tab').val(),                  // Input Source Tab
+            'anno-label': $this.find('.anno-label').val(),              // label
+            'anno-x': $this.find('.anno-x').val(),                      // X axis
+            'anno-y': $this.find('.anno-y').val(),                      // Y axis
+            'anno-xm': $this.find('.anno-xm').val(),                    // X MAX axis
+            'anno-ym': $this.find('.anno-ym').val(),                    // Y MAX axis
+            'anno-u': $this.find('.anno-u').val(),                      // unit axis
+            'anno-dt': $this.find('.anno-dt').is(':checked'),           // dotted
+            'anno-width': $this.find('.anno-width').val(),              // border width
+            'anno-type': $this.find('.anno-type').find('option:selected').attr('id'), // type
+            'anno-col': $this.find('.chart-col').val(),                 // colour - more specific selector
+            'anno-col-back': $this.find('.chart-col-back').val(),       // background colour - more specific selector
         };
         console.log(srs);
         chart_series_annos.push(srs);

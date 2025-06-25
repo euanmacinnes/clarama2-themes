@@ -259,7 +259,7 @@
                 <div class="list-group-item d-flex row gx-2 align-items-center">
                     <div style="width: 2%;"></div>
                     <div class="col-2">Tab</div>
-                    <div class="col-2">Type</div>
+                    <div class="col-1">Type</div>
                     <div class="col-1">X Axis</div>
                     <div class="col-1">Y Axis</div>
                     <div class="col-1">Z Axis</div>
@@ -386,12 +386,66 @@
             });
         }
 
+        function updateAllTabDropdowns(loopIndex) {
+            console.log('Updating all tab dropdowns for cell:', loopIndex);
+            
+            const currentTabs = [];
+            $(`#dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').each(function() {
+                const $tabButton = $(this);
+                const tabId = $tabButton.attr('id').split('_').pop();
+                const tabTitle = $tabButton.find('.tab-title').text();
+                
+                currentTabs.push({
+                    id: tabId,
+                    title: tabTitle
+                });
+            });
+            
+            // Update all series group tab dropdowns
+            $(`#seriesGrp${loopIndex} .series-tab`).each(function() {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                
+                $dropdown.find('option:not(:first)').remove();
+                
+                currentTabs.forEach(tab => {
+                    const isSelected = currentValue === tab.id;
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+            
+            // Update series annotations tab dropdowns (using .anno-tab class)
+            $(`#seriesAnno${loopIndex} .anno-tab`).each(function() {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                
+                $dropdown.find('option:not(:first)').remove();
+                
+                currentTabs.forEach(tab => {
+                    const isSelected = currentValue === tab.id;
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+        }
+        
         $('.series-type').each(function () {
             updateSeriesFields($(this));
         });
 
         $(document).on('change', '.series-type', function () {
             updateSeriesFields($(this));
+        });
+
+        $(document).on('click', `#addSG${loopIndex}`, function() {
+            setTimeout(() => {
+                updateAllTabDropdowns(loopIndex);
+            }, 100);
+        });
+
+        $(document).on('click', `#addAN${loopIndex}`, function() {
+            setTimeout(() => {
+                updateAllTabDropdowns(loopIndex);
+            }, 100);
         });
 
         function initializeNewSQLEditor(loopIndex, tabId) {
@@ -451,19 +505,19 @@
 
             const newContentBlockHtml = `
                 <div class="tab-content-block tab-pane"
-                     id="tabContentBlock_${loopIndex}_${tabId}"
-                     data-tab-id="${tabId}"
-                     role="tabpanel" aria-labelledby="tab_${loopIndex}_${tabId}">
+                    id="tabContentBlock_${loopIndex}_${tabId}"
+                    data-tab-id="${tabId}"
+                    role="tabpanel" aria-labelledby="tab_${loopIndex}_${tabId}">
 
                     <div class="border border-3 border-info">
                         <div class="input-group w-100 border-1 border-bottom border-info">
                             <input id="task_step_${loopIndex}_source_${tabId}" type="text"
-                                   class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
-                                   placeholder="Data Source Filename" aria-label="Data source relative filename"
-                                   value="${initialSource}">
+                                class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
+                                placeholder="Data Source Filename" aria-label="Data source relative filename"
+                                value="${initialSource}">
                             <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
-                                     data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                                     inputId="task_step_${loopIndex}_source_${tabId}">
+                                    data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                                    inputId="task_step_${loopIndex}_source_${tabId}">
                                 <i class="bi bi-folder2-open"></i>
                             </button>
                             ${initialSource ? `
@@ -477,15 +531,19 @@
                         </div>
 
                         <div id="content_query_${loopIndex}_tab_${tabId}"
-                             name="task_step_field_${loopIndex}_${tabId}"
-                             editor="sql"
-                             class="source-editor form-control clarama-field-editor" style="min-height: 100px; white-space: pre-wrap; word-break: break-all;">${initialContent}</div>
+                            name="task_step_field_${loopIndex}_${tabId}"
+                            editor="sql"
+                            class="source-editor form-control clarama-field-editor" style="min-height: 100px; white-space: pre-wrap; word-break: break-all;">${initialContent}</div>
                     </div>
                 </div>
             `;
 
             contentContainer.append(newContentBlockHtml);
             initializeNewSQLEditor(loopIndex, tabId);
+            
+            // Update all tab dropdowns after adding a new tab
+            updateAllTabDropdowns(loopIndex);
+            
             return tabId;
         }
 
@@ -503,6 +561,8 @@
 
             $tabButton.closest('li').remove();
             $(`#tabContentBlock_${loopIndex}_${tabIdToClose}`).remove();
+            
+            updateAllTabDropdowns(loopIndex);
         });
 
         // Add tab button click handler
@@ -538,6 +598,8 @@
                 }
                 $tabTitleSpan.text(newName);
                 $tabButton.attr('title', newName);
+                
+                updateAllTabDropdowns(loopIndex);
             }
         }
 
