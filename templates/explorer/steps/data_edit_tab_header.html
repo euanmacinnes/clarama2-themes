@@ -1,0 +1,17 @@
+{% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
+{% set has_source = tab.source and tab.source.strip() %}
+{% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab' + (tab_id|string) %}
+
+<li class="nav-item" role="presentation">
+    <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}"
+            id="tab_{{ loop_index }}_{{ tab_id }}"
+            data-bs-toggle="tab"
+            data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+            type="button" role="tab"
+            aria-controls="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+            aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
+            title="{{ filename }}">
+        <span class="tab-title">{{ filename }}</span>
+        <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i>
+    </button>
+</li>
