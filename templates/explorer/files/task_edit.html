@@ -39,7 +39,7 @@
                         <td>
                             &nbsp;
                         </td>
-                            {% for key, env in environments.items() %}
+                            {% for key, env in environments.items()|sort(attribute='1') %}
                                 <tr>
                                     <td width="90%"><a
                                             class="dropdown-item environments {% if key==environment %}active{% endif %}"
