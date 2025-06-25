@@ -181,7 +181,7 @@
                                        style="text-decoration:none">
                                         <div class="row align-items-center">
                                             <div class="col">
-                                                <div class="row row-cols-auto align-items-center" style="width: 100%;">
+                                                <div class="row row-cols-auto align-items-center flex-nowrap" style="width: 100%;">
                                                     <input type="checkbox"
                                                            class="multi-select-checkbox clarama-checkbox form-check-input me-2 d-none"
                                                     />
@@ -191,7 +191,7 @@
                                             </div>-->
                                                     </i>
                                                     <div id="file_{{ loop.index }}"
-                                                         class="col d-flex align-items-center listing_div">{{ file | filebasename }}</div>
+                                                         class="col d-flex align-items-center listing_div" style="word-break: break-word;">{{ file | filebasename }}</div>
                                                 </div>
                                             </div>
                                             <div class="col col-sm-3 text-end">{{ get(filetype_names, file | fileextension, file | fileextension) }}</div>
@@ -212,7 +212,7 @@
                                                    class="position-absolute invisible"
                                                    type="file" multiple accept="image/jpeg, image/png, image/svg+xml"/>
                                             <label for="upload_image_background" type="button"
-                                                   class="btn btn-primary ms-1">Choose file(s)</label></p>
+                                                   class="btn btn-primary m-1">Choose file(s)</label></p>
                                         <div class="upload_gallery d-flex flex-wrap justify-content-center gap-3 mb-0"></div>
                                     </fieldset>
                                 </form>
@@ -752,92 +752,78 @@
         // Prevent opening files/folders when in select mode
         $('.listing').on('click', function (e) {
             if ($(e.target).hasClass('multi-select-checkbox')) return;
-
+ 
             // Hide any open context menu
             $("#context-menu").removeClass("show").hide();
             $("#dropzone-context-menu").removeClass("show").hide();
-
+ 
             const index = listings.index(this);
             const checkbox = $(this).closest('.favorites-div').find('.multi-select-checkbox');
-
+ 
             if (e.ctrlKey && !selecting) enterSelectMode()      // actvate select mode with ctrl key
-
+ 
             if (e.shiftKey) {
                 if (!selecting) enterSelectMode()               // activate select mode with shift key
-
+ 
                 if (anchorIndex === null) {
                     anchorIndex = index;
                     checkbox.prop('checked', true);
                 } else {
                     const start = Math.min(anchorIndex, index);
                     const end = Math.max(anchorIndex, index);
-
+ 
                     // Uncheck all first
                     checkboxes.prop('checked', false);
-
+ 
                     for (let i = start; i <= end; i++) {
                         checkboxes.eq(i).prop('checked', true);
                     }
                 }
-
+ 
                 e.preventDefault();
                 e.stopPropagation();
-
+ 
             } else if (selecting) {
                 const isChecked = checkbox.prop('checked');
                 checkbox.prop('checked', !isChecked);
-
+ 
                 if (!isChecked && anchorIndex === null) anchorIndex = index;
-
+ 
                 // If all checkboxes are now unchecked, reset anchorIndex
                 if (checkboxes.filter(':checked').length === 0) anchorIndex = null;
-
+ 
                 e.preventDefault();
                 e.stopPropagation();
             }
-
+ 
             $(document).on('keydown', function (e) {    
-                
+               
                 if (e.key === "Escape" && selecting) {          // Exit select mode on Escape ke
                     exitSelectMode();
                 }
-                
+               
                 // if (e.key === "Delete" && selecting) {          // Delete selected listings on Delete key
-                //     e.preventDefault();
-                //     context_delete(); 
+                //     e.preventDefault();                         // Should add a "confirm delete" prompt before deleting
+                //     context_delete();
                 // }
-
+ 
                 if (e.ctrlKey && e.key === "c") {               // Ctrl + c (copy)
                     e.preventDefault();
                     context_copy();
                 }
-                
+               
                 if (e.ctrlKey && e.key === "x") {               // Ctrl + c (cut)
                     e.preventDefault();
                     context_cut();
                 }
-
+ 
                 // if (e.ctrlKey && e.key === "v") {               // Ctrl + v (paste)
                 //     e.preventDefault();
                 //     context_paste();
                 // }
-
+ 
             });
-
-<<<<<<< HEAD
-=======
-        $(document).on('keydown', function (e) {
-            if (e.key === KEY_ESCAPE && selecting) {        // Exit select mode on Escape ke
-                exitSelectMode();
-            }
-
-            if (e.key === KEY_DELETE && selecting) {        // Delete selected listings on Delete key
-                e.preventDefault();
-                context_delete();
-            }
->>>>>>> main
         });
-
     </script>
 
 {% endblock %}

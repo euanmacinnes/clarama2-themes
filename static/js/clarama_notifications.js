@@ -56,7 +56,7 @@ function flash(message, category = "info") {
             <div class="d-flex flex-column flex-shrink-0 text-center m-0 px-2 py-1 alert alert-${category}" style="width: 68px;">
                 ${category}
             </div>
-            <div class="d-flex flex-column ps-2 text-wrap w-100">
+            <div class="d-flex flex-column ps-2 text-wrap w-100" style="word-break: break-word;">
                 ${message}
                 <small class="text-white-50 fst-italic" style="font-size: 11px;">${relativeTime}</small>
             </div>
