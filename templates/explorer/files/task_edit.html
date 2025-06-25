@@ -12,13 +12,12 @@
             <div class="col-auto">
                 <ul class="btn-group clarama-task" role="group" aria-label="task_functions">
                     <button id="save" type="button" class="btn btn-secondary clarama-task clarama-task-save"
-                            url="{{ file_url }}"><i
+                            url="{{ file_url }}" title="save"><i
                             class="bi bi-floppy"></i></button>
-                    <button id="stop" type="button" class="btn btn-secondary clarama-task clarama-task-stop"><i
+                    <button id="stop" type="button" class="btn btn-secondary clarama-task clarama-task-stop" title="stop"><i
                             class="bi bi-stop-fill"></i></button>
                     <button id="editrun" type="button" class="btn btn-secondary kernel-play-button clarama-task-editrun"
-                            socket="edit_socket"
-                            kill="False"><i
+                            socket="edit_socket" kill="False" title="play"><i
                             class="bi bi-play-fill h3"></i></button>
                     <button type="button" class="btn btn-info" id="kernel_status"> Loading...</button>
                     <button id="environment" aria-haspopup="true" aria-expanded="false"

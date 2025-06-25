@@ -174,28 +174,26 @@ input[type="search"]::-webkit-search-cancel-button {
     background-color: #f3f3f3 !important;
 }
 
-.tab-bar .tab-item {
-    border: 1px solid #dee2e6;
-    border-radius: 0.3rem 0.3rem 0 0;
-    background: white;
-    margin-right: 4px;
-    overflow: hidden;
+.nav-tabs {
+    border: none;
 }
 
-.tab-bar .source-tab {
-    padding: 0.4rem 0.6rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 15px;
+.nav-item {
+    position: relative;
+    border: none;
+    width:fit-content;
 }
 
-.tab-bar .source-tab.active {
-    background-color: #e9ecef;
-    border-bottom: 2px solid transparent;
+.tab-item::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 25%; 
+    bottom: 25%; 
+    width: 2px;
+    background-color: #dee2e6;
 }
 
-.tab-bar .source-tab i {
-    cursor: pointer;
-    font-size: 0.8rem;
+.nav-link:not(.active) .tab-title { 
+    color: rgb(0, 45, 247);
 }
