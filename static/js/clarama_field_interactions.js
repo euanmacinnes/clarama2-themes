@@ -45,7 +45,7 @@ function perform_interact(field, args = {}) {
                 //console.log(links);
                 //flash(element + ' links to ' + links);
                 for (const link of links) {
-                    if (typeof link === 'string' || (typeof link === 'object' && link.element !== "popup" && link.element !== "modal")) {
+                    if (typeof link === 'string' || (typeof link === 'object' && link.element.includes("element_"))) {
                         if (typeof link === 'object') {
                             linked_element = grid.find('#' + link.element);
                             if (element_array[link.element]['url'] !== link.url && link.url !== "") {
@@ -91,7 +91,6 @@ function perform_interact(field, args = {}) {
                         const {element, url, params} = link;
                         let fullUrl = url + "?" + params;
                         $('.select2-container').blur();
-                        ;
                         if (element === 'popup') {
                             showPopupNearMouse(fullUrl, field_values);
                         } else if (element === 'modal') {
@@ -99,6 +98,8 @@ function perform_interact(field, args = {}) {
                             // linked_element = grid.find('#interactionModalContent');
                             // console.log("linked_element modal", linked_element)
                             // reload(linked_element, field_values)
+                        } else if (element === 'tab') {
+                            triggerTabInteraction(fullUrl, field_values);
                         }
                         // else {
                         //     const toOverride = document.getElementById(element);

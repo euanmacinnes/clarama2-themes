@@ -2,7 +2,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="interactionModalTitle">fsdfgdgwasf</h5>
+                <h5 class="modal-title" id="interactionModalTitle">Interaction</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="interactionModalBody">
@@ -41,7 +41,7 @@
         if (elementInteractions.length === 0) return;
         for (let i = 0; i < elementInteractions.length; i++) {
             const interaction = elementInteractions[i];
-            if (interaction.element == "menu") {
+            if (interaction.contextMenu) {
                 menuInteractions.push(interaction);
             }
         }
@@ -50,10 +50,35 @@
         if (menuInteractions.length === 0) return;
 
         contextMenu.innerHTML = menuInteractions.map((interaction, i) => {
-            return `<button class="dropdown-item" data-url="${interaction.url}">${interaction.menu_item_name}</button>`;
+            if (interaction.element == "tab") {
+                return `<a href="${interaction.url}" target="_blank" class="text-decoration-none text-black">
+                    <button class="dropdown-item datasource" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
+                </a>`
+            } else {
+                return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
+            }            
         }).join('');
 
-        // need to handle the onclick btn logic
+        contextMenu.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const url = button.dataset.url;
+                console.log('Clicked menu item URL:', url);
+                const elem = button.dataset.elem;
+                console.log('Clicked menu item elem:', elem);
+                const params = button.dataset.params;
+                console.log('Clicked menu item params:', params);
+                if (elem == "modal") showModalWithContent(url);
+                else if (elem.includes("element_")) {
+                    document.getElementById(elem).innerHTML = "";
+                    document.getElementById(elem).append(showInteractionContent('run', url+"?"+params));
+                    enable_interactions($(`#${elem}`));
+                } else if (elem == "hidden") {
+                    // need to handle the logic
+                } 
+                
+                contextMenu.classList.add('d-none');
+            });
+        });
 
         contextMenu.style.top = `${event.pageY-100}px`;
         contextMenu.style.left = `${event.pageX}px`;
@@ -62,11 +87,17 @@
         contextMenu.dataset.elementId = elementId;
     });
 
+    document.addEventListener('click', (event) => {
+        if (contextMenu.classList.contains('d-none')) return;
+        if (contextMenu.contains(event.target)) return;
+        contextMenu.classList.add('d-none');
+    });
+
     document.addEventListener('mousemove', function (e) {
         lastMouseEvent = e;
     });
 
-    function showModalWithContent(url, parameters) {
+    function showModalWithContent(url, parameters = "") {
         $('#interactionModal').modal('show');
         const iModal = document.getElementById("interactionModalBody");
         iModal.innerHTML = '';
@@ -74,7 +105,13 @@
         enable_interactions($("#interactionModalBody"), true);
     }
 
-    function showPopupNearMouse(url, parameters) {
+    function triggerTabInteraction(url, parameters = "") {
+        console.log("parameters", parameters)
+        let fullUrl = "/content/default/" + resolveRelativeFilePath("{{ file_url | path }}", url);
+        window.open(fullUrl, "_blank");
+    }
+
+    function showPopupNearMouse(url, parameters = "") {
         const ipopup = document.getElementById('interactionPopup');
         console.log("ipopup", ipopup)
 
