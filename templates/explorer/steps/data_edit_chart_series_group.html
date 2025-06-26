@@ -8,7 +8,6 @@
         </div>
         <div class="col-2">
             <select id="sg{{ loop_index }}" class="form-control series-tab">
-                <option value="">Select tab</option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
@@ -39,7 +38,7 @@
         </div>
         <div class="col-1">
             <input type="string" class="form-control series-z" id="z{{ loop_index }}" name="z"
-                   value="{{ sgroup['series-z'] }}" {% if (sgroup['series-type'] == "Line") %}disabled{% endif %} >
+                   value="{{ sgroup['series-z'] }}" {% if (sgroup['series-type'] == "Line") %}disabled{% endif %}>
         </div>
         <div class="col-1">
             <input type="string" class="form-control series-ymin" id="ymin{{ loop_index }}" name="ymin"

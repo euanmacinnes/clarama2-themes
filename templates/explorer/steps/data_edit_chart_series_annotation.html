@@ -20,12 +20,11 @@
             {% for sanno in chart['series-annos'] %}
                 {% with loop_index=loop.index %}
                     <select id="anno{{ loop_index }}" class="form-control anno-tab">
-                        <option value="">Select tab</option>
                         {% for tab in tabs %}
                             {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                             {% set has_source = tab.source and tab.source.strip() %}
                             {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
-                            <option value="{{ tab_id }}" 
+                            <option value="{{ tab_id }}"
                                     {% if sanno['anno-tab'] and tab_id|string == sanno['anno-tab']|string %}selected{% endif %}>
                                 {{ filename }}
                             </option>
