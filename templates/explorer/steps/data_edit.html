@@ -62,7 +62,6 @@
                             {% set is_active = loop.first %}
                             {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                             
-                            <!-- Use the tab data to render the header -->
                             {% with tab=tab, loop_index=loop_index, tab_id=tab_id, is_active=is_active %}
                                 {% include theme("explorer/steps/data_edit_tab_header.html") %}
                             {% endwith %}
@@ -398,7 +397,23 @@
             $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').each(function() {
                 const $tabButton = $(this);
                 const tabId = $tabButton.attr('id').split('_').pop();
-                const tabTitle = $tabButton.find('.tab-title').text();
+                
+                let tabTitle = $tabButton.find('.tab-title').text().trim();
+                
+                if (!tabTitle) {
+                    tabTitle = $tabButton.attr('title');
+                }
+                
+                if (!tabTitle) {
+                    const $sourceInput = $(`#content_source_${loopIndex}_tab_${tabId}`);
+                    if ($sourceInput.length && $sourceInput.val()) {
+                        tabTitle = $sourceInput.val().split(/[\\/]/).pop();
+                    }
+                }
+                
+                if (!tabTitle) {
+                    tabTitle = `Tab ${tabId}`;
+                }
                 
                 currentTabs.push({
                     id: tabId,
@@ -410,9 +425,7 @@
             $(`#seriesGrp${loopIndex} .series-tab`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
-                
                 $dropdown.find('option:not(:first)').remove();
-                
                 currentTabs.forEach(tab => {
                     const isSelected = currentValue === tab.id;
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
@@ -423,9 +436,7 @@
             $(`#seriesAnno${loopIndex} .anno-tab`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
-                
                 $dropdown.find('option:not(:first)').remove();
-                
                 currentTabs.forEach(tab => {
                     const isSelected = currentValue === tab.id;
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
@@ -492,11 +503,14 @@
 
         function addTabContent(tabId) {
             const newTabContent = document.createElement("div");
-            newTabContent.className = "clarama-post-embedded clarama-replaceable tab-content-block tab-pane tab-content-block-" + loopIndex + "_" + tabId;
+            newTabContent.className = "tab-content-block tab-pane tab-content-block-" + loopIndex + "_" + tabId;
             newTabContent.setAttribute("id", `tabContentBlock_${loopIndex}_${tabId}`);
             newTabContent.setAttribute("data-tab-id", tabId);
             newTabContent.setAttribute("role", "tabpanel");
             newTabContent.setAttribute("aria-labelledby", `tab_${loopIndex}_${tabId}`);
+            
+            const innerContent = document.createElement("div");
+            innerContent.className = "clarama-post-embedded clarama-replaceable";
             
             const params = new URLSearchParams({
                 loop_index: loopIndex,
@@ -505,12 +519,12 @@
                 content: ''
             });
             
-            newTabContent.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_contents?${params.toString()}`);
+            innerContent.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_contents?${params.toString()}`);
+            newTabContent.appendChild(innerContent);
             return newTabContent;
         }
 
         function addNewTab() {
-            console.log('TabCounter for cell', loopIndex, ':', tabCounter);
             const tabId = tabCounter++;
             
             // Check if this is the first tab (no existing tabs)
@@ -524,13 +538,7 @@
             const addSourceTabLi = addSourceTabBtn.closest('li');
             addSourceTabLi.before(tabHeader);
 
-            // Find the tab-content div and append the tab content there
-            const tabContentContainer = contentContainer.find('.tab-content').first();
-            if (tabContentContainer.length) {
-                tabContentContainer.append(tabContent);
-            } else {
-                contentContainer.append(tabContent);
-            }
+            contentContainer.append(tabContent);
 
             // Call enable_interactions on the tabs container (parent of the li elements)
             enable_interactions(tabsContainer);
@@ -538,10 +546,13 @@
             // Call enable_interactions on the tab content container (parent of the content divs)
             enable_interactions(contentContainer);
 
-            // Find the newly created tab button and activate it
-            const $newTabButton = $(`#tab_${loopIndex}_${tabId}`);
-            activateTab($newTabButton[0]);
-            updateAllTabDropdowns(loopIndex);
+            setTimeout(() => {
+                const $newTabButton = $(`#tab_${loopIndex}_${tabId}`);
+                if ($newTabButton.length) {
+                    activateTab($newTabButton[0]);
+                }
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
 
             return tabId;
         }
@@ -550,6 +561,22 @@
             e.stopPropagation();
             const $tabButton = $(this).closest('button');
             const tabIdToClose = $tabButton.attr('id').split('_').pop();
+            const $tabLi = $tabButton.closest('li');
+            
+            // Check if this is the currently active tab
+            const isActiveTab = $tabButton.hasClass('active');
+            
+            // Find the next tab to activate if this is the active tab
+            let $nextTabToActivate = null;
+            if (isActiveTab) {
+                // First try to get the tab to the right
+                $nextTabToActivate = $tabLi.next('li').find('button.nav-link').not('.add-source-tab').first();
+                
+                // If no tab to the right, get the tab to the left
+                if (!$nextTabToActivate.length) {
+                    $nextTabToActivate = $tabLi.prev('li').find('button.nav-link').not('.add-source-tab').first();
+                }
+            }
 
             const $editorDiv = $(`#content_query_${loopIndex}_tab_${tabIdToClose}`);
             const editorInstance = $editorDiv.data('monacoEditor');
@@ -557,8 +584,13 @@
                 editorInstance.dispose();
             }
 
-            $tabButton.closest('li').remove();
+            $tabLi.remove();
             $(`#tabContentBlock_${loopIndex}_${tabIdToClose}`).remove();
+            
+            // Activate the next tab if we closed the active tab
+            if (isActiveTab && $nextTabToActivate && $nextTabToActivate.length) {
+                activateTab($nextTabToActivate[0]);
+            }
             
             updateAllTabDropdowns(loopIndex);
         });
@@ -583,7 +615,6 @@
             const currentLoopIndex = parts[2];
             const currentTabId = parts[4];
 
-            // Only update if this input belongs to the current cell
             if (currentLoopIndex === loopIndex) {
                 const $tabButton = $(`#tab_${currentLoopIndex}_${currentTabId}`);
                 const $tabTitleSpan = $tabButton.find('.tab-title');
@@ -613,14 +644,12 @@
         function activateTab(tabButton) {
             const $tabButton = $(tabButton);
             const targetContentId = $tabButton.attr('aria-controls');
-            // Fixed: Use cell-specific selectors
             $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs .nav-link`).removeClass('active').attr('aria-selected', 'false');
             $(`#dataEditTabContentContainer_${loopIndex} .tab-pane`).removeClass('show active');
             $tabButton.addClass('active').attr('aria-selected', 'true');
             $(`#${targetContentId}`).addClass('show active');
         }
 
-        // Fixed: Use cell-specific selector for tab activation
         tabsContainer.on('click', 'button.nav-link', function(e) {
             e.preventDefault();
             const $thisButton = $(this);
@@ -630,7 +659,6 @@
             activateTab(this);
         });
 
-        // Fixed: Use cell-specific selector for initial tab activation
         const $initialActiveTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link.active`);
         if ($initialActiveTab.length) {
             // Tab already active
