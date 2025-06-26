@@ -130,28 +130,37 @@ function socket_task(embedded, task, topic, reset_environment) {
 }
 
 function start_socket(reconnect = false, embedded) {
-    let webSocket = new WebSocket(socket_address);
 
-    socket = webSocket;
+    if (socket !== undefined) {
+        if (socket.readyState !== WebSocket.OPEN) {
+            socket.close();
+            socket = undefined;
+        }
+    }
 
-    console.log("CLARAMA_WEBSOCKET.JS start_socket " + socket);
+    if (socket === undefined) {
+        let webSocket = new WebSocket(socket_address);
 
-    webSocket.onerror = function (event) {
-        onError(event, socket_address, webSocket)
-    };
+        socket = webSocket;
+        console.log("CLARAMA_WEBSOCKET.JS start_socket " + socket);
 
-    webSocket.onopen = function (event) {
-        onOpen(event, socket_address, reconnect)
-        processTaskMessages();
-    };
+        webSocket.onerror = function (event) {
+            onError(event, socket_address, webSocket)
+        };
 
-    webSocket.onclose = function (event) {
-        onClose(event, socket_address, webSocket, embedded)
-    };
+        webSocket.onopen = function (event) {
+            onOpen(event, socket_address, reconnect)
+            processTaskMessages();
+        };
 
-    webSocket.onmessage = function (event) {
-        onMessage(event, socket_address, webSocket)
-    };
+        webSocket.onclose = function (event) {
+            onClose(event, socket_address, webSocket, embedded)
+        };
+
+        webSocket.onmessage = function (event) {
+            onMessage(event, socket_address, webSocket)
+        };
+    }
 }
 
 function run_socket(embedded, reset_environment) {
