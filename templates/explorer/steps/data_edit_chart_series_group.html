@@ -8,12 +8,16 @@
         </div>
         <div class="col-2">
             <select id="sg{{ loop_index }}_{{ series_index }}" class="form-control series-tab">
-                <option value="">Select tab</option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
-                    <option value="{{ tab_id }}" {{ selected(tab_id|string, sgroup['series-tab']|string) }}>{{ filename }}</option>
+                    {% set is_selected = sgroup.get('series-tab') and tab_id|string == sgroup['series-tab']|string %}
+                    {% set is_first_and_no_selection = loop.first and not sgroup.get('series-tab') %}
+                    <option value="{{ tab_id }}" 
+                            {% if is_selected or is_first_and_no_selection %}selected{% endif %}>
+                        {{ filename }}
+                    </option>
                 {% endfor %}
             </select>
         </div>

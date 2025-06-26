@@ -10,8 +10,8 @@
 {% if not chart is defined %}
     {% set chart={'title': '', 'subtitle': '', 'legend': 'Off', 'xaxis-type': 'category'} %}
 {% endif %}
-{% if not chart['series-anno'] is defined %}
-    {% do chart.update({'series-anno': [{}]}) %}
+{% if not chart['series-annos'] is defined %}
+    {% do chart.update({'series-annos': [{}]}) %}
 {% endif %}
 {% if not chart['series-groups'] is defined %}
     {% do chart.update({'series-groups': [{}]}) %}
@@ -248,7 +248,7 @@
             </div>
 
             {% if chart is defined %}
-                {% set seriesanno = chart['series-anno'] or [{}] %}
+                {% set seriesanno = chart['series-annos'] or [{}] %}
                 {% set seriesgroups = chart['series-groups'] or [{}] %}
                 {% set seriesformats = chart['series-formats'] or [{}] %}
             {% else %}
@@ -425,25 +425,27 @@
             $(`#seriesGrp${loopIndex} .series-tab`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
-                $dropdown.find('option:not(:first)').remove();
-                currentTabs.forEach(tab => {
-                    const isSelected = currentValue === tab.id;
+                $dropdown.empty();
+                
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
             
-            // Update series annotations tab dropdowns
+            // Update series annotations tab dropdowns (including newly added ones)
             $(`#seriesAnno${loopIndex} .anno-tab`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
-                $dropdown.find('option:not(:first)').remove();
-                currentTabs.forEach(tab => {
-                    const isSelected = currentValue === tab.id;
+                $dropdown.empty();
+                
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
         }
-        
+
         $('.series-type').each(function () {
             updateSeriesFields($(this));
         });
@@ -455,13 +457,13 @@
         $(document).on('click', `#addSG${loopIndex}`, function() {
             setTimeout(() => {
                 updateAllTabDropdowns(loopIndex);
-            }, 100);
+            }, 200);
         });
 
         $(document).on('click', `#addAN${loopIndex}`, function() {
             setTimeout(() => {
                 updateAllTabDropdowns(loopIndex);
-            }, 100);
+            }, 200);
         });
 
         // --- TAB MANAGEMENT ---
