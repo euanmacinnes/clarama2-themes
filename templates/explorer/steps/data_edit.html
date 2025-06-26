@@ -9,7 +9,8 @@
 
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
     <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
-        <div class="bg-info rounded-top text-light px-2 py-1">
+        <div class="bg-info rounded-top text-light px-2" style="padding-top: .25rem !important;">
+
             <!-- Toggle buttons -->
             <div class="d-flex flex-wrap align-items-center">
                 <div class="flex-grow-1">
@@ -40,14 +41,14 @@
                         {% if tabs is not defined or not tabs %}
                             {% set tabs = [{'source': source, 'content': content}] %}
                         {% endif %}
-    
+
                         {% for tab in tabs %}
                             {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                             {% set has_source = tab.source and tab.source.strip() %}
                             {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab' + (tab_id|string) %}
                             <!-- Tabs -->
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}" 
+                                <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}"
                                         id="tab_{{ loop_index }}_{{ tab_id }}"
                                         data-bs-toggle="tab"
                                         data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
@@ -59,7 +60,7 @@
                                 </button>
                             </li>
                         {% endfor %}
-    
+
                         <li class="add-tab-button" role="presentation">
                             <button id="add-source-tab-{{ loop_index }}" type="button" class="nav-link add-source-tab" title="Add tab" data-loop-index="{{ loop_index }}">
                                 <i class="bi bi-plus-lg"></i>
@@ -164,7 +165,7 @@
             </div>
         </div>
     </div>
-
+    <input id="task_step_{{ loop_index }}_output" type="hidden" value="{{ output or 'table' }}">
     <div id="collapseOptions_{{ loop_index }}"
          class="accordion-collapse collapse bg-dark text-light {% if output=='chart' %}show{% endif %}">
         <div class="accordion-body" aria-labelledby="chart" style="padding: 8px;">
@@ -354,7 +355,7 @@
                 if ($targetInput.length) {
                     $targetInput.trigger('change');
                 }
-                currentModalInputFieldId = null; 
+                currentModalInputFieldId = null;
             }
         });
 
@@ -404,8 +405,8 @@
                 }
 
                 const editor = ace.edit(editorDiv);
-                editor.setTheme("ace/theme/tomorrow"); 
-                editor.session.setMode("ace/mode/sql");  
+                editor.setTheme("ace/theme/tomorrow");
+                editor.session.setMode("ace/mode/sql");
 
                 $(editorDiv).data('aceEditor', editor);
             } else {
@@ -426,7 +427,7 @@
         const tabsContainer = $(`#dataSourceTabs_${loopIndex}`);
         const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`);
         const addSourceTabBtn = $(`#add-source-tab-${loopIndex}`);
-        const addSourceTabLi = addSourceTabBtn.closest('li'); 
+        const addSourceTabLi = addSourceTabBtn.closest('li');
 
         function addNewTab() {
             console.log('TabCounter for cell', loopIndex, ':', tabCounter);
@@ -454,30 +455,32 @@
                      data-tab-id="${tabId}"
                      role="tabpanel" aria-labelledby="tab_${loopIndex}_${tabId}">
 
-                    <div class="input-group w-100 my-2 shadow-sm border border-2 border-primary rounded">
-                        <input id="task_step_${loopIndex}_source_${tabId}" type="text"
-                               class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
-                               placeholder="Data Source Filename" aria-label="Data source relative filename"
-                               value="${initialSource}">
-                        <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
-                                 data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                                 inputId="task_step_${loopIndex}_source_${tabId}">
-                            <i class="bi bi-folder2-open"></i>
-                        </button>
-                        ${initialSource ? `
-                            <a href="${initialSource}" target="_blank" id="task_step_${loopIndex}_browse_link_${tabId}" class="text-decoration-none text-white">
-                                <button id="task_step_${loopIndex}_browse_${tabId}" type="button"
-                                        class="btn btn-secondary datasource" aria-haspopup="true"
-                                        aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
-                                    <i class="bi bi-pen"></i>
-                                </button>
-                            </a>` : ''}
-                    </div>
+                    <div class="border border-3 border-info">
+                        <div class="input-group w-100 border-1 border-bottom border-info">
+                            <input id="task_step_${loopIndex}_source_${tabId}" type="text"
+                                   class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
+                                   placeholder="Data Source Filename" aria-label="Data source relative filename"
+                                   value="${initialSource}">
+                            <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                                     data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                                     inputId="task_step_${loopIndex}_source_${tabId}">
+                                <i class="bi bi-folder2-open"></i>
+                            </button>
+                            ${initialSource ? `
+                                <a href="${initialSource}" target="_blank" id="task_step_${loopIndex}_browse_link_${tabId}" class="text-decoration-none text-white">
+                                    <button id="task_step_${loopIndex}_browse_${tabId}" type="button"
+                                            class="btn btn-secondary datasource" aria-haspopup="true"
+                                            aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                                        <i class="bi bi-pen"></i>
+                                    </button>
+                                </a>` : ''}
+                        </div>
 
-                    <div id="content_query_${loopIndex}_tab_${tabId}"
-                         name="task_step_field_${loopIndex}_${tabId}"
-                         editor="sql"
-                         class="source-editor form-control clarama-field-editor" style="min-height: 100px; white-space: pre-wrap; word-break: break-all;">${initialContent}</div>
+                        <div id="content_query_${loopIndex}_tab_${tabId}"
+                             name="task_step_field_${loopIndex}_${tabId}"
+                             editor="sql"
+                             class="source-editor form-control clarama-field-editor" style="min-height: 100px; white-space: pre-wrap; word-break: break-all;">${initialContent}</div>
+                    </div>
                 </div>
             `;
 
@@ -516,7 +519,7 @@
         }
 
         // --- DYNAMIC TAB NAMING ---
-        function updateTabNameFromInput($input) { 
+        function updateTabNameFromInput($input) {
             const inputId = $input.attr('id');
             const parts = inputId.split('_');
             const currentLoopIndex = parts[2];
