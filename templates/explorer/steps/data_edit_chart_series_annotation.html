@@ -34,6 +34,14 @@
             {% endfor %}
         </div>
         <div class="col-1">
+            <select id="anno-type{{ loop_index }}" class="form-control anno-type" title="Type"
+                    data-toggle="tooltip">>
+                <option {{ selected("box",sanno['anno-type']) }} id="box">Box</option>
+                <option {{ selected("line",sanno['anno-type']) }} id="line">Line</option>
+                <option {{ selected("bounds",sanno['anno-type']) }} id="bounds">Bounds</option>
+            </select>
+        </div>
+        <div class="col-1">
             <input type="string" class="form-control anno-label" id="anno-l{{ loop_index }}" name="label"
                    value="{{ sanno['anno-label'] }}">
         </div>
@@ -67,14 +75,6 @@
             <input type="number" step="1" min="0" max="100" class="form-control anno-width"
                    id="anno-width{{ loop_index }}" name="width" value="{{ sanno['anno-width'] }}" data-toggle="tooltip"
                    title="Border Width">
-        </div>
-        <div class="col-1">
-            <select id="anno-type{{ loop_index }}" class="form-control anno-type" title="Type"
-                    data-toggle="tooltip">>
-                <option {{ selected("box",sanno['anno-type']) }} id="box">Box</option>
-                <option {{ selected("line",sanno['anno-type']) }} id="line">Line</option>
-                <option {{ selected("bounds",sanno['anno-type']) }} id="bounds">Bounds</option>
-            </select>
         </div>
         <div class="col-1">
             <div class="color-picker-container d-flex align-items-center">
