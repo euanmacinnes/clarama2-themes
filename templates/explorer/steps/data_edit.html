@@ -468,13 +468,53 @@
 
         // --- TAB MANAGEMENT ---
         let tabCounter = 0;
+        let newTabId = 0;
         const existingTabs = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab');
+        const tabIdMapping = new Map();
+
         existingTabs.each(function() {
-            const tabId = parseInt($(this).attr('id').split('_').pop());
-            if (tabId >= tabCounter) {
-                tabCounter = tabId + 1;
+            const $tabButton = $(this);
+            const oldTabId = $tabButton.attr('id').split('_').pop();
+            tabIdMapping.set(oldTabId, newTabId);
+            
+            // Update the tab button ID and related attributes
+            const oldButtonId = $tabButton.attr('id');
+            const newButtonId = oldButtonId.replace(/_\d+$/, `_${newTabId}`);
+            $tabButton.attr('id', newButtonId);
+            
+            const oldAriaControls = $tabButton.attr('aria-controls');
+            if (oldAriaControls) {
+                const newAriaControls = oldAriaControls.replace(/_\d+$/, `_${newTabId}`);
+                $tabButton.attr('aria-controls', newAriaControls);
             }
+            
+            // Update the corresponding tab content container
+            const $oldTabContent = $(`#tabContentBlock_${loopIndex}_${oldTabId}`);
+            if ($oldTabContent.length) {
+                // Update tab content ID
+                $oldTabContent.attr('id', `tabContentBlock_${loopIndex}_${newTabId}`);
+                $oldTabContent.attr('aria-labelledby', `tab_${loopIndex}_${newTabId}`);
+                
+                // Update tab content classes
+                const oldClass = `tab-content-block-${loopIndex}_${oldTabId}`;
+                const newClass = `tab-content-block-${loopIndex}_${newTabId}`;
+                $oldTabContent.removeClass(oldClass).addClass(newClass);
+                
+                // Update any internal elements that reference the old tab ID
+                $oldTabContent.find(`[id*="_${oldTabId}"]`).each(function() {
+                    const $element = $(this);
+                    const oldId = $element.attr('id');
+                    const newId = oldId.replace(`_${oldTabId}`, `_${newTabId}`);
+                    $element.attr('id', newId);
+                });
+                
+                $oldTabContent.attr('data-tab-id', newTabId);
+            }
+            
+            newTabId++;
         });
+
+        tabCounter = newTabId;
 
         const tabsContainer = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs`);
         const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`);
@@ -542,10 +582,7 @@
 
             contentContainer.append(tabContent);
 
-            // Call enable_interactions on the tabs container (parent of the li elements)
             enable_interactions(tabsContainer);
-            
-            // Call enable_interactions on the tab content container (parent of the content divs)
             enable_interactions(contentContainer);
 
             setTimeout(() => {
