@@ -19,7 +19,7 @@ function reset_environment(environment) {
     run_socket(socket_element, true);
 }
 
-let socket = undefined;
+let task_active_socket = undefined;
 
 let socket_address = '';
 
@@ -29,8 +29,15 @@ let socket_taskQueue = [];
 
 let socket_topics = ['clarama-systemwide'];
 
+function topic_subscribe()
+{
+    console.log("CLARAMA_WEBSOCKET.JS registering topics");
+    console.log(socket_topics);
+    task_active_socket.send(JSON.stringify({topics: socket_topics}));
+}
+
 function processTaskMessages() {
-    socket.send(JSON.stringify({topics: socket_topics}));
+    topic_subscribe();
 
     socket_taskQueue.forEach(message => {
         get_task(message.embedded, message.task_url, message.socket_id, message.autorun);
@@ -45,9 +52,9 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
         console.log(socket_topics);
     }
 
-    if (socket !== undefined)
-        if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({topics: socket_topics}));
+    if (task_active_socket !== undefined)
+        if (task_active_socket.readyState === WebSocket.OPEN) {
+            task_active_socket.send(JSON.stringify({topics: socket_topics}));
             console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " executing");
             get_task(embedded, task_url, socket_id, autorun);
             return;
@@ -130,28 +137,38 @@ function socket_task(embedded, task, topic, reset_environment) {
 }
 
 function start_socket(reconnect = false, embedded) {
-    let webSocket = new WebSocket(socket_address);
 
-    socket = webSocket;
+    if (task_active_socket !== undefined) {
+        if (task_active_socket.readyState !== WebSocket.OPEN) {
+            console.log("CLARAMA_WEBSOCKET.JS resetting socket with state " + task_active_socket.readyState);
+            task_active_socket.close();
+            task_active_socket = undefined;
+        }
+    }
 
-    console.log("CLARAMA_WEBSOCKET.JS start_socket " + socket);
+    if (task_active_socket === undefined) {
+        let webSocket = new WebSocket(socket_address);
 
-    webSocket.onerror = function (event) {
-        onError(event, socket_address, webSocket)
-    };
+        task_active_socket = webSocket;
+        console.log("CLARAMA_WEBSOCKET.JS start_socket " + task_active_socket);
 
-    webSocket.onopen = function (event) {
-        onOpen(event, socket_address, reconnect)
-        processTaskMessages();
-    };
+        webSocket.onerror = function (event) {
+            onError(event, socket_address, webSocket)
+        };
 
-    webSocket.onclose = function (event) {
-        onClose(event, socket_address, webSocket, embedded)
-    };
+        webSocket.onopen = function (event) {
+            onOpen(event, socket_address, reconnect)
+            processTaskMessages();
+        };
 
-    webSocket.onmessage = function (event) {
-        onMessage(event, socket_address, webSocket)
-    };
+        webSocket.onclose = function (event) {
+            onClose(event, socket_address, webSocket, embedded)
+        };
+
+        webSocket.onmessage = function (event) {
+            onMessage(event, socket_address, webSocket)
+        };
+    }
 }
 
 function run_socket(embedded, reset_environment) {
@@ -200,8 +217,6 @@ function run_socket(embedded, reset_environment) {
 
                 socket_address = websocket_address;
                 start_socket(false, embedded)
-
-
             });
     }
 }
@@ -306,8 +321,8 @@ function onMessage(event, socket_url, webSocket) {
         console.log("WEBSOCKET.js: Processing Socket Message " + dict['class']);
         try {
             if (dict['class'] === "ping") {
-                console.log('ping back ' + new Date() + ' ' + socket);
-                socket.send('ping');
+                console.log('ping back ' + new Date() + ' ' + task_active_socket);
+                task_active_socket.send('ping');
                 // ping right back. Ping is sent from the kernel to the client
             }
 
@@ -421,6 +436,8 @@ function onMessage(event, socket_url, webSocket) {
     } else {
         console.log("CLARAMA_WEBSOCKET.js: WTF was this: " + dict)
     }
+
+    console.log(task_active_socket);
 }
 
 function onOpen(event, socket_url, reconnect) {

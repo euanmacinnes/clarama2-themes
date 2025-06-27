@@ -43,8 +43,9 @@
                         {% endif %}
 
                         {% for tab in tabs %}
-                            {% set tab_id = loop.index0 %} {# Use 0-based index for tab_id #}
-                            {% set filename = tab.source.split('/')[-1].split('\\')[-1] if tab.source else 'Untitled' %}
+                            {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
+                            {% set has_source = tab.source and tab.source.strip() %}
+                            {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab' + (tab_id|string) %}
                             <!-- Tabs -->
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}"
@@ -257,7 +258,8 @@
                 </label>
                 <div class="list-group-item d-flex row gx-2 align-items-center">
                     <div style="width: 2%;"></div>
-                    <div class="col-2">Type</div>
+                    <div class="col-2">Tab</div>
+                    <div class="col-1">Type</div>
                     <div class="col-1">X Axis</div>
                     <div class="col-1">Y Axis</div>
                     <div class="col-1">Z Axis</div>
@@ -265,7 +267,7 @@
                     <div class="col-1">Y Max Axis</div>
                     <div class="col-1">Series Axis</div>
                     <div class="col-1">Unit Axis</div>
-                    <div class="col-2">Label Axis</div>
+                    <div class="col-1">Label Axis</div>
                     <div style="width: 4%;"></div>
                 </div>
                 {% for sgroup in seriesgroups %}
@@ -303,15 +305,16 @@
                     <i id="addAN{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
                 </label>
                 <div class="list-group-item d-flex row gx-2 align-items-center">
+                    <div class="col-1">Tab</div>
+                    <div class="col-1">Type</div>
                     <div class="col-1">Label</div>
                     <div class="col-1">X Axis</div>
                     <div class="col-1">Y Axis</div>
                     <div class="col-1">X Max Axis</div>
                     <div class="col-1">Y Max Axis</div>
                     <div class="col-1">Unit Axis</div>
-                    <div class="col-1">Dotted Lines</div>
+                    <div style="width: 4%;">Dotted Lines</div>
                     <div class="col-1">Border Width</div>
-                    <div class="col-1">Type</div>
                     <div class="col-1">Colour</div>
                     <div class="col-1">Fill Colour</div>
                     <div style="width: 4%;"></div>
