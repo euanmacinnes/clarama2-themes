@@ -2,18 +2,21 @@ function set_environment(environment) {
     flash("Changing environment to " + environment);
     $('#kernel_status').html('Loading');
     $('#environment').html('...');
-    let socket = $("#edit_socket");
-    socket.attr("environment", environment);
-    run_socket(socket, false);
+
+    let socket_element = $("#edit_socket");
+    socket_element.attr("environment", environment);
+    socket_starting = false;
+    run_socket(socket_element, false);
 }
 
 function reset_environment(environment) {
     flash("Resetting environment to " + environment);
     $('#kernel_status').html('Restarting..');
     $('#environment').html('...');
-    let socket = $("#edit_socket");
-    socket.attr("environment", environment);
-    run_socket(socket, true);
+    let socket_element = $("#edit_socket");
+    socket_element.attr("environment", environment);
+    socket_starting = false;
+    run_socket(socket_element, true);
 }
 
 let socket = undefined;
@@ -45,9 +48,16 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
     if (socket !== undefined)
         if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({topics: socket_topics}));
+            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " executing");
             get_task(embedded, task_url, socket_id, autorun);
             return;
+        } else {
+            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " socket was not open");
         }
+    else {
+        console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " socket undefined, pushing on queue");
+    }
+
 
     let task_message = {
         'topic': topic,
@@ -119,27 +129,38 @@ function socket_task(embedded, task, topic, reset_environment) {
     enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun);
 }
 
-function start_socket(reconnect = false) {
-    let webSocket = new WebSocket(socket_address);
+function start_socket(reconnect = false, embedded) {
 
-    socket = webSocket;
+    if (socket !== undefined) {
+        if (socket.readyState !== WebSocket.OPEN) {
+            socket.close();
+            socket = undefined;
+        }
+    }
 
-    webSocket.onerror = function (event) {
-        onError(event, socket_address, webSocket)
-    };
+    if (socket === undefined) {
+        let webSocket = new WebSocket(socket_address);
 
-    webSocket.onopen = function (event) {
-        onOpen(event, socket_address, reconnect)
-        processTaskMessages();
-    };
+        socket = webSocket;
+        console.log("CLARAMA_WEBSOCKET.JS start_socket " + socket);
 
-    webSocket.onclose = function (event) {
-        onClose(event, socket_address, webSocket)
-    };
+        webSocket.onerror = function (event) {
+            onError(event, socket_address, webSocket)
+        };
 
-    webSocket.onmessage = function (event) {
-        onMessage(event, socket_address, webSocket)
-    };
+        webSocket.onopen = function (event) {
+            onOpen(event, socket_address, reconnect)
+            processTaskMessages();
+        };
+
+        webSocket.onclose = function (event) {
+            onClose(event, socket_address, webSocket, embedded)
+        };
+
+        webSocket.onmessage = function (event) {
+            onMessage(event, socket_address, webSocket)
+        };
+    }
 }
 
 function run_socket(embedded, reset_environment) {
@@ -148,10 +169,13 @@ function run_socket(embedded, reset_environment) {
 
     embedded.attr("socket_time", Date.now());
 
-    if (task !== undefined && topic !== undefined)
+    if (task !== undefined && topic !== undefined) {
+        console.log("CLARAMA_WEBSOCKET.js: TASK " + task + " TOPIC " + topic + " RUNNING");
         socket_task(embedded, task, topic, reset_environment);
+    }
 
     if (!socket_starting) {
+        console.log("CLARAMA_WEBSOCKET.js: Starting WebSocket");
         socket_starting = true;
         let startingTopic = $("#currentUser").attr("username");
 
@@ -184,7 +208,7 @@ function run_socket(embedded, reset_environment) {
                 console.log("CLARAMA_WEBSOCKET.js: Creating " + socket_url + " Websocket on " + websocket_address + " for " + startingTopic);
 
                 socket_address = websocket_address;
-                start_socket(false)
+                start_socket(false, embedded)
 
 
             });
@@ -291,7 +315,9 @@ function onMessage(event, socket_url, webSocket) {
         console.log("WEBSOCKET.js: Processing Socket Message " + dict['class']);
         try {
             if (dict['class'] === "ping") {
-                console.log("ping");
+                console.log('ping back ' + new Date() + ' ' + socket);
+                socket.send('ping');
+                // ping right back. Ping is sent from the kernel to the client
             }
 
             if (dict['class'] === "layout") {
@@ -424,11 +450,12 @@ function onOpen(event, socket_url, reconnect) {
     }
 }
 
-function onClose(event, socket_url, webSocket) {
+function onClose(event, socket_url, webSocket, embedded) {
     console.log('CLARAMA_WEBSOCKET.js: WebSocket Connection CLOSED ' + Date.now() + ' on ' + socket_url + " on socket " + webSocket);
     // flash("SOCKET lost", "danger");
     setTimeout(function () {
-        start_socket(true);
+        socket_starting = false;
+        run_socket(embedded, false);
     }, 100)
 }
 

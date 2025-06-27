@@ -231,6 +231,26 @@
         enable_interactions($('body'));
     });
 
+    function updateUrlToDefault(url) {
+        console.log("updateUrlToDefault", url)
+        let modifiedUrl = url;
+
+        if (modifiedUrl.includes('/edit/')) {
+            modifiedUrl = modifiedUrl.replace('/edit/', '/default/');
+        }
+
+        // handle absolute paths written by user in the field
+        // (eg, /Zones/Vaccines Primary/Tuas/Data/Sources/SQL Server S1.source.yaml)
+        // need to handle this else will get Not Found err
+        if (!modifiedUrl.includes('/content/default/')) {
+            const urlParts = modifiedUrl.split('/');
+            // add in "/content/default" before first path segment
+            urlParts.splice(3, 0, 'content', 'default');
+            modifiedUrl = urlParts.join('/');
+        }
+
+        return modifiedUrl;
+    }
 
     document.addEventListener('click', function (e) {
         const button = e.target.closest('.datasource');
@@ -248,22 +268,7 @@
         const tempAnchor = document.createElement('a');
         tempAnchor.href = rawHref;
         const resolvedUrl = tempAnchor.href;
-
-        let modifiedUrl = resolvedUrl;
-        if (resolvedUrl.includes('/edit/')) {
-            modifiedUrl = resolvedUrl.replace('/edit/', '/default/');
-        }
-
-        // handle absolute paths written by user in the field
-        // (eg, /Zones/Vaccines Primary/Tuas/Data/Sources/SQL Server S1.source.yaml)
-        // need to handle this else will get Not Found err
-        if (!modifiedUrl.includes('/content/default/')) {
-            const urlParts = modifiedUrl.split('/');
-            // add in "/content/default" before first path segment
-            urlParts.splice(3, 0, 'content', 'default');
-            modifiedUrl = urlParts.join('/');
-        }
-
+        const modifiedUrl = updateUrlToDefault(resolvedUrl);
         window.open(modifiedUrl, '_blank');
     });
 

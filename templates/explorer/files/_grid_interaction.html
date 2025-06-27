@@ -17,25 +17,101 @@
 <div id="interactionPopup" class="w-100">
 </div>
 
+<div id="contextMenu" class="dropdown-menu show position-absolute d-none"></div>
+
 <script type="text/javascript">
     let lastMouseEvent = null;
     var currentModalAddContentPath = "";
+
+    document.addEventListener('contextmenu', (event) => {
+        const target = event.target.closest('.grid-stack-item');
+        if (!target) return;
+
+        event.preventDefault();
+
+        const elementId = target.getAttribute('gs-id');
+        console.log("elementId", elementId);
+
+        const elementInteractions = {{ grid_id }}elements[elementId]['links'];
+        console.log("{{ grid_id }}elements", {{ grid_id }}elements);
+        console.log("elementInteractions", elementInteractions);
+        console.log("elementInteractions length", elementInteractions.length);
+        const menuInteractions = [];
+
+        if (elementInteractions.length === 0) return;
+        for (let i = 0; i < elementInteractions.length; i++) {
+            const interaction = elementInteractions[i];
+            if (interaction.contextMenu) {
+                menuInteractions.push(interaction);
+            }
+        }
+        console.log("menuInteractions", menuInteractions);
+        console.log("menuInteractions length", menuInteractions.length);
+        if (menuInteractions.length === 0) return;
+
+        contextMenu.innerHTML = menuInteractions.map((interaction, i) => {
+            if (interaction.element == "tab") {
+                return `<a href="${interaction.url}" target="_blank" class="text-decoration-none text-black">
+                    <button class="dropdown-item datasource" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
+                </a>`
+            } else {
+                return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
+            }            
+        }).join('');
+
+        contextMenu.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const url = button.dataset.url;
+                console.log('Clicked menu item URL:', url);
+                const elem = button.dataset.elem;
+                console.log('Clicked menu item elem:', elem);
+                const params = button.dataset.params;
+                console.log('Clicked menu item params:', params);
+                if (elem == "modal") showModalWithContent(url);
+                else if (elem.includes("element_")) {
+                    document.getElementById(elem).innerHTML = "";
+                    document.getElementById(elem).append(showInteractionContent('run', url+"?"+params));
+                    enable_interactions($(`#${elem}`));
+                } else if (elem == "hidden") {
+                    // need to handle the logic
+                } 
+                
+                contextMenu.classList.add('d-none');
+            });
+        });
+
+        contextMenu.style.top = `${event.pageY-100}px`;
+        contextMenu.style.left = `${event.pageX}px`;
+        contextMenu.classList.remove('d-none');
+
+        contextMenu.dataset.elementId = elementId;
+    });
+
+    document.addEventListener('click', (event) => {
+        if (contextMenu.classList.contains('d-none')) return;
+        if (contextMenu.contains(event.target)) return;
+        contextMenu.classList.add('d-none');
+    });
 
     document.addEventListener('mousemove', function (e) {
         lastMouseEvent = e;
     });
 
-    function showModalWithContent(url, parameters) {
+    function showModalWithContent(url, parameters = "") {
         $('#interactionModal').modal('show');
         const iModal = document.getElementById("interactionModalBody");
         iModal.innerHTML = '';
         iModal.append(showInteractionContent('modal', url, parameters));
-        // iModal.innerHTML = '';
-        // iModal.append(showInteractionContent(url, 'interactionModalContent'));
         enable_interactions($("#interactionModalBody"), true);
     }
 
-    function showPopupNearMouse(url, parameters) {
+    function triggerTabInteraction(url, parameters = "") {
+        console.log("parameters", parameters)
+        let fullUrl = "/content/default/" + resolveRelativeFilePath("{{ file_url | path }}", url);
+        window.open(fullUrl, "_blank");
+    }
+
+    function showPopupNearMouse(url, parameters = "") {
         const ipopup = document.getElementById('interactionPopup');
         console.log("ipopup", ipopup)
 
@@ -61,8 +137,6 @@
         ipopup.style.display = 'block';
         ipopup.innerHTML = '';
         ipopup.append(showInteractionContent('popup', url, parameters));
-        // ipopup.innerHTML = '';
-        // ipopup.append(showInteractionContent(url, 'interactionPopupContent'));
         enable_interactions($("#interactionPopup"), true);
 
         document.addEventListener('click', function hideOnClick(e) {
@@ -74,7 +148,6 @@
     }
 
     function showInteractionContent(interaction, relativeP, parameters) {
-        // console.log("inside showinteractioncontent fn");
         let currentP;
         let ICurl;
 
@@ -92,20 +165,18 @@
             let relativeSegments = relativeP.split('/');
             for (let segment of relativeSegments) {
                 if (segment === '..') {
-                    currentSegments.pop(); // Move up one directory
+                    currentSegments.pop(); 
                 } else if (segment !== '.' && segment !== '') {
-                    currentSegments.push(segment); // Move into subdirectory
+                    currentSegments.push(segment);
                 }
             }
 
             ICurl = $CLARAMA_ROOT + currentSegments.join('/');
-            // document.getElementById(displayContentID).setAttribute("url", ICurl);
         }
         console.log("$CLARAMA_ROOT", $CLARAMA_ROOT)
         console.log("ICurl", ICurl)
 
         const newIC = document.createElement("div");
-        // newIC.id = newDivID;
         newIC.className = "clarama-post-embedded clarama-replaceable";
         newIC.setAttribute("url", `${ICurl}`);
         newIC.setAttribute("json", JSON.stringify(parameters));

@@ -432,12 +432,22 @@ function bChart(chart_id, chart_data) {
         var sg = config['series-groups'][i];
         var label = sg['series-y'];
 
-        var xaxis_id = data['cols'].indexOf(sg['series-x']);
-        var yaxis_id = data['cols'].indexOf(sg['series-y']);
-        var zaxis_id = data['cols'].indexOf(sg['series-z']);
-        var series_id = data['cols'].indexOf(sg['series-s']);
-        var label_id = data['cols'].indexOf(sg['series-l']);
-        var unit_id = data['cols'].indexOf(sg['series-u']);
+        var current_dataset_index = sg['series-dataset'];
+
+        if (current_dataset_index === undefined) {
+            console.log("No dataset specified, using default 0 out of " + data.length + " datasets");
+            current_dataset_index = 0;
+        } else
+            console.log("SERIES GROUP " + i + " using dataset " + current_dataset_index + " out of " + data.length + " datasets");
+
+        var current_dataset = data[current_dataset_index];
+
+        var xaxis_id = current_dataset['cols'].indexOf(sg['series-x']);
+        var yaxis_id = current_dataset['cols'].indexOf(sg['series-y']);
+        var zaxis_id = current_dataset['cols'].indexOf(sg['series-z']);
+        var series_id = current_dataset['cols'].indexOf(sg['series-s']);
+        var label_id = current_dataset['cols'].indexOf(sg['series-l']);
+        var unit_id = current_dataset['cols'].indexOf(sg['series-u']);
         var unit = undefined;
 
         console.log("General chart info: ");
@@ -450,8 +460,8 @@ function bChart(chart_id, chart_data) {
             yaxis_scale['title']['description'] = sg['series-u'];
 
         if (xaxis_id >= 0 && yaxis_id >= 0) {
-            xaxis = data['rows'][xaxis_id];
-            yaxis = data['rows'][yaxis_id];
+            xaxis = current_dataset['rows'][xaxis_id];
+            yaxis = current_dataset['rows'][yaxis_id];
 
             if (xaxis !== undefined && yaxis !== undefined) {
 
@@ -507,13 +517,13 @@ function bChart(chart_id, chart_data) {
 
 
                 if (zaxis_id >= 0)
-                    zaxis = data['rows'][zaxis_id];
+                    zaxis = current_dataset['rows'][zaxis_id];
 
                 if (label_id >= 0)
-                    labelaxis = data['rows'][label_id];
+                    labelaxis = current_dataset['rows'][label_id];
 
                 if (unit_id >= 0)
-                    unitaxis = data['rows'][unit_id];
+                    unitaxis = current_dataset['rows'][unit_id];
 
                 xaxis_scale['title']['text'] = sg['series-x'];
                 yaxis_scale['title']['text'] = sg['series-y'];
@@ -531,10 +541,10 @@ function bChart(chart_id, chart_data) {
                 var points = [];
 
                 if (series_id >= 0 && !category_bulk) {
-                    series = data['rows'][series_id];
+                    series = current_dataset['rows'][series_id];
 
                     if (unit_id > 0)
-                        unit = data['rows'][unit_id];
+                        unit = current_dataset['rows'][unit_id];
 
                     if (unit === '')
                         unit = undefined;
@@ -606,9 +616,9 @@ function bChart(chart_id, chart_data) {
 
                 if (series_id >= 0 && category_bulk) {
                     console.log("CATEGORY BULK");
-                    var series_axis = data['rows'][series_id];
+                    var series_axis = current_dataset['rows'][series_id];
                     var unique_series = [...new Set(series_axis)];
-                    if (unit_id > 0) unitaxis = data['rows'][unit_id];
+                    if (unit_id > 0) unitaxis = current_dataset['rows'][unit_id];
                     unit = '';
 
                     for (s = 0; s < unique_series.length; s++) {
@@ -714,7 +724,7 @@ function bChart(chart_id, chart_data) {
             dataset = {
                 id: "dataset" + i,
                 label: dataset_label,
-                data: data['rows'][xaxis_id],
+                data: current_dataset['rows'][xaxis_id],
                 type: chart_type_map[sg['series-type']],
             }
 
@@ -724,9 +734,9 @@ function bChart(chart_id, chart_data) {
             push_dataset(label, datasets, ChartSeriesFormat(dataset, formats), category_grouped);
 
             if (label_id >= 0)
-                labels = data['rows'][label_id]
+                labels = current_dataset['rows'][label_id]
             else
-                labels = data['rows'][xaxis_id];
+                labels = current_dataset['rows'][xaxis_id];
         } else
             flash("Didn't find X and Y axis for chart in columns [" + data['cols'] + ']. X: ' + sg['series-x'] + '. Y: ' + sg['series-y']);
 

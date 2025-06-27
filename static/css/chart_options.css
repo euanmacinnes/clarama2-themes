@@ -1,9 +1,9 @@
-.format-col option {
+.chart-col option {
     background-color: #fff;
     color: #000;
 }
 
-.format-col-back option {
+.chart-col-back option {
     background-color: #fff;
     color: #000;
 }
@@ -34,7 +34,7 @@
     width: 120px;
 }
 
-.color-picker-container .format-col-picker {
+.color-picker-container .chart-col-picker {
     position: absolute;
     bottom: 0;
     right: 0;
@@ -44,7 +44,7 @@
     opacity: 0;
 }
 
-.color-picker-container .format-col-picker-back {
+.color-picker-container .chart-col-picker-back {
     position: absolute;
     bottom: 0;
     right: 0;

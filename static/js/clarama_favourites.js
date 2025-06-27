@@ -26,42 +26,38 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, 100); // Check every 100ms
 
-    let breadcrumbItems = document.querySelectorAll(".root-nav .nav-item");
+    const breadcrumbList = document.querySelector(".root-nav");
+    const breadcrumbItems = Array.from(breadcrumbList.querySelectorAll(".nav-item"));
     console.log(breadcrumbItems);
     console.log(breadcrumbItems.length);
     const maxItems = 4;
 
     if (breadcrumbItems.length > maxItems) {
-        let first = breadcrumbItems[0]
-        let secLast = breadcrumbItems[breadcrumbItems.length - 2];
-        let last = breadcrumbItems[breadcrumbItems.length - 1];
-
-        let hiddenItems = [];
-        // Hide middle items
-        breadcrumbItems.forEach((item, index) => {
-            if (index !== 0 && index !== breadcrumbItems.length - 2 && index !== breadcrumbItems.length - 1) {
-                hiddenItems.push(item.querySelector("a").textContent)
-                item.style.display = "none";
-            }
-        });
-
-        let icon = secLast.querySelector("i");
-        if (icon) {
-            icon.style.display = "none";
-        }
-
-        let ellipsis = document.createElement("li");
-        ellipsis.classList.add("nav-item");
-        let span = document.createElement("span");
-        span.classList.add("nav-link", "px-2", "text-white");
-        span.textContent = "...";
-        span.setAttribute("data-bs-toggle", "tooltip");
-        span.setAttribute("data-bs-placement", "bottom");
-        span.setAttribute("title", hiddenItems.join(" > "));
-        ellipsis.appendChild(span);
-
-        // Insert ellipsis before the last item
-        secLast.parentNode.insertBefore(ellipsis, secLast);
+        const first = breadcrumbItems[0];
+        const keepCount = maxItems - 2;
+        const lastItems = breadcrumbItems.slice(-keepCount);
+        const middleItems = breadcrumbItems.slice(1, -keepCount);
+        const ellipsisLi = document.createElement("li");
+        ellipsisLi.className = "nav-item breadcrumb-ellipsis d-flex align-items-center";
+        ellipsisLi.innerHTML = `
+            <i class="nav-link bi bi-chevron-right p-0"></i>
+            <span class="nav-link px-2">...</span>
+            <ul class="hidden-items list-unstyled m-0 py-0 px-2">
+                ${middleItems.map((item, index) => {
+                    const clone = item.cloneNode(true);
+                    if (index === 0) {
+                        const icon = clone.querySelector('i');
+                        if (icon) icon.remove();
+                    }
+                    return `<li class="d-flex flex-row align-items-center">${clone.innerHTML}</li>`;
+                }).join('')}
+            </ul>
+        `;
+    
+        breadcrumbList.innerHTML = "";
+        breadcrumbList.appendChild(first);
+        breadcrumbList.appendChild(ellipsisLi);
+        lastItems.forEach(item => breadcrumbList.appendChild(item));    
     }
 });
 

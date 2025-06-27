@@ -1,0 +1,10 @@
+{% extends "explorer/files/fieldlayout_" + field_layout + ".html" %}
+{% block content %}
+<div sourceurl="{{ field_config['data'] | datasource }}">
+all: {{ field_config }}
+stuff: {{ field_config.get('data',{}) }}
+print {{ print(mapping) }}
+</div>
+
+
+{% endblock %}
