@@ -436,6 +436,8 @@ function onMessage(event, socket_url, webSocket) {
     } else {
         console.log("CLARAMA_WEBSOCKET.js: WTF was this: " + dict)
     }
+
+    console.log(socket);
 }
 
 function onOpen(event, socket_url, reconnect) {
