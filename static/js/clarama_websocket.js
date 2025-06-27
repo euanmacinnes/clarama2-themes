@@ -29,8 +29,15 @@ let socket_taskQueue = [];
 
 let socket_topics = ['clarama-systemwide'];
 
-function processTaskMessages() {
+function topic_subscribe()
+{
+    console.log("CLARAMA_WEBSOCKET.JS registering topics");
+    console.log(socket_topics);
     socket.send(JSON.stringify({topics: socket_topics}));
+}
+
+function processTaskMessages() {
+    topic_subscribe();
 
     socket_taskQueue.forEach(message => {
         get_task(message.embedded, message.task_url, message.socket_id, message.autorun);
@@ -133,6 +140,7 @@ function start_socket(reconnect = false, embedded) {
 
     if (socket !== undefined) {
         if (socket.readyState !== WebSocket.OPEN) {
+            console.log("CLARAMA_WEBSOCKET.JS resetting socket with state " + socket.readyState);
             socket.close();
             socket = undefined;
         }
@@ -209,8 +217,6 @@ function run_socket(embedded, reset_environment) {
 
                 socket_address = websocket_address;
                 start_socket(false, embedded)
-
-
             });
     }
 }
