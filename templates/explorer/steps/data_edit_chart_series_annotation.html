@@ -1,6 +1,9 @@
 {% if sanno is not defined %}
     {% set sanno = {"anno-col" : "", "anno-col-back" : ""} %}
 {% endif %}
+{% if chart is not defined %}
+    {% set chart = {} %}
+{% endif %}
 {% set chartColors = {
         "Default": "",
         "Red": "rgb(255, 50, 50)",
