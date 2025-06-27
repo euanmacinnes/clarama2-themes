@@ -92,6 +92,11 @@ function get_data_cell(cell) {
         var tab_data = get_tab_data(cell, tab_id);
         tabs_data.push(tab_data);
     });
+
+    var tabCounter = 0;
+    tabs_data.forEach(function(tab_data) {
+        tab_data.tab_id = tabCounter++;
+    });
     
     if (tabs_data.length === 0) {
         var legacy_id = "content_query_" + dataid;
