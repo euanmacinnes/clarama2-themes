@@ -92,12 +92,7 @@ function get_data_cell(cell) {
         var tab_data = get_tab_data(cell, tab_id);
         tabs_data.push(tab_data);
     });
-
-    var tabCounter = 0;
-    tabs_data.forEach(function(tab_data) {
-        tab_data.tab_id = tabCounter++;
-    });
-    
+      
     if (tabs_data.length === 0) {
         var legacy_id = "content_query_" + dataid;
         try {
@@ -180,7 +175,7 @@ function get_data_cell(cell) {
         chart_series_formats.push(srs);
     });
     
-    // Extract series annotations - FIXED VERSION
+    // Extract series annotations
     var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
         console.log(this);
@@ -226,6 +221,26 @@ function get_data_cell(cell) {
         'sortable': table_sortable,
         'pagesize': table_pagesize
     };
+
+    // reset the tab_ids to start from 0
+    let tabCounter = 0;
+    tabs_data.forEach(function(tab_data) {
+        const currTabId = tab_data.tab_id;
+        
+        chart["series-annos"].forEach(function(series_anno) {
+            if (series_anno["anno-tab"] == currTabId) {
+                series_anno["anno-tab"] = tabCounter;
+            }
+        });
+        chart["series-groups"].forEach(function(series_group) {
+            if (series_group["series-tab"] == currTabId) {
+                series_group["series-tab"] = tabCounter;
+            }
+        });
+        
+        tab_data.tab_id = tabCounter;
+        tabCounter++;
+    });
     
     console.log("Table config:", table);
     console.log("Chart config:", chart);
