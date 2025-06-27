@@ -28,7 +28,7 @@ function _task_run(socket_div) {
     get_field_values({}, true, function (field_registry) {
         var field_merged = field_registry;
 
-        console.log("CLARAMA_TASK.js : TASK RUN Socket " + socket + " looking for " + json_div)
+        console.log("CLARAMA_TASK.js : TASK RUN Socket " + socket_div + " looking for " + json_div)
         var json_data = document.getElementById(json_div)
 
 
