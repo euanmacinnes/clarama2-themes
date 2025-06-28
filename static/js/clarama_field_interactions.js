@@ -42,7 +42,7 @@ function perform_interact(field, args = {}) {
             get_field_values({}, true, function (field_registry) {
                 field_values = merge_dicts(field_registry, args);
                 links = eobj["links"]; // array of file names to refresh
-                //console.log(links);
+                console.log(field_values);
                 //flash(element + ' links to ' + links);
                 for (const link of links) {
                     if (typeof link === 'string' || (typeof link === 'object' && link.element.includes("element_"))) {
@@ -80,7 +80,7 @@ function perform_interact(field, args = {}) {
 
                             case "changed":
                                 linked_element[0].innerHTML = "";
-                                linked_element[0].append(showInteractionContent('run', link.url+"?"+link.params));
+                                linked_element[0].append(showInteractionContent('run', link.url + "?" + link.params));
                                 enable_interactions($(`#${link.element}`));
                                 break;
 
