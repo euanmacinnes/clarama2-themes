@@ -21,7 +21,7 @@
     <div class="list-group-item d-flex row gx-2 align-items-center">
         <div class="col-1">
             {% with loop_index=loop.index %}
-                <select id="anno{{ loop_index }}" class="form-control anno-tab">
+                <select id="anno-tab{{ loop_index }}" class="form-control anno-tab">
                     {% for tab in tabs %}
                         {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                         {% set has_source = tab.source and tab.source.strip() %}
@@ -38,8 +38,11 @@
             <select id="anno-type{{ loop_index }}" class="form-control anno-type" title="Type"
                     data-toggle="tooltip">>
                 <option {{ selected("box",sanno['anno-type']) }} id="box">Box</option>
-                <option {{ selected("line",sanno['anno-type']) }} id="line">Line</option>
+                <option {{ selected("line",sanno['anno-type']) }} id="line">Line (Point-to-Point)</option>
+                <option {{ selected("vline",sanno['anno-type']) }} id="vline">Line (Vertical)</option>
+                <option {{ selected("hline",sanno['anno-type']) }} id="hline">Line (Horizontal)</option>
                 <option {{ selected("bounds",sanno['anno-type']) }} id="bounds">Bounds</option>
+                <option {{ selected("callout",sanno['anno-type']) }} id="callout">Callout</option>
             </select>
         </div>
         <div class="col-1">
@@ -66,6 +69,11 @@
         <div class="col-1">
             <input type="string" class="form-control anno-u" id="anno-u{{ loop_index }}" name="u"
                    value="{{ sanno['anno-u'] }}">
+        </div>
+
+        <div class="col-1">
+            <input type="string" class="form-control anno-s" id="anno-u{{ loop_index }}" name="s"
+                   value="{{ sanno['anno-s'] }}">
         </div>
 
         <div class="d-flex justify-content-evenly" style="width: 4%;">
