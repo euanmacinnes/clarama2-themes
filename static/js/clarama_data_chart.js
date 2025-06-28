@@ -424,6 +424,7 @@ function ChartAnnotations(result, definition, dataset) {
         let goty = (ymin !== undefined && ymin !== '');
         let gotxm = (xmax !== undefined && xmax !== '');
         let gotym = (ymax !== undefined && ymax !== '');
+        let label_position = 'center';
 
         console.log("ANNOTATION " + annoId + " (" + xmin + ',' + ymin + '->' + xmax + ',' + ymax + ') : ' + annolabel);
         console.log("ANNOTATION STATE " + annoId + " (" + gotx + ',' + goty + '->' + gotxm + ',' + gotym + ') : ' + annolabel);
@@ -454,6 +455,18 @@ function ChartAnnotations(result, definition, dataset) {
                 annoObj.yMin = ymin;
                 annoObj.xMax = xmax;
                 annoObj.yMax = ymax;
+
+                label_position = 'center';
+                break;
+            case 'point':
+                // Line from point to point
+                annoObj['type'] = 'point';
+
+                console.log("point");
+                annoObj.xValue = xmin_raw;
+                annoObj.yValue = ymin;
+                annoObj.pointStyle = 'rectRounded';
+                annoObj.radius = 10;
                 break;
 
             case 'box':
@@ -505,7 +518,7 @@ function ChartAnnotations(result, definition, dataset) {
                 rotation: 'auto',
                 enabled: true,
                 display: true,
-                position: 'center'
+                position: label_position,
             };
 
             // Set label background color to match border if not specified

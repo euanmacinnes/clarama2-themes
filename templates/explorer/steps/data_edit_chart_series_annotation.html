@@ -38,8 +38,8 @@
             <select id="anno-type{{ loop_index }}" class="form-control anno-type" title="Type"
                     data-toggle="tooltip">>
                 <option {{ selected("box",sanno['anno-type']) }} id="box">Box</option>
-                <option {{ selected("point",sanno['anno-type']) }} id="box">Point</option>
-                <option {{ selected("point",sanno['anno-type']) }} id="label">Label</option>
+                <option {{ selected("point",sanno['anno-type']) }} id="point">Point</option>
+                <option {{ selected("label",sanno['anno-type']) }} id="label">Label</option>
                 <option {{ selected("line",sanno['anno-type']) }} id="line">Line (Point-to-Point)</option>
                 <option {{ selected("vline",sanno['anno-type']) }} id="vline">Line (Vertical)</option>
                 <option {{ selected("hline",sanno['anno-type']) }} id="hline">Line (Horizontal)</option>
