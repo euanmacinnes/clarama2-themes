@@ -1020,10 +1020,10 @@ function bChart(chart_id, chart_data) {
         }
 
         annotations = {annotation: {annotations: annotation_result}};
+        console.log("FINAL ANNOTATIONS: " + Object.keys(annotations.annotation.annotations).length);
+        console.log(annotations);
     }
 
-    console.log("FINAL ANNOTATIONS: " + Object.keys(annotations.annotation.annotations).length);
-    console.log(annotations);
 
     var chartJS_datasets = {
         datasets: datasets
