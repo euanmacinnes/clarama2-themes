@@ -283,6 +283,10 @@
     } else {
       document.getElementById('interaction-title').innerHTML = "Add Interaction";
       currentTarget = button;
+
+      // default to be element
+      $(`input[name="interactionType"][value="element"]`).prop('checked', true);
+      showElementOptions();
     }
   }
 
@@ -562,8 +566,8 @@
   };
 
   GridStack.renderCB = function(el, w) {
-  el.innerHTML = w.content;
-};
+    el.innerHTML = w.content;
+  };
 
   // document.querySelector('#saved').value = JSON.stringify(options);
   let {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#containment-wrapper'), {{ grid_id }}options);
@@ -1131,5 +1135,4 @@
       }
       return baseParts.join('/');
     }
-
 </script>
