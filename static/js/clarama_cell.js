@@ -28,9 +28,9 @@ function get_code_cell(cell) {
  */
 function get_tab_ids(cell) {
     var tab_ids = [];
-    
+
     // Find all tab content blocks for this cell
-    cell.find('.tab-content-block').each(function() {
+    cell.find('.tab-content-block').each(function () {
         var tab_id = $(this).data('tab-id');
         if (tab_id !== undefined && tab_id !== null) {
             tab_ids.push(tab_id);
@@ -50,7 +50,7 @@ function get_tab_ids(cell) {
 function get_tab_data(cell, tab_id) {
     var dataid = cell.attr('dataid');
     var editor_id = "content_query_" + dataid + "_tab_" + tab_id;
-    
+
     try {
         var editor = ace.edit(editor_id);
         var code = editor.getValue();
@@ -58,11 +58,11 @@ function get_tab_data(cell, tab_id) {
         console.warn("Editor not found for " + editor_id + ", using empty content");
         var code = "";
     }
-    
+
     // Get source file path from the tab content block
     var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
     var source = $("#" + source_input_id).val() || "";
-    
+
     return {
         "tab_id": tab_id,
         "source": source,
@@ -77,22 +77,22 @@ function get_tab_data(cell, tab_id) {
  */
 function get_data_cell(cell) {
     var dataid = cell.attr('dataid');
-    
+
     console.log("Getting data cell " + dataid);
-    
+
     // Get output type
     var output_id = "task_step_" + dataid + "_output";
     var output = $("#" + output_id).val();
-    
+
     // Get all tab data
     var tab_ids = get_tab_ids(cell);
     var tabs_data = [];
-    
-    tab_ids.forEach(function(tab_id) {
+
+    tab_ids.forEach(function (tab_id) {
         var tab_data = get_tab_data(cell, tab_id);
         tabs_data.push(tab_data);
     });
-      
+
     if (tabs_data.length === 0) {
         var legacy_id = "content_query_" + dataid;
         try {
@@ -100,7 +100,7 @@ function get_data_cell(cell) {
             var code = editor.getValue();
             var source_id = "task_step_" + dataid + "_source";
             var source = $("#" + source_id).val();
-            
+
             tabs_data.push({
                 "tab_id": 0,
                 "source": source,
@@ -110,7 +110,7 @@ function get_data_cell(cell) {
             console.warn("No editor found for legacy or tab format");
         }
     }
-    
+
     // Extract table configuration
     var table_style = cell.find('.table-style').find('option:selected').attr('id');
     var table_title = cell.find('.table-title').val();
@@ -123,17 +123,17 @@ function get_data_cell(cell) {
     var table_sortable = cell.find('.table-sortable').prop('checked');
     var table_pagesize = cell.find('.table-pagesize').val();
     var table_footer = cell.find('.table-footer').prop('checked');
-    
+
     // Extract chart configuration
     var chart_title = cell.find('.chart-title').val();
     var chart_subtitle = cell.find('.chart-subtitle').val();
     var chart_legend = cell.find('.chart-legend').val();
     var chart_xaxis_type = cell.find('.chart-xaxis-type').val();
-    
+
     var chart_series_groups = [];
     var chart_series_formats = [];
     var chart_series_annos = [];
-    
+
     // Extract series groups
     var series_groups = cell.find('.chart-series-groups');
     series_groups.each(function () {
@@ -153,7 +153,7 @@ function get_data_cell(cell) {
         console.log(srs);
         chart_series_groups.push(srs);
     });
-    
+
     // Extract series formats
     var series_formats = cell.find('.chart-series-formats');
     series_formats.each(function () {
@@ -174,30 +174,31 @@ function get_data_cell(cell) {
         console.log(srs);
         chart_series_formats.push(srs);
     });
-    
+
     // Extract series annotations
     var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
         console.log(this);
         var $this = $(this);
         var srs = {
-            'anno-tab': $this.find('.anno-tab').val(),                  // Input Source Tab
-            'anno-label': $this.find('.anno-label').val(),              // label
-            'anno-x': $this.find('.anno-x').val(),                      // X axis
-            'anno-y': $this.find('.anno-y').val(),                      // Y axis
-            'anno-xm': $this.find('.anno-xm').val(),                    // X MAX axis
-            'anno-ym': $this.find('.anno-ym').val(),                    // Y MAX axis
-            'anno-u': $this.find('.anno-u').val(),                      // unit axis
-            'anno-dt': $this.find('.anno-dt').is(':checked'),           // dotted
-            'anno-width': $this.find('.anno-width').val(),              // border width
-            'anno-type': $this.find('.anno-type').find('option:selected').attr('id'), // type
-            'anno-col': $this.find('.chart-col').val(),                 // colour - more specific selector
-            'anno-col-back': $this.find('.chart-col-back').val(),       // background colour - more specific selector
+            'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
+            'anno-label': $(this).find('.anno-label').val(),            // label
+            'anno-x': $(this).find('.anno-x').val(),                    // X axis
+            'anno-y': $(this).find('.anno-y').val(),                    // Y axis
+            'anno-xm': $(this).find('.anno-xm').val(),                  // X MAX axis
+            'anno-ym': $(this).find('.anno-ym').val(),                  // Y MAX axis
+            'anno-u': $(this).find('.anno-u').val(),                    // unit axis
+            'anno-s': $(this).find('.anno-s').val(),                    // state axis
+            'anno-dt': $(this).find('.anno-dt').is(':checked'),         // dotted
+            'anno-width': $(this).find('.anno-width').val(),            // border width
+            'anno-type': $(this).find('.anno-type').find('option:selected').attr('id'), // type
+            'anno-col': $(this).find('.chart-col').val(),                // colour
+            'anno-col-back': $(this).find('.chart-col-back').val(),      // background colour
         };
         console.log(srs);
         chart_series_annos.push(srs);
     });
-    
+
     var chart = {
         'title': chart_title,
         'subtitle': chart_subtitle,
@@ -207,7 +208,7 @@ function get_data_cell(cell) {
         'series-formats': chart_series_formats,
         'series-annos': chart_series_annos
     };
-    
+
     var table = {
         'title': table_title,
         'search': table_search,
@@ -245,7 +246,7 @@ function get_data_cell(cell) {
     console.log("Table config:", table);
     console.log("Chart config:", chart);
     console.log("Tabs data:", tabs_data);
-    
+
     return {
         "type": "data",
         "output": output,

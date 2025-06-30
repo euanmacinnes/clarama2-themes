@@ -38,37 +38,42 @@
         </div>
         <div class="col-1">
             <input type="string" class="form-control anno-label" id="anno-l{{ loop_index }}_{{ series_index }}" name="label"
-                   value="{{ sanno.get('anno-label', '') }}">
+                   value="{{ sanno['anno-label'] }}">
         </div>
         <div class="col-1">
             <input type="string" class="form-control anno-x" id="anno-x{{ loop_index }}_{{ series_index }}" name="x"
-                   value="{{ sanno.get('anno-x', '') }}">
+                   value="{{ sanno['anno-x'] }}">
         </div>
         <div class="col-1">
             <input type="string" class="form-control anno-y" id="anno-y{{ loop_index }}_{{ series_index }}" name="y"
-                   value="{{ sanno.get('anno-y', '') }}">
+                   value="{{ sanno['anno-y'] }}">
         </div>
         <div class="col-1">
             <input type="string" class="form-control anno-xm" id="anno-xm{{ loop_index }}_{{ series_index }}" name="xmax"
-                   value="{{ sanno.get('anno-xm', '') }}">
+                   value="{{ sanno['anno-xm'] }}">
         </div>
         <div class="col-1">
             <input type="string" class="form-control anno-ym" id="anno-ym{{ loop_index }}_{{ series_index }}" name="ymax"
-                   value="{{ sanno.get('anno-ym', '') }}">
+                   value="{{ sanno['anno-ym'] }}">
         </div>
 
         <div class="col-1">
             <input type="string" class="form-control anno-u" id="anno-u{{ loop_index }}_{{ series_index }}" name="u"
-                   value="{{ sanno.get('anno-u', '') }}">
+                   value="{{ sanno['anno-u'] }}">
+        </div>
+
+        <div class="col-1">
+            <input type="string" class="form-control anno-s" id="anno-u{{ loop_index }}" name="s"
+                   value="{{ sanno['anno-s'] }}">
         </div>
 
         <div class="d-flex justify-content-evenly" style="width: 4%;">
             <input type="checkbox" class="form-check-input anno-dt" id="anno-dt{{ loop_index }}_{{ series_index }}" name="dt"
-                   {% if sanno.get('anno-dt') %}checked{% endif %} title="Dotted Lines" data-toggle="tooltip">
+                   {% if sanno['anno-dt'] %}checked{% endif %} title="Dotted Lines" data-toggle="tooltip">
         </div>
         <div class="col-1">
             <input type="number" step="1" min="0" max="100" class="form-control anno-width"
-                   id="anno-width{{ loop_index }}_{{ series_index }}" name="width" value="{{ sanno.get('anno-width', '') }}" data-toggle="tooltip"
+                   id="anno-width{{ loop_index }}_{{ series_index }}" name="width" value="{{ sanno['anno-width'] }}" data-toggle="tooltip"
                    title="Border Width">
         </div>
         <div class="col-1">

@@ -248,11 +248,11 @@
             </div>
 
             {% if chart is defined %}
-                {% set seriesanno = chart['series-annos'] or [{}] %}
+                {% set seriesanno = chart['series-anno'] or [{}] %}
                 {% set seriesgroups = chart['series-groups'] or [{}] %}
                 {% set seriesformats = chart['series-formats'] or [{}] %}
             {% else %}
-                {% set seriesanno = [{}] %}
+                {% set seriesannos = [{}] %}
                 {% set seriesgroups = [{}] %}
                 {% set seriesformats = [{}] %}
             {% endif %}
@@ -318,6 +318,7 @@
                     <div class="col-1">X Max Axis</div>
                     <div class="col-1">Y Max Axis</div>
                     <div class="col-1">Unit Axis</div>
+                    <div class="col-1">State Axis</div>
                     <div style="width: 4%;">Dotted Lines</div>
                     <div class="col-1">Border Width</div>
                     <div class="col-1">Type</div>
@@ -325,7 +326,7 @@
                     <div class="col-1">Fill Colour</div>
                     <div style="width: 4%;"></div>
                 </div>
-                {% for sanno in seriesanno %}
+                {% for sanno in seriesannos %}
                     {% with loop_index=loop_index, series_index=loop.index %}
                         {% include theme("explorer/steps/data_edit_chart_series_annotation.html") %}
                     {% endwith %}
