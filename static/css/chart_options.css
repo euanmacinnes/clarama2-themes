@@ -31,7 +31,7 @@
 
 .color-picker-container select {
     background-color: rgb(255, 99, 132);
-    width: 120px;
+    /* width: 120px; */
 }
 
 .color-picker-container .chart-col-picker {
@@ -52,4 +52,9 @@
     width: 14px;
     padding: 0;
     opacity: 0;
+}
+
+.grid14-col-1 {
+    flex: 0 0 auto;
+    width: 7.3846%; /* this is derived from (100-4)/13 because the last col (bin icon) i set width: 4% */
 }

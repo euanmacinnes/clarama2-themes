@@ -19,7 +19,7 @@
     } %}
 <li class="chart-series-annotations">
     <div class="list-group-item d-flex row gx-2 align-items-center">
-        <div class="col-1">
+        <div class="grid14-col-1">
             {% with loop_index=loop.index %}
                 <select id="anno-tab{{ loop_index }}" class="form-control anno-tab">
                     {% for tab in tabs %}
@@ -34,7 +34,7 @@
                 </select>
             {% endwith %}
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <select id="anno-type{{ loop_index }}" class="form-control anno-type" title="Type"
                     data-toggle="tooltip">>
                 <option {{ selected("box",sanno['anno-type']) }} id="box">Box</option>
@@ -47,47 +47,47 @@
                 <option {{ selected("callout",sanno['anno-type']) }} id="callout">Callout</option>
             </select>
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <input type="string" class="form-control anno-label" id="anno-l{{ loop_index }}" name="label"
                    value="{{ sanno['anno-label'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <input type="string" class="form-control anno-x" id="anno-x{{ loop_index }}" name="x"
                    value="{{ sanno['anno-x'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <input type="string" class="form-control anno-y" id="anno-y{{ loop_index }}" name="y"
                    value="{{ sanno['anno-y'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <input type="string" class="form-control anno-xm" id="anno-xm{{ loop_index }}" name="xmax"
                    value="{{ sanno['anno-xm'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <input type="string" class="form-control anno-ym" id="anno-ym{{ loop_index }}" name="ymax"
                    value="{{ sanno['anno-ym'] }}">
         </div>
 
-        <div class="col-1">
+        <div class="grid14-col-1">
             <input type="string" class="form-control anno-u" id="anno-u{{ loop_index }}" name="u"
                    value="{{ sanno['anno-u'] }}">
         </div>
 
-        <div class="col-1">
+        <div class="grid14-col-1">
             <input type="string" class="form-control anno-s" id="anno-u{{ loop_index }}" name="s"
                    value="{{ sanno['anno-s'] }}">
         </div>
 
-        <div class="d-flex justify-content-evenly" style="width: 4%;">
+        <div class="d-flex justify-content-evenly grid14-col-1">
             <input type="checkbox" class="form-check-input anno-dt" id="anno-dt{{ loop_index }}" name="dt"
                    {% if sanno['anno-dt'] %}checked{% endif %} title="Dotted Lines" data-toggle="tooltip">
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <input type="number" step="1" min="0" max="100" class="form-control anno-width"
                    id="anno-width{{ loop_index }}" name="width" value="{{ sanno['anno-width'] }}" data-toggle="tooltip"
                    title="Border Width">
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <div class="color-picker-container d-flex align-items-center">
                 <select class="form-control chart-col" id="anno-col{{ loop_index }}" name="color"
                         style="background-color: {{ sanno['anno-col'] }}; " title="Line colour"
@@ -108,7 +108,7 @@
                        name="cc" value="{{ sanno['anno-col'] }}">
             </div>
         </div>
-        <div class="col-1">
+        <div class="grid14-col-1">
             <div class="color-picker-container d-flex align-items-center">
                 <select class="form-control chart-col-back" id="anno-col-back{{ loop_index }}"
                         name="color-back" style="background-color: {{ sanno['anno-col-back'] }}; "
