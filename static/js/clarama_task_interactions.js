@@ -5,18 +5,18 @@ function task_run(parent) {
             console.log("RUNNING");
             // Get only the field values, not the full field definitions, text or code
 
-            socket_div = $(this).attr("socket")
+            socket = $(this).attr("socket")
 
             $('#task_progress_main').attr('aria-valuenow', 0);
 
-            _task_run(socket_div);
+            _task_run(socket);
         }
     });
 }
 
 function task_edit_run(parent) {
     parent.find("#editrun").click(function () {
-        socket_div = $(this).attr("socket")
+        socket = $(this).attr("socket")
         console.log("RUNNING");
         if (check_fields_valid()) {
             get_field_values({}, true, function (field_registry) { // Get only the field values, not the full field definitions, text or code
@@ -25,7 +25,7 @@ function task_edit_run(parent) {
 
                     field_registry['clarama_task_kill'] = false;
 
-                    task_kernel_id = $("#" + socket_div).attr("task_kernel_id");
+                    task_kernel_id = $("#" + socket).attr("task_kernel_id");
                     url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
 
                     // Pass in the task's user-defined parameters from the field_registry, and paste into the header the internal configuration

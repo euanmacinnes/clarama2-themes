@@ -179,6 +179,7 @@ function get_data_cell(cell) {
     var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
         console.log(this);
+        var $this = $(this);
         var srs = {
             'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
             'anno-label': $(this).find('.anno-label').val(),            // label
@@ -222,6 +223,26 @@ function get_data_cell(cell) {
         'pagesize': table_pagesize
     };
 
+    // reset the tab_ids to start from 0
+    let tabCounter = 0;
+    tabs_data.forEach(function(tab_data) {
+        const currTabId = tab_data.tab_id;
+        
+        chart["series-annos"].forEach(function(series_anno) {
+            if (series_anno["anno-tab"] == currTabId) {
+                series_anno["anno-tab"] = tabCounter;
+            }
+        });
+        chart["series-groups"].forEach(function(series_group) {
+            if (series_group["series-tab"] == currTabId) {
+                series_group["series-tab"] = tabCounter;
+            }
+        });
+        
+        tab_data.tab_id = tabCounter;
+        tabCounter++;
+    });
+    
     console.log("Table config:", table);
     console.log("Chart config:", chart);
     console.log("Tabs data:", tabs_data);

@@ -7,6 +7,33 @@
     {% do table.update({'sortable': True}) %}
 {% endif %}
 
+{% if not chart is defined %}
+    {% set chart={'title': '', 'subtitle': '', 'legend': 'Off', 'xaxis-type': 'category'} %}
+{% endif %}
+{% if not chart['series-annos'] is defined %}
+    {% do chart.update({'series-annos': [{}]}) %}
+{% endif %}
+{% if not chart['series-groups'] is defined %}
+    {% do chart.update({'series-groups': [{}]}) %}
+{% endif %}
+{% if not chart['series-formats'] is defined %}
+    {% do chart.update({'series-formats': [{}]}) %}
+{% endif %}
+
+{% set seriesannos = chart.get('series-annos', [{}]) %}
+{% set seriesgroups = chart.get('series-groups', [{}]) %}
+{% set seriesformats = chart.get('series-formats', [{}]) %}
+
+{% if not seriesannos %}
+    {% set seriesannos = [{}] %}
+{% endif %}
+{% if not seriesgroups %}
+    {% set seriesgroups = [{}] %}
+{% endif %}
+{% if not seriesformats %}
+    {% set seriesformats = [{}] %}
+{% endif %}
+
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
     <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
         <div class="bg-info rounded-top text-light px-2" style="padding-top: .25rem !important;">
@@ -14,7 +41,7 @@
             <!-- Toggle buttons -->
             <div class="d-flex flex-wrap align-items-center">
                 <div class="flex-grow-1">
-                    <ul class="nav nav-tabs gap-1" id="dataSourceTabs_{{ loop_index }}" role="tablist">
+                    <ul class="nav nav-tabs gap-1" id="dataSourceTabs" role="tablist">
                         <div class="nav-item btn-group me-2">
                             <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
                                     data-bs-target="#collapseTableOptions_{{ loop_index }}"
@@ -39,30 +66,23 @@
                             </button>
                         </div>
                         {% if tabs is not defined or not tabs %}
-                            {% set tabs = [{'source': source, 'content': content}] %}
+                            {% set tabs = [{'source': source, 'content': content, 'tab_id': 0}] %}
                         {% endif %}
 
+                        <!-- Tab Headers -->
                         {% for tab in tabs %}
-                            {% set tab_id = tab.tab_id if tab.tab_id is defined else loop_index.index0 %}
-                            {% set has_source = tab.source and tab.source.strip() %}
-                            {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab' + (tab_id|string) %}
-                            <!-- Tabs -->
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link tab-item source-tab {% if loop.first %}active{% endif %}"
-                                        id="tab_{{ loop_index }}_{{ tab_id }}"
-                                        data-bs-toggle="tab"
-                                        data-bs-target="#tabContentBlock_{{ loop_index }}_{{ tab_id }}"
-                                        type="button" role="tab"
-                                        aria-controls="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
-                                        aria-selected="{% if loop.first %}true{% else %}false{% endif %}" title="{{ filename }}">
-                                    <span class="tab-title">{{ filename }}</span>
-                                    <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i> {# Removed redundant &times; #}
-                                </button>
-                            </li>
+                            {% set current_tab = tab %}
+                            {% set current_loop = loop %}
+                            {% set is_active = loop.first %}
+                            {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
+                            
+                            {% with tab=tab, loop_index=loop_index, tab_id=tab_id, is_active=is_active %}
+                                {% include theme("explorer/steps/data_edit_tab_header.html") %}
+                            {% endwith %}
                         {% endfor %}
 
                         <li class="add-tab-button" role="presentation">
-                            <button id="add-source-tab-{{ loop_index }}" type="button" class="nav-link add-source-tab" title="Add tab" data-loop-index="{{ loop_index }}">
+                            <button id="add-source-tab" type="button" class="nav-link add-source-tab" title="Add tab" data-loop-index="{{ loop_index }}">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </li>
@@ -71,13 +91,13 @@
             </div>
         </div>
         {% for tab in tabs %}
-            {% set tab_id = loop_index.index0 %}
+            {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
             <div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }} {% if loop.first %}show active{% endif %}"
                 id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
                 data-tab-id="{{ tab_id }}"
                 role="tabpanel" aria-labelledby="tab_{{ loop_index }}_{{ tab_id }}">
                 {# Include the sub-template for each tab's content #}
-                {% with source=tab.source, content=tab.content %}
+                {% with source=tab.source, content=tab.content, loop_index=loop_index, tab_id=tab_id %}
                     <!-- Input source file & SQL code editor -->
                     {% include theme("explorer/steps/data_edit_tab_contents.html") %}
                 {% endwith %}
@@ -241,16 +261,6 @@
                 </div>
             </div>
 
-            {% if chart is defined %}
-                {% set seriesannos = chart['series-annos'] or [{}] %}
-                {% set seriesgroups = chart['series-groups'] or [{}] %}
-                {% set seriesformats = chart['series-formats'] or [{}] %}
-            {% else %}
-                {% set seriesannos = [{}] %}
-                {% set seriesgroups = [{}] %}
-                {% set seriesformats = [{}] %}
-            {% endif %}
-
             <ul id="seriesGrp{{ loop_index }}" class="list-group">
                 <label for="sg{{ loop_index }}" class="form-label mb-2">
                     Series Groups
@@ -271,7 +281,7 @@
                     <div style="width: 4%;"></div>
                 </div>
                 {% for sgroup in seriesgroups %}
-                    {% with loop_index=loop_index, series_index=loop_index.index %}
+                    {% with loop_index=loop_index, series_index=loop.index0 %}
                         {% include theme("explorer/steps/data_edit_chart_series_group.html") %}
                     {% endwith %}
                 {% endfor %}
@@ -294,7 +304,7 @@
                     <div style="width: 4%;"></div>
                 </div>
                 {% for sformat in seriesformats %}
-                    {% with loop_index=loop_index, series_index=loop_index.index %}
+                    {% with loop_index=loop_index, series_index=loop.index0 %}
                         {% include theme("explorer/steps/data_edit_chart_series_format.html") %}
                     {% endwith %}
                 {% endfor %}
@@ -306,7 +316,6 @@
                 </label>
                 <div class="list-group-item d-flex row gx-2 align-items-center">
                     <div class="col-1">Tab</div>
-                    <div class="col-1">Type</div>
                     <div class="col-1">Label</div>
                     <div class="col-1">X Axis</div>
                     <div class="col-1">Y Axis</div>
@@ -316,12 +325,13 @@
                     <div class="col-1">State Axis</div>
                     <div style="width: 4%;">Dotted Lines</div>
                     <div class="col-1">Border Width</div>
+                    <div class="col-1">Type</div>
                     <div class="col-1">Colour</div>
                     <div class="col-1">Fill Colour</div>
                     <div style="width: 4%;"></div>
                 </div>
                 {% for sanno in seriesannos %}
-                    {% with loop_index=loop_index, series_index=loop_index.index %}
+                    {% with loop_index=loop_index, series_index=loop.index0, sanno=sanno %}
                         {% include theme("explorer/steps/data_edit_chart_series_annotation.html") %}
                     {% endwith %}
                 {% endfor %}
@@ -387,6 +397,60 @@
             });
         }
 
+        function updateAllTabDropdowns(loopIndex) {
+            const currentTabs = [];
+            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').each(function() {
+                const $tabButton = $(this);
+                const tabId = $tabButton.attr('id').split('_').pop();
+                
+                let tabTitle = $tabButton.find('.tab-title').text().trim();
+                
+                if (!tabTitle) {
+                    tabTitle = $tabButton.attr('title');
+                }
+                
+                if (!tabTitle) {
+                    const $sourceInput = $(`#content_source_${loopIndex}_tab_${tabId}`);
+                    if ($sourceInput.length && $sourceInput.val()) {
+                        tabTitle = $sourceInput.val().split(/[\\/]/).pop();
+                    }
+                }
+                
+                if (!tabTitle) {
+                    tabTitle = `Tab ${tabId}`;
+                }
+                
+                currentTabs.push({
+                    id: tabId,
+                    title: tabTitle
+                });
+            });
+            
+            // Update all series group tab dropdowns
+            $(`#seriesGrp${loopIndex} .series-tab`).each(function() {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                $dropdown.empty();
+                
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+            
+            // Update series annotations tab dropdowns (including newly added ones)
+            $(`#seriesAnno${loopIndex} .anno-tab`).each(function() {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                $dropdown.empty();
+                
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+        }
+
         $('.series-type').each(function () {
             updateSeriesFields($(this));
         });
@@ -395,106 +459,133 @@
             updateSeriesFields($(this));
         });
 
-        function initializeNewSQLEditor(loopIndex, tabId) {
-            const editorDivId = `content_query_${loopIndex}_tab_${tabId}`;
-            console.log("editorDivId: ", editorDivId);
-            const editorDiv = document.getElementById(editorDivId);
+        $(document).on('click', `#addSG${loopIndex}`, function() {
+            setTimeout(() => {
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
+        });
 
-            if (editorDiv) {
-                if ($(editorDiv).data('aceEditor')) {
-                    return;
-                }
-
-                const editor = ace.edit(editorDiv);
-                editor.setTheme("ace/theme/tomorrow");
-                editor.session.setMode("ace/mode/sql");
-
-                $(editorDiv).data('aceEditor', editor);
-            } else {
-                console.error(`Could not find new editor div to initialize: #${editorDivId}`);
-            }
-        }
+        $(document).on('click', `#addAN${loopIndex}`, function() {
+            setTimeout(() => {
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
+        });
 
         // --- TAB MANAGEMENT ---
         let tabCounter = 0;
-        const existingTabs = $(`#dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab');
+        const existingTabs = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab');
+
+        let maxExistingTabId = -1;
         existingTabs.each(function() {
-            const tabId = parseInt($(this).attr('id').split('_').pop());
-            if (tabId >= tabCounter) {
-                tabCounter = tabId + 1;
+            const $tabButton = $(this);
+            const tabId = parseInt($tabButton.attr('id').split('_').pop());
+            if (!isNaN(tabId) && tabId > maxExistingTabId) {
+                maxExistingTabId = tabId;
             }
         });
 
-        const tabsContainer = $(`#dataSourceTabs_${loopIndex}`);
+        tabCounter = maxExistingTabId + 1;
+
+        const tabsContainer = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs`);
         const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`);
-        const addSourceTabBtn = $(`#add-source-tab-${loopIndex}`);
-        const addSourceTabLi = addSourceTabBtn.closest('li');
+        const addSourceTabBtn = $(`#dataEditTabContentContainer_${loopIndex} #add-source-tab`);
+
+        function addTabHeader(tabId, isFirst = false) {
+            const newTabHeader = document.createElement("li");
+            newTabHeader.className = "clarama-post-embedded clarama-replaceable nav-item";
+            newTabHeader.setAttribute("role", "presentation");
+            
+            const tabData = {
+                tab_id: tabId,
+                source: ''
+            };
+            
+            const params = new URLSearchParams({
+                loop_index: loopIndex,
+                tab_id: tabId,
+                is_active: isFirst.toString(),
+                tab: JSON.stringify(tabData),
+                source: '',
+                content: ''
+            });
+            
+            newTabHeader.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_header?${params.toString()}`);
+            return newTabHeader;
+        }
+
+        function addTabContent(tabId) {
+            const newTabContent = document.createElement("div");
+            newTabContent.className = "tab-content-block tab-pane tab-content-block-" + loopIndex + "_" + tabId;
+            newTabContent.setAttribute("id", `tabContentBlock_${loopIndex}_${tabId}`);
+            newTabContent.setAttribute("data-tab-id", tabId);
+            newTabContent.setAttribute("role", "tabpanel");
+            newTabContent.setAttribute("aria-labelledby", `tab_${loopIndex}_${tabId}`);
+            
+            const innerContent = document.createElement("div");
+            innerContent.className = "clarama-post-embedded clarama-replaceable";
+            
+            const params = new URLSearchParams({
+                loop_index: loopIndex,
+                tab_id: tabId,
+                source: '',
+                content: ''
+            });
+            
+            innerContent.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_contents?${params.toString()}`);
+            newTabContent.appendChild(innerContent);
+            return newTabContent;
+        }
 
         function addNewTab() {
-            console.log('TabCounter for cell', loopIndex, ':', tabCounter);
             const tabId = tabCounter++;
-            let tabName = `Tab ${tabId}`;
-            let initialSource = '';
-            let initialContent = '';
+            
+            // Check if this is the first tab (no existing tabs)
+            const existingTabsCount = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').length;
+            const isFirst = existingTabsCount === 0;
 
-            const newTabButtonHtml = `
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link tab-item" id="tab_${loopIndex}_${tabId}"
-                            type="button" role="tab"
-                            aria-controls="tabContentBlock_${loopIndex}_${tabId}" aria-selected="false" title="${tabName}">
-                        <span class="tab-title">${tabName}</span>
-                        <i class="bi bi-x-lg ms-2 close-tab" title="Close tab" style="cursor: pointer;"></i>
-                    </button>
-                </li>
-            `;
+            const tabHeader = addTabHeader(tabId, isFirst);
+            const tabContent = addTabContent(tabId);
+            
+            // Insert the tab header before the add button
+            const addSourceTabLi = addSourceTabBtn.closest('li');
+            addSourceTabLi.before(tabHeader);
 
-            addSourceTabLi.before(newTabButtonHtml);
+            contentContainer.append(tabContent);
 
-            const newContentBlockHtml = `
-                <div class="tab-content-block tab-pane"
-                     id="tabContentBlock_${loopIndex}_${tabId}"
-                     data-tab-id="${tabId}"
-                     role="tabpanel" aria-labelledby="tab_${loopIndex}_${tabId}">
+            enable_interactions(tabsContainer);
+            enable_interactions(contentContainer);
 
-                    <div class="border border-3 border-info">
-                        <div class="input-group w-100 border-1 border-bottom border-info">
-                            <input id="task_step_${loopIndex}_source_${tabId}" type="text"
-                                   class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
-                                   placeholder="Data Source Filename" aria-label="Data source relative filename"
-                                   value="${initialSource}">
-                            <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
-                                     data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                                     inputId="task_step_${loopIndex}_source_${tabId}">
-                                <i class="bi bi-folder2-open"></i>
-                            </button>
-                            ${initialSource ? `
-                                <a href="${initialSource}" target="_blank" id="task_step_${loopIndex}_browse_link_${tabId}" class="text-decoration-none text-white">
-                                    <button id="task_step_${loopIndex}_browse_${tabId}" type="button"
-                                            class="btn btn-secondary datasource" aria-haspopup="true"
-                                            aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
-                                        <i class="bi bi-pen"></i>
-                                    </button>
-                                </a>` : ''}
-                        </div>
+            setTimeout(() => {
+                const $newTabButton = $(`#tab_${loopIndex}_${tabId}`);
+                if ($newTabButton.length) {
+                    activateTab($newTabButton[0]);
+                }
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
 
-                        <div id="content_query_${loopIndex}_tab_${tabId}"
-                             name="task_step_field_${loopIndex}_${tabId}"
-                             editor="sql"
-                             class="source-editor form-control clarama-field-editor" style="min-height: 100px; white-space: pre-wrap; word-break: break-all;">${initialContent}</div>
-                    </div>
-                </div>
-            `;
-
-            contentContainer.append(newContentBlockHtml);
-            initializeNewSQLEditor(loopIndex, tabId);
             return tabId;
         }
 
-        // Close tab functionality
         tabsContainer.on('click', '.close-tab', function (e) {
             e.stopPropagation();
             const $tabButton = $(this).closest('button');
             const tabIdToClose = $tabButton.attr('id').split('_').pop();
+            const $tabLi = $tabButton.closest('li');
+            
+            // Check if this is the currently active tab
+            const isActiveTab = $tabButton.hasClass('active');
+            
+            // Find the next tab to activate if this is the active tab
+            let $nextTabToActivate = null;
+            if (isActiveTab) {
+                // First try to get the tab to the right
+                $nextTabToActivate = $tabLi.next('li').find('button.nav-link').not('.add-source-tab').first();
+                
+                // If no tab to the right, get the tab to the left
+                if (!$nextTabToActivate.length) {
+                    $nextTabToActivate = $tabLi.prev('li').find('button.nav-link').not('.add-source-tab').first();
+                }
+            }
 
             const $editorDiv = $(`#content_query_${loopIndex}_tab_${tabIdToClose}`);
             const editorInstance = $editorDiv.data('monacoEditor');
@@ -502,21 +593,28 @@
                 editorInstance.dispose();
             }
 
-            $tabButton.closest('li').remove();
+            $tabLi.remove();
             $(`#tabContentBlock_${loopIndex}_${tabIdToClose}`).remove();
+            
+            // Activate the next tab if we closed the active tab
+            if (isActiveTab && $nextTabToActivate && $nextTabToActivate.length) {
+                activateTab($nextTabToActivate[0]);
+            }
+            
+            updateAllTabDropdowns(loopIndex);
         });
 
-        // Add tab button click handler
         if (addSourceTabBtn.length) {
-            addSourceTabBtn.on('click', e => {
+            addSourceTabBtn.on('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-
+                
+                console.log(`Add tab clicked for cell ${loopIndex}`);
                 const newTabId = addNewTab();
                 $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
             });
         } else {
-            console.warn(`Add Source Tab button (#add-source-tab-${loopIndex}) not found for cell ${loopIndex}.`);
+            console.warn(`Add Source Tab button (#add-source-tab) not found for cell ${loopIndex}.`);
         }
 
         // --- DYNAMIC TAB NAMING ---
@@ -526,7 +624,6 @@
             const currentLoopIndex = parts[2];
             const currentTabId = parts[4];
 
-            // Only update if this input belongs to the current cell
             if (currentLoopIndex === loopIndex) {
                 const $tabButton = $(`#tab_${currentLoopIndex}_${currentTabId}`);
                 const $tabTitleSpan = $tabButton.find('.tab-title');
@@ -539,6 +636,8 @@
                 }
                 $tabTitleSpan.text(newName);
                 $tabButton.attr('title', newName);
+                
+                updateAllTabDropdowns(loopIndex);
             }
         }
 
@@ -554,32 +653,29 @@
         function activateTab(tabButton) {
             const $tabButton = $(tabButton);
             const targetContentId = $tabButton.attr('aria-controls');
-            // 1. Deactivate all tab buttons within this cell's tabs
-            $(`#dataSourceTabs_${loopIndex} .nav-link`).removeClass('active').attr('aria-selected', 'false');
-            // 2. Hide all tab content panes within this cell's container
+            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs .nav-link`).removeClass('active').attr('aria-selected', 'false');
             $(`#dataEditTabContentContainer_${loopIndex} .tab-pane`).removeClass('show active');
-            // 3. Activate the clicked tab button
             $tabButton.addClass('active').attr('aria-selected', 'true');
-            // 4. Show the corresponding tab content pane
             $(`#${targetContentId}`).addClass('show active');
         }
 
         tabsContainer.on('click', 'button.nav-link', function(e) {
             e.preventDefault();
             const $thisButton = $(this);
-            // Ignore the 'add tab' button
             if ($thisButton.hasClass('add-source-tab')) {
                 return;
             }
             activateTab(this);
         });
 
-        const $initialActiveTab = $(`#dataSourceTabs_${loopIndex} button.nav-link.active`);
+        const $initialActiveTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link.active`);
         if ($initialActiveTab.length) {
+            // Tab already active
         } else {
-            const $firstTab = $(`#dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').first();
+            const $firstTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').first();
             if ($firstTab.length) {
                 activateTab($firstTab[0]);
+                updateAllTabDropdowns(loopIndex);
             }
         }
     });

@@ -12,12 +12,17 @@
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
-                    <option value="{{ tab_id }}" {{ selected(tab_id|string, sgroup['series-tab']|string) }}>{{ filename }}</option>
+                    {% set is_selected = sgroup.get('series-tab') and tab_id|string == sgroup['series-tab']|string %}
+                    {% set is_first_and_no_selection = loop.first and not sgroup.get('series-tab') %}
+                    <option value="{{ tab_id }}" 
+                            {% if is_selected or is_first_and_no_selection %}selected{% endif %}>
+                        {{ filename }}
+                    </option>
                 {% endfor %}
             </select>
         </div>
         <div class="col-1">
-            <select id="sg{{ loop_index }}" class="form-control series-type">
+            <select id="sg_type_{{ loop_index }}_{{ series_index }}" class="form-control series-type">
                 <option {{ selected("Line",sgroup['series-type']) }}>Line</option>
                 <option {{ selected("Scatter",sgroup['series-type']) }}>Scatter</option>
                 <option {{ selected("Bubble",sgroup['series-type']) }}>Bubble</option>
@@ -29,35 +34,35 @@
             </select>
         </div>
         <div class="col-1">
-            <input type="string" class="form-control series-x" id="x{{ loop_index }}" name="x"
+            <input type="string" class="form-control series-x" id="x{{ loop_index }}_{{ series_index }}" name="x"
                    value="{{ sgroup['series-x'] }}">
         </div>
         <div class="col-1">
-            <input type="string" class="form-control series-y" id="y{{ loop_index }}" name="y"
+            <input type="string" class="form-control series-y" id="y{{ loop_index }}_{{ series_index }}" name="y"
                    value="{{ sgroup['series-y'] }}">
         </div>
         <div class="col-1">
-            <input type="string" class="form-control series-z" id="z{{ loop_index }}" name="z"
-                   value="{{ sgroup['series-z'] }}" {% if (sgroup['series-type'] == "Line") %}disabled{% endif %}>
+            <input type="string" class="form-control series-z" id="z{{ loop_index }}_{{ series_index }}" name="z"
+                   value="{{ sgroup['series-z'] }}" {% if (sgroup['series-type'] == "Line") %}disabled{% endif %} >
         </div>
         <div class="col-1">
-            <input type="string" class="form-control series-ymin" id="ymin{{ loop_index }}" name="ymin"
+            <input type="string" class="form-control series-ymin" id="ymin{{ loop_index }}_{{ series_index }}" name="ymin"
                    value="{{ sgroup['series-ymin'] }}">
         </div>
         <div class="col-1">
-            <input type="string" class="form-control series-ymax" id="ymax{{ loop_index }}" name="ymax"
+            <input type="string" class="form-control series-ymax" id="ymax{{ loop_index }}_{{ series_index }}" name="ymax"
                    value="{{ sgroup['series-ymax'] }}">
         </div>
         <div class="col-1">
-            <input type="string" class="form-control series-s" id="s{{ loop_index }}" name="s"
+            <input type="string" class="form-control series-s" id="s{{ loop_index }}_{{ series_index }}" name="s"
                    value="{{ sgroup['series-s'] }}">
         </div>
         <div class="col-1">
-            <input type="string" class="form-control series-u" id="u{{ loop_index }}" name="u"
+            <input type="string" class="form-control series-u" id="u{{ loop_index }}_{{ series_index }}" name="u"
                    value="{{ sgroup['series-u'] }}">
         </div>
         <div class="col-1">
-            <input type="string" class="form-control series-l" id="l{{ loop_index }}" name="l"
+            <input type="string" class="form-control series-l" id="l{{ loop_index }}_{{ series_index }}" name="l"
                    value="{{ sgroup['series-l'] }}">
         </div>
         <div style="width: 4%;">
