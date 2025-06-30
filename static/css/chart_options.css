@@ -54,7 +54,7 @@
     opacity: 0;
 }
 
-.grid14-col-1 {
+.grid13-col-1 {
     flex: 0 0 auto;
     width: 7.3846%; /* this is derived from (100-4)/13 because the last col (bin icon) i set width: 4% */
 }
