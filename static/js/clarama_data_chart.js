@@ -5,61 +5,6 @@
  */
 
 /**
- * Creates a Bootstrap table from provided data
- * @param {string} table_id - ID of the HTML element where the table will be rendered
- * @param {Object} table_data - Data object containing columns and rows
- * @description Transforms the provided data into a format suitable for Bootstrap Table
- * and initializes the table with appropriate options
- */
-function bTable(table_id, table_data) {
-    var table_columns = [];
-    var table_rows = [];
-    var headings = [];
-
-    console.log(table_id + " TABLE_DATA");
-    //console.log(table_data);
-    //hello this is a test
-
-    for (col of table_data['cols']) {
-        headings.push(col);
-        var col_dict = {
-            'field': col,
-            'title': col,
-            'sortable': true
-        }
-        table_columns.push(col_dict);
-    }
-
-    Object.entries(table_data['rows']).forEach((row) => {
-        this_row = row[1];
-        //console.log("row " + this_row);
-        col_dict = {};
-        for (let i = 0; i < this_row.length; i++) {
-            var colname = headings[i];
-            col_dict[colname] = this_row[i];
-        }
-        table_rows.push(col_dict);
-    });
-
-
-    $('#' + table_id).bootstrapTable('destroy').bootstrapTable({
-        exportDataType: 'all',
-        exportOptions: {},
-        exportTypes: ['json', 'xml', 'csv', 'txt', 'excel', 'pdf'],
-        columns: table_columns,
-        data: table_rows,
-        onClickRow: function (row, $element, field) {
-            // alert(JSON.stringify(row));
-            table_selection = {
-                row: row,
-                field: field
-            };
-            perform_interact($('#' + table_id), table_selection);
-        }
-    });
-}
-
-/**
  * Applies formatting to a chart dataset based on provided format specifications
  * @param {Object} dataset - The chart dataset to format
  * @param {Array} formats - Array of format specifications
@@ -330,6 +275,264 @@ function deepMerge(obj1, obj2) {
     return obj1;
 }
 
+function check_field(field_name, dataset, debug = true) {
+    if (field_name == undefined)
+        return undefined;
+
+    if (field_name in dataset) {
+        if (debug)
+            console.log("CHECK FIELD " + field_name + " in " + dataset);
+        return field_name;
+    }
+
+    return undefined;
+}
+
+function isNumeric(str) {
+    if (typeof str != "string") return false // we only process strings!
+    return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+        !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+}
+
+function parseval(destination, field_name, dataset, index = undefined) {
+
+    if (field_name === undefined) {
+        console.log("PARSEVAL " + destination + ": " + field_name + " in " + dataset + " = undefined");
+        return undefined;
+    }
+
+    if (field_name in dataset) {
+        var fld = dataset[field_name]
+
+        if (isNumeric(fld)) {
+            fld = parseFloat(fld);
+        } else {
+            if (index !== undefined) // LABEL axis fields need to show the string
+                fld = index;
+        }
+        console.log("PARSEVAL " + destination + ": [" + field_name + "] = " + fld);
+
+        return fld;
+    }
+    if (isNumeric(field_name)) {
+        var val = parseFloat(field_name);
+        console.log("PARSEVAL (number)" + destination + ": " + field_name + " = " + val);
+        return val;
+    }
+
+    console.log("PARSEVAL " + destination + ": " + field_name + " undefined");
+
+    return field_name; // Label fields that aren't an axis should just show the label
+}
+
+
+/**
+ * Processes annotation data from form inputs and creates ChartJS annotation objects
+ * @param result An object containing ChartJS annotation configurations
+ * @param {Object} definition - Annotation definition for given dataset
+ * @param {Array} dataset - Array of annotation data
+ * @description Takes annotation data from data_edit_chart_series_annotation.html form inputs
+ * and converts it into properly formatted annotation objects for ChartJS
+ */
+function ChartAnnotations(result, definition, dataset) {
+    if (!dataset || dataset['rows'].length === 0) {
+        console.log("Annotation Error: No dataset provided");
+        return;
+    }
+
+    if (!definition || definition.length === 0) {
+        console.log("Annotation Error: No definition provided");
+        return;
+    }
+
+    let state_val = undefined;
+
+    let ai = Object.keys(result).length;
+
+    if (ai === undefined)
+        ai = 0;
+
+    let drows = dataset['rows'][0].length;
+
+    console.log("ANNOTATION DATA " + ai + " of " + drows);
+    console.log(definition);
+
+    for (var i = 0; i < drows; i++) {
+
+        let anno = {};
+
+        for (c = 0; c < dataset['cols'].length; c++) {
+            col = dataset['cols'][c];
+            anno[col] = dataset['rows'][c][i];
+        }
+
+        var annoId = 'anno' + (ai + i);
+
+        var annostate = check_field(definition['anno-s'], anno, false);
+
+        // Skip if essential properties are missing
+        if (!definition['anno-type'] || (!definition['anno-x'] && !definition['anno-y'])) {
+            console.log("Annotation Error: Missing essential properties from definition:");
+            console.log(definition);
+            return;
+        }
+
+        // Skip if the state field is set and the value of the state field is the same (only annotate on changed values of the field)
+        if (annostate !== undefined && anno[annostate] === state_val) {
+            continue;
+        }
+
+        if (annostate !== undefined) {
+            console.log("ANNOTATION STATE " + annostate + " = " + anno[annostate] + " (was " + state_val + ")");
+        }
+
+        state_val = anno[annostate];
+
+        let unit_axis = definition['anno-u'];
+
+        if (unit_axis === undefined)
+            unit_axis = 'y';
+
+        var annoObj = {
+            borderWidth: parseInt(definition['anno-width']) || 1,
+        };
+
+        // Set border color
+        if (definition['anno-col']) {
+            annoObj.borderColor = definition['anno-col'];
+        }
+
+        // Set background color if provided
+        if (definition['anno-col-back']) {
+            annoObj.backgroundColor = definition['anno-col-back'];
+        }
+
+        // Set dotted line if checked
+        if (definition['anno-dt']) {
+            annoObj.borderDash = [4, 4];
+        }
+
+        console.log(anno);
+        console.log(annoObj);
+        let ymin = parseval("anno-y", definition['anno-y'], anno);
+        let ymax = parseval("anno-ym", definition['anno-ym'], anno);
+        let xmin = parseval('anno-x', definition['anno-x'], anno, i);
+        let xmin_raw = parseval('anno-x', definition['anno-x'], anno);
+        let xmax = parseval('anno-xm', definition['anno-xm'], anno, i);
+        let annolabel = parseval('anno-label', definition['anno-label'], anno);
+        let gotx = (xmin !== undefined && xmin !== '');
+        let goty = (ymin !== undefined && ymin !== '');
+        let gotxm = (xmax !== undefined && xmax !== '');
+        let gotym = (ymax !== undefined && ymax !== '');
+        let label_position = 'center';
+
+        console.log("ANNOTATION " + annoId + " (" + xmin + ',' + ymin + '->' + xmax + ',' + ymax + ') : ' + annolabel);
+        console.log("ANNOTATION STATE " + annoId + " (" + gotx + ',' + goty + '->' + gotxm + ',' + gotym + ') : ' + annolabel);
+
+        // Handle different annotation types
+        switch (definition['anno-type']) {
+            case 'hline':
+                annoObj['type'] = 'line';
+                // Horizontal line
+                console.log("horizontal line");
+                annoObj.value = ymin;
+                annoObj.scaleID = unit_axis
+                break;
+            case 'vline':
+                annoObj['type'] = 'line';
+                // Vertical line
+                console.log("vertical line");
+                annoObj.value = xmin;
+                annoObj.scaleID = 'x';
+
+                break;
+            case 'line':
+                // Line from point to point
+                annoObj['type'] = 'line';
+
+                console.log("coordinated line");
+                annoObj.xMin = xmin;
+                annoObj.yMin = ymin;
+                annoObj.xMax = xmax;
+                annoObj.yMax = ymax;
+
+                label_position = 'center';
+                break;
+            case 'point':
+                // Line from point to point
+                annoObj['type'] = 'point';
+
+                console.log("point");
+                annoObj.xValue = xmin_raw;
+                annoObj.yValue = ymin;
+                annoObj.pointStyle = 'rectRounded';
+                annoObj.radius = 10;
+                break;
+
+            case 'box':
+                if (gotx && goty && gotxm && gotym) {
+                    annoObj['type'] = 'box';
+                    annoObj.borderRadius = 4;
+                    annoObj.borderWidth = 1;
+                    annoObj.xMin = xmin;
+                    annoObj.yMin = ymin;
+                    annoObj.xMax = xmax;
+                    annoObj.yMax = ymax;
+                }
+                break;
+            case 'callout':
+                console.log("CALLOUT  (" + xmin + ',' + ymin + ') ');
+                if (gotx && goty) {
+                    annoObj['type'] = 'label'
+                    annoObj['position'] = {
+                        x: 'center',
+                        y: 'center'
+                    };
+                    annoObj.yAdjust = -10;
+                    annoObj.xValue = xmin_raw;
+                    annoObj.yValue = ymin;
+                    annoObj['callout'] = {
+                        display: true,
+                    };
+                }
+                break;
+            case 'bounds':
+                // Custom bounds
+                if (gotx && goty && gotym) {
+                    annoObj['type'] = 'line';
+                    annoObj.xMin = xmin;
+                    annoObj.xMax = xmax;
+                    annoObj.yMin = ymax;
+                    annoObj.yMax = ymax;
+                }
+                break;
+        }
+
+        // Add label if provided
+        if (definition['anno-label']) {
+            if (annolabel === '' || annolabel === undefined || annolabel === null) {
+                annolabel = ' ';
+            }
+            annoObj.label = {
+                content: annolabel,
+                rotation: 'auto',
+                enabled: true,
+                display: true,
+                position: label_position,
+            };
+
+            // Set label background color to match border if not specified
+            if (definition['anno-col'] && !definition['anno-col-back']) {
+                annoObj.label.backgroundColor = definition['anno-col'];
+            } else if (definition['anno-col-back']) {
+                annoObj.label.backgroundColor = definition['anno-col-back'];
+            }
+        }
+
+        result[annoId] = annoObj;
+    }
+}
+
 /**
  * Mapping of axis type names to Chart.js axis types
  * @type {Object.<string, string>}
@@ -432,7 +635,7 @@ function bChart(chart_id, chart_data) {
         var sg = config['series-groups'][i];
         var label = sg['series-y'];
 
-        var current_dataset_index = sg['series-dataset'];
+        var current_dataset_index = sg['series-tab'];
 
         if (current_dataset_index === undefined) {
             console.log("No dataset specified, using default 0 out of " + data.length + " datasets");
@@ -785,10 +988,6 @@ function bChart(chart_id, chart_data) {
     console.log("FINAL FORMATS: " + Object.keys(formats).length);
     console.log(formats);
 
-    var data = {
-        datasets: datasets
-    }
-
     if (category || category_grouped || category_bulk) {
         const unique_labels = [...new Set(labels)] // Get unique list of labels for the x axis
         console.log("FINAL LABELS: " + unique_labels.length);
@@ -797,8 +996,42 @@ function bChart(chart_id, chart_data) {
     }
 
 
+    // Process annotations if they exist
+    var annotations = {};
+    console.log("PROCESSING ANNOTATIONS");
+    console.log(config['series-annos']);
+    if (config['series-annos']) {
+        let annotation_result = {}
+        for (i = 0; i < config['series-annos'].length; i++) {
+            var sa = config['series-annos'][i];
+            var current_dataset_index = sa['anno-tab'];
+
+            if (current_dataset_index === undefined) {
+                console.log("No dataset specified, using default 0 out of " + data.length + " datasets");
+                current_dataset_index = 0;
+            } else
+                console.log("SERIES GROUP " + i + " using dataset " + current_dataset_index + " out of " + data.length + " datasets");
+
+            var anno_dataset = data[current_dataset_index];
+            console.log("ANNOTATION DATASET");
+            console.log(anno_dataset);
+            ChartAnnotations(annotation_result, sa, anno_dataset);
+
+        }
+
+        annotations = {annotation: {annotations: annotation_result}};
+        console.log("FINAL ANNOTATIONS: " + Object.keys(annotations.annotation.annotations).length);
+        console.log(annotations);
+    }
+
+
+    var chartJS_datasets = {
+        datasets: datasets
+    }
+
+
     var config = {
-        data: data,
+        data: chartJS_datasets,
         stacked: false,
         options: {
             responsive: true,
@@ -840,6 +1073,8 @@ function bChart(chart_id, chart_data) {
                     position: config['legend'].toLowerCase(),
                     usePointStyle: true,
                 },
+                // Add annotations if they exist
+                ...(annotations || {}),
                 tooltip: {
                     // filter: function (tooltipItem, data) {
                     //     if (data > 0) return false;

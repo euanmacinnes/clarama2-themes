@@ -5,7 +5,7 @@
  * setting output types, and navigating between cells.
  */
 
-/** 
+/**
  * Starting ID for new steps
  * @type {number}
  */
@@ -39,8 +39,9 @@ function cell_insert_step(parent) {
     parent.find(".insert_step").off('click');
     parent.find(".insert_step").on("click", function (event) {
 
-        if ($(this).attr('stream') !== undefined) // Then hopefully it's the NEW CELL
+        if ($(this).attr('stream') !== undefined) // Then hopefully it's the NEW CELL appending at the bottom. $(this) is the clicked button
         {
+            console.log('cell_insert_step: append new cell at end of stream');
             var steptype = $(this).attr('steptype');
             var stream = $(this).attr('stream');
 
@@ -62,6 +63,7 @@ function cell_insert_step(parent) {
                     enable_interactions($new_element);
                 });
         } else {
+            console.log('cell_insert_step: insert above existing cell');
             var step_cell = $(this).parents('.clarama-cell-item'); // This should be the clarama-cell-item class, the li
             var step = step_cell.attr('step');
             var steptype = $(this).attr('steptype');

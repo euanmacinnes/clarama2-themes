@@ -198,7 +198,6 @@ function run_socket(embedded, reset_environment) {
         fetch(socket_url)
             .then((response) => response.json())
             .then((response) => {
-                //console.log(response);
 
                 let server = response['results']['socket'] // USe the websocket-provided address
                 let uuid = response['results']['uuid']
@@ -213,7 +212,7 @@ function run_socket(embedded, reset_environment) {
                 let websocket_address = (server + uuid + '/');
 
 
-                console.log("CLARAMA_WEBSOCKET.js: Creating " + socket_url + " Websocket on " + websocket_address + " for " + startingTopic);
+                console.log("CLARAMA_WEBSOCKET.js: Creating " + socket_url + " Websocket on " + websocket_address + " for " + uuid);
 
                 socket_address = websocket_address;
                 start_socket(false, embedded)
