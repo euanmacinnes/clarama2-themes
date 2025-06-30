@@ -43,7 +43,7 @@
                         {% endif %}
 
                         {% for tab in tabs %}
-                            {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
+                            {% set tab_id = tab.tab_id if tab.tab_id is defined else loop_index.index0 %}
                             {% set has_source = tab.source and tab.source.strip() %}
                             {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab' + (tab_id|string) %}
                             <!-- Tabs -->
@@ -71,7 +71,7 @@
             </div>
         </div>
         {% for tab in tabs %}
-            {% set tab_id = loop.index0 %}
+            {% set tab_id = loop_index.index0 %}
             <div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }} {% if loop.first %}show active{% endif %}"
                 id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
                 data-tab-id="{{ tab_id }}"
@@ -271,7 +271,7 @@
                     <div style="width: 4%;"></div>
                 </div>
                 {% for sgroup in seriesgroups %}
-                    {% with loop_index=loop_index, series_index=loop.index %}
+                    {% with loop_index=loop_index, series_index=loop_index.index %}
                         {% include theme("explorer/steps/data_edit_chart_series_group.html") %}
                     {% endwith %}
                 {% endfor %}
@@ -294,7 +294,7 @@
                     <div style="width: 4%;"></div>
                 </div>
                 {% for sformat in seriesformats %}
-                    {% with loop_index=loop_index, series_index=loop.index %}
+                    {% with loop_index=loop_index, series_index=loop_index.index %}
                         {% include theme("explorer/steps/data_edit_chart_series_format.html") %}
                     {% endwith %}
                 {% endfor %}
@@ -321,7 +321,7 @@
                     <div style="width: 4%;"></div>
                 </div>
                 {% for sanno in seriesannos %}
-                    {% with loop_index=loop_index, series_index=loop.index %}
+                    {% with loop_index=loop_index, series_index=loop_index.index %}
                         {% include theme("explorer/steps/data_edit_chart_series_annotation.html") %}
                     {% endwith %}
                 {% endfor %}
