@@ -16,12 +16,12 @@
     } %}
 <li class="chart-series-formats">
     <div class="list-group-item d-flex row gx-2 align-items-center">
-        <div class="col-2">
+        <div style="width: 12%;">
             <input type="string" class="form-control format-nrx" id="x{{ loop_index }}" name="x"
                    value="{{ sformat['format-nrx'] }}" data-toggle="tooltip"
                    title="Either the entire series name, or a RegEx. <br/><br/>RegEx examples include: <br/><b>Wash</b> which will search for all series containing Wash.<br/><b>^Wash</b> - all series starting with Wash. <br/><b>Wash$</b> - all series ending with Wash.">
         </div>
-        <div class="col-2">
+        <div style="width: 12%;">
             <input type="string" class="form-control format-title" id="title{{ loop_index }}" name="title"
                    value="{{ sformat['format-title'] }}" data-toggle="tooltip"
                    title="Name displayed on the chart legend">
@@ -31,7 +31,7 @@
                    value="{{ sformat['format-ua'] }}" data-toggle="tooltip"
                    title="Named unit axis. All series with this value will be grouped on the same Y axis">
         </div>
-        <div class="d-flex justify-content-evenly" style="width: 10%;">
+        <div class="d-flex justify-content-evenly" style="width: 12%;">
             <input type="checkbox" class="form-check-input format-f" id="f{{ loop_index }}" name="f" {% if
         sformat['format-f'] %}checked{% endif %} title="Filled Lines" data-toggle="tooltip">
             <input type="checkbox" class="form-check-input format-p" id="p{{ loop_index }}" name="p" {% if
@@ -39,12 +39,12 @@
             <input type="checkbox" class="form-check-input format-dt" id="dt{{ loop_index }}" name="dt"
                    {% if sformat['format-dt'] %}checked{% endif %} title="Dotted Lines" data-toggle="tooltip">
         </div>
-        <div class="col-1">
+        <div style="width: 11%;">
             <input type="number" step="1" min="0" max="100" class="form-control format-pr"
                    id="pr{{ loop_index }}" name="pr" value="{{ sformat['format-pr'] }}" data-toggle="tooltip"
                    title="Set to 0 to disable points">
         </div>
-        <div class="col-1">
+        <div style="width: 11%;">
             <select id="ps{{ loop_index }}" class="form-control format-pointstyle" title="Point shape"
                     data-toggle="tooltip">
                 <option {{ selected("circle",sformat['format-ps']) }} id="circle">Circle (o)</option>
@@ -59,7 +59,7 @@
                 <option {{ selected("triangle",sformat['format-ps']) }} id="triangle">Triangle</option>
             </select>
         </div>
-        <div class="col-1">
+        <div style="width: 11%;">
             <input type="number" step="1" min="0" max="100" class="form-control format-lw"
                    id="lw{{ loop_index }}" name="lw" value="{{ sformat['format-lw'] }}" data-toggle="tooltip"
                    title="Set to 0 to disable lines">
