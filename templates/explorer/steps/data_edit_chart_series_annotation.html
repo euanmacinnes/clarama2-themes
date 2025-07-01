@@ -64,12 +64,12 @@
             <input type="checkbox" class="form-check-input anno-dt" id="anno-dt{{ loop_index }}_{{ series_index }}" name="dt"
                    {% if sanno['anno-dt'] %}checked{% endif %} title="Dotted Lines" data-toggle="tooltip">
         </div>
-        <div class="col-1">
+        <div style="width: 4%;">
             <input type="number" step="1" min="0" max="100" class="form-control anno-width"
                    id="anno-width{{ loop_index }}_{{ series_index }}" name="width" value="{{ sanno['anno-width'] }}" data-toggle="tooltip"
                    title="Border Width">
         </div>
-        <div class="col-1"> 
+        <div style="width: 6%;"> 
             <select id="anno-type{{ loop_index }}_{{ series_index }}" class="form-control anno-type" title="Type"
                     data-toggle="tooltip">>
                 <option {{ selected("box",sanno['anno-type']) }} id="box">Box</option>
@@ -126,7 +126,7 @@
                        name="cc" value="{{ sanno['anno-col-back'] }}">
             </div>
         </div>
-        <div style="width: 4%;">
+        <div style="width: 2%;">
             <i class="bi bi-trash ps-3 cell-delete-series-annotations data-cell-icon-hover remove" title="Delete?"
                data-toggle="tooltip"></i>
         </div>
