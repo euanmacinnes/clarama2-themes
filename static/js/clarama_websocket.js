@@ -138,19 +138,19 @@ function socket_task(embedded, task, topic, reset_environment) {
 
 function start_socket(reconnect = false, embedded) {
 
-        if (task_active_socket !== undefined) {
-            if (task_active_socket.readyState !== WebSocket.OPEN) {
-                console.log("CLARAMA_WEBSOCKET.JS resetting socket with state " + task_active_socket.readyState);
-                task_active_socket.close();
-                task_active_socket = undefined;
-            }
+    if (task_active_socket !== undefined) {
+        if (task_active_socket.readyState !== WebSocket.OPEN) {
+            console.log("CLARAMA_WEBSOCKET.JS resetting socket with state " + task_active_socket.readyState);
+            task_active_socket.close();
+            task_active_socket = undefined;
         }
+    }
 
-        if (task_active_socket === undefined) {
-            let webSocket = new WebSocket(socket_address);
+    if (task_active_socket === undefined) {
+        let webSocket = new WebSocket(socket_address);
 
-            task_active_socket = webSocket;
-            console.log("CLARAMA_WEBSOCKET.JS start_socket " + task_active_socket);
+        task_active_socket = webSocket;
+        console.log("CLARAMA_WEBSOCKET.JS start_socket " + task_active_socket);
 
         webSocket.onerror = function (event) {
             onError(event, socket_address, webSocket)
@@ -361,7 +361,7 @@ function onMessage(event, socket_url, webSocket) {
                 let resulter = "#" + dict['step_id'];
                 //console.log("WEBSOCKET MESSAGE:" + dict['step_id']);
                 //console.log(dict);
-                //console.log("TEMPLATE RESULTER --[" + resulter + ']--');
+                console.log("WEBSOCKET.js TEMPLATE RESULTER --[" + resulter + ']--' + $(resulter));
                 process_template(dict['type'], dict['values'], $(resulter));
             }
 
