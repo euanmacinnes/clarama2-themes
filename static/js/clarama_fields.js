@@ -181,11 +181,11 @@ function check_fields_valid() {
  * saveGrid is in the _grid_edit.html and is dynamically generated with the saved grid definition inside the HTML
  */
 function get_fields(fields, cell, field_submit) {
-    let socket = $("#edit_socket");
+    let socket_div = $("#edit_socket");
 
     var registry = {
         'streams': [],
-        'environment': socket.attr("environment")
+        'environment': socket_div.attr("environment")
     }
 
     $('.stream').each(

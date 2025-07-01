@@ -22,8 +22,8 @@ function get_url(url, field_registry) {
     return new_url;
 }
 
-function _task_run(socket) {
-    json_div = socket + '_args';
+function _task_run(socket_div) {
+    json_div = socket_div + '_args';
 
     get_field_values({}, true, function (field_registry) {
         var field_merged = field_registry;
@@ -43,7 +43,7 @@ function _task_run(socket) {
             console.warn("CLARAMA_TASK.js : " + json_div + " div containing JSON is missing")
         }
 
-        var task_socket = $("#" + socket);
+        var task_socket = $("#" + socket_div);
 
         field_merged['clarama_task_kill'] = task_socket.attr("task_kill");
 
@@ -86,12 +86,12 @@ function cell_item_run(cell_button) {
         task_registry['parameters'] = field_registry
 
         console.log("CLARAMA_TASK.js: cell_edit_run Getting Socket");
-        socket = $("#edit_socket");
+        socket_div = $("#edit_socket");
 
         field_registry['clarama_task_kill'] = false;
 
         console.log("CLARAMA_TASK.js: cell_edit_run Getting Kernel");
-        task_kernel_id = socket.attr("task_kernel_id");
+        task_kernel_id = socket_div.attr("task_kernel_id");
         url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
 
         // Pass in the task's user-defined parameters from the field_registry, and paste into the header the internal configuration
