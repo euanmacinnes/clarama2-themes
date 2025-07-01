@@ -21,7 +21,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-1">
+        <div style="width: 12%;">
             <select id="sg_type_{{ loop_index }}_{{ series_index }}" class="form-control series-type">
                 <option {{ selected("Line",sgroup['series-type']) }}>Line</option>
                 <option {{ selected("Scatter",sgroup['series-type']) }}>Scatter</option>
@@ -65,7 +65,7 @@
             <input type="string" class="form-control series-l" id="l{{ loop_index }}_{{ series_index }}" name="l"
                    value="{{ sgroup['series-l'] }}">
         </div>
-        <div style="width: 4%;">
+        <div style="width: 2%;">
             <i class="bi bi-trash ps-3 cell-delete-series-group data-cell-icon-hover remove"></i>
         </div>
     </div>

@@ -269,7 +269,7 @@
                 <div class="list-group-item d-flex row gx-2 align-items-center">
                     <div style="width: 2%;"></div>
                     <div class="col-2">Tab</div>
-                    <div class="col-1">Type</div>
+                    <div style="width: 12%;">Type</div>
                     <div class="col-1">X Axis</div>
                     <div class="col-1">Y Axis</div>
                     <div class="col-1">Z Axis</div>
@@ -278,7 +278,7 @@
                     <div class="col-1">Series Axis</div>
                     <div class="col-1">Unit Axis</div>
                     <div class="col-1">Label Axis</div>
-                    <div style="width: 4%;"></div>
+                    <div style="width: 2%;"></div>
                 </div>
                 {% for sgroup in seriesgroups %}
                     {% with loop_index=loop_index, series_index=loop.index0 %}
@@ -292,16 +292,16 @@
                     <i id="addSF{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
                 </label>
                 <div class="list-group-item d-flex row gx-2 align-items-center">
-                    <div class="col">Series Name/Regex</div>
-                    <div class="col">Display Name</div>
-                    <div class="col">Unit Axis</div>
-                    <div class="col text-center">Line</div>
-                    <div class="col">Point Size</div>
-                    <div class="col">Point Style</div>
-                    <div class="col">Line Width</div>
-                    <div class="col">Colour</div>
-                    <div class="col">Fill Colour</div>
-                    <div style="width: 4%;"></div>
+                    <div class="col-2">Series Name/Regex</div>
+                    <div class="col-2">Display Name</div>
+                    <div style="width: 12%;">Unit Axis</div>
+                    <div class="text-center" style="width: 10%;">Line</div>
+                    <div class="col-1">Point Size</div>
+                    <div class="col-1">Point Style</div>
+                    <div class="col-1">Line Width</div>
+                    <div class="col-1">Colour</div>
+                    <div class="col-1">Fill Colour</div>
+                    <div style="width: 2%;"></div>
                 </div>
                 {% for sformat in seriesformats %}
                     {% with loop_index=loop_index, series_index=loop.index0 %}
