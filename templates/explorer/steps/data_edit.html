@@ -75,7 +75,7 @@
                             {% set current_loop = loop %}
                             {% set is_active = loop.first %}
                             {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
-                            
+
                             {% with tab=tab, loop_index=loop_index, tab_id=tab_id, is_active=is_active %}
                                 {% include theme("explorer/steps/data_edit_tab_header.html") %}
                             {% endwith %}
@@ -309,25 +309,25 @@
                 {% endfor %}
             </ul>
             <ul id="seriesAnno{{ loop_index }}" class="list-group">
-                <label for="sa{{ loop_index }}" class="form-label mb-2">
+                <label for="sa{{ loop_index }}" class="form-label mb-2"><br/>
                     Series Annotations
                     <i id="addAN{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
                 </label>
                 <div class="list-group-item d-flex row gx-2 align-items-center">
-                    <div class="col-1">Tab</div>
-                    <div class="col-1">Label</div>
-                    <div class="col-1">X Axis</div>
-                    <div class="col-1">Y Axis</div>
-                    <div class="col-1">X Max Axis</div>
-                    <div class="col-1">Y Max Axis</div>
-                    <div class="col-1">Unit Axis</div>
-                    <div class="col-1">State Axis</div>
-                    <div style="width: 4%;">Dotted Lines</div>
-                    <div style="width: 4%;">Border Width</div>
-                    <div style="width: 6%;">Type</div>
-                    <div class="col-1">Colour</div>
-                    <div class="col-1">Fill Colour</div>
-                    <div style="width: 2%;"></div>
+                    <div class="grid13-col-1">Tab</div>
+                    <div class="grid13-col-1">Type</div>
+                    <div class="grid13-col-1">Label</div>
+                    <div class="grid13-col-1">X Axis</div>
+                    <div class="grid13-col-1">Y Axis</div>
+                    <div class="grid13-col-1">X Max Axis</div>
+                    <div class="grid13-col-1">Y Max Axis</div>
+                    <div class="grid13-col-1">Unit Axis</div>
+                    <div class="grid13-col-1">State Axis</div>
+                    <div class="grid13-col-1 text-center">Dotted</div>
+                    <div class="grid13-col-1">Border Width</div>
+                    <div class="grid13-col-1">Colour</div>
+                    <div class="grid13-col-1">Fill Colour</div>
+                    <div style="width: 4%;"></div>
                 </div>
                 {% for sanno in seriesannos %}
                     {% with loop_index=loop_index, series_index=loop.index0, sanno=sanno %}
@@ -401,48 +401,48 @@
             $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').each(function() {
                 const $tabButton = $(this);
                 const tabId = $tabButton.attr('id').split('_').pop();
-                
+
                 let tabTitle = $tabButton.find('.tab-title').text().trim();
-                
+
                 if (!tabTitle) {
                     tabTitle = $tabButton.attr('title');
                 }
-                
+
                 if (!tabTitle) {
                     const $sourceInput = $(`#content_source_${loopIndex}_tab_${tabId}`);
                     if ($sourceInput.length && $sourceInput.val()) {
                         tabTitle = $sourceInput.val().split(/[\\/]/).pop();
                     }
                 }
-                
+
                 if (!tabTitle) {
                     tabTitle = `Tab ${tabId}`;
                 }
-                
+
                 currentTabs.push({
                     id: tabId,
                     title: tabTitle
                 });
             });
-            
+
             // Update all series group tab dropdowns
             $(`#seriesGrp${loopIndex} .series-tab`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
                 $dropdown.empty();
-                
+
                 currentTabs.forEach((tab, index) => {
                     const isSelected = currentValue === tab.id || (!currentValue && index === 0);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
-            
+
             // Update series annotations tab dropdowns (including newly added ones)
             $(`#seriesAnno${loopIndex} .anno-tab`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
                 $dropdown.empty();
-                
+
                 currentTabs.forEach((tab, index) => {
                     const isSelected = currentValue === tab.id || (!currentValue && index === 0);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
@@ -493,12 +493,12 @@
             const newTabHeader = document.createElement("li");
             newTabHeader.className = "clarama-post-embedded clarama-replaceable nav-item";
             newTabHeader.setAttribute("role", "presentation");
-            
+
             const tabData = {
                 tab_id: tabId,
                 source: ''
             };
-            
+
             const params = new URLSearchParams({
                 loop_index: loopIndex,
                 tab_id: tabId,
@@ -507,7 +507,7 @@
                 source: '',
                 content: ''
             });
-            
+
             newTabHeader.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_header?${params.toString()}`);
             return newTabHeader;
         }
@@ -519,17 +519,17 @@
             newTabContent.setAttribute("data-tab-id", tabId);
             newTabContent.setAttribute("role", "tabpanel");
             newTabContent.setAttribute("aria-labelledby", `tab_${loopIndex}_${tabId}`);
-            
+
             const innerContent = document.createElement("div");
             innerContent.className = "clarama-post-embedded clarama-replaceable";
-            
+
             const params = new URLSearchParams({
                 loop_index: loopIndex,
                 tab_id: tabId,
                 source: '',
                 content: ''
             });
-            
+
             innerContent.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_contents?${params.toString()}`);
             newTabContent.appendChild(innerContent);
             return newTabContent;
@@ -537,14 +537,14 @@
 
         function addNewTab() {
             const tabId = tabCounter++;
-            
+
             // Check if this is the first tab (no existing tabs)
             const existingTabsCount = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').length;
             const isFirst = existingTabsCount === 0;
 
             const tabHeader = addTabHeader(tabId, isFirst);
             const tabContent = addTabContent(tabId);
-            
+
             // Insert the tab header before the add button
             const addSourceTabLi = addSourceTabBtn.closest('li');
             addSourceTabLi.before(tabHeader);
@@ -570,16 +570,16 @@
             const $tabButton = $(this).closest('button');
             const tabIdToClose = $tabButton.attr('id').split('_').pop();
             const $tabLi = $tabButton.closest('li');
-            
+
             // Check if this is the currently active tab
             const isActiveTab = $tabButton.hasClass('active');
-            
+
             // Find the next tab to activate if this is the active tab
             let $nextTabToActivate = null;
             if (isActiveTab) {
                 // First try to get the tab to the right
                 $nextTabToActivate = $tabLi.next('li').find('button.nav-link').not('.add-source-tab').first();
-                
+
                 // If no tab to the right, get the tab to the left
                 if (!$nextTabToActivate.length) {
                     $nextTabToActivate = $tabLi.prev('li').find('button.nav-link').not('.add-source-tab').first();
@@ -594,12 +594,12 @@
 
             $tabLi.remove();
             $(`#tabContentBlock_${loopIndex}_${tabIdToClose}`).remove();
-            
+
             // Activate the next tab if we closed the active tab
             if (isActiveTab && $nextTabToActivate && $nextTabToActivate.length) {
                 activateTab($nextTabToActivate[0]);
             }
-            
+
             updateAllTabDropdowns(loopIndex);
         });
 
@@ -607,7 +607,7 @@
             addSourceTabBtn.on('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 console.log(`Add tab clicked for cell ${loopIndex}`);
                 const newTabId = addNewTab();
                 $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
@@ -635,7 +635,7 @@
                 }
                 $tabTitleSpan.text(newName);
                 $tabButton.attr('title', newName);
-                
+
                 updateAllTabDropdowns(loopIndex);
             }
         }
@@ -678,4 +678,4 @@
             }
         }
     });
-</script>   
+</script>

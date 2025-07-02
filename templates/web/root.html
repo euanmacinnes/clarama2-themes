@@ -169,9 +169,26 @@
     {% block content %}{% endblock %}
 
 </div>
+
+<div id="toast_container" class="toast-container" style="position: fixed; right: 12px; top: 84px;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div id="${toastId}" class="toast text-dark bg-{{ category }}-subtle border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body w-100 py-3 px-4" style="word-break: break-word;">
+                            {{ message }}
+                        </div>
+                        <button type="button" class="btn-close btn-close-dark me-2 mt-2" style="font-size: 8px;" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
 <footer style="position: relative;">
-    <div id="notification_popup"
-         style="width: 99%; position: fixed; bottom: 0; z-index: 1000; left: 50%; transform: translate(-50%, 0%);">
+    <!-- <div id="notification_popup"
+         style="width: 97%; position: fixed; bottom: 0; z-index: 1000; left: 50%; transform: translate(-50%, 0%);">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -179,7 +196,7 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-    </div>
+    </div> -->
     <div class="w-100 py-2 text-center" style="background-color: #303030; color: #fff">
         <span class="text-white"
               style="font-size: 11px;">Build {{ clarama.build }}. &copy; 2023-2025 Euan Duncan MacInnes. All Rights Reserved.</span>
@@ -229,6 +246,15 @@
     $(document).ready(() => {
         $('.clarama-websocket').enablesocket();
         enable_interactions($('body'));
+
+        $('[data-bs-toggle="tooltip"]').tooltip(); // moved from fieldlayout_text_right.html
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.toast').forEach(el => {
+            const toast = new bootstrap.Toast(el, { delay: 5000 });
+            toast.show();
+        });
     });
 
     function updateUrlToDefault(url) {

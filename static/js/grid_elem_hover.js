@@ -4,6 +4,7 @@ document.addEventListener('shown.bs.dropdown', function (event) {
         const $bellIcon = $('#alertsmenu i.bi');
         hasUnseenDanger = false;
         $bellIcon.removeClass('shaking');
+        $bellIcon.removeClass('danger');
     }
 
     const trigger = event.target.closest('.grid-elem-menu');
