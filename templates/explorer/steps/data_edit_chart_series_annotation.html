@@ -20,20 +20,6 @@
 <li class="chart-series-annotations">
     <div class="list-group-item d-flex row gx-2 align-items-center">
         <div class="grid13-col-1">
-            {% with loop_index=loop.index %}
-                <select id="anno-tab{{ loop_index }}" class="form-control anno-tab">
-                    {% for tab in tabs %}
-                        {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
-                        {% set has_source = tab.source and tab.source.strip() %}
-                        {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
-                        <option value="{{ tab_id }}"
-                                {% if sanno['anno-tab'] and tab_id|string == sanno['anno-tab']|string %}selected{% endif %}>
-                            {{ filename }}
-                        </option>
-                    {% endfor %}
-                </select>
-            {% endwith %}
-        <div class="col-1">
             <select id="anno-tab{{ loop_index }}_{{ series_index }}" class="form-control anno-tab">
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
@@ -60,7 +46,8 @@
             </select>
         </div>
         <div class="grid13-col-1">
-            <input type="string" class="form-control anno-label" id="anno-l{{ loop_index }}_{{ series_index }}" name="label"
+            <input type="string" class="form-control anno-label" id="anno-l{{ loop_index }}_{{ series_index }}"
+                   name="label"
                    value="{{ sanno['anno-label'] }}">
         </div>
         <div class="grid13-col-1">
@@ -72,11 +59,13 @@
                    value="{{ sanno['anno-y'] }}">
         </div>
         <div class="grid13-col-1">
-            <input type="string" class="form-control anno-xm" id="anno-xm{{ loop_index }}_{{ series_index }}" name="xmax"
+            <input type="string" class="form-control anno-xm" id="anno-xm{{ loop_index }}_{{ series_index }}"
+                   name="xmax"
                    value="{{ sanno['anno-xm'] }}">
         </div>
         <div class="grid13-col-1">
-            <input type="string" class="form-control anno-ym" id="anno-ym{{ loop_index }}_{{ series_index }}" name="ymax"
+            <input type="string" class="form-control anno-ym" id="anno-ym{{ loop_index }}_{{ series_index }}"
+                   name="ymax"
                    value="{{ sanno['anno-ym'] }}">
         </div>
 
