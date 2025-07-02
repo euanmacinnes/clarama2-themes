@@ -715,7 +715,7 @@
   }
   
   function addColToGridElem(elem, colSize) {
-    {{ grid_id }}elements[elem].col = colSize.toString();
+    {{ grid_id }}elements[elem].spacing = colSize.toString();
     console.log("addColtogridelem", {{ grid_id }}elements);
   }
 
@@ -829,7 +829,7 @@
 
         let parentDiv = document.getElementById(target);
         const currentUrl = parentDiv.getAttribute('url');
-        parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(currentPath, newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_element_height=2&clarama_element_aspect=2.0");
+        parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(currentPath, newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
         
         console.log("new url", document.getElementById(target).getAttribute('url'))
         enable_interactions($(`#${target}`).parent(), true);
