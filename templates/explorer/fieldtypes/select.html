@@ -5,6 +5,7 @@
         <select id="{{ field_id }}"
                 fieldtype="html"
                 name="{{ field_name }}"
+                close_on_select="False"
                 size="{{ field_config['size'] or '4' }}"
                 {{ field_config | required }}
                 {{ field_config | readonly }}

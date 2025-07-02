@@ -1,10 +1,7 @@
 {% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
-    <div class="input-group mb-2">
-        <div class="input-group-prepend">
-            <div class="input-group-text btn btn-secondary select-toggle-all">All</div>
-        </div>
+    <div class="input-group mb-2 ">
         <select id="{{ field_id }}"
                 multiple
                 name="{{ field_name }}"
@@ -12,7 +9,7 @@
                 size="{{ field_config['size'] or '4' }}"
                 {{ field_config | required }}
                 {{ field_config | readonly }}
-                class="form-control col clarama-field-select2 clarama-field clarama-select-field"
+                class="form-control clarama-field-select2 clarama-field clarama-select-field"
                 {% include theme("explorer/files/field_tooltip.html") %}
                 {% if field_config.get('data',{}).get('source') %}
                 sourceurl="{{ field_config['data'] | datasource }}"

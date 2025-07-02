@@ -293,9 +293,15 @@ $.fn.initselect = function () {
         if (!embedded.attr("clarama_data_set")) {
             if (embedded.attr("sourceurl")) {
                 console.log("Enabling data for select2: " + embedded.attr("sourceurl"))
+
+                var close_on_select = embedded.attr("close_on_select");
+
+                if (close_on_select === undefined)
+                    close_on_select = false
+
                 embedded.select2({
-                    selectionCssClass: "col",
-                    closeOnSelect: false,
+                    selectionCssClass: "select2-select",
+                    closeOnSelect: close_on_select,
                     dataType: 'json',
                     minimumResultsForSearch: 1,
                     ajax: {
@@ -309,7 +315,7 @@ $.fn.initselect = function () {
                                 search: params.term,
                                 values: values
                             }
-                            console.log("Fetching data " + params.term + " from " + embedded.attr("sourceurl"))
+                            //console.log("Fetching data " + params.term + " from " + embedded.attr("sourceurl"))
                             return JSON.stringify(query);
                         },
                         processResults: function (data) {
