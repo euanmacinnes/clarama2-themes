@@ -219,7 +219,7 @@
                         </select>
                     </div>
                     <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chartYamlEditor"
-                            role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advance
+                            role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advanced
                     </button>
                 </div>
             </div>
@@ -228,10 +228,9 @@
                 <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}"
                      name="task_step_field_yaml_{{ loop_index }}"
                      editor="yaml"
-                     class="source-editor form-control clarama-field-editor"
+                     class="source-editor form-control clarama-field-editor chart-advanced"
                      celltype="code"
-                     style="min-height: 100px">
-                </div>
+                     style="min-height: 100px">{{  chart['advanced'] }}</div>
             </div>
 
             <div class="container-fluid my-3">

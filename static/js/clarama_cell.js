@@ -130,6 +130,11 @@ function get_data_cell(cell) {
     var chart_legend = cell.find('.chart-legend').val();
     var chart_xaxis_type = cell.find('.chart-xaxis-type').val();
 
+    // Chart advanced YAML
+    var chart_advanced = cell.find('.chart-advanced');
+    var editor = ace.edit(chart_advanced.attr('id'));
+    var advanced_yaml = editor.getValue();
+
     var chart_series_groups = [];
     var chart_series_formats = [];
     var chart_series_annos = [];
@@ -203,6 +208,7 @@ function get_data_cell(cell) {
         'title': chart_title,
         'subtitle': chart_subtitle,
         'legend': chart_legend,
+        'advanced': advanced_yaml,
         'xaxis-type': chart_xaxis_type,
         'series-groups': chart_series_groups,
         'series-formats': chart_series_formats,
@@ -225,24 +231,24 @@ function get_data_cell(cell) {
 
     // reset the tab_ids to start from 0
     let tabCounter = 0;
-    tabs_data.forEach(function(tab_data) {
+    tabs_data.forEach(function (tab_data) {
         const currTabId = tab_data.tab_id;
-        
-        chart["series-annos"].forEach(function(series_anno) {
+
+        chart["series-annos"].forEach(function (series_anno) {
             if (series_anno["anno-tab"] == currTabId) {
                 series_anno["anno-tab"] = tabCounter;
             }
         });
-        chart["series-groups"].forEach(function(series_group) {
+        chart["series-groups"].forEach(function (series_group) {
             if (series_group["series-tab"] == currTabId) {
                 series_group["series-tab"] = tabCounter;
             }
         });
-        
+
         tab_data.tab_id = tabCounter;
         tabCounter++;
     });
-    
+
     console.log("Table config:", table);
     console.log("Chart config:", chart);
     console.log("Tabs data:", tabs_data);
