@@ -322,7 +322,8 @@
     right: 0 !important;
     left: unset !important
     z-index: 1000;
-    min-width: 700px;
+    min-width: 290px;
+    width: 42vw;
     /* box-shadow: 10px 10px 5px lightblue; */
     box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
 }

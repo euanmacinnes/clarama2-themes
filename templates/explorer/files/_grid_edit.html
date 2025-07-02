@@ -619,39 +619,28 @@
     $('.clarama-post-embedded').load();
   }
 
-  // function add_blank_content(element, data) {
-  
-  //   {{ grid_id }}grid.addWidget({
-  //     x: 0,
-  //     y: 0,
-  //     w: 4,
-  //     h: 1,
-  //     id: element,
-  //     content: '',
-  //     cellHeight: 65,
-  //     margin: 5,
-  //     minRow: 1, // don't collapse when empty
-  //     acceptWidgets: true,
-  //     removable: '.trash'
-  //   })
-
-  //   $('.clarama-post-embedded').load();
-  // }
-
-  function delete_element(element) {
-    delete {{ grid_id }}elements[element];
-
+  function delete_element(target) {
     gs_element = $('.grid-stack-item');
     // console.log(gs_element);
     let remove = undefined;
 
     gs_element.each(function() {
-      if ($(this).attr("gs-id") === element)
+      if ($(this).attr("gs-id") === target)
         remove = $(this);
     })
 
     // console.log(remove);
     remove.remove();
+
+    delete {{ grid_id }}elements[target];
+    let children = {{ grid_id }}grid['engine']['nodes'];
+    let child = children.findIndex(children => children.id == target);
+    if (child !== -1) {
+      children.splice(child, 1);
+    }
+
+    console.log("delete_element", {{ grid_id }}elements);
+    console.log("children", children)
   }
 
   function saveGrid() {
@@ -663,6 +652,11 @@
     };
 
     return serializedData;
+  }
+  
+  function addColToGridElem(elem, colSize) {
+    {{ grid_id }}elements[elem].col = colSize.toString();
+    console.log("addColtogridelem", {{ grid_id }}elements);
   }
 
   function add_selected_content(element_render_url, selected_v = "") {
