@@ -425,7 +425,67 @@
     }
   }
 
+  function initializeGridInteractionsDragDrop() {
+    $('[id^="grid_element_target-"]').each(function() {
+        const container = $(this);
+        const targetId = container.attr('id').replace('grid_element_target-', '');
+        
+        if (!container.hasClass('ui-sortable')) {
+            container.sortable({
+                items: '.slate-elem-dropdown-item',
+                handle: '.draggable-heading',
+                start: function(event, ui) {
+                    ui.placeholder.height(ui.item.height());
+                    ui.placeholder.addClass('bg-light border border-dashed');
+                },
+                stop: function(event, ui) {
+                    updateGridInteractionsOrder(targetId);
+                }
+            });
+        }
+    });
+  }
+
+  function updateGridInteractionsOrder(targetId) {
+      const container = $(`#grid_element_target-${targetId}`);
+      const newOrder = [];
+      
+      container.find('.slate-elem-dropdown-item').each(function(index) {
+          const $item = $(this);
+          const originalIndex = parseInt($item.attr('loop-index'));
+          newOrder.push(originalIndex);
+          
+          $item.attr('loop-index', index);
+          
+          const deleteBtn = $item.find('.delete-grid-interaction');
+          const onclickAttr = deleteBtn.attr('onClick');
+          if (onclickAttr) {
+              const updatedOnclick = onclickAttr.replace(/'\d+'/, `'${index}'`);
+              deleteBtn.attr('onClick', updatedOnclick);
+          }
+          
+          const gearIcon = $item.find('.bi-gear');
+          gearIcon.attr('data-index', index);
+      });
+      
+      if ({{ grid_id }}elements[targetId] && {{ grid_id }}elements[targetId].links) {
+          const originalLinks = [...{{ grid_id }}elements[targetId].links];
+          const reorderedLinks = [];
+          
+          newOrder.forEach(originalIndex => {
+              if (originalLinks[originalIndex]) {
+                  reorderedLinks.push(originalLinks[originalIndex]);
+              }
+          });
+          
+          {{ grid_id }}elements[targetId].links = reorderedLinks;
+      }
+  }
+
   $( document ).ready(() => {
+
+    initializeGridInteractionsDragDrop();
+
     $(".toggle_show").click(function () {
       new_class = $(this).attr("new_file_class");
       new_type = $(this).attr("new_file_type");
@@ -556,7 +616,7 @@
     acceptWidgets: true,
     subGridOpts: {{ grid_id }}subOptions,
     removable: '.trash',
-    draggable: {cancel: '.no-drag'},
+    draggable: {cancel: '.no-drag, .dropdown-menu *:not(.draggable-heading)'},
     subGridDynamic: false, // v7 api to create sub-grids on the fly
     children: {{ grid_json | safe }}
   };
