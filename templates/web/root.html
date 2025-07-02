@@ -246,6 +246,8 @@
     $(document).ready(() => {
         $('.clarama-websocket').enablesocket();
         enable_interactions($('body'));
+
+        $('[data-bs-toggle="tooltip"]').tooltip(); // moved from fieldlayout_text_right.html
     });
 
     document.addEventListener('DOMContentLoaded', () => {
