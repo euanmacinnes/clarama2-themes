@@ -12,13 +12,21 @@
  * @description Applies visual formatting (colors, line styles, point styles, etc.)
  * to a chart dataset based on matching format specifications
  */
-function ChartSeriesFormat(dataset, formats) {
+function ChartSeriesFormat(dataset, formats, index = 0) {
+
+    var colorlist = Object.keys(chartColors)
+    var colorindex = index % colorlist.length;
+    console.log("SERIES formatless colour of " + dataset['id'] + " defaulted to " + colorlist[colorindex]);
+    dataset['borderColor'] = chartColors[colorlist[colorindex]];
+    dataset['backgroundColor'] = chartColors[colorlist[colorindex]];
+
     console.log('CSF ' + dataset['id']);
     if (formats === undefined) {
         dataset['fill'] = false;
         dataset['stepped'] = false;
         dataset['pointRadius'] = 4;
         dataset['borderWidth'] = 2;
+
         return dataset;
     }
 
@@ -73,22 +81,32 @@ function ChartSeriesFormat(dataset, formats) {
             if (format['format-title'] !== undefined && format['format-title'] !== '')
                 dataset['label'] = format['format-title'];
 
-            if (format['format-col'] !== undefined) {
-                //console.log("SERIES colour of " + dataset['id'] + " set to '" + format['format-col']);
+            if (format['format-col'] !== undefined && format['format-col'] !== '') {
+                console.log("SERIES colour of " + dataset['id'] + " set to '" + format['format-col'] + "'");
 
                 if (chartColors[format['format-col']] !== undefined)
                     dataset['borderColor'] = chartColors[format['format-col']]
                 else
                     dataset['borderColor'] = format['format-col'];
+            } else {
+                var colorlist = Object.keys(chartColors)
+                var colorindex = index % colorlist.length;
+                console.log("SERIES border colour of " + dataset['id'] + " defaulted to " + colorlist[colorindex]);
+                dataset['borderColor'] = chartColors[colorlist[colorindex]];
             }
 
-            if (format['format-col-back'] !== undefined) {
-                //console.log("SERIES colour of " + dataset['id'] + " set to '" + format['format-col-back']);
+            if (format['format-col-back'] !== undefined && format['format-col-back'] !== '') {
+                console.log("SERIES colour of " + dataset['id'] + " SET to '" + format['format-col-back'] + "'");
 
                 if (chartColors[format['format-col-back']] !== undefined)
                     dataset['backgroundColor'] = chartColors[format['format-col-back']]
                 else
                     dataset['backgroundColor'] = format['format-col-back'];
+            } else {
+                var colorlist = Object.keys(chartColors)
+                var colorindex = index % colorlist.length;
+                console.log("SERIES background colour of " + dataset['id'] + " defaulted to " + colorlist[colorindex]);
+                dataset['backgroundColor'] = chartColors[colorlist[colorindex]];
             }
 
             if (format['format-dt'])
@@ -590,6 +608,7 @@ function bChart(chart_id, chart_data) {
 
     var legend_display = config['legend'] != 'Off';
 
+    var series_index = 0;
 
     console.log('CHART aspect ' + aspect_ratio + ' with maintain ' + maintain);
     console.log(config);
@@ -778,7 +797,9 @@ function bChart(chart_id, chart_data) {
                                     ChartSeriesAxis(dataset, chart_scales, undefined, formats);
                                 }
 
-                                push_dataset(curr, datasets, ChartSeriesFormat(dataset, formats), category_grouped);
+                                push_dataset(curr, datasets, ChartSeriesFormat(dataset, formats, series_index), category_grouped);
+
+                                series_index++;
 
                                 label = series[p];
                                 points = [];
@@ -885,9 +906,9 @@ function bChart(chart_id, chart_data) {
 
 
                         // The label is a bit pointless here, this is a single dataset situation anyway
-                        push_dataset(label, datasets, ChartSeriesFormat(dataset, formats), false);
+                        push_dataset(label, datasets, ChartSeriesFormat(dataset, formats, series_index), false);
 
-
+                        series_index++;
                     }
                 } else {
                     var dataset_label = label;
@@ -913,7 +934,9 @@ function bChart(chart_id, chart_data) {
 
 
                     // The label is a bit pointless here, this is a single dataset situation anyway
-                    push_dataset(label, datasets, ChartSeriesFormat(dataset, formats), category_grouped);
+                    push_dataset(label, datasets, ChartSeriesFormat(dataset, formats, series_index), category_grouped);
+
+                    series_index++;
                 }
 
                 console.log("DATASETS");
@@ -934,7 +957,9 @@ function bChart(chart_id, chart_data) {
             if (sg['series-u'] !== "") ChartSeriesAxis(dataset, chart_scales, sg['series-u'], formats)
             else ChartSeriesAxis(dataset, chart_scales, undefined, formats);
 
-            push_dataset(label, datasets, ChartSeriesFormat(dataset, formats), category_grouped);
+            push_dataset(label, datasets, ChartSeriesFormat(dataset, formats, series_index), category_grouped);
+
+            series_index++;
 
             if (label_id >= 0)
                 labels = current_dataset['rows'][label_id]
@@ -947,11 +972,11 @@ function bChart(chart_id, chart_data) {
     }
 
     var chartColors = {
+        blue: 'rgb(54, 162, 235)',
         red: 'rgb(255, 50, 50)',
         orange: 'rgb(255, 159, 64)',
         yellow: 'rgb(255, 205, 86)',
         green: 'rgb(75, 255, 192)',
-        blue: 'rgb(54, 162, 235)',
         purple: 'rgb(153, 102, 255)',
         grey: 'rgb(201, 203, 207)',
         mediumgrey: 'rgb(128, 128, 128)',
