@@ -65,6 +65,13 @@
                 }
             });
         });
+
+        $(document).on('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                $('#markdown_save').click();
+            }
+        });
     });
 </script>
 

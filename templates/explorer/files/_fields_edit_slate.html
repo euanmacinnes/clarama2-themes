@@ -17,3 +17,11 @@
     <div id="containment-wrapper" class="col" width="100%" height="100%">
     </div>
 </div>
+<script type="text/javascript">
+    document.addEventListener("keydown", function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            save('/content/save/{{ file_url }}');
+        }
+    });
+</script>
