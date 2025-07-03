@@ -60,7 +60,7 @@
             <input type="string" class="form-control anno-s" id="anno-s{{ loop_index }}_{{ series_index }}" name="s"
                    value="{{ sanno['anno-s'] }}">
         </div>
-        <div class="d-flex justify-content-evenly grid13-col-1">
+        <div class="d-flex justify-content-evenly" style="width: 4%;">
             <input type="checkbox" class="form-check-input anno-dt" id="anno-dt{{ loop_index }}_{{ series_index }}" name="dt"
                    {% if sanno['anno-dt'] %}checked{% endif %} title="Dotted Lines" data-toggle="tooltip">
         </div>
