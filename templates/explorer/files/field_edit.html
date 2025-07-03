@@ -315,7 +315,7 @@
                 if (data['data'] == 'ok') {
                     console.log('Submission was successful.');
                     console.log(data);
-                    flash("Saved!");
+                    flash("Saved!", "success");
                 } else {
                     console.log('Submission was not successful.');
                     console.log(data);
@@ -329,13 +329,6 @@
             }
         });
     }
-
-    document.addEventListener("keydown", function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-            e.preventDefault();
-            save_field();
-        }
-    });
 </script>
 
 {% include theme("web/file_footer.html") %}

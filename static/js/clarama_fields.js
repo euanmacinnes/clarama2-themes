@@ -416,10 +416,12 @@ $.fn.editor = function () {
                     success: function (data) {
                         console.log('Submission was successful.');
                         console.log(data);
+                        flash("Saved!", "success");
                     },
                     error: function (data) {
                         console.log('An error occurred.');
                         console.log(data);
+                        flash("An error occured.", "danger");
                     }
                 })
             });

@@ -1,5 +1,5 @@
 <div class="d-flex align-items-center">
-    <div class="d-flex align-items-center me-4" type="button" onClick="save('/content/save/{{ file_url }}')"><i
+    <div class="d-flex align-items-center me-4" type="button" onClick="save('/content/save/{{ file_url }}')" id="save"><i
             class="fs-5 bi bi-floppy pe-2"></i> Save
     </div>
     <!--<div class="d-flex align-items-center me-4" onClick="addNested()"><i class="fs-5 bi bi-file-plus pe-2"></i> Add Panel</div>-->
@@ -17,11 +17,3 @@
     <div id="containment-wrapper" class="col" width="100%" height="100%">
     </div>
 </div>
-<script type="text/javascript">
-    document.addEventListener("keydown", function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            save('/content/save/{{ file_url }}');
-        }
-    });
-</script>

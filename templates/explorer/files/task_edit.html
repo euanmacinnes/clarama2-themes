@@ -146,12 +146,3 @@
 {% include theme("explorer/files/_grid_edit.html") %}
 {% include theme("explorer/files/task_response_templates.html") %}
 {% include theme("web/file_footer.html") %}
-
-<script>
-    document.addEventListener("keydown", function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-            e.preventDefault();
-            document.getElementById("save")?.click();
-        }
-    });
-</script>
