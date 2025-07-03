@@ -56,5 +56,5 @@
 
 .grid13-col-1 {
     flex: 0 0 auto;
-    width: 7.3846%; /* this is derived from (100-4)/13 because the last col (bin icon) i set width: 4% */
+    width: 7.5384%; /* this is derived from (100-2)/13 because the last col (bin icon) i set width: 2% */
 }
