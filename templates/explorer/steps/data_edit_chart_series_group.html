@@ -6,7 +6,7 @@
         <div style="width: 2%;">
             <i class="bi bi-grip-vertical draggable-heading pe-3" draggable="true"></i>
         </div>
-        <div class="col-2">
+        <div class="grid10-col-1">
             <select id="series-tab{{ loop_index }}" class="form-control series-tab">
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
@@ -21,7 +21,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div style="width: 12%;">
+        <div class="grid10-col-1">
             <select id="sg_type_{{ loop_index }}_{{ series_index }}" class="form-control series-type">
                 <option {{ selected("Line",sgroup['series-type']) }}>Line</option>
                 <option {{ selected("Scatter",sgroup['series-type']) }}>Scatter</option>
@@ -33,35 +33,35 @@
                 <option {{ selected("Radar",sgroup['series-type']) }}>Radar</option>
             </select>
         </div>
-        <div class="col-1">
+        <div class="grid10-col-1">
             <input type="string" class="form-control series-x" id="x{{ loop_index }}_{{ series_index }}" name="x"
                    value="{{ sgroup['series-x'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid10-col-1">
             <input type="string" class="form-control series-y" id="y{{ loop_index }}_{{ series_index }}" name="y"
                    value="{{ sgroup['series-y'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid10-col-1">
             <input type="string" class="form-control series-z" id="z{{ loop_index }}_{{ series_index }}" name="z"
                    value="{{ sgroup['series-z'] }}" {% if (sgroup['series-type'] == "Line") %}disabled{% endif %} >
         </div>
-        <div class="col-1">
+        <div class="grid10-col-1">
             <input type="string" class="form-control series-ymin" id="ymin{{ loop_index }}_{{ series_index }}" name="ymin"
                    value="{{ sgroup['series-ymin'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid10-col-1">
             <input type="string" class="form-control series-ymax" id="ymax{{ loop_index }}_{{ series_index }}" name="ymax"
                    value="{{ sgroup['series-ymax'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid10-col-1">
             <input type="string" class="form-control series-s" id="s{{ loop_index }}_{{ series_index }}" name="s"
                    value="{{ sgroup['series-s'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid10-col-1">
             <input type="string" class="form-control series-u" id="u{{ loop_index }}_{{ series_index }}" name="u"
                    value="{{ sgroup['series-u'] }}">
         </div>
-        <div class="col-1">
+        <div class="grid10-col-1">
             <input type="string" class="form-control series-l" id="l{{ loop_index }}_{{ series_index }}" name="l"
                    value="{{ sgroup['series-l'] }}">
         </div>
