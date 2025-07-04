@@ -1,5 +1,5 @@
-function enable_interactions(parent, reload=false) {
-    // console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class") );
+function enable_interactions(parent, reload = false) {
+    console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class"));
 
     //      parent.find('.clarama-execute').execute();
     parent.find(".dropdown-toggle").dropdown();
@@ -63,7 +63,7 @@ function enable_interactions(parent, reload=false) {
         }
     });
     hoverover_this(parent.find('.hoverover'));
-    
+
     if (reload) {
         parent.find('.clarama-post-embedded').attr('clarama_loaded', false);
         parent.find('.clarama-embedded').attr('clarama_loaded', false);

@@ -676,7 +676,7 @@
       removable: '.trash'
     })
 
-    $('.clarama-post-embedded').load();
+    enable_interactions($("#" + element).parent());
   }
 
   function delete_element(target) {
@@ -777,19 +777,7 @@
           success: function (data) {
             if (data['data'] == 'ok') {
               let html = data['results'];
-              // if (selected_val == '') {
-              //   let parser = new DOMParser();
-              //   let doc = parser.parseFromString(html, 'text/html');
-              //   console.log("doc", doc)
-              //   let elementDiv = doc.getElementById(element);
-              //   console.log("elementDiv", elementDiv)
-              //   if (elementDiv) {
-              //     elementDiv.setAttribute('url', '');
-              //     elementDiv.innerHTML = '';
-              //     html = elementDiv.outerHTML;
-              //   }
-              // }
-              
+
               addContent(element, new_element_data, html);
             } else {
               console.log('Submission was not successful.');
@@ -807,6 +795,55 @@
       
       // $("#addfieldModal").modal('hide');
     }
+  }
+
+function add_text() {
+      // Find a unique element id
+      var element_id = 0;
+      var element_found = false;
+      var element = "";
+
+      do {
+        element = "element_" + element_id;
+
+        if (element in {{ grid_id }}elements)
+          element_id = element_id + 1;
+        else
+          element_found = true;
+      }
+      while (!element_found);
+
+      console.log(element);
+
+
+      // Now add the element
+
+      new_element_data = {"text": "new text"};
+
+      // this render_data is the jinja values needed to render the text template.
+      // evl is the "bracketed eval" version of "text", but since we're defaulting here, we don't need to bother.
+      render_data = {text: "new text",
+                     target: element,
+                     grid_id: "{{ grid_id }}",
+                     evl: "new text"      };
+
+        $.ajax({
+          type: 'POST',
+          url: "/template/render/explorer/files/_grid_element_edit_text",
+          datatype: "html",
+          contentType: 'application/json',
+          data: JSON.stringify(render_data),
+          success: function (data) {
+              let html = data;
+              console.log(html)
+              addContent(element, new_element_data, html);
+          },
+          error: function (data) {
+            console.log('An error occurred.');
+            console.log(data);
+            flash("Couldn't render element content, access denied", "danger");
+          }
+        })
   }
 
   function add_selected_file() {
