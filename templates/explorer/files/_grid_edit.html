@@ -394,9 +394,13 @@
       label.classList.toggle('d-none', isChecked);
     });
     
-    document.querySelectorAll('input[name="interactionType"]').forEach(r => {
-      r.checked = false;
-    });
+    // document.querySelectorAll('input[name="interactionType"]').forEach(r => {
+    //   r.checked = false;
+    // });
+
+    // const dropdownContainer = document.getElementById('elementDropdownContainer');
+    // dropdownContainer.classList.remove('d-none');
+    // dropdownContainer.innerHTML = "";
   }
 
   document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
@@ -523,11 +527,11 @@
         option.value = encodeURIComponent(new_content);
         option.className = "bi bi-folder-fill";
         option.innerHTML = `&nbsp; ${encodeURIComponent(new_content)}`;
-        option.addEventListener('dblclick', () => navigateToPath(`/content/json/${currentModalAddContentPath}/${encodeURIComponent(new_content)}/` + "?subfolders=True&extensions=" + filters, 'breadcrumb_addfield', 'add_content_addfield'));
+        option.addEventListener('dblclick', () => navigateToPath(`/content/json/${currentModalAddContentPath}/${encodeURIComponent(new_content)}/` + "?subfolders=True&extensions=" + filters, 'breadcrumb_addfield', 'add_content_addfield', filters));
         document.getElementById('add_content_addfield').appendChild(option);
       } else {
         path = ($CLARAMA_ROOT + '/content/json/' + currentModalAddContentPath + '?subfolders=True&extensions=' + filters);
-        navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield');
+        navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield', filters);
       }
 
       document.getElementById('new_content').value = '';
@@ -557,7 +561,7 @@
       path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
 
       currentModalAddContentPath = "{{ file_url | path }}";
-      navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield');
+      navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield', filters);
     });
 
     $('#browseFileModal').on('shown.bs.modal', function (event) {
@@ -572,7 +576,7 @@
       $(this).data('gridElem', gridElem);
       path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
 
-      navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile');
+      navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile', filters);
     });
 
     $('#browseFileModal').on('hidden.bs.modal', function () {
@@ -679,6 +683,19 @@
     $('.clarama-post-embedded').load();
   }
 
+  function deleteLinkedInteractions(elements, target) {
+    for (const [id, data] of Object.entries(elements)) {
+      if (Array.isArray(data.links)) {
+        data.links = data.links.filter(link => link.element !== target);
+      }
+    }
+  }
+
+  function removeLinkElementsFromUI(target) {
+    const links = document.querySelectorAll(`.slate-elem-dropdown-item[elem-id="${target}"]`);
+    links.forEach(linkEl => linkEl.remove());
+  }
+
   function delete_element(target) {
     gs_element = $('.grid-stack-item');
     // console.log(gs_element);
@@ -693,6 +710,8 @@
     remove.remove();
 
     delete {{ grid_id }}elements[target];
+    deleteLinkedInteractions({{ grid_id }}elements, target);
+    removeLinkElementsFromUI(target);
     let children = {{ grid_id }}grid['engine']['nodes'];
     let child = children.findIndex(children => children.id == target);
     if (child !== -1) {
@@ -886,7 +905,7 @@
   function handle_interaction_settings() {
     const file_url = document.getElementById("grid-elem").value.trim();
     const gridElem = document.getElementById("interaction-target").value;
-    const elemIndex = document.getElementById('interaction-index').value;
+    const uid = document.getElementById('interaction-index').value;
     const urlParams = document.getElementById('interaction-params').value;
     const menuItem = document.getElementById("menu-item").value.trim();
     
@@ -921,34 +940,49 @@
     var elementToAddInteraction = {{ grid_id }}elements[gridElem];
     if (!elementToAddInteraction.links) {
       elementToAddInteraction.links = [];
+      nextUid = '0';
+    } else {
+      lastUid = elementToAddInteraction.links[elementToAddInteraction.links.length -1].uid;
+      nextUid = (parseInt(lastUid) + 1).toString();
     }
     
     let grid_element_target = document.getElementById('grid_element_target-'+gridElem);
+    if (!grid_element_target) return;
 
-    if (elemIndex == "") {
+    console.log("uid", uid)
+    if (uid == "") {
       if (isContextMenu) {
-        elementToAddInteraction.links.push({ contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
-        grid_element_target.appendChild(addGridInteraction(gridElem, checkedType, file_url, elementToAddInteraction.links.length -1, urlParams, menuItem));
+        console.log("uid empty, is ContextMenu")
+        elementToAddInteraction.links.push({ uid: nextUid, contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
+        grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams, menuItem));
       } else {
-        elementToAddInteraction.links.push({ element: checkedType, url: file_url, params: urlParams });
-        grid_element_target.appendChild(addGridInteraction(gridElem, checkedType, file_url, elementToAddInteraction.links.length -1, urlParams));
+        console.log("uid empty, is not ContextMenu")
+        elementToAddInteraction.links.push({ uid: nextUid, element: checkedType, url: file_url, params: urlParams });
+        grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams));
       }
       enable_interactions($("#grid_element_target-" + gridElem));
     } else {
+      let linkIdx = elementToAddInteraction.links.findIndex(link => link.uid == uid);
+
       if (isContextMenu) {
-        elementToAddInteraction.links[elemIndex] = { contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
+        console.log("uid, is ContextMenu")
+        elementToAddInteraction.links[linkIdx] = { uid: uid, contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
       } else {
-        elementToAddInteraction.links[elemIndex] = { element: checkedType, url: file_url, params: urlParams };
+        console.log("uid, is not ContextMenu")
+        elementToAddInteraction.links[linkIdx] = { uid: uid, element: checkedType, url: file_url, params: urlParams };
       }
 
-      if (!grid_element_target) return;
-      const li = grid_element_target.querySelector(`li[loop-index="${elemIndex}"]`);
+      const li = grid_element_target.querySelector(`li[loop-index="${uid}"]`);
       if (!li) return;
       li.setAttribute('elem-id', checkedType);
 
       const innerTextDiv = li.querySelector('div.cElem');
       if (innerTextDiv) {
-        innerTextDiv.textContent = checkedType;
+        if (isContextMenu) {
+          innerTextDiv.textContent = checkedType + " - " + menuItem;
+        } else {
+          innerTextDiv.textContent = checkedType;
+        }
       }
 
       const gearIcon = li.querySelector('.bi-gear');
@@ -966,6 +1000,7 @@
 
     console.log("updated element", elementToAddInteraction);
     $("#interactionSettingsModal").modal('hide');
+    closeInteractionsModal();
   }
 
   function save(url) {
@@ -1013,21 +1048,24 @@
     }
   }
 
-  function unlink_elements(target, link_index) {
+  function delete_interaction(target, link_index) {
     if (target in {{ grid_id }}elements) {
-      var element = {{ grid_id }}elements[target];
-      console.log("element", element)
-      element['links'].splice(link_index, 1);
-      // enable_interactions($(`#${target}`).parent(), true);
+      var element_links = {{ grid_id }}elements[target]['links'];
+      console.log("element_links", element_links)
 
-      flash("unlinking " + target + " to [" + element['links'] + "]");
+      let linkIdx = element_links.findIndex(link => link.uid == link_index);
+      if (linkIdx !== -1) {
+        element_links.splice(linkIdx, 1);
+      }
+
+      flash("interaction in " + target + " deleted");
       console.log("updated element", {{ grid_id }}elements);
     }
   }
 
   // Extract the current directory depth
   var relativePath;
-  function renderBreadcrumb(path, breadcrumbId, selectId) {
+  function renderBreadcrumb(path, breadcrumbId, selectId, filters) {
     const targetPath = path.split('?')[0].split('/').slice(3).join('/');
     relativePath = getRelativePath(currentPath, targetPath);
 
@@ -1046,7 +1084,7 @@
     } else {
       root.innerHTML = "Clarama";
     }
-    root.addEventListener('click', () => navigateToPath(path.split('/').slice(0, 3).join('/') + "/?subfolders=True&extensions=" + filters, breadcrumbId, selectId));
+    root.addEventListener('click', () => navigateToPath(path.split('/').slice(0, 3).join('/') + "/?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
     breadcrumb.appendChild(root);
 
     trimmedPath.forEach((part, index, array) => {
@@ -1056,7 +1094,7 @@
         if (index < array.length - 1) {
           li.style.cursor = 'pointer';
           li.className = 'text-secondary';
-          li.addEventListener('click', () => navigateToPath(path.split('/').slice(0, index + 4).join('/') + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId));
+          li.addEventListener('click', () => navigateToPath(path.split('/').slice(0, index + 4).join('/') + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
           li.innerHTML = part + "&nbsp;>&nbsp;";
         } else {
           li.innerText = part.split('?')[0];
@@ -1094,7 +1132,7 @@
       })
     }
 
-    function renderFilesNFolder(path, breadcrumbId, selectId) {
+    function renderFilesNFolder(path, breadcrumbId, selectId, filters) {
       const selectElement = document.getElementById(selectId);
       console.log(`fetch path: ${path}`)
       fetch(path)
@@ -1120,10 +1158,24 @@
 
           // const sortedFolders = naturalSort([...foldersSet]);
           // const sortedFiles = naturalSort([...filesSet]);
-          const sortedFolders = json_files['results']['folders'];
-          const sortedFiles = json_files['results']['files'];
+          const sortedFolders = naturalSort(json_files['results']['folders']);
+          const sortedFiles = naturalSort(json_files['results']['files']);
           console.log("folders", sortedFolders)
           console.log("files", sortedFiles)
+
+          // using regex to filter
+          // *.field.yaml -> /^.*\.field\.yaml$/
+          // *.task.yaml -> /^.*\.task\.yaml$/
+          // *.md -> /^.*\.md$/
+          console.log("filters", filters);
+          const filePathFilters = filters
+            .split('|')
+            .map(path => {
+              const escaped = path.replace(/\./g, '\\.').replace(/\*/g,  '.*');
+              return new RegExp(`${escaped}`);
+            })
+
+          console.log("filePathFilters", filePathFilters)
 
           // Render folders
           sortedFolders.forEach(folder => {
@@ -1132,9 +1184,9 @@
             option.className = "bi bi-folder-fill";
             option.innerHTML = `&nbsp; ${folder}`;
             if (path.split('?')[0] == "/content/json/") {
-              option.addEventListener('dblclick', () => navigateToPath(`/content/json/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId));
+              option.addEventListener('dblclick', () => navigateToPath(`/content/json/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
             } else {
-              option.addEventListener('dblclick', () => navigateToPath(`${path.split('?')[0]}/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId));
+              option.addEventListener('dblclick', () => navigateToPath(`${path.split('?')[0]}/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
             }
             selectElement.appendChild(option);
           });
@@ -1142,6 +1194,11 @@
           // Render files with relative paths
           sortedFiles.forEach(filePath => {
             // if (!sortedFolders.has(filePath.split('/')[0])) { // ensure it's not a folder
+
+              // only display the files that match the filters
+              const matches = filePathFilters.some(regex => regex.test(filePath));
+              if (!matches) return
+
               const option = document.createElement('option');
 
               // store relative path in val
@@ -1169,12 +1226,12 @@
     }
 
     // Function to navigate to a specific path
-    function navigateToPath(path, breadcrumbId, selectId) {
+    function navigateToPath(path, breadcrumbId, selectId, filters) {
       console.log("path", path)
       const match = path.match(/^\/content\/json\/?(.*?)(\?|$)/);
       currentModalAddContentPath = match ? match[1] : "";
-      renderBreadcrumb(path, breadcrumbId, selectId);
-      renderFilesNFolder(path, breadcrumbId, selectId);
+      renderBreadcrumb(path, breadcrumbId, selectId, filters);
+      renderFilesNFolder(path, breadcrumbId, selectId, filters);
     }
 
     function resolveRelativeFilePath(currentPath, relativePath) {

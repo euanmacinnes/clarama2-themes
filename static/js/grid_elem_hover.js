@@ -55,9 +55,9 @@ $(document).on('click', '.delete-grid-interaction', function () {
     $(this).closest('li').remove();
 });
 
-function addGridInteraction(gelem_target, selectedValue, selectedValueUrl, loopIndex, urlParams, menuItemName="") {
+function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, menuItemName="") {
     const newGI = document.createElement("div");
     newGI.className = "clarama-post-embedded clarama-replaceable";
-    newGI.setAttribute("url", `/template/render/explorer/steps/grid_edit_interaction?current_element=${selectedValue}&target=${gelem_target}&current_element_url=${selectedValueUrl}&loop_index=${loopIndex}&current_element_params=${urlParams}&menu_item_name=${menuItemName}`);
+    newGI.setAttribute("url", `/template/render/explorer/steps/grid_edit_interaction?uid=${newIndex}&current_element=${selectedValue}&target=${gelem_target}&current_element_url=${selectedValueUrl}&current_element_params=${urlParams}&menu_item_name=${menuItemName}`);
     return newGI;
 }
