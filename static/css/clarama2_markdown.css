@@ -103,3 +103,7 @@
 .help-folder img {
     max-width: 100%;
 }
+
+.help-folder markdown-card {
+    min-width: 50%;
+}
