@@ -636,6 +636,18 @@
   // document.querySelector('#saved').value = JSON.stringify(options);
   let {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#containment-wrapper'), {{ grid_id }}options);
 
+  {{ grid_id }}grid.on('removed', function(event, items) {
+    items.forEach(item => {
+      console.log("item", item);
+      const target = item.el.getAttribute('gs-id'); 
+      if (target) {
+        console.log("Removed:", target);
+        deleteLinkedInteractions(target);
+        removeLinkElementsFromUI(target);
+      }
+    });
+  });
+
   function addNested() {
     {{ grid_id }}grid.addWidget({
       x: 0, y: 20, w: 4, h: 4,
@@ -683,8 +695,8 @@
     $('.clarama-post-embedded').load();
   }
 
-  function deleteLinkedInteractions(elements, target) {
-    for (const [id, data] of Object.entries(elements)) {
+  function deleteLinkedInteractions(target) {
+    for (const [id, data] of Object.entries({{ grid_id }}elements)) {
       if (Array.isArray(data.links)) {
         data.links = data.links.filter(link => link.element !== target);
       }
@@ -698,7 +710,6 @@
 
   function delete_element(target) {
     gs_element = $('.grid-stack-item');
-    // console.log(gs_element);
     let remove = undefined;
 
     gs_element.each(function() {
@@ -706,11 +717,10 @@
         remove = $(this);
     })
 
-    // console.log(remove);
     remove.remove();
 
     delete {{ grid_id }}elements[target];
-    deleteLinkedInteractions({{ grid_id }}elements, target);
+    deleteLinkedInteractions(target);
     removeLinkElementsFromUI(target);
     let children = {{ grid_id }}grid['engine']['nodes'];
     let child = children.findIndex(children => children.id == target);
@@ -938,11 +948,12 @@
     }
 
     var elementToAddInteraction = {{ grid_id }}elements[gridElem];
-    if (!elementToAddInteraction.links) {
+    if (!elementToAddInteraction.links || elementToAddInteraction.links.length === 0) {
       elementToAddInteraction.links = [];
       nextUid = '0';
     } else {
-      lastUid = elementToAddInteraction.links[elementToAddInteraction.links.length -1].uid;
+      const lastLink = elementToAddInteraction.links[elementToAddInteraction.links.length - 1];
+      lastUid = lastLink.uid;
       nextUid = (parseInt(lastUid) + 1).toString();
     }
     
