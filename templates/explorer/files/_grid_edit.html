@@ -642,6 +642,7 @@
       const target = item.el.getAttribute('gs-id'); 
       if (target) {
         console.log("Removed:", target);
+        delete {{ grid_id }}elements[target];
         deleteLinkedInteractions(target);
         removeLinkElementsFromUI(target);
       }
