@@ -83,7 +83,7 @@ function task_save(parent) {
                     if (data['data'] === 'ok') {
                         console.log('Submission was successful.');
                         console.log(data);
-                        flash("Saved!");
+                        flash("Saved!", "success");
                     } else {
                         console.log('Submission was not successful.');
                         console.log(data);
