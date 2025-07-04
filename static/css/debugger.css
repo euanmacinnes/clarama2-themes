@@ -1,0 +1,59 @@
+.content-row {
+    display: flex;
+    align-items: stretch; 
+}
+
+.left-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.right-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.cell-debugger {
+    height: 100%;
+}
+
+.cell-debugger .card {
+    height: 100%;
+}
+
+.cell-response {
+    margin-top: 10px;
+}
+
+.debugger-content {
+    padding: 15px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.loop-hidden {
+    display: none;
+}
+
+.loop-show {
+    display: block;
+}
+
+.loop-inactive {
+    opacity: 0.5;
+}
+
+.loop-active {
+    opacity: 1;
+}
+
+.celleditdebug.active {
+    background-color: #007bff !important;
+    color: white !important;
+}
+
+.celleditdebug.active i {
+    color: white !important;
+}

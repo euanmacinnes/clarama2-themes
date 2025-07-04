@@ -130,6 +130,43 @@ function cell_delete_step(parent) {
 }
 
 /**
+ * Sets up handlers for toggling debug view
+ * @param {jQuery} parent - jQuery object representing the parent container
+ * @description Attaches click event handlers to debug buttons and toggles
+ * the visibility of the debug panel (right content area)
+ */
+function cell_toggle_debug_view(parent) {
+    parent.find(".celleditdebug").off('click');
+    parent.find(".celleditdebug").on("click", function () {
+        var debugButton = $(this);
+        var taskIndex = debugButton.attr('data-task-index');
+        
+        var cellItem = debugButton.closest('.clarama-cell-item');
+        
+        var leftContent = cellItem.find('#left_content_' + taskIndex);
+        var rightContent = cellItem.find('#right_content_' + taskIndex);
+        
+        if (rightContent.hasClass('d-none')) {
+            leftContent.removeClass('col-6').addClass('col-6');
+            rightContent.removeClass('d-none');
+            
+            debugButton.addClass('btn-warning');
+            debugButton.attr('title', 'Hide Debug');
+            
+            loadDebugContent(taskIndex); // NEED IMPLEMENT THIS FUNCTION 
+        } else {
+            // Hide debug view - full width mode
+            leftContent.removeClass('col-6').addClass('col-6');
+            rightContent.addClass('d-none');
+            
+            // Update button appearance to show it's inactive
+            debugButton.removeClass('btn-warning');
+            debugButton.attr('title', 'Debug');
+        }
+    });
+}
+
+/**
  * Sets the output type for a data cell
  * @param {string} id_template - Base ID for the data cell elements
  * @param {string} value - Output type ('table', 'chart', or 'code')
@@ -209,4 +246,12 @@ function moveToNextCell(currentButton) {
             }
         }
     }
+}
+
+/**
+ * Loads debug content for a specific task
+ * @param {string} taskIndex - The index of the task to load debug content for
+ * @description Loads debug information into the debugger panel
+ */
+function loadDebugContent(taskIndex) {
 }

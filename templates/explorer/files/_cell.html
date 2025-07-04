@@ -31,11 +31,13 @@
                          id="task_toolbar_{{ stream }}_{{ task_index }}_play"
                          opacity="0.04">
                         <button type="button" class="btn celleditrun" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Run this step"><i
-                                class="mb-3 fs-4 bi bi-play-fill " style="width: 75px;"></i></button>
-                        <button type="button" class="btn celleditfwd" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Debug"><i
-                                class="mb-3 fs-4 bi bi-bug-fill"></i>
+                                data-bs-placement="bottom" title="Run this step">
+                                <i class="mb-3 fs-4 bi bi-play-fill " style="width: 75px;"></i>
+                        </button>
+                        <button type="button" class="btn celleditdebug" data-bs-toggle="tooltip"
+                                data-bs-placement="bottom" title="Debug"
+                                data-task-index="{{ task_index }}">
+                                <i class="mb-3 fs-4 bi bi-bug-fill"></i>
                         </button>
                     </div>
                 </div>
@@ -76,7 +78,8 @@
                 <div class="col loop-left loop-hidden loop-{{ task_index }}">
                     <div class="loop loop-left loop-height">&nbsp;</div>
                 </div>
-                <div class="col">
+                <!-- Left Half -->
+                <div class="col-6 left-content" id="left_content_{{ task_index }}">
                     <!-- the Editing -->
                     <div id="step_{{ stream }}_{{ task_index }}"
                          class="clarama-post-embedded cell-editor"
@@ -90,9 +93,24 @@
                         </div>
                     </div>
                 </div>
+                <!-- Right Half -->
+                <div class="col-6 right-content d-none" id="right_content_{{ task_index }}">
+                    <!-- Debugger -->
+                    <div id="debugger_{{ task_index }}" class="cell-debugger">
+                        <div class="card h-100">
+                            <div class="debugger-content">
+                                <!-- Debugger content will be populated here -->
+                                <div class="text-muted">
+                                    <p>Debug information will appear here.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>
         </div>
+        <div class="pb-1">&nbsp;</div>
     </div>
 </li>
 
@@ -136,8 +154,6 @@
         $("input").off("change");
         $("input").on("change", function () {
             toggle_loop($(this));
-
-
         });
     });
 </script>
