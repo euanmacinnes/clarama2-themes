@@ -8,7 +8,9 @@ function enable_interactions(parent, reload = false) {
     parent.find('.text-editor').trumbowyg({
         autogrow: true,
         autogrowOnEnter: true,
+        removeformatPasted: true,
         btns: [
+            ['viewHTML'],
             ['historyUndo', 'historyRedo'],
             ['formatting'],
             ['fontsize', 'foreColor', 'backColor'],
