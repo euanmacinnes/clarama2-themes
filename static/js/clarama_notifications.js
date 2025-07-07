@@ -47,30 +47,38 @@ function flash(message, category = "info") {
     const now = new Date();
     const relativeTime = getRelativeTime(now);
 
-    const toastId = 'toast_' + Date.now();
-    const toastHtml = `
-        <div id="${toastId}" class="toast text-dark bg-${category}-subtle border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body w-100 py-3 px-4" style="word-break: break-word;">
-                    ${message}
+    if (category == "crticial") {
+        const nModal = document.getElementById("notifModalBody");
+        nModal.innerHTML = '';
+        nModal.innerHTML = `<p>${message}</p>`;
+
+        $('#notifModal').modal('show');
+    } else {
+        const toastId = 'toast_' + Date.now();
+        const toastHtml = `
+            <div id="${toastId}" class="toast text-dark bg-${category}-subtle border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body w-100 py-3 px-4" style="word-break: break-word;">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-dark me-2 mt-2" style="font-size: 8px;" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
-                <button type="button" class="btn-close btn-close-dark me-2 mt-2" style="font-size: 8px;" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
-        </div>
-    `;
-    
-    $('#toast_container').append(toastHtml);
-    
-    const toastElement = document.getElementById(toastId);
-    const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 }); 
-    bsToast.show();
-    
-    toastElement.addEventListener('hidden.bs.toast', () => {
-        toastElement.remove(); 
-    });
-    
-    // html = '<div class="row alert flash-alert alert-' + category + '">' + message + '</div>'
-    // $("#notification_popup").append(html);
+        `;
+        
+        $('#toast_container').append(toastHtml);
+        
+        const toastElement = document.getElementById(toastId);
+        const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 }); 
+        bsToast.show();
+        
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove(); 
+        });
+        
+        // html = '<div class="row alert flash-alert alert-' + category + '">' + message + '</div>'
+        // $("#notification_popup").append(html);
+    }
 
     const alert_html = `
         <li class="list-group-item d-flex flex-row align-items-start justify-content-left border-0 pb-1" data-timestamp="${now.toISOString()}">

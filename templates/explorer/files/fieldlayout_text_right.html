@@ -1,7 +1,7 @@
 {% if field_type != "hidden" %}
     <div class="container-fluid" style="height: 100%;">
         <div class="row" style="height: 100%; padding: 0;">
-            <div class="col-sm-{{ target }} resizable-col" id="resizable-col-{{ field_id }}" style="position: relative;">
+            <div class="col-sm-{{ field_spacing or get(field_config,'spacing',3) }} resizable-col" id="resizable-col-{{ field_id }}" style="position: relative;">
                 <label style="white-space:nowrap;overflow:hidden;">
                     {% if get(field_config,'required',False) %}
                         <strong>{{ get(field_config,'name',field) }}</strong>
