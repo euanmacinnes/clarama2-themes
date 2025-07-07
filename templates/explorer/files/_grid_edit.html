@@ -490,6 +490,35 @@
       }
   }
 
+  function updateTextElement(target, gridId) {
+    const textareaId = gridId + target;
+    const textarea = document.getElementById(textareaId);
+    const newText = textarea.value;
+    
+    const gridElement = document.getElementById(target);
+    if (gridElement) {
+      gridElement.innerHTML = newText;
+    }
+    
+    const elementsVar = gridId + 'elements';
+    if (window[elementsVar] && window[elementsVar][target]) {
+      window[elementsVar][target].text = newText;
+    }
+    
+    const dropdown = document.getElementById('grid-elem-dropdown-' + target);
+    if (dropdown) {
+      const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+      if (dropdownMenu) {
+        dropdownMenu.classList.remove('show');
+      }
+      
+      const dropdownToggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+      if (dropdownToggle) {
+        dropdownToggle.setAttribute('aria-expanded', 'false');
+      }
+    }
+  }
+
   $( document ).ready(() => {
 
     initializeGridInteractionsDragDrop();
