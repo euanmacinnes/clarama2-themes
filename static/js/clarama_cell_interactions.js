@@ -145,15 +145,26 @@ function cell_toggle_debug_view(parent) {
         
         var leftContent = cellItem.find('#left_content_' + taskIndex);
         var rightContent = cellItem.find('#right_content_' + taskIndex);
+        var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
+        var notificationContents = null;
+
+        if (isNotificationCell) {
+            notificationContents = cellItem.find('.clarama-cell-content[celltype="notification"] .alert-secondary > div');
+        }
         
         if (rightContent.hasClass('d-none')) {
             leftContent.removeClass('col-6').addClass('col-6');
             rightContent.removeClass('d-none');
             
             debugButton.addClass('btn-warning');
-            debugButton.attr('title', 'Hide Debug');
+            debugButton.attr('title', 'Hide Debug (Ctrl-\\\)');
+
+            if (isNotificationCell && notificationContents && notificationContents.length > 0) {
+                notificationContents.removeClass('row');
+                notificationContents.addClass('d-flex flex-column');
+            }
             
-            loadDebugContent(taskIndex); // NEED IMPLEMENT THIS FUNCTION 
+            // loadDebugContent(taskIndex); // NEED IMPLEMENT THIS FUNCTION???
         } else {
             // Hide debug view - full width mode
             leftContent.removeClass('col-6').addClass('col-6');
@@ -161,7 +172,12 @@ function cell_toggle_debug_view(parent) {
             
             // Update button appearance to show it's inactive
             debugButton.removeClass('btn-warning');
-            debugButton.attr('title', 'Debug');
+            debugButton.attr('title', 'Debug (Ctrl-\)');
+
+            if (isNotificationCell && notificationContents && notificationContents.length > 0) {
+                notificationContents.removeClass('d-flex flex-column');
+                notificationContents.addClass('row');
+            }
         }
     });
 }
@@ -248,10 +264,3 @@ function moveToNextCell(currentButton) {
     }
 }
 
-/**
- * Loads debug content for a specific task
- * @param {string} taskIndex - The index of the task to load debug content for
- * @description Loads debug information into the debugger panel
- */
-function loadDebugContent(taskIndex) {
-}
