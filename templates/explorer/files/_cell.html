@@ -31,14 +31,16 @@
                          id="task_toolbar_{{ stream }}_{{ task_index }}_play"
                          opacity="0.04">
                         <button type="button" class="btn celleditrun" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Run this step">
+                                data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
                                 <i class="mb-3 fs-4 bi bi-play-fill " style="width: 75px;"></i>
                         </button>
+                        {% if task_step['type'] != "data" %}
                         <button type="button" class="btn celleditdebug" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Debug"
+                                data-bs-placement="bottom" title="Debug (Ctrl-\)"
                                 data-task-index="{{ task_index }}">
                                 <i class="mb-3 fs-4 bi bi-bug-fill"></i>
                         </button>
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}
