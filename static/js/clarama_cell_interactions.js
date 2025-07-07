@@ -12,18 +12,103 @@
 var new_step_id = 100000000;
 
 /**
+ * Closes all currently open debuggers
+ * @description Finds all open debuggers and closes them
+ */
+function closeAllDebuggers() {
+    $('.clarama-cell-item').each(function() {
+        var cellItem = $(this);
+        var taskIndex = cellItem.attr('step');
+        var leftContent = cellItem.find('#left_content_' + taskIndex);
+        var rightContent = cellItem.find('#right_content_' + taskIndex);
+        var debugButton = cellItem.find('.celleditdebug');
+        
+        if (!rightContent.hasClass('d-none')) {
+            leftContent.removeClass('col-6').addClass('col-6');
+            rightContent.addClass('d-none');
+            
+            debugButton.removeClass('btn-warning');
+            debugButton.attr('title', 'Debug (Ctrl-\\)');
+            
+            var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
+            if (isNotificationCell) {
+                var notificationContents = cellItem.find('.clarama-cell-content[celltype="notification"] .alert-secondary > div');
+                if (notificationContents && notificationContents.length > 0) {
+                    notificationContents.removeClass('d-flex flex-column');
+                    notificationContents.addClass('row');
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Opens debugger for a specific cell
+ * @param {jQuery} cellItem - The cell item to open debugger for
+ * @param {string} taskIndex - The task index of the cell
+ */
+function openDebugger(cellItem, taskIndex) {
+    var leftContent = cellItem.find('#left_content_' + taskIndex);
+    var rightContent = cellItem.find('#right_content_' + taskIndex);
+    var debugButton = cellItem.find('.celleditdebug');
+    var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
+    var notificationContents = null;
+
+    if (isNotificationCell) {
+        notificationContents = cellItem.find('.clarama-cell-content[celltype="notification"] .alert-secondary > div');
+    }
+    
+    leftContent.removeClass('col-6').addClass('col-6');
+    rightContent.removeClass('d-none');
+    
+    debugButton.addClass('btn-warning');
+    debugButton.attr('title', 'Hide Debug (Ctrl-\\)');
+
+    if (isNotificationCell && notificationContents && notificationContents.length > 0) {
+        notificationContents.removeClass('row');
+        notificationContents.addClass('d-flex flex-column');
+    }
+}
+
+/**
  * Sets up click handlers for running cells
  * @param {jQuery} parent - jQuery object representing the parent container
  * @description Attaches click event handlers to run buttons within cells
  */
 function cell_edit_run(parent) {
-    //console.log("cell-edit-run for " +parent.attr('id') + ':' + parent.attr('class'));
-    //console.log(parent.find(".celleditrun"));
-
     parent.find(".celleditrun").click(function () {
         var cell_button = $(this).closest('.clarama-cell-item');
+        var taskIndex = cell_button.attr('step');
+        var hasDebuggerOpen = !cell_button.find('#right_content_' + taskIndex).hasClass('d-none');
         console.log(cell_button);
         cell_item_run(cell_button);
+        
+        // If this cell had debugger open, close it and move to next cell with debugger
+        if (hasDebuggerOpen) {
+            closeAllDebuggers();
+            
+            // Move to next cell and open its debugger
+            setTimeout(function() {
+                var currentStep = parseInt(taskIndex);
+                if (!isNaN(currentStep)) {
+                    var nextCell = $("li.clarama-cell-item[step='" + (currentStep + 1) + "']");
+                    if (nextCell.length) {
+                        var nextTaskIndex = nextCell.attr('step');
+                        if (nextCell.find('.celleditdebug').length > 0) {
+                            openDebugger(nextCell, nextTaskIndex);
+                        }
+                        
+                        // Focus on the next cell's editor
+                        var nextEditorDiv = nextCell.find(".ace_editor").eq(0);
+                        if (nextEditorDiv.length) {
+                            var editor = nextEditorDiv.get(0).env.editor;
+                            editor.focus();
+                            editor.gotoLine(editor.session.getLength() + 1, 0);
+                        }
+                    }
+                }
+            }, 100);
+        }
     });
 }
 
@@ -133,7 +218,8 @@ function cell_delete_step(parent) {
  * Sets up handlers for toggling debug view
  * @param {jQuery} parent - jQuery object representing the parent container
  * @description Attaches click event handlers to debug buttons and toggles
- * the visibility of the debug panel (right content area)
+ * the visibility of the debug panel (right content area). Only one debugger
+ * can be open at a time.
  */
 function cell_toggle_debug_view(parent) {
     parent.find(".celleditdebug").off('click');
@@ -142,42 +228,13 @@ function cell_toggle_debug_view(parent) {
         var taskIndex = debugButton.attr('data-task-index');
         
         var cellItem = debugButton.closest('.clarama-cell-item');
-        
-        var leftContent = cellItem.find('#left_content_' + taskIndex);
         var rightContent = cellItem.find('#right_content_' + taskIndex);
-        var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
-        var notificationContents = null;
-
-        if (isNotificationCell) {
-            notificationContents = cellItem.find('.clarama-cell-content[celltype="notification"] .alert-secondary > div');
-        }
         
         if (rightContent.hasClass('d-none')) {
-            leftContent.removeClass('col-6').addClass('col-6');
-            rightContent.removeClass('d-none');
-            
-            debugButton.addClass('btn-warning');
-            debugButton.attr('title', 'Hide Debug (Ctrl-\\\)');
-
-            if (isNotificationCell && notificationContents && notificationContents.length > 0) {
-                notificationContents.removeClass('row');
-                notificationContents.addClass('d-flex flex-column');
-            }
-            
-            // loadDebugContent(taskIndex); // NEED IMPLEMENT THIS FUNCTION???
+            closeAllDebuggers();
+            openDebugger(cellItem, taskIndex);
         } else {
-            // Hide debug view - full width mode
-            leftContent.removeClass('col-6').addClass('col-6');
-            rightContent.addClass('d-none');
-            
-            // Update button appearance to show it's inactive
-            debugButton.removeClass('btn-warning');
-            debugButton.attr('title', 'Debug (Ctrl-\)');
-
-            if (isNotificationCell && notificationContents && notificationContents.length > 0) {
-                notificationContents.removeClass('d-flex flex-column');
-                notificationContents.addClass('row');
-            }
+            closeAllDebuggers();
         }
     });
 }

@@ -97,17 +97,7 @@
                 </div>
                 <!-- Right Half -->
                 <div class="col-6 right-content d-none" id="right_content_{{ task_index }}">
-                    <!-- Debugger -->
-                    <div id="debugger_{{ task_index }}" class="cell-debugger">
-                        <div class="card h-100">
-                            <div class="debugger-content">
-                                <!-- Debugger content will be populated here -->
-                                <div class="text-muted">
-                                    <p>Debug information will appear here.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    {% include theme("explorer/files/_cell_debugger.html") %}
                 </div>
             </div>
             <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>

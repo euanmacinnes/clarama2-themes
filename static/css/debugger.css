@@ -57,3 +57,89 @@
 .celleditdebug.active i {
     color: white !important;
 }
+
+.variable-item {
+    cursor: pointer;
+    padding: 4px 8px;
+    margin: 2px 0;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    font-family: monospace;
+    font-size: 10px;
+}
+
+.variable-item:hover {
+    background-color: #e9ecef;
+}
+
+.variable-item.selected {
+    background-color: #007bff;
+    color: white;
+}
+
+.variable-name {
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.variable-type {
+    color: #6c757d;
+    font-size: 11px;
+}
+
+.console-output {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', Monaco, monospace;
+    color: #ffffff;
+}
+
+.console-line {
+    margin: 2px 0;
+    font-family: 'Courier New', Monaco, monospace;
+    color: #ffffff;
+}
+
+.console-input {
+    font-family: 'Courier New', Monaco, monospace;
+    font-size: 12px;
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #333333 !important;
+}
+
+.console-input:focus {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+.console-input::placeholder {
+    color: #888888 !important;
+}
+
+.debugger-variables {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.debugger-console {
+    background-color: #000000 !important;
+    border-top: 1px solid #333333 !important;
+    color: #ffffff;
+}
+
+.debugger-console .input-group .btn {
+    background-color: #333333 !important;
+    border-color: #333333 !important;
+    color: #ffffff !important;
+}
+
+.debugger-console .input-group .btn:hover {
+    background-color: #555555 !important;
+    border-color: #555555 !important;
+}
+
+.debugger-console .input-group .btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
