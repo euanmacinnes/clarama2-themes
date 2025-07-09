@@ -1,25 +1,20 @@
-<div class="container-fluid row tight" style="height: 100%; padding-bottom: 2px;">     
-    <div id="{{ target }}" grid-id="{{ grid_id }}"          
-         class="col clarama-element clarama-edit-element slate-panel-target tight">         
-        {{ evl | safe }}     
-    </div>     
-    <div id="grid-elem-dropdown-{{ target }}" class="dropdown col-auto align-middle tight"          
-         style="position: absolute; top: 4px; right: 3px;">         
-        <i class="bi bi-three-dots-vertical element_editor grid-elem-menu" data-bs-toggle="dropdown"            
-           aria-expanded="false" target="{{ target }}" elems="{{ grid_id }}" title="{{ target }}"></i>         
-        <ul class="dropdown-menu embedded-dropdown-menu grid-element-dropdown-menu" onclick="event.stopPropagation();">             
-            <li class="dropdown-item">                 
-                <textarea id="{{ grid_id }}{{ target }}" name="{{ grid_id }}{{ target }}"                           
-                          fieldtype="trumbowyg"                           
-                          class="row text-editor form-control clarama-text-editor clarama-field clarama-rtf-field"                           
-                          celltype="text" style="height:100%">{{ text | safe }}</textarea>             
-            </li>             
-            <li class="dropdown-item">                 
-                <button type="button" class="btn btn-primary btn-sm w-100" 
-                        onclick="updateTextElement('{{ target }}', '{{ grid_id }}')">                     
-                    Update                 
-                </button>             
-            </li>         
-        </ul>     
-    </div> 
+<div class="container-fluid row tight" style="height: 100%; padding-bottom: 2px;">
+    <div id="{{ target }}" grid-id="{{ grid_id }}"
+         class="col clarama-element clarama-edit-element slate-panel-target tight">
+        {{ evl | safe }}
+    </div>
+    <div id="grid-elem-dropdown-{{ target }}" class="dropdown col-auto align-middle tight"
+         style="position: absolute; top: 4px; right: 3px;">
+        <i class="bi bi-three-dots-vertical element_editor grid-elem-menu" data-bs-toggle="dropdown"
+           aria-expanded="false" target="{{ target }}" elems="{{ grid_id }}" title="{{ target }}"></i>
+        <ul class="dropdown-menu embedded-dropdown-menu grid-element-dropdown-menu" onclick="event.stopPropagation();">
+            <li class="dropdown-item">
+                <textarea id="{{ grid_id }}{{ target }}" name="{{ grid_id }}{{ target }}"
+                          fieldtype="trumbowyg"
+                          class="row text-editor form-control clarama-text-editor clarama-field clarama-rtf-field"
+                          celltype="text" style="height:100%">{{ text | safe }}</textarea>
+
+            </li>
+        </ul>
+    </div>
 </div>
