@@ -18,12 +18,25 @@ var new_step_id = 100000000;
 function closeAllDebuggers() {
     $('.clarama-cell-item').each(function() {
         var cellItem = $(this);
-        var taskIndex = cellItem.attr('step');
+        var taskIndex = cellItem.attr('step') || cellItem.attr('data-task-index');
+        
+        if (!taskIndex) {
+            return;
+        }
+        
         var leftContent = cellItem.find('#left_content_' + taskIndex);
         var rightContent = cellItem.find('#right_content_' + taskIndex);
         var debugButton = cellItem.find('.celleditdebug');
         
-        if (!rightContent.hasClass('d-none')) {
+        console.log("closeAllDebuggers: Found elements for task", taskIndex, {
+            leftContent: leftContent.length,
+            rightContent: rightContent.length,
+            debugButton: debugButton.length,
+            isRightContentHidden: rightContent.hasClass('d-none')
+        });
+        
+        // Only process if the debugger is currently open
+        if (rightContent.length > 0 && !rightContent.hasClass('d-none')) {
             leftContent.removeClass('col-6').addClass('col-6');
             rightContent.addClass('d-none');
             
@@ -68,6 +81,12 @@ function openDebugger(cellItem, taskIndex) {
         notificationContents.removeClass('row');
         notificationContents.addClass('d-flex flex-column');
     }
+
+    cell_debugger_run(cellItem, function(output_text) {
+        console.log("GOT locals keys output:", output_text);
+        var taskIndex = cellItem.attr('step') || cellItem.attr('data-task-index');
+        populateVariablesList(output_text, taskIndex);
+    });
 }
 
 /**
@@ -83,11 +102,9 @@ function cell_edit_run(parent) {
         console.log(cell_button);
         cell_item_run(cell_button);
         
-        // If this cell had debugger open, close it and move to next cell with debugger
         if (hasDebuggerOpen) {
             closeAllDebuggers();
             
-            // Move to next cell and open its debugger
             setTimeout(function() {
                 var currentStep = parseInt(taskIndex);
                 if (!isNaN(currentStep)) {
@@ -225,16 +242,31 @@ function cell_toggle_debug_view(parent) {
     parent.find(".celleditdebug").off('click');
     parent.find(".celleditdebug").on("click", function () {
         var debugButton = $(this);
-        var taskIndex = debugButton.attr('data-task-index');
-        
         var cellItem = debugButton.closest('.clarama-cell-item');
+        
+        // Get task index from multiple possible sources
+        var taskIndex = debugButton.attr('data-task-index') || 
+                       cellItem.attr('step') || 
+                       cellItem.attr('data-task-index');
+        
+        console.log("Debug button clicked for task:", taskIndex);
+        
         var rightContent = cellItem.find('#right_content_' + taskIndex);
         
-        if (rightContent.hasClass('d-none')) {
+        // Check if THIS cell's debugger is currently open
+        var isThisDebuggerOpen = !rightContent.hasClass('d-none');
+        
+        console.log("Is this debugger open?", isThisDebuggerOpen);
+        
+        if (isThisDebuggerOpen) {
+            // If this debugger is open, just close all debuggers
+            console.log("Closing all debuggers");
+            closeAllDebuggers();
+        } else {
+            // If this debugger is closed, close all others and open this one
+            console.log("Closing all debuggers and opening this one");
             closeAllDebuggers();
             openDebugger(cellItem, taskIndex);
-        } else {
-            closeAllDebuggers();
         }
     });
 }

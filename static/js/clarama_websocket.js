@@ -313,6 +313,8 @@ function process_template(template_id, substitutions, target_div) {
 // On receipt of a websocket message from the server. The kernels will send messages of dicts
 // in which one of the keys, "type" indicates the type of message, which then correlates with the HTML template to use
 // to render that message
+// Fixed section of onMessage function in CLARAMA_WEBSOCKET.js
+
 function onMessage(event, socket_url, webSocket) {
     let dict = JSON.parse(event.data);
 
@@ -322,7 +324,6 @@ function onMessage(event, socket_url, webSocket) {
             if (dict['class'] === "ping") {
                 console.log('ping back ' + new Date() + ' ' + task_active_socket);
                 task_active_socket.send('ping');
-                // ping right back. Ping is sent from the kernel to the client
             }
 
             if (dict['class'] === "layout") {
@@ -330,10 +331,7 @@ function onMessage(event, socket_url, webSocket) {
                 var rows = dict['values']['height'];
                 let resulter = "#" + dict['step_id'];
 
-                // Generate table HTML
                 let tableHtml = '<table class="table table-bordered">';
-
-                // Create rows and columns
                 for (let r = 0; r < rows; r++) {
                     tableHtml += '<tr>';
                     for (let c = 0; c < cols; c++) {
@@ -344,11 +342,9 @@ function onMessage(event, socket_url, webSocket) {
                 }
                 tableHtml += '</table>';
 
-                // Add the table to the resulter
                 let target = $(resulter).find('.cell-results').first();
                 let $elements = $(tableHtml);
                 target.append($elements);
-                //$(resulter).html(tableHtml);
 
                 console.log("CLARAMA_WEBSOCKET.js: Generated layout table with " + cols + " columns and " + rows + " rows");
             }
@@ -358,9 +354,60 @@ function onMessage(event, socket_url, webSocket) {
             }
 
             if (dict['class'] === "template") {
-                let resulter = "#" + dict['step_id'];
-                //console.log("WEBSOCKET MESSAGE:" + dict['step_id']);
-                //console.log(dict);
+                let output_text = dict['values']['output'];
+                let step_id = dict['step_id'];
+                
+                console.log("Template message received - Step ID:", step_id, "Output:", output_text);
+
+                // Extract task index from step_id (assuming format like "step_123")
+                let taskIndex = null;
+                if (step_id) {
+                    let match = step_id.match(/step_(\d+)/);
+                    if (match) {
+                        taskIndex = match[1];
+                    } else {
+                        taskIndex = step_id.replace(/\D/g, ''); // Remove non-digits
+                    }
+                }
+
+                if (taskIndex && output_text !== undefined) {
+                    let callbackKey = 'cell_debugger_callback_' + taskIndex;
+                    
+                    if (typeof window[callbackKey] === "function") {
+                        console.log("Found callback, calling with output:", output_text);
+                        try {
+                            window[callbackKey](output_text);
+                            delete window[callbackKey];
+                        } catch (e) {
+                            console.error("Error calling debugger callback:", e);
+                        }
+                    } else {
+                        let debuggerCallbacks = Object.keys(window).filter(key => key.startsWith('cell_debugger_callback_'));
+                        console.log("Available debugger callbacks:", debuggerCallbacks);
+                        
+                        if (debuggerCallbacks.length === 1) {
+                            console.log("Using single available callback:", debuggerCallbacks[0]);
+                            try {
+                                window[debuggerCallbacks[0]](output_text);
+                                delete window[debuggerCallbacks[0]];
+                            } catch (e) {
+                                console.error("Error calling single debugger callback:", e);
+                            }
+                        } else {
+                            console.log("No callback found, trying direct population for task:", taskIndex);
+                            if (taskIndex) {
+                                try {
+                                    populateVariablesList(output_text, taskIndex);
+                                } catch (e) {
+                                    console.error("Error calling populateVariablesList directly:", e);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Process the template normally
+                let resulter = "#" + step_id;
                 console.log("WEBSOCKET.js TEMPLATE RESULTER --[" + resulter + ']--' + $(resulter));
                 process_template(dict['type'], dict['values'], $(resulter));
             }
@@ -374,14 +421,13 @@ function onMessage(event, socket_url, webSocket) {
                     console.log("WEBSOCKET MESSAGE:" + dict['step_id']);
                     console.log("TEMPLATE ARRAY RESULTER --[" + resulter + ']--');
                     process_template(dict['type'], new_dict, $(resulter));
-                })
+                });
             }
 
             if (dict['class'] === "template_table") {
                 let resulter = "#" + dict['step_id'];
                 console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET TABLE MESSAGE:" + webSocket.url);
                 process_template(dict['type'], dict['values'], $(resulter));
-                // Draw the table ID first, then let's put in the data
                 bTable(dict['values']['table_id'], dict['results']);
             }
 
@@ -390,39 +436,32 @@ function onMessage(event, socket_url, webSocket) {
                 console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART MESSAGE:" + webSocket.url + " " + dict['step_id']);
                 console.log($(resulter));
                 process_template(dict['type'], dict['values'], $(resulter));
-                // Draw the table ID first, then let's put in the data
                 bChart(dict['values']['chart_id'], dict['results']);
             }
 
-
             if (dict['type'] === 'task_step_started') {
                 let spinner = "#" + dict['step_id'];
-                //console.log("SPINNING --[" + spinner + ']--');
                 $(spinner).find('.cell-spin').animate({"opacity": 1});
                 $(spinner).find('.cell-results').empty();
                 $(spinner).find('.cell-timing').empty();
-
-                //console.log("TASK STEP STARTED " + target)
             }
 
             let task_progress = $('#task_progress_main');
 
             if (dict['type'] === 'task_step_completed' || dict['type'] === 'task_step_exception') {
-                //console.log("Step done " + dict['type'] + " " + dict['step_id'])
-                if ('step_number' in dict)
+                if ('step_number' in dict) {
                     if (dict['step_number'] > -1) {
-                        //console.log("Setting progress " + dict['step_number'])
-
                         let max = task_progress.attr("max");
-
                         task_progress.width((100 * dict['step_number'] / max).toString() + '%');
                     }
+                }
 
                 let spinner = "#" + dict['step_id'];
                 $(spinner).find('.cell-spin').animate({"opacity": 0});
 
-                if (dict['type'] === 'task_step_exception')
-                    task_progress.addClass("bg-danger")
+                if (dict['type'] === 'task_step_exception') {
+                    task_progress.addClass("bg-danger");
+                }
             }
 
         } catch (err) {
@@ -433,7 +472,7 @@ function onMessage(event, socket_url, webSocket) {
     } else if ('progress' in dict) {
         $('#task_progress_' + dict['stream']).attr('aria-valuenow', dict['step_number']);
     } else {
-        console.log("CLARAMA_WEBSOCKET.js: WTF was this: " + dict)
+        console.log("CLARAMA_WEBSOCKET.js: WTF was this: " + dict);
     }
 
     console.log(task_active_socket);

@@ -78,7 +78,6 @@ function _task_run(socket_div) {
     });
 }
 
-
 function cell_item_run(cell_button) {
     console.log("CLARAMA_TASK.js: RUNNING");
     get_field_values({}, true, function (field_registry) { // Get only the field values, not the full field definitions, text or code

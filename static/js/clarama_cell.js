@@ -378,6 +378,7 @@ function get_cell_values(cell) {
 
 
     console.log('cell data: ', cell_data);
+    // cell_data["content"] = "locals().keys()";
     return cell_data;
 }
 

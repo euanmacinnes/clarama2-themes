@@ -125,8 +125,8 @@ function get_field_values(registry, raw, field_submit) {
             };
         }
 
-        console.log(registry);
-
+        console.log("registry: ", registry);
+        
         if (field_submit !== undefined)
             field_submit(registry);
         else
@@ -209,6 +209,14 @@ function get_fields(fields, cell, field_submit) {
         field_submit(registry);
 }
 
+function toggleDebugForCurrentCell(cell) {
+    if (!cell) return false;
+    
+    const $cell = $(cell);
+    const debugButton = $cell.find('.celleditdebug').first();
+    debugButton.click();
+}
+
 /**
  * Cell Navigation and Execution Functions
  * Provides keyboard shortcuts for navigating and executing cells
@@ -285,14 +293,6 @@ function initializeCellNavigation() {
         const $cell = $(cell);
         const runButton = $cell.find('.celleditrun').first();
         runButton.click();
-    }
-
-    function toggleDebugForCurrentCell(cell) {
-        if (!cell) return false;
-        
-        const $cell = $(cell);
-        const debugButton = $cell.find('.celleditdebug').first();
-        debugButton.click();
     }
     
     // Event handlers
