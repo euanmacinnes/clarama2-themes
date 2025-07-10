@@ -443,7 +443,7 @@ function onMessage(event, socket_url, webSocket) {
                 let spinner = "#" + dict['step_id'];
                 $(spinner).find('.cell-spin').animate({"opacity": 1});
                 $(spinner).find('.cell-results').empty();
-                $(spinner).find('.cell-timing').empty();
+                // $(spinner).find('.cell-timing').empty();
             }
 
             let task_progress = $('#task_progress_main');

@@ -17,18 +17,19 @@ function cell_debugger_run(cell_button, outputCallback) {
 
     get_field_values({}, true, function (field_registry) {
         var task_registry = get_cell_fields(cell_button);
-        task_registry['streams'][0]['main'][0]['content'] = 'list(locals().keys());'
+        task_registry['streams'][0]['main'][0]['type'] = 'code';
+        task_registry['streams'][0]['main'][0]['content'] = 'list(locals().keys());';
         task_registry['parameters'] = field_registry;
-
+        
         var socket_div = $("#edit_socket");
-
+        
         field_registry['clarama_task_kill'] = false;
-
+        
         var task_kernel_id = socket_div.attr("task_kernel_id");
         var url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-
+        
         const task = get_url(url, field_registry);
-
+        
         $.ajax({
             type: 'POST',
             url: url,
@@ -36,6 +37,7 @@ function cell_debugger_run(cell_button, outputCallback) {
             contentType: 'application/json',
             data: JSON.stringify(task_registry),
             success: function (data) {
+                console.log('task_registry: ', task_registry);
                 console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug response received for task', taskIndex, ':', data);
                 
                 if (data['data'] == 'ok') {
@@ -65,24 +67,36 @@ function cell_debugger_run(cell_button, outputCallback) {
     });
 }
 
+
 /**
  * Inspects a variable and displays its value
+ * If variable is a class, display 'help(variable_name)' instead
  * @param {string} varName - The name of the variable to inspect
  * @param {string} taskIndex - The task index
  */
 function inspectVariable(varName, taskIndex) {
     console.log("Inspecting variable:", varName, "in task:", taskIndex);
-    
+
     window['cell_debugger_callback_' + taskIndex] = function(output) {
         console.log("Variable inspection output for task", taskIndex, "(not updating variable list):", output);
-        // Don't call populateVariablesList here since this is just for inspection
+        // You can add UI code here to display output
     };
 
     get_field_values({}, true, function(field_registry) {
         var task_registry = get_cell_fields($(`li.clarama-cell-item[step="${taskIndex}"]`));
 
-        task_registry['streams'][0]['main'][0]['content'] = varName;
+        // Python snippet that captures help() output or variable value 
+        const codeChecker = `
+val_str = str(${varName})
+if val_str.startswith("<"):
+    help(${varName})
+else:
+    print(${varName})
+`;
+        task_registry['streams'][0]['main'][0]['type'] = 'code';
+        task_registry['streams'][0]['main'][0]['content'] = codeChecker;
         task_registry['parameters'] = field_registry;
+
         var socket_div = $("#edit_socket");
         var task_kernel_id = socket_div.attr("task_kernel_id");
         var url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
@@ -93,26 +107,20 @@ function inspectVariable(varName, taskIndex) {
         $.ajax({
             type: 'POST',
             url: url,
-            datatype: "html",
+            datatype: "json", 
             contentType: 'application/json',
             data: JSON.stringify(task_registry),
             success: function (data) {
-                if (data['data'] == 'ok') {
-                    console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Inspection was successful for task', taskIndex);
-                    console.log(data);
-                } else {
-                    console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Inspection was not successful for task', taskIndex);
-                    console.log(data);
-                    flash("Couldn't inspect variable: " + data['error'], "danger");
-                }
+                console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Inspection successful for task', taskIndex); 
             },
-            error: function (data) {
-                console.log("InspectVariable error for task", taskIndex, ":", data);
+            error: function (error) {
+                console.log("InspectVariable AJAX error for task", taskIndex, ":", error);
                 flash("Couldn't inspect variable", "danger");
             }
         });
     });
 }
+
 
 function createVariableButtonDirect(varName, taskIndex) {
     const button = document.createElement("button");
@@ -190,6 +198,20 @@ function populateVariablesContainer(container, variableNames, taskIndex, useTemp
     container.innerHTML = '';
     const fragment = document.createDocumentFragment();
     
+    variableNames = variableNames.map(name => {
+        const div = document.createElement("div");
+        div.innerHTML = name;
+        let decoded = div.textContent || div.innerText || "";
+
+        if (
+            (decoded.startsWith('"') && decoded.endsWith('"')) ||
+            (decoded.startsWith("'") && decoded.endsWith("'"))
+        ) {
+            decoded = decoded.slice(1, -1);
+        }
+        return decoded;
+    });
+
     variableNames.forEach(varName => {
         const button = useTemplate ? 
             createVariableButton(varName, taskIndex) : 
