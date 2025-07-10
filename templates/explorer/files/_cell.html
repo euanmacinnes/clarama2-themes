@@ -147,5 +147,62 @@
         $("input").on("change", function () {
             toggle_loop($(this));
         });
+
+        $('#context-menu').hide();
+
+        // Variable to store the current cell results element that was right-clicked
+        let currentCellResults = null;
+        
+        // Right-click event on cell results - target the actual results div
+        $('[id^="results_"]').on('contextmenu', function(e) {
+            e.preventDefault();
+            
+            currentCellResults = $(this);
+            
+            const viewportWidth = $(window).width();
+            const viewportHeight = $(window).height();
+            const scrollTop = $(window).scrollTop();
+            const scrollLeft = $(window).scrollLeft();
+            
+            let mouseX = e.clientX;
+            let mouseY = e.clientY;
+            
+            const $contextMenu = $('#context-menu');
+            
+            const menuWidth = $contextMenu.outerWidth();
+            const menuHeight = $contextMenu.outerHeight();
+            
+            // Position the context menu at adjusted mouse location
+            $contextMenu.css({
+                display: 'block',
+                position: 'fixed', 
+                left: mouseX + 'px',
+                top: mouseY + 'px',
+                zIndex: 1000
+            });
+            
+            return false;
+        });
+        
+        // Hide context menu when clicking elsewhere
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#context-menu').length) {
+                $('#context-menu').hide();
+            }
+        });
+        
+        // Hide context menu on scroll
+        $(window).on('scroll', function() {
+            $('#context-menu').hide();
+        });
+
+        window.clear_cell_output = function() {
+            $('#context-menu').hide();
+            
+            if (currentCellResults) {
+                currentCellResults.empty();
+                currentCellResults = null; 
+            }
+        };
     });
 </script>

@@ -1,4 +1,9 @@
 {% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
+
+<div class="dropdown-menu dropdown-menu-sm" id="context-menu">
+    <a class="dropdown-item content_item bi bi-eraser-fill" href="#" onclick="clear_cell_output();">&nbsp;Clear Cell Output</a>
+</div>
+
 <form>
     <div class="container-fluid bg-light">
         <div class="row" style="padding: 0">
