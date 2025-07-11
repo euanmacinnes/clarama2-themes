@@ -1,117 +1,3 @@
-<div class="modal fade" tabindex="-1" id="addfieldModal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add Content</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb" id="breadcrumb_addfield">
-          </ol>
-        </nav>
-
-        <button type="button" class="btn btn-primary" onclick="add_selected_content('/content/element/{{ file_url }}', 'empty')">Add Empty Grid</button>
-
-        <div class="d-flex align-items-center w-100">
-          <p class="mb-1 pe-2">New: </p>
-          <button id="new_1" type="button" class="btn toggle_show hoverover"
-            opacity=0.6 style="opacity: 0.6" new_file_class="bi-folder"
-            new_file_type="folder" data-bs-toggle="tooltip" data-bs-title="Folder"
-            data-bs-placement="bottom"><i class="bi bi-folder"></i></button>
-          <button id="new_2" type="button" class="btn toggle_show hoverover"
-            opacity=0.6 style="opacity: 0.6" new_file_class="bi-journal-arrow-down"
-            new_file_type="task" data-bs-toggle="tooltip" data-bs-title="Task"
-            data-bs-placement="bottom"><i class="bi bi-journal-arrow-down"></i></button>
-          <button id="new_3" type="button" class="btn toggle_show hoverover"
-            opacity=0.6 style="opacity: 0.6"
-            new_file_class="bi-menu-app" new_file_type="field"
-            data-bs-toggle="tooltip" data-bs-title="Field"
-            data-bs-placement="bottom"><i class="bi bi-menu-app"></i>
-          </button>
-          <button id="new_4" type="button" class="btn toggle_show hoverover"
-            opacity=0.6 style="opacity: 0.6" new_file_class="bi-blockquote-left"
-            new_file_type="markdown" data-bs-toggle="tooltip"
-            data-bs-title="Markdown File (Help Content)" data-bs-placement="bottom"><i
-            class="bi bi-blockquote-left"></i></button>
-        </div>
-
-        <div id="toggle_target" name="toggle_target"
-              class="list-group-item list-group-item-action container-fluid toggle_target p-3"
-              style="display: none;">
-            <div class="row">
-                <div class="col">
-                    <div class="row row-cols-auto justify-content-center align-items-center"
-                          style="width:100%;">
-                        <i id="new_item" class="bi bi-folder position-relative new_item"
-                            style="font-size: 1.8rem;">
-                            <div class="rounded-pill badge-notification position-absolute translate-middle"
-                                  style="font-size: 0.86em; left: 80%!important;top: 20%!important;">
-                                <i class="bi bi-plus-circle-dotted"></i>
-                            </div>
-                        </i>
-                        <div class="col-10">
-                            <form id="new_content_form" class="col">
-                                <div class="btn-group d-flex" role="group"
-                                      aria-label="task_functions" style="width=100%;">
-                                    <input id="new_content" name="new_content" type="text"
-                                            value="Untitled" class="form-control"
-                                            style="width: 100%;">
-                                    <input id="new_content_type" name="new_content_type"
-                                            type="hidden" value=""
-                                            class="form-control new_content_type"
-                                            style="width: 100%;">
-                                    <button type="submit" class="btn btn-secondary"><i
-                                            class="bi bi-floppy"></i></button>
-                                    <button type="button" class="btn btn-secondary toggle_hide"><i
-                                            class="bi bi-x fs-4"></i></button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <select id="add_content_addfield" name="add_content" size="10" class="form-control">
-
-        </select>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary"
-          onclick="add_selected_content('/content/element/{{ file_url }}')">Add
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" tabindex="-1" id="browseFileModal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Browse File</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb" id="breadcrumb_browsefile">
-          </ol>
-        </nav>
-
-        <select id="add_content_browsefile" name="add_file" size="10" class="form-control">
-        </select>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" onclick="add_selected_file()">Select
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <form id="interactionForm">
   <div class="modal fade" id="interactionSettingsModal" tabindex="-1">
     <div class="modal-dialog">
@@ -209,15 +95,14 @@
   function isDict(v) {
     return typeof v==='object' && v!==null && !(v instanceof Array) && !(v instanceof Date);
   }
-
-  function isFolder(item) {
-    return item.hasClass('bi bi-folder-fill');
-  }
   
   var {{ grid_id }}elements = {{ element_json | to_json | safe }};
   console.log("{{ grid_id }}elements", {{ grid_id }}elements);
+
+  var {{ grid_id }}settings = {};
+  console.log("{{ grid_id }}settings", {{ grid_id }}settings);
+
   let currentTarget = null;
-  const currentPath = "{{ file_url | path }}";
 
   function openInteractionSettings(button) {
     document.getElementById('interactionSettingsModal').classList.add('modal-open');
@@ -538,45 +423,12 @@
     }
 
     let interactionSettingsWasOpen = false;
-    // double-click on a file in the modal
-    $('#add_content_addfield').on('dblclick', 'option', function () {
-      document.getElementById('new_content').value = '';
-      const selectedItem = $(this); 
-      if (!isFolder(selectedItem)) {
-        console.log("File selected: " + selectedItem.val());
-        add_selected_content('/content/element/{{ file_url }}')
-      }
-    });
-
-    $('#add_content_browsefile').on('dblclick', 'option', function () {
-      const selectedItem = $(this); 
-      if (!isFolder(selectedItem)) {
-        console.log("File selected: " + selectedItem.val());
-        add_selected_file();
-      }
-    });
-
     $('#addfieldModal').on('shown.bs.modal', function () {
-      filters = $(".gridaddcontent").attr('filters');
-      path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
-
       currentModalAddContentPath = "{{ file_url | path }}";
-      navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield', filters);
     });
 
     $('#browseFileModal').on('shown.bs.modal', function (event) {
       interactionSettingsWasOpen = $('#interactionSettingsModal').hasClass('modal-open');
-      
-      button = $(event.relatedTarget);
-      filters = button.attr('filters'); 
-      inputId = button.attr('inputId');
-      gridElem = button.attr('gridElem');
-
-      $(this).data('inputId', inputId);
-      $(this).data('gridElem', gridElem);
-      path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
-
-      navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile', filters);
     });
 
     $('#browseFileModal').on('hidden.bs.modal', function () {
@@ -606,6 +458,7 @@
     //console.log("GRID");
     //console.log({{ grid_id }}elements);
     //console.log({{ grid_json | safe }});
+    if ({{ grid_id }}settings["table"]) document.getElementById("settings_table_source").value = {{ grid_id }}settings["table"];
   });
 
   let {{ grid_id }}subOptions = {
@@ -626,7 +479,7 @@
     removable: '.trash',
     draggable: {cancel: '.no-drag, .dropdown-menu *:not(.draggable-heading)'},
     subGridDynamic: false, // v7 api to create sub-grids on the fly
-    children: {{ grid_json | safe }}
+    children: {{ grid_json | safe }}, 
   };
 
   GridStack.renderCB = function(el, w) {
@@ -635,6 +488,13 @@
 
   // document.querySelector('#saved').value = JSON.stringify(options);
   let {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#containment-wrapper'), {{ grid_id }}options);
+
+  const savedColCount = {{ grid_id }}settings["column"];
+  console.log("savedColCount", savedColCount)
+  if (savedColCount != undefined) {
+    generateGridStackColCSS(savedColCount);
+    updateColumnLabel(savedColCount);
+  }
 
   {{ grid_id }}grid.on('removed', function(event, items) {
     items.forEach(item => {
@@ -696,6 +556,45 @@
     enable_interactions($("#" + element).parent());
   }
 
+  function resetSlate() {
+    if (confirm("Are you sure? This will clear all the elements on the slate.")) {
+      {{ grid_id }}elements = {};
+      {{ grid_id }}grid['engine']['nodes'] = [];
+      document.querySelector('#containment-wrapper .grid-stack').innerHTML = "";
+      flash("Slate has been reset.", "success");
+    }
+  }
+ 
+  function updateColumnLabel(val) {
+    document.getElementById('gs_columnRange').value = val;
+    document.getElementById('colValue').innerText = val;
+  
+    console.log("grid_id grid", {{ grid_id }}grid)
+    if ({{ grid_id }}grid) {
+      const cols = parseInt(val);
+      generateGridStackColCSS(cols);
+      {{ grid_id }}grid.column(cols);
+      {{ grid_id }}grid.compact();
+
+      // {{ grid_id }}elements["column"] = val;
+      {{ grid_id }}settings["column"] = val;
+      console.log(`Updated to ${cols} columns`);
+      console.log("updateColumnLabel", slate_data);
+    }
+  }
+
+  function generateGridStackColCSS(maxCols) {
+    let style = document.createElement('style');
+    let css = '';
+    for (let c = 1; c <= maxCols; c++) {
+      css += `.grid-stack-item[gs-w="${c}"] { width: ${(100 / maxCols) * c}%; }\n`;
+      css += `.grid-stack-item[gs-x="${c}"] { left: ${(100 / maxCols) * c}%; }\n`;
+    }
+    console.log("css", css)
+    style.innerHTML = css;
+    document.head.appendChild(style);
+  }
+
   function deleteLinkedInteractions(target) {
     for (const [id, data] of Object.entries({{ grid_id }}elements)) {
       if (Array.isArray(data.links)) {
@@ -735,10 +634,13 @@
 
   function saveGrid() {
     savedgrid = {{ grid_id }}grid.save(false, true);
+    const currentColCount = {{ grid_id }}grid.getColumn();
+    console.log("currentColCount", currentColCount);
 
     serializedData = {
       'grid': savedgrid,
-      'elements': {{ grid_id }}elements
+      'elements': {{ grid_id }}elements,
+      'settings': {{ grid_id }}settings
     };
 
     return serializedData;
@@ -749,85 +651,7 @@
     console.log("addColtogridelem", {{ grid_id }}elements);
   }
 
-  function add_selected_content(element_render_url, selected_v = "") {
-    if (selected_v !== "") {
-      if (selected_v == "empty") {
-        selected_val = "";
-      } else {
-        selected_val = selected_v;
-      }
-    } else {
-      selected_val = "./" + $("#add_content_addfield").val();
-    }
-    console.log("adding " + selected_val);
-
-    if (selected_val == null) {
-      flash("No file selected!")
-    } else {
-      // Find a unique element id
-      var element_id = 0;
-      var element_found = false;
-      do {
-        element = "element_" + element_id;
-
-        if (element in {{ grid_id }}elements)
-          element_id = element_id + 1;
-        else
-          element_found = true;
-      }
-      while (!element_found);
-
-      console.log("element " + element);
-
-      // Now add the element
-
-      new_element_data = {"url": selected_val}
-
-      slate_data = saveGrid();
-
-      if (isDict(slate_data['elements'])) {
-        slate_data['elements'][element] = new_element_data;
-      } else {
-        var elem = {};
-        elem[element] = new_element_data;
-        slate_data['elements'] = elem;
-      }
-
-      console.log(slate_data)
-
-      // if (element_render_url === '') {
-      //   addContent(element, new_element_data, "");
-      // } else {
-        $.ajax({
-          type: 'POST',
-          url: element_render_url + "?element=" + element,
-          datatype: "html",
-          contentType: 'application/json',
-          data: JSON.stringify(slate_data),
-          success: function (data) {
-            if (data['data'] == 'ok') {
-              let html = data['results'];
-
-              addContent(element, new_element_data, html);
-            } else {
-              console.log('Submission was not successful.');
-              console.log(data);
-              flash("Couldn't save content: " + data['error'], "danger");
-            }
-          },
-          error: function (data) {
-            console.log('An error occurred.');
-            console.log(data);
-            flash("Couldn't render element content, access denied", "danger");
-          }
-        })
-      // }
-      
-      // $("#addfieldModal").modal('hide');
-    }
-  }
-
-function add_text() {
+  function add_text() {
       // Find a unique element id
       var element_id = 0;
       var element_found = false;
@@ -874,50 +698,6 @@ function add_text() {
             flash("Couldn't render element content, access denied", "danger");
           }
         })
-  }
-
-  function add_selected_file() {
-    const selected_val = "./" + $("#add_content_browsefile").val();
-    console.log("adding " + selected_val);
-    if (selected_val == null) {
-      flash("No file selected!");
-      return;
-    }
-
-    const inputId = $("#browseFileModal").data('inputId');
-    const targetInput = document.getElementById(inputId);
-    let target = inputId.replace('_elemInput', ''); 
-    if (targetInput) {
-      const newSource = $CLARAMA_ROOT + selected_val;
-      if (inputId.includes('_elemInput')) {
-        targetInput.href = "/content/edit/" + resolveRelativeFilePath(currentPath, newSource);
-        targetInput.textContent = newSource;
-        {{ grid_id }}elements[target]['url'] = newSource;
-
-        let parentDiv = document.getElementById(target);
-        const currentUrl = parentDiv.getAttribute('url');
-        parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath(currentPath, newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
-        
-        console.log("new url", document.getElementById(target).getAttribute('url'))
-        enable_interactions($(`#${target}`).parent(), true);
-      } else {
-        targetInput.value = newSource;
-      }
-
-      if (inputId !== "grid-elem" && (!inputId.includes('_elemInput'))) {
-        const btnId = inputId.replace("_source", "_browse");
-        const browseLink = document.getElementById(btnId + "_link");
-        if (browseLink) {
-          browseLink.href = newSource;
-          browseLink.style.display = "inline-block";
-        }
-      }
-      flash("File path stored successfully! " + newSource);
-    } else {
-      flash("Target input field not found!", "danger");
-    }
-
-    $("#browseFileModal").modal('hide');
   }
 
   function getElementKeyByUrl(obj, currentFileUrl) {
@@ -1111,188 +891,8 @@ function add_text() {
       console.log("updated element", {{ grid_id }}elements);
     }
   }
-
-  // Extract the current directory depth
-  var relativePath;
-  function renderBreadcrumb(path, breadcrumbId, selectId, filters) {
-    const targetPath = path.split('?')[0].split('/').slice(3).join('/');
-    relativePath = getRelativePath(currentPath, targetPath);
-
-    const breadcrumb = document.getElementById(breadcrumbId);
-    breadcrumb.innerHTML = '';
-
-    // console.log("path", path);
-    const trimmedPath = path.split('/').slice(3);
-    // console.log("trimmedPath", trimmedPath);
-
-    const root = document.createElement('li');
-    if (trimmedPath[0][0] != "?") {
-      root.style.cursor = 'pointer';
-      root.className = 'text-secondary';
-      root.innerHTML = "Clarama&nbsp;>&nbsp;";
-    } else {
-      root.innerHTML = "Clarama";
-    }
-    root.addEventListener('click', () => navigateToPath(path.split('/').slice(0, 3).join('/') + "/?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
-    breadcrumb.appendChild(root);
-
-    trimmedPath.forEach((part, index, array) => {
-        // console.log(part)
-        const li = document.createElement('li');
-
-        if (index < array.length - 1) {
-          li.style.cursor = 'pointer';
-          li.className = 'text-secondary';
-          li.addEventListener('click', () => navigateToPath(path.split('/').slice(0, index + 4).join('/') + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
-          li.innerHTML = part + "&nbsp;>&nbsp;";
-        } else {
-          li.innerText = part.split('?')[0];
-        }
-        breadcrumb.appendChild(li);
-      });
-    }
-
-    function getRelativePath(from, to) {
-      const fromParts = from.split('/').filter(Boolean);
-      const toParts = to.split('/').filter(Boolean);
-      // Find common root
-      let i = 0;
-      while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) {
-          i++;
-      }
-
-      // How many levels to go up from `from`
-      const upLevels = fromParts.length - i; // eg. if this is 6-4 = 2
-      const goUp = Array(upLevels).fill('..').join('/'); // this will be ../../
-
-      // Navigate down to `to`
-      const goDown = toParts.slice(i).join('/'); // extracts the remaining thats not common
-
-      if (!goUp && !goDown) {
-        return ''
-      }
-
-      return goUp ? `${goUp}/${goDown}` : goDown; // if no goUp means we r in the correct folder
-    }
-
-    function naturalSort(arr) {
-      return arr.sort((a, b) => {
-        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-      })
-    }
-
-    function renderFilesNFolder(path, breadcrumbId, selectId, filters) {
-      const selectElement = document.getElementById(selectId);
-      console.log(`fetch path: ${path}`)
-      fetch(path)
-        .then((response) => response.json())
-        .then((json_files) => {
-          console.log("json files", json_files)
-          $(`#${selectId}`).empty();
-          // const allPaths = json_files['results']['files'];
-          // const foldersSet = new Set();
-          // const filesSet = new Set();
-          // console.log(`json_files returned: ${allPaths}`);
-
-          // // Determine folders and files
-          // allPaths.forEach(filePath => {
-          //   // console.log("File path:", filePath);
-          //   const parts = filePath.split('/');
-          //   if (parts.length > 1) {
-          //     foldersSet.add(parts[0]); // Top-level folder
-          //   } else {
-          //     filesSet.add(filePath); // Root-level file
-          //   }
-          // });
-
-          // const sortedFolders = naturalSort([...foldersSet]);
-          // const sortedFiles = naturalSort([...filesSet]);
-          const sortedFolders = naturalSort(json_files['results']['folders']);
-          const sortedFiles = naturalSort(json_files['results']['files']);
-          console.log("folders", sortedFolders)
-          console.log("files", sortedFiles)
-
-          // using regex to filter
-          // *.field.yaml -> /^.*\.field\.yaml$/
-          // *.task.yaml -> /^.*\.task\.yaml$/
-          // *.md -> /^.*\.md$/
-          console.log("filters", filters);
-          const filePathFilters = filters
-            .split('|')
-            .map(path => {
-              const escaped = path.replace(/\./g, '\\.').replace(/\*/g,  '.*');
-              return new RegExp(`${escaped}`);
-            })
-
-          console.log("filePathFilters", filePathFilters)
-
-          // Render folders
-          sortedFolders.forEach(folder => {
-            const option = document.createElement('option');
-            option.value = folder;
-            option.className = "bi bi-folder-fill";
-            option.innerHTML = `&nbsp; ${folder}`;
-            if (path.split('?')[0] == "/content/json/") {
-              option.addEventListener('dblclick', () => navigateToPath(`/content/json/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
-            } else {
-              option.addEventListener('dblclick', () => navigateToPath(`${path.split('?')[0]}/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
-            }
-            selectElement.appendChild(option);
-          });
-
-          // Render files with relative paths
-          sortedFiles.forEach(filePath => {
-            // if (!sortedFolders.has(filePath.split('/')[0])) { // ensure it's not a folder
-
-              // only display the files that match the filters
-              const matches = filePathFilters.some(regex => regex.test(filePath));
-              if (!matches) return
-
-              const option = document.createElement('option');
-
-              // store relative path in val
-              const trimmedPath = relativePath.trim();
-              if (/^(?:\.\.\/)+$/.test(trimmedPath) || trimmedPath === '') {
-                option.value = trimmedPath + filePath;
-              } else {
-                option.value = trimmedPath + "/" + filePath;
-              }
-
-              let matchedIcon = Object.entries(filetypeCSS)
-                .find(([ext, _]) => filePath.endsWith(ext));
-              if (!matchedIcon) {
-                const simpleExt = `.${filePath.split('.').pop()}`;
-                matchedIcon = filetypeCSS[simpleExt] ? [simpleExt, filetypeCSS[simpleExt]] : null;
-              }
-              const icon = matchedIcon ? matchedIcon[1] : "bi-file-earmark";
-              option.className = `bi ${icon}`;
-
-              option.innerHTML = `&nbsp; ${filePath}`;
-              selectElement.appendChild(option);
-            // }
-          });
-        });
-    }
-
-    // Function to navigate to a specific path
-    function navigateToPath(path, breadcrumbId, selectId, filters) {
-      console.log("path", path)
-      const match = path.match(/^\/content\/json\/?(.*?)(\?|$)/);
-      currentModalAddContentPath = match ? match[1] : "";
-      renderBreadcrumb(path, breadcrumbId, selectId, filters);
-      renderFilesNFolder(path, breadcrumbId, selectId, filters);
-    }
-
-    function resolveRelativeFilePath(currentPath, relativePath) {
-      const baseParts = currentPath.split('/').filter(Boolean);
-      const relativeParts = relativePath.split('/').filter(Boolean);
-      for (const part of relativeParts) {
-        if (part === '..') {
-          baseParts.pop();
-        } else if (part !== '.') {
-          baseParts.push(part);
-        }
-      }
-      return baseParts.join('/');
-    }
 </script>
+
+{% include theme("explorer/files/browse_file_modal.html") %}
+{% include theme("explorer/files/add_field_modal.html") %}
+{% include theme("explorer/files/file_modal_shared_logic.html") %}
