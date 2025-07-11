@@ -182,6 +182,27 @@
                         </tr>
                     </table>
                 </div>
+                <div class="input-group w-100 border-1 border-bottom border-info">
+                    <input id="task_step_{{ loop_index }}_table_slate_source" type="text"
+                           class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus table-slate"
+                           placeholder="Row Rendering as Slate Filename" aria-label="Table styling relative filename"
+                           value="{{ table['slate'] }}">
+                    <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                            data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                            inputId="task_step_{{ loop_index }}_table_slate_source" filters="*.slate.yaml">
+                        <i class="bi bi-folder2-open"></i>
+                    </button>
+                    {% if table['slate'] %}
+                        <a href="{{ table['slate'] }}" target="_blank" id="task_step_{{ loop_index }}_source_browse_link"
+                           class="text-decoration-none text-white">
+                            <button id="task_step_{{ loop_index }}_source_browse_link" type="button"
+                                    class="btn btn-secondary datasource" aria-haspopup="true"
+                                    aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                                <i class="bi bi-pen"></i>
+                            </button>
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
