@@ -200,7 +200,15 @@
             $('#context-menu').hide();
             
             if (currentCellResults) {
+                const cellOffset = currentCellResults.offset();
+                const windowScrollTop = $(window).scrollTop();
+                
                 currentCellResults.empty();
+                
+                requestAnimationFrame(() => {
+                    $(window).scrollTop(windowScrollTop);
+                });
+                
                 currentCellResults = null; 
             }
         };
