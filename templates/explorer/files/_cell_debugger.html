@@ -38,21 +38,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    $(document).ready(function() {
-        // Handle Enter key in console input
-        $(document).on('keypress', '.console-input', function(e) {
-            if (e.which == 13) { // Enter key
-                const taskIndex = $(this).data('task-index');
-                debug_console_run(taskIndex);
-            }
-        });
-        
-        // Handle console execute button click
-        $(document).on('click', '.execute-console', function() {
-            const taskIndex = $(this).data('task-index');
-            debug_console_run(taskIndex);
-        });
-    });
-</script>

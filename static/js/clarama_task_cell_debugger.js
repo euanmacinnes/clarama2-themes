@@ -8,6 +8,7 @@ function set_debug_behaviour(task_registry, code_command) {
 
 function cell_debugger_run(cell_button, outputCallback) {    
     var taskIndex = cell_button.attr('step') || cell_button.attr('data-task-index');
+    var shownIndex = cell_button.closest('li.clarama-cell-item').find('button.step-label').text().trim();
     console.log("Debug running for task index:", taskIndex);
     
     window['cell_debugger_variables_callback_' + taskIndex] = function(output) {
@@ -30,8 +31,6 @@ function cell_debugger_run(cell_button, outputCallback) {
         var task_kernel_id = socket_div.attr("task_kernel_id");
         var url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
         
-        const task = get_url(url, field_registry);
-        
         $.ajax({
             type: 'POST',
             url: url,
@@ -39,17 +38,12 @@ function cell_debugger_run(cell_button, outputCallback) {
             contentType: 'application/json',
             data: JSON.stringify(task_registry),
             success: function (data) {
-                // console.log('taskk:', task);
                 // console.log('task_registry: ', task_registry);
                 // console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug response received for task', taskIndex, ':', data);
-                
                 if (data['data'] == 'ok') {
-                    console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was successful for task', taskIndex);
-                    flash(`Cell ${taskIndex} debug submitted successfully`, "success");
-                    
+                    console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was successful for task', shownIndex);
+                    flash(`Cell ${shownIndex} debug submitted successfully`, "success");
                     // The actual output will come via WebSocket in the onMessage function
-                    // console.log("Debug task submitted for task", taskIndex, ", waiting for WebSocket response...");
-                    
                 } else {
                     console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was not successful for task', taskIndex);
                     var variablesList = $('#variables_' + taskIndex);
@@ -76,20 +70,36 @@ function cell_debugger_run(cell_button, outputCallback) {
  * @param {string} code - The Python code to execute (optional, will get from input if not provided)
  */
 function debug_console_run(taskIndex, code) {
-    const executionKey = `console_executing_${taskIndex}`;
+    const cellElement = $(`li.clarama-cell-item[step="${taskIndex}"]`);
+    if (!cellElement.length) {
+        console.error("Cell element not found for task index", taskIndex);
+        return;
+    }
+    
+    const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
+    const executionKey = `console_executing_${currentTaskIndex}`;
     if (window[executionKey]) {
-        console.log("Console execution already in progress for task", taskIndex);
+        console.log("Console execution already in progress for task", currentTaskIndex);
         return;
     }
     
     if (!code) {
-        const consoleInput = document.getElementById(`console_input_${taskIndex}`);
+        let consoleInput = document.getElementById(`console_input_${currentTaskIndex}`);
+        
         if (!consoleInput) {
-            console.error("Console input not found for task", taskIndex);
+            consoleInput = cellElement.find('.console-input')[0];
+            if (consoleInput) {
+                console.warn(`Console input found via fallback method for task ${currentTaskIndex}. IDs may be out of sync.`);
+                consoleInput.id = `console_input_${currentTaskIndex}`;
+            }
+        }
+        
+        if (!consoleInput) {
+            console.error("Console input not found for task", currentTaskIndex);
             return;
         }
-        code = consoleInput.value.trim();
         
+        code = consoleInput.value.trim();
         consoleInput.value = '';
     }
     
@@ -100,17 +110,27 @@ function debug_console_run(taskIndex, code) {
     
     window[executionKey] = true;
     
-    // Use the same callback pattern as the WebSocket handler expects
-    window['cell_debugger_callback_' + taskIndex] = function(output) {
-        console.log("Console callback received output for task", taskIndex, ":", output);
-        const consoleOutput = document.getElementById(`console_output_${taskIndex}`);
+    // Use the current task index for the callback function name
+    window[`cell_debugger_callback_${currentTaskIndex}`] = function(output) {
+        console.log("Console callback received output for task", currentTaskIndex, ":", output);
+        
+        let consoleOutput = document.getElementById(`console_output_${currentTaskIndex}`);
+        
+        if (!consoleOutput) {
+            consoleOutput = cellElement.find('.console-output')[0];
+            if (consoleOutput) {
+                console.warn(`Console output found via fallback method for task ${currentTaskIndex}. IDs may be out of sync.`);
+                consoleOutput.id = `console_output_${currentTaskIndex}`;
+            }
+        }
+        
         if (consoleOutput) {
             consoleOutput.textContent = output;
         }
     };
 
     get_field_values({}, true, function(field_registry) {
-        var task_registry = get_cell_fields($(`li.clarama-cell-item[step="${taskIndex}"]`));
+        var task_registry = get_cell_fields(cellElement);
         
         set_debug_behaviour(task_registry, code);
         task_registry['parameters'] = field_registry;
@@ -122,7 +142,7 @@ function debug_console_run(taskIndex, code) {
         var url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
         
         const taskUrl = get_url(url, field_registry);
-        console.log("Console execution: Running code at", taskUrl, "for task", taskIndex);
+        console.log("Console execution: Running code at", taskUrl, "for task", currentTaskIndex);
 
         $.ajax({
             type: 'POST',
@@ -131,23 +151,24 @@ function debug_console_run(taskIndex, code) {
             contentType: 'application/json',
             data: JSON.stringify(task_registry),
             success: function (data) {
-                console.log('Console execution successful for task', taskIndex);
-                
+                // console.log('Console execution successful for task', currentTaskIndex);
+                console.log('console task registry: ', task_registry);
+                console.log('console data: ', data);
                 if (data['data'] == 'ok') {
-                    console.log('Console code submitted successfully for task', taskIndex);
-                    flash(`Console code executed successfully for task ${taskIndex}`, "success");
+                    console.log('Console code submitted successfully for task', currentTaskIndex);
+                    flash(`Console code executed successfully for task ${currentTaskIndex}`, "success");
                 } else {
-                    console.log('Console execution was not successful for task', taskIndex);
+                    console.log('Console execution was not successful for task', currentTaskIndex);
                     flash("Console execution failed: " + (data['error'] || 'Unknown error'), "danger");
-                    delete window['cell_debugger_callback_' + taskIndex];
+                    delete window[`cell_debugger_callback_${currentTaskIndex}`];
                 }
                 
                 delete window[executionKey];
             },
             error: function (error) {
-                console.log("Console execution AJAX error for task", taskIndex, ":", error);
+                console.log("Console execution AJAX error for task", currentTaskIndex, ":", error);
                 flash("Console execution failed: access denied", "danger");
-                delete window['cell_debugger_callback_' + taskIndex];
+                delete window[`cell_debugger_callback_${currentTaskIndex}`];
                 
                 delete window[executionKey];
             }
@@ -164,13 +185,21 @@ function debug_console_run(taskIndex, code) {
 function inspectVariable(varName, taskIndex) {
     console.log("Inspecting variable:", varName, "in task:", taskIndex);
 
-    window['cell_debugger_callback_' + taskIndex] = function(output) {
-        console.log("Variable inspection output for task", taskIndex, "(not updating variable list):", output);
+    const cellElement = $(`li.clarama-cell-item[step="${taskIndex}"]`);
+    if (!cellElement.length) {
+        console.error("Cell element not found for task index", taskIndex);
+        return;
+    }
+    
+    const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
+
+    window[`cell_debugger_callback_${currentTaskIndex}`] = function(output) {
+        console.log("Variable inspection output for task", currentTaskIndex, "(not updating variable list):", output);
         // You can add UI code here to display output
     };
 
     get_field_values({}, true, function(field_registry) {
-        var task_registry = get_cell_fields($(`li.clarama-cell-item[step="${taskIndex}"]`));
+        var task_registry = get_cell_fields(cellElement);
 
         // Python snippet that captures help() output or variable value, uses pprint for better formatting
         const codeChecker = `
@@ -188,9 +217,6 @@ else:
         var task_kernel_id = socket_div.attr("task_kernel_id");
         var url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
 
-        const taskUrl = get_url(url, field_registry);
-        console.log("InspectVariable: Running inspection at", taskUrl, "for task", taskIndex);
-
         $.ajax({
             type: 'POST',
             url: url,
@@ -198,10 +224,10 @@ else:
             contentType: 'application/json',
             data: JSON.stringify(task_registry),
             success: function (data) {
-                console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Inspection successful for task', taskIndex); 
+                console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Inspection successful for task', currentTaskIndex); 
             },
             error: function (error) {
-                console.log("InspectVariable AJAX error for task", taskIndex, ":", error);
+                console.log("InspectVariable AJAX error for task", currentTaskIndex, ":", error);
                 flash("Couldn't inspect variable", "danger");
             }
         });
@@ -252,28 +278,6 @@ function createEmptyVariablesMessage(message = "No user variables found") {
     emptyDiv.className = "text-muted p-3";
     emptyDiv.textContent = message;
     return emptyDiv;
-}
-
-function createVariablesLoadingState() {
-    const loadingDiv = document.createElement("div");
-    loadingDiv.className = "text-muted d-flex align-items-center";
-    
-    const spinner = document.createElement("div");
-    spinner.className = "spinner-border spinner-border-sm me-2 debug-spinner";
-    spinner.setAttribute("role", "status");
-    
-    const spinnerText = document.createElement("span");
-    spinnerText.className = "visually-hidden";
-    spinnerText.textContent = "Loading...";
-    
-    const loadingText = document.createElement("span");
-    loadingText.textContent = "Loading variables...";
-    
-    spinner.appendChild(spinnerText);
-    loadingDiv.appendChild(spinner);
-    loadingDiv.appendChild(loadingText);
-    
-    return loadingDiv;
 }
 
 // ========================================
