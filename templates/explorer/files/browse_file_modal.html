@@ -67,15 +67,24 @@
             console.log("fieldSession", fieldSession)
             const fieldLines = fieldSession.getDocument().getAllLines();
             console.log("fieldLines", fieldLines)
+
+            let found = false;
+            const newText = "source: " + newSource;
+
             for (let i = 0; i < fieldLines.length; i++) {
                 if (fieldLines[i].includes("source")) {
-                    const newText = "source: " + newSource;
                     fieldSession.replace({
                         start: { row: i, column: 0 },
                         end: { row: i, column: fieldLines[i].length }
                     }, newText);
+                    found = true;
                     break;
                 }
+            }
+
+            if (!found) {
+                const lastRow = fieldLines.length;
+                fieldSession.insert({ row: lastRow, column: 0 }, newText);
             }
             
             $("#browseFileModal").modal('hide');
