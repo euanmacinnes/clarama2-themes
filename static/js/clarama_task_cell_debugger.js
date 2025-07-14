@@ -1,15 +1,19 @@
 /* clarama_task_cell_debugger.html */
 
+function set_debug_behaviour(task_registry, code_command) {
+    task_registry['streams'][0]['main'][0]['type'] = 'code';
+    task_registry['streams'][0]['main'][0]['content'] = code_command;
+    task_registry['streams'][0]['main'][0]['clear'] = false;
+}
+
 function cell_debugger_run(cell_button, outputCallback) {    
     var taskIndex = cell_button.attr('step') || cell_button.attr('data-task-index');
     console.log("Debug running for task index:", taskIndex);
     
-    // Set up callback specific to this task index
-    window['cell_debugger_callback_' + taskIndex] = function(output) {
-        console.log("Debugger callback received output for task", taskIndex, ":", output);
+    window['cell_debugger_variables_callback_' + taskIndex] = function(output) {
+        console.log("Variables debugger callback received output for task", taskIndex, ":", output);
         populateVariablesList(output, taskIndex, false); 
         
-        // Call the original callback if provided
         if (outputCallback) {
             outputCallback(output);
         }
@@ -17,10 +21,8 @@ function cell_debugger_run(cell_button, outputCallback) {
 
     get_field_values({}, true, function (field_registry) {
         var task_registry = get_cell_fields(cell_button);
-        task_registry['streams'][0]['main'][0]['type'] = 'code';
-        task_registry['streams'][0]['main'][0]['content'] = 'list(locals().keys());';
+        set_debug_behaviour(task_registry, 'list(locals().keys());');
         task_registry['parameters'] = field_registry;
-        
         var socket_div = $("#edit_socket");
         
         field_registry['clarama_task_kill'] = false;
@@ -37,22 +39,23 @@ function cell_debugger_run(cell_button, outputCallback) {
             contentType: 'application/json',
             data: JSON.stringify(task_registry),
             success: function (data) {
-                console.log('task_registry: ', task_registry);
-                console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug response received for task', taskIndex, ':', data);
+                // console.log('taskk:', task);
+                // console.log('task_registry: ', task_registry);
+                // console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug response received for task', taskIndex, ':', data);
                 
                 if (data['data'] == 'ok') {
                     console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was successful for task', taskIndex);
                     flash(`Cell ${taskIndex} debug submitted successfully`, "success");
                     
                     // The actual output will come via WebSocket in the onMessage function
-                    console.log("Debug task submitted for task", taskIndex, ", waiting for WebSocket response...");
+                    // console.log("Debug task submitted for task", taskIndex, ", waiting for WebSocket response...");
                     
                 } else {
                     console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was not successful for task', taskIndex);
                     var variablesList = $('#variables_' + taskIndex);
                     variablesList.html('<div class="text-danger p-3">Error loading variables: ' + data['error'] + '</div>');
                     flash("Couldn't run debug content: " + data['error'], "danger");
-                    window['cell_debugger_callback_' + taskIndex] = null;
+                    window['cell_debugger_variables_callback_' + taskIndex] = null;
                 }
             },
             error: function (data) {
@@ -61,12 +64,96 @@ function cell_debugger_run(cell_button, outputCallback) {
                 var variablesList = $('#variables_' + taskIndex);
                 variablesList.html('<div class="text-danger p-3">Error loading variables</div>');
                 flash("Couldn't run debug content, access denied", "danger");
-                window['cell_debugger_callback_' + taskIndex] = null;
+                window['cell_debugger_variables_callback_' + taskIndex] = null;
             }
         });
     });
 }
 
+/**
+ * Runs Python code from the debug console input
+ * @param {string} taskIndex - The task index
+ * @param {string} code - The Python code to execute (optional, will get from input if not provided)
+ */
+function debug_console_run(taskIndex, code) {
+    const executionKey = `console_executing_${taskIndex}`;
+    if (window[executionKey]) {
+        console.log("Console execution already in progress for task", taskIndex);
+        return;
+    }
+    
+    if (!code) {
+        const consoleInput = document.getElementById(`console_input_${taskIndex}`);
+        if (!consoleInput) {
+            console.error("Console input not found for task", taskIndex);
+            return;
+        }
+        code = consoleInput.value.trim();
+        
+        consoleInput.value = '';
+    }
+    
+    if (!code) {
+        console.log("No code to execute for task", taskIndex);
+        return;
+    }
+    
+    window[executionKey] = true;
+    
+    // Use the same callback pattern as the WebSocket handler expects
+    window['cell_debugger_callback_' + taskIndex] = function(output) {
+        console.log("Console callback received output for task", taskIndex, ":", output);
+        const consoleOutput = document.getElementById(`console_output_${taskIndex}`);
+        if (consoleOutput) {
+            consoleOutput.textContent = output;
+        }
+    };
+
+    get_field_values({}, true, function(field_registry) {
+        var task_registry = get_cell_fields($(`li.clarama-cell-item[step="${taskIndex}"]`));
+        
+        set_debug_behaviour(task_registry, code);
+        task_registry['parameters'] = field_registry;
+        
+        var socket_div = $("#edit_socket");
+        field_registry['clarama_task_kill'] = false;
+        
+        var task_kernel_id = socket_div.attr("task_kernel_id");
+        var url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
+        
+        const taskUrl = get_url(url, field_registry);
+        console.log("Console execution: Running code at", taskUrl, "for task", taskIndex);
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            datatype: "json",
+            contentType: 'application/json',
+            data: JSON.stringify(task_registry),
+            success: function (data) {
+                console.log('Console execution successful for task', taskIndex);
+                
+                if (data['data'] == 'ok') {
+                    console.log('Console code submitted successfully for task', taskIndex);
+                    flash(`Console code executed successfully for task ${taskIndex}`, "success");
+                } else {
+                    console.log('Console execution was not successful for task', taskIndex);
+                    flash("Console execution failed: " + (data['error'] || 'Unknown error'), "danger");
+                    delete window['cell_debugger_callback_' + taskIndex];
+                }
+                
+                delete window[executionKey];
+            },
+            error: function (error) {
+                console.log("Console execution AJAX error for task", taskIndex, ":", error);
+                flash("Console execution failed: access denied", "danger");
+                delete window['cell_debugger_callback_' + taskIndex];
+                
+                delete window[executionKey];
+            }
+        });
+    });
+}
 
 /**
  * Inspects a variable and displays its value
@@ -85,16 +172,16 @@ function inspectVariable(varName, taskIndex) {
     get_field_values({}, true, function(field_registry) {
         var task_registry = get_cell_fields($(`li.clarama-cell-item[step="${taskIndex}"]`));
 
-        // Python snippet that captures help() output or variable value 
+        // Python snippet that captures help() output or variable value, uses pprint for better formatting
         const codeChecker = `
+from pprint import pprint
 val_str = str(${varName})
 if val_str.startswith("<"):
     help(${varName})
 else:
-    print(${varName})
+    pprint(${varName})
 `;
-        task_registry['streams'][0]['main'][0]['type'] = 'code';
-        task_registry['streams'][0]['main'][0]['content'] = codeChecker;
+        set_debug_behaviour(task_registry, codeChecker);
         task_registry['parameters'] = field_registry;
 
         var socket_div = $("#edit_socket");
@@ -120,7 +207,6 @@ else:
         });
     });
 }
-
 
 function createVariableButtonDirect(varName, taskIndex) {
     const button = document.createElement("button");
@@ -197,20 +283,6 @@ function createVariablesLoadingState() {
 function populateVariablesContainer(container, variableNames, taskIndex, useTemplate = false) {
     container.innerHTML = '';
     const fragment = document.createDocumentFragment();
-    
-    variableNames = variableNames.map(name => {
-        const div = document.createElement("div");
-        div.innerHTML = name;
-        let decoded = div.textContent || div.innerText || "";
-
-        if (
-            (decoded.startsWith('"') && decoded.endsWith('"')) ||
-            (decoded.startsWith("'") && decoded.endsWith("'"))
-        ) {
-            decoded = decoded.slice(1, -1);
-        }
-        return decoded;
-    });
 
     variableNames.forEach(varName => {
         const button = useTemplate ? 
@@ -271,6 +343,20 @@ function populateVariablesList(output, taskIndex, useTemplate = false) {
         } else {
             variableNames = output;
         }
+
+        variableNames = variableNames.map(name => {
+            const div = document.createElement("div");
+            div.innerHTML = name;
+            let decoded = div.textContent || div.innerText || "";
+    
+            if (
+                (decoded.startsWith('"') && decoded.endsWith('"')) ||
+                (decoded.startsWith("'") && decoded.endsWith("'"))
+            ) {
+                decoded = decoded.slice(1, -1);
+            }
+            return decoded;
+        });
 
         // console.log("Variables before filtering:", variableNames);
 

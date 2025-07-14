@@ -371,15 +371,34 @@ function onMessage(event, socket_url, webSocket) {
                 }
 
                 if (taskIndex && output_text !== undefined) {
-                    let callbackKey = 'cell_debugger_callback_' + taskIndex;
+                    // Check for console callback first
+                    let consoleCallbackKey = 'cell_debugger_console_callback_' + taskIndex;
+                    let variablesCallbackKey = 'cell_debugger_variables_callback_' + taskIndex;
+                    let generalCallbackKey = 'cell_debugger_callback_' + taskIndex;
                     
-                    if (typeof window[callbackKey] === "function") {
-                        console.log("Found callback, calling with output:", output_text);
+                    if (typeof window[consoleCallbackKey] === "function") {
+                        console.log("Found console callback, calling with output:", output_text);
                         try {
-                            window[callbackKey](output_text);
-                            delete window[callbackKey];
+                            window[consoleCallbackKey](output_text);
+                            delete window[consoleCallbackKey];
                         } catch (e) {
-                            console.error("Error calling debugger callback:", e);
+                            console.error("Error calling console debugger callback:", e);
+                        }
+                    } else if (typeof window[variablesCallbackKey] === "function") {
+                        console.log("Found variables callback, calling with output:", output_text);
+                        try {
+                            window[variablesCallbackKey](output_text);
+                            delete window[variablesCallbackKey];
+                        } catch (e) {
+                            console.error("Error calling variables debugger callback:", e);
+                        }
+                    } else if (typeof window[generalCallbackKey] === "function") {
+                        console.log("Found general callback, calling with output:", output_text);
+                        try {
+                            window[generalCallbackKey](output_text);
+                            delete window[generalCallbackKey];
+                        } catch (e) {
+                            console.error("Error calling general debugger callback:", e);
                         }
                     } else {
                         let debuggerCallbacks = Object.keys(window).filter(key => key.startsWith('cell_debugger_callback_'));
@@ -442,8 +461,10 @@ function onMessage(event, socket_url, webSocket) {
             if (dict['type'] === 'task_step_started') {
                 let spinner = "#" + dict['step_id'];
                 $(spinner).find('.cell-spin').animate({"opacity": 1});
-                $(spinner).find('.cell-results').empty();
-                // $(spinner).find('.cell-timing').empty();
+                if (dict['values']['clear'] == true) { // clear the cell output if 'clear' == true
+                    $(spinner).find('.cell-results').empty();
+                }
+                $(spinner).find('.cell-timing').empty();
             }
 
             let task_progress = $('#task_progress_main');
