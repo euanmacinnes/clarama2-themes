@@ -114,6 +114,7 @@ function get_data_cell(cell) {
     // Extract table configuration
     var table_style = cell.find('.table-style').find('option:selected').attr('id');
     var table_title = cell.find('.table-title').val();
+    var table_slate = cell.find('.table-slate').val();
     var table_search = cell.find('.table-search').prop('checked');
     var table_export = cell.find('.table-export').prop('checked');
     var table_filter = cell.find('.table-filter').prop('checked');
@@ -217,6 +218,7 @@ function get_data_cell(cell) {
 
     var table = {
         'title': table_title,
+        'slate': table_slate,
         'search': table_search,
         'export': table_export,
         'style': table_style,
