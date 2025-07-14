@@ -16,24 +16,33 @@ var new_step_id = 100000000;
  * @description Finds all open debuggers and closes them
  */
 function closeAllDebuggers() {
-    $('.clarama-cell-item').each(function() {
-        var cellItem = $(this);
-        var taskIndex = cellItem.attr('step') || cellItem.attr('data-task-index');
+    // Find all cells that have debuggers (both static and dynamic)
+    $('[id^="debugger_"]').each(function() {
+        var debuggerDiv = $(this);
+        var debuggerId = debuggerDiv.attr('id');
+        var taskIndex = debuggerId.replace('debugger_', '');
         
-        if (!taskIndex) {
+        console.log("closeAllDebuggers: Processing debugger for task", taskIndex);
+        
+        // Find the parent cell - try multiple selectors to catch dynamically added cells
+        var cellItem = debuggerDiv.closest('.clarama-cell-item');
+        if (!cellItem.length) {
+            // Fallback: try to find by step attribute
+            cellItem = $(`li.clarama-cell-item[step="${taskIndex}"]`);
+        }
+        if (!cellItem.length) {
+            // Another fallback: try to find by data-task-index
+            cellItem = $(`li.clarama-cell-item[data-task-index="${taskIndex}"]`);
+        }
+        
+        if (!cellItem.length) {
+            console.warn("Could not find cell item for debugger", taskIndex);
             return;
         }
         
-        var leftContent = cellItem.find('#left_content_' + taskIndex);
-        var rightContent = cellItem.find('#right_content_' + taskIndex);
+        var leftContent = cellItem.find(`#left_content_${taskIndex}`);
+        var rightContent = cellItem.find(`#right_content_${taskIndex}`);
         var debugButton = cellItem.find('.celleditdebug');
-        
-        console.log("closeAllDebuggers: Found elements for task", taskIndex, {
-            leftContent: leftContent.length,
-            rightContent: rightContent.length,
-            debugButton: debugButton.length,
-            isRightContentHidden: rightContent.hasClass('d-none')
-        });
         
         // Only process if the debugger is currently open
         if (rightContent.length > 0 && !rightContent.hasClass('d-none')) {
@@ -51,6 +60,14 @@ function closeAllDebuggers() {
                     notificationContents.addClass('row');
                 }
             }
+            
+            // Clean up any debugger-specific callbacks
+            if (window[`cell_debugger_variables_callback_${taskIndex}`]) {
+                window[`cell_debugger_variables_callback_${taskIndex}`] = null;
+            }
+            if (window[`cell_debugger_callback_${taskIndex}`]) {
+                window[`cell_debugger_callback_${taskIndex}`] = null;
+            }
         }
     });
 }
@@ -61,6 +78,8 @@ function closeAllDebuggers() {
  * @param {string} taskIndex - The task index of the cell
  */
 function openDebugger(cellItem, taskIndex) {
+    closeAllDebuggers();
+    
     var leftContent = cellItem.find('#left_content_' + taskIndex);
     var rightContent = cellItem.find('#right_content_' + taskIndex);
     var debugButton = cellItem.find('.celleditdebug');
@@ -83,7 +102,6 @@ function openDebugger(cellItem, taskIndex) {
     }
 
     cell_debugger_run(cellItem, function(output_text) {
-        console.log("GOT locals keys output:", output_text);
         var taskIndex = cellItem.attr('step') || cellItem.attr('data-task-index');
         populateVariablesList(output_text, taskIndex);
     });
@@ -140,9 +158,9 @@ function cell_insert_step(parent) {
 
     parent.find(".insert_step").off('click');
     parent.find(".insert_step").on("click", function (event) {
+        closeAllDebuggers();
 
-        if ($(this).attr('stream') !== undefined) // Then hopefully it's the NEW CELL appending at the bottom. $(this) is the clicked button
-        {
+        if ($(this).attr('stream') !== undefined) {
             console.log('cell_insert_step: append new cell at end of stream');
             var steptype = $(this).attr('steptype');
             var stream = $(this).attr('stream');
@@ -155,7 +173,6 @@ function cell_insert_step(parent) {
 
             get_html('/step/stream/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/',
                 function (new_step) {
-
                     var $new_element = $(new_step);
 
                     console.log(step_stream);
@@ -163,10 +180,11 @@ function cell_insert_step(parent) {
 
                     sortUpdate(step_stream);
                     enable_interactions($new_element);
+                    cell_toggle_debug_view($new_element);
                 });
         } else {
             console.log('cell_insert_step: insert above existing cell');
-            var step_cell = $(this).parents('.clarama-cell-item'); // This should be the clarama-cell-item class, the li
+            var step_cell = $(this).parents('.clarama-cell-item');
             var step = step_cell.attr('step');
             var steptype = $(this).attr('steptype');
 
@@ -176,21 +194,17 @@ function cell_insert_step(parent) {
 
             var insert_step = step_stream.find("li.clarama-cell-item")[step - 1];
 
-
             console.log('cell_insert_step:' + step_cell.attr("id") + '=' + step_stream_id + '@' + step + ' from file ' + step_stream_file);
 
-
             var after = false;
-
             if (event.shiftKey) {
-                after = true
+                after = true;
             }
 
             new_step_id = new_step_id + 1;
 
             get_html('/step/' + step_stream.attr('stream') + '/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/',
                 function (new_step) {
-
                     var $new_element = $(new_step);
 
                     if (after) {
@@ -203,11 +217,9 @@ function cell_insert_step(parent) {
 
                     sortUpdate(step_stream);
                     enable_interactions($new_element);
+                    cell_toggle_debug_view($new_element);
                 });
         }
-
-        //alert("Insert " + step_type.attr("steptype") + ", stream " + step_parent.attr('stream') + " step " +  step_parent.attr('step'));
-
     });
 }
 
@@ -222,12 +234,21 @@ function cell_delete_step(parent) {
     parent.find(".delete_step").on("click", function () {
         var step_type = $(this);
         var step_parent = step_type.parents(".clarama-cell-item");
+        var taskIndex = step_parent.attr('step') || step_parent.attr('data-task-index');
+        
+        if (taskIndex) {
+            if (window[`cell_debugger_variables_callback_${taskIndex}`]) {
+                window[`cell_debugger_variables_callback_${taskIndex}`] = null;
+            }
+            if (window[`cell_debugger_callback_${taskIndex}`]) {
+                window[`cell_debugger_callback_${taskIndex}`] = null;
+            }
+        }
 
         var step_stream = step_parent.parents(".stream");
-
         step_parent.remove();
-
         sortUpdate(step_stream);
+        closeAllDebuggers();
     });
 }
 
@@ -239,8 +260,8 @@ function cell_delete_step(parent) {
  * can be open at a time.
  */
 function cell_toggle_debug_view(parent) {
-    parent.find(".celleditdebug").off('click');
-    parent.find(".celleditdebug").on("click", function () {
+    parent.find(".celleditdebug").off('click.debug'); // Use namespaced event
+    parent.find(".celleditdebug").on("click.debug", function () {
         var debugButton = $(this);
         var cellItem = debugButton.closest('.clarama-cell-item');
         
@@ -248,8 +269,6 @@ function cell_toggle_debug_view(parent) {
         var taskIndex = debugButton.attr('data-task-index') || 
                        cellItem.attr('step') || 
                        cellItem.attr('data-task-index');
-        
-        console.log("Debug button clicked for task:", taskIndex);
         
         var rightContent = cellItem.find('#right_content_' + taskIndex);
         
@@ -259,13 +278,8 @@ function cell_toggle_debug_view(parent) {
         console.log("Is this debugger open?", isThisDebuggerOpen);
         
         if (isThisDebuggerOpen) {
-            // If this debugger is open, just close all debuggers
-            console.log("Closing all debuggers");
             closeAllDebuggers();
         } else {
-            // If this debugger is closed, close all others and open this one
-            console.log("Closing all debuggers and opening this one");
-            closeAllDebuggers();
             openDebugger(cellItem, taskIndex);
         }
     });

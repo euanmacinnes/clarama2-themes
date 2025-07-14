@@ -1,4 +1,4 @@
-/* clarama_task_cell_debugger.html */
+/* clarama_task_cell_debugger.js */
 
 function set_debug_behaviour(task_registry, code_command) {
     task_registry['streams'][0]['main'][0]['type'] = 'code';
