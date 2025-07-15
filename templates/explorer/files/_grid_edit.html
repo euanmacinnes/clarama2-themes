@@ -455,39 +455,48 @@
   }
 
   function updateGridInteractionsOrder(targetId) {
-      const container = $(`#grid_element_target-${targetId}`);
-      const newOrder = [];
+    const container = $(`#grid_element_target-${targetId}`);
+    
+    if (!{{ grid_id }}elements[targetId] || !{{ grid_id }}elements[targetId].links) {
+      return;
+    }
+    
+    const newOrderedLinks = [];
+    
+    container.find('.slate-elem-dropdown-item').each(function(newIndex) {
+      const $item = $(this);
+      const currentLoopIndex = parseInt($item.attr('loop-index'));
       
-      container.find('.slate-elem-dropdown-item').each(function(index) {
-          const $item = $(this);
-          const originalIndex = parseInt($item.attr('loop-index'));
-          newOrder.push(originalIndex);
-          
-          $item.attr('loop-index', index);
-          
-          const deleteBtn = $item.find('.delete-grid-interaction');
-          const onclickAttr = deleteBtn.attr('onClick');
-          if (onclickAttr) {
-              const updatedOnclick = onclickAttr.replace(/'\d+'/, `'${index}'`);
-              deleteBtn.attr('onClick', updatedOnclick);
-          }
-          
-          const gearIcon = $item.find('.bi-gear');
-          gearIcon.attr('data-index', index);
-      });
+      const linkData = {{ grid_id }}elements[targetId].links[currentLoopIndex];
       
-      if ({{ grid_id }}elements[targetId] && {{ grid_id }}elements[targetId].links) {
-          const originalLinks = [...{{ grid_id }}elements[targetId].links];
-          const reorderedLinks = [];
-          
-          newOrder.forEach(originalIndex => {
-              if (originalLinks[originalIndex]) {
-                  reorderedLinks.push(originalLinks[originalIndex]);
-              }
-          });
-          
-          {{ grid_id }}elements[targetId].links = reorderedLinks;
+      if (linkData) {
+        const newLink = {
+          ...linkData,
+          uid: newIndex.toString()
+        };
+        newOrderedLinks.push(newLink);
       }
+    });
+    
+    {{ grid_id }}elements[targetId].links = newOrderedLinks;
+    
+    container.find('.slate-elem-dropdown-item').each(function(newIndex) {
+      const $item = $(this);
+      
+      $item.attr('loop-index', newIndex);
+      
+      const deleteBtn = $item.find('.delete-grid-interaction');
+      const onclickAttr = deleteBtn.attr('onClick');
+      if (onclickAttr) {
+        const updatedOnclick = onclickAttr.replace(/delete_interaction\([^,]+,\s*'?\d+'?\)/, `delete_interaction('${targetId}', '${newIndex}')`);
+        deleteBtn.attr('onClick', updatedOnclick);
+      }
+      
+      const gearIcon = $item.find('.bi-gear');
+      gearIcon.attr('data-index', newIndex);
+    });
+    
+    console.log('Updated order for', targetId, {{ grid_id }}elements[targetId].links);
   }
 
   function updateTextElement(target, gridId) {
@@ -1129,11 +1138,21 @@ function add_text() {
   function delete_interaction(target, link_index) {
     if (target in {{ grid_id }}elements) {
       var element_links = {{ grid_id }}elements[target]['links'];
-      console.log("element_links", element_links)
+      console.log("element_links", element_links);
 
       let linkIdx = element_links.findIndex(link => link.uid == link_index);
-      if (linkIdx !== -1) {
+      if (linkIdx === -1) {
+        linkIdx = parseInt(link_index);
+      }
+      
+      if (linkIdx !== -1 && linkIdx < element_links.length) {
         element_links.splice(linkIdx, 1);
+        
+        const container = $(`#grid_element_target-${target}`);
+        const itemToRemove = container.find(`.slate-elem-dropdown-item[loop-index="${link_index}"]`);
+        itemToRemove.remove();
+        
+        updateGridInteractionsOrder(target);
       }
 
       flash("interaction in " + target + " deleted");

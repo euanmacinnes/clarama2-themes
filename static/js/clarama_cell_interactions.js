@@ -21,9 +21,7 @@ function closeAllDebuggers() {
         var debuggerDiv = $(this);
         var debuggerId = debuggerDiv.attr('id');
         var taskIndex = debuggerId.replace('debugger_', '');
-        
-        console.log("closeAllDebuggers: Processing debugger for task", taskIndex);
-        
+                
         // Find the parent cell - try multiple selectors to catch dynamically added cells
         var cellItem = debuggerDiv.closest('.clarama-cell-item');
         if (!cellItem.length) {
@@ -82,7 +80,6 @@ function cell_edit_run(parent) {
         var cell_button = $(this).closest('.clarama-cell-item');
         var taskIndex = cell_button.attr('step');
         var hasDebuggerOpen = !cell_button.find('#right_content_' + taskIndex).hasClass('d-none');
-        console.log(cell_button);
         cell_item_run(cell_button);
         
         if (hasDebuggerOpen) {
@@ -329,18 +326,13 @@ function cell_toggle_debug_view(parent) {
         var debugButton = $(this);
         var cellItem = debugButton.closest('.clarama-cell-item');
         
-        // Get task index from multiple possible sources
         var taskIndex = debugButton.attr('data-task-index') || 
                        cellItem.attr('step') || 
                        cellItem.attr('data-task-index');
         
         var rightContent = cellItem.find('#right_content_' + taskIndex);
-        
-        // Check if THIS cell's debugger is currently open
         var isThisDebuggerOpen = !rightContent.hasClass('d-none');
-        
-        console.log("Is this debugger open?", isThisDebuggerOpen);
-        
+
         if (isThisDebuggerOpen) {
             closeAllDebuggers();
         } else {
