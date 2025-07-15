@@ -189,6 +189,7 @@ function get_data_cell(cell) {
         var srs = {
             'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
             'anno-label': $(this).find('.anno-label').val(),            // label
+            'anno-i': $(this).find('.anno-i').val(),                    // X axis
             'anno-x': $(this).find('.anno-x').val(),                    // X axis
             'anno-y': $(this).find('.anno-y').val(),                    // Y axis
             'anno-xm': $(this).find('.anno-xm').val(),                  // X MAX axis

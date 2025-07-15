@@ -240,7 +240,7 @@
                         </select>
                     </div>
                     <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chartYamlEditor"
-                            role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advance
+                            role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advanced
                     </button>
                 </div>
             </div>
@@ -249,10 +249,9 @@
                 <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}"
                      name="task_step_field_yaml_{{ loop_index }}"
                      editor="yaml"
-                     class="source-editor form-control clarama-field-editor"
+                     class="source-editor form-control clarama-field-editor chart-advanced"
                      celltype="code"
-                     style="min-height: 100px">
-                </div>
+                     style="min-height: 100px">{{  chart['advanced'] }}</div>
             </div>
 
             <div class="container-fluid my-3">
@@ -336,19 +335,20 @@
                     <i id="addAN{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
                 </label>
                 <div class="list-group-item d-flex row gx-2 align-items-center">
-                    <div class="grid13-col-1">Tab</div>
-                    <div class="grid13-col-1">Label</div>
-                    <div class="grid13-col-1">X Axis</div>
-                    <div class="grid13-col-1">Y Axis</div>
-                    <div class="grid13-col-1">X Max Axis</div>
-                    <div class="grid13-col-1">Y Max Axis</div>
-                    <div class="grid13-col-1">Unit Axis</div>
-                    <div class="grid13-col-1">State Axis</div>
+                    <div class="grid14-col-1">Tab</div>
+                    <div class="grid14-col-1">Type</div>
+                    <div class="grid14-col-1">Image</div>
+                    <div class="grid14-col-1">Label</div>
+                    <div class="grid14-col-1">X Axis</div>
+                    <div class="grid14-col-1">Y Axis</div>
+                    <div class="grid14-col-1">X Max Axis</div>
+                    <div class="grid14-col-1">Y Max Axis</div>
+                    <div class="grid14-col-1">Unit Axis</div>
+                    <div class="grid14-col-1">State Axis</div>
                     <div class="text-center" style="width: 4%;">Dotted</div>
-                    <div class="grid13-col-1">Border Width</div>
-                    <div class="grid13-col-1">Type</div>
-                    <div class="grid13-col-1">Colour</div>
-                    <div class="grid13-col-1">Fill Colour</div>
+                    <div class="grid14-col-1">Border Width</div>
+                    <div class="grid14-col-1">Colour</div>
+                    <div class="grid14-col-1">Fill Colour</div>
                     <div style="width: 2%;"></div>
                 </div>
                 {% for sanno in seriesannos %}

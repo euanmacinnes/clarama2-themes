@@ -352,7 +352,7 @@ function parseval(destination, field_name, dataset, index = undefined) {
  * @description Takes annotation data from data_edit_chart_series_annotation.html form inputs
  * and converts it into properly formatted annotation objects for ChartJS
  */
-function ChartAnnotations(result, definition, dataset) {
+function ChartAnnotations(result, definition, dataset, chart_path) {
     if (!dataset || dataset['rows'].length === 0) {
         console.log("Annotation Error: No dataset provided");
         return;
@@ -432,6 +432,16 @@ function ChartAnnotations(result, definition, dataset) {
 
         console.log(anno);
         console.log(annoObj);
+        let image = parseval("anno-i", definition['anno-i'], anno);
+
+        if (image.slice(0, 1) === '/') {
+            image = '/content/download' + image;
+        }
+
+        if (image.slice(0, 2) === './') {
+            image = '/content/download/' + chart_path + image.slice(1);
+        }
+
         let ymin = parseval("anno-y", definition['anno-y'], anno);
         let ymax = parseval("anno-ym", definition['anno-ym'], anno);
         let xmin = parseval('anno-x', definition['anno-x'], anno, i);
@@ -444,7 +454,7 @@ function ChartAnnotations(result, definition, dataset) {
         let gotym = (ymax !== undefined && ymax !== '');
         let label_position = 'center';
 
-        console.log("ANNOTATION " + annoId + " (" + xmin + ',' + ymin + '->' + xmax + ',' + ymax + ') : ' + annolabel);
+        console.log("ANNOTATION " + annoId + "[" + image + "] (" + xmin + ',' + ymin + '->' + xmax + ',' + ymax + ') : ' + annolabel);
         console.log("ANNOTATION STATE " + annoId + " (" + gotx + ',' + goty + '->' + gotxm + ',' + gotym + ') : ' + annolabel);
 
         // Handle different annotation types
@@ -506,11 +516,29 @@ function ChartAnnotations(result, definition, dataset) {
                         x: 'center',
                         y: 'center'
                     };
-                    annoObj.yAdjust = -10;
+                    annoObj.content = annolabel;
+                    annoObj.xAdjust = xmax;
+                    annoObj.yAdjust = ymax;
                     annoObj.xValue = xmin_raw;
                     annoObj.yValue = ymin;
+                    let pos = 'left';
+
+                    if (xmax > 0)
+                        pos = 'right'
+
+                    if (xmax < 0)
+                        pos = 'left'
+
+                    if (ymax < 0)
+                        pos = 'bottom'
+
+                    if (ymax > 0)
+                        pos = 'top'
+
+
                     annoObj['callout'] = {
                         display: true,
+                        position: pos
                     };
                 }
                 break;
@@ -527,10 +555,11 @@ function ChartAnnotations(result, definition, dataset) {
         }
 
         // Add label if provided
-        if (definition['anno-label']) {
+        if (definition['anno-label'] || image) {
             if (annolabel === '' || annolabel === undefined || annolabel === null) {
                 annolabel = ' ';
             }
+
             annoObj.label = {
                 content: annolabel,
                 rotation: 'auto',
@@ -538,6 +567,15 @@ function ChartAnnotations(result, definition, dataset) {
                 display: true,
                 position: label_position,
             };
+
+            if (image !== undefined && image !== '') {
+                annolabel = new Image();
+                annolabel.src = image;
+                annoObj.label.content = annolabel;
+                annoObj.label.width = "100%";
+                annoObj.label.height = "100%";
+                annoObj.label.position = 'center';
+            }
 
             // Set label background color to match border if not specified
             if (definition['anno-col'] && !definition['anno-col-back']) {
@@ -647,8 +685,9 @@ function bChart(chart_id, chart_data) {
 
     var datasets = [];
 
+    var user_config = config['advanced_yaml'];
+
     for (i = 0; i < config['series-groups'].length; i++) {
-        var user_config = config['userconfig']
         console.log("SERIES GROUP " + i + " of " + config['series-groups'].length);
         console.log(config['series-groups'][i]);
         var sg = config['series-groups'][i];
@@ -1040,7 +1079,7 @@ function bChart(chart_id, chart_data) {
             var anno_dataset = data[current_dataset_index];
             console.log("ANNOTATION DATASET");
             console.log(anno_dataset);
-            ChartAnnotations(annotation_result, sa, anno_dataset);
+            ChartAnnotations(annotation_result, sa, anno_dataset, config['path']);
 
         }
 
@@ -1172,7 +1211,10 @@ function bChart(chart_id, chart_data) {
 
     if (user_config !== undefined) {
         console.log("CHART deepMerging");
+        console.log(user_config);
         config = deepMerge(config, user_config);
+    } else {
+        console.log("CHART default config, no advanced settings detected");
     }
 
     console.log("FINAL CHART");
