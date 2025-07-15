@@ -2,7 +2,7 @@
     class="row bg-white text-dark clarama-cell-item"
     steptype="{{ task_step['type'] }}"
 >
-    <div class="panel col-2 col-lg-1
+    <div class="panel col-2 col-lg-1 d-flex flex-column justify-content-between
                  {% if task_last %}
                     bg-primary
                  {% else %}
@@ -54,9 +54,7 @@
             >
             </div>
         </div>
-        <div class="d-flex justify-content-center position-absolute bottom-0">
-            <div class="container-fluid cell-timing">
-            </div>
+        <div class="cell-timing container-fluid">
         </div>
     </div>
     <div class="col-10 col-lg-11" style="padding:0px;">

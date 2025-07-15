@@ -1,9 +1,10 @@
 /* clarama_task_cell_debugger.js */
 
-function set_debug_behaviour(task_registry, code_command) {
+function set_debug_behaviour(task_registry, code_command, field_registry) {
     task_registry['streams'][0]['main'][0]['type'] = 'code';
     task_registry['streams'][0]['main'][0]['content'] = code_command;
     task_registry['streams'][0]['main'][0]['clear'] = false;
+    task_registry['parameters'] = field_registry;
 }
 
 function cell_debugger_run(cell_button, outputCallback) {    
@@ -22,8 +23,7 @@ function cell_debugger_run(cell_button, outputCallback) {
 
     get_field_values({}, true, function (field_registry) {
         var task_registry = get_cell_fields(cell_button);
-        set_debug_behaviour(task_registry, 'list(locals().keys());');
-        task_registry['parameters'] = field_registry;
+        set_debug_behaviour(task_registry, 'list(locals().keys());', field_registry);
         var socket_div = $("#edit_socket");
         
         field_registry['clarama_task_kill'] = false;
@@ -42,7 +42,7 @@ function cell_debugger_run(cell_button, outputCallback) {
                 // console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug response received for task', taskIndex, ':', data);
                 if (data['data'] == 'ok') {
                     console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was successful for task', shownIndex);
-                    flash(`Cell ${shownIndex} debug submitted successfully`, "success");
+                    flash(`Cell ${shownIndex} debug toggled on`, "success");
                     // The actual output will come via WebSocket in the onMessage function
                 } else {
                     console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was not successful for task', taskIndex);
@@ -77,6 +77,7 @@ function debug_console_run(taskIndex, code) {
     }
     
     const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
+    var shownIndex = cellElement.closest('li.clarama-cell-item').find('button.step-label').text().trim();
     const executionKey = `console_executing_${currentTaskIndex}`;
     if (window[executionKey]) {
         console.log("Console execution already in progress for task", currentTaskIndex);
@@ -118,10 +119,6 @@ function debug_console_run(taskIndex, code) {
         
         if (!consoleOutput) {
             consoleOutput = cellElement.find('.console-output')[0];
-            if (consoleOutput) {
-                console.warn(`Console output found via fallback method for task ${currentTaskIndex}. IDs may be out of sync.`);
-                consoleOutput.id = `console_output_${currentTaskIndex}`;
-            }
         }
         
         if (consoleOutput) {
@@ -132,8 +129,7 @@ function debug_console_run(taskIndex, code) {
     get_field_values({}, true, function(field_registry) {
         var task_registry = get_cell_fields(cellElement);
         
-        set_debug_behaviour(task_registry, code);
-        task_registry['parameters'] = field_registry;
+        set_debug_behaviour(task_registry, code, field_registry);
         
         var socket_div = $("#edit_socket");
         field_registry['clarama_task_kill'] = false;
@@ -156,10 +152,10 @@ function debug_console_run(taskIndex, code) {
                 console.log('console data: ', data);
                 if (data['data'] == 'ok') {
                     console.log('Console code submitted successfully for task', currentTaskIndex);
-                    flash(`Console code executed successfully for task ${currentTaskIndex}`, "success");
+                    // flash(`Console code executed successfully for task ${currentTaskIndex}`, "success");
                 } else {
                     console.log('Console execution was not successful for task', currentTaskIndex);
-                    flash("Console execution failed: " + (data['error'] || 'Unknown error'), "danger");
+                    // flash("Console execution failed: " + (data['error'] || 'Unknown error'), "danger");
                     delete window[`cell_debugger_callback_${currentTaskIndex}`];
                 }
                 
@@ -210,8 +206,7 @@ if val_str.startswith("<"):
 else:
     pprint(${varName})
 `;
-        set_debug_behaviour(task_registry, codeChecker);
-        task_registry['parameters'] = field_registry;
+        set_debug_behaviour(task_registry, codeChecker, field_registry);
 
         var socket_div = $("#edit_socket");
         var task_kernel_id = socket_div.attr("task_kernel_id");
