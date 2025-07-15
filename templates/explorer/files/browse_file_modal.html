@@ -1,0 +1,130 @@
+<div class="modal fade" tabindex="-1" id="browseFileModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Browse File</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb" id="breadcrumb_browsefile">
+            </ol>
+          </nav>
+  
+          <select id="add_content_browsefile" name="add_file" size="10" class="form-control">
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="add_selected_file()">Select
+          </button>
+        </div>
+      </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $( document ).ready(() => {
+        $('#add_content_browsefile').on('dblclick', 'option', function () {
+            const selectedItem = $(this); 
+            if (!isFolder(selectedItem)) {
+                console.log("File selected: " + selectedItem.val());
+                add_selected_file();
+            }
+        });
+
+        $('#browseFileModal').on('shown.bs.modal', function (event) {
+            const button = $(event.relatedTarget);
+            const filters = button.attr('filters'); 
+            const inputId = button.attr('inputId');
+            const gridElem = button.attr('gridElem');
+
+            $(this).data('inputId', inputId);
+            $(this).data('gridElem', gridElem);
+            path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
+
+            navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile', filters);
+        });
+    });
+
+    function add_selected_file() {
+        const selected_val = "./" + $("#add_content_browsefile").val();
+        console.log("adding " + selected_val);
+        if (selected_val == null) {
+            flash("No file selected!");
+            return;
+        }
+
+        const newSource = $CLARAMA_ROOT + selected_val;
+
+        const inputId = $("#browseFileModal").data('inputId');
+        console.log("inputId", inputId)
+
+        if (inputId == "field_data_source") {
+            const fieldEditor = ace.edit("data");
+            console.log("fieldEditor", fieldEditor)
+            const fieldSession = fieldEditor.getSession();
+            console.log("fieldSession", fieldSession)
+            const fieldLines = fieldSession.getDocument().getAllLines();
+            console.log("fieldLines", fieldLines)
+
+            let found = false;
+            const newText = "source: " + newSource;
+
+            for (let i = 0; i < fieldLines.length; i++) {
+                if (fieldLines[i].includes("source")) {
+                    fieldSession.replace({
+                        start: { row: i, column: 0 },
+                        end: { row: i, column: fieldLines[i].length }
+                    }, newText);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                const lastRow = fieldLines.length;
+                fieldSession.insert({ row: lastRow, column: 0 }, newText);
+            }
+            
+            $("#browseFileModal").modal('hide');
+            return;
+        }
+
+        const targetInput = document.getElementById(inputId);
+        let target = inputId.replace('_elemInput', ''); 
+        if (targetInput) {
+            if (inputId.includes('_elemInput')) {
+                targetInput.href = "/content/edit/" + resolveRelativeFilePath("{{ file_url | path }}", newSource);
+                targetInput.textContent = newSource;
+                {{ grid_id }}elements[target]['url'] = newSource;
+
+                let parentDiv = document.getElementById(target);
+                const currentUrl = parentDiv.getAttribute('url');
+                parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath("{{ file_url | path }}", newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
+                
+                console.log("new url", document.getElementById(target).getAttribute('url'))
+                enable_interactions($(`#${target}`).parent(), true);
+            } else if (inputId == "settings_table_source") {
+                targetInput.value = newSource;
+                {{ grid_id }}settings["table"] = newSource;
+            } else {
+                targetInput.value = newSource;
+            }
+
+            if (inputId !== "grid-elem" && (!inputId.includes('_elemInput'))) {
+                const btnId = inputId.replace("_source", "_browse");
+                const browseLink = document.getElementById(btnId + "_link");
+                if (browseLink) {
+                    browseLink.href = newSource;
+                    browseLink.style.display = "inline-block";
+                }
+            }
+            flash("File path stored successfully! " + newSource);
+        } else {
+            flash("Target input field not found!", "danger");
+        }
+
+        $("#browseFileModal").modal('hide');
+    }
+</script>
