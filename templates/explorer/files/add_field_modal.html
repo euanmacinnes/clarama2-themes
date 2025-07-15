@@ -88,101 +88,99 @@
 </div>
 
 <script type="text/javascript">
-    $( document ).ready(() => {
-        // double-click on a file in the modal
-        $('#add_content_addfield').on('dblclick', 'option', function () {
-            document.getElementById('new_content').value = '';
-            const selectedItem = $(this); 
-            if (!isFolder(selectedItem)) {
-                console.log("File selected: " + selectedItem.val());
-                add_selected_content('/content/element/{{ file_url }}')
-            }
-        });
-
-        $('#addfieldModal').on('shown.bs.modal', function () {
-            const filters = $(".gridaddcontent").attr('filters');
-            const path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
-
-            currentModalAddContentPath = "{{ file_url | path }}";
-            navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield', filters);
-        });
+  $( document ).ready(() => {
+    // double-click on a file in the modal
+    $('#add_content_addfield').on('dblclick', 'option', function () {
+      document.getElementById('new_content').value = '';
+      const selectedItem = $(this); 
+      if (!isFolder(selectedItem)) {
+        console.log("File selected: " + selectedItem.val());
+        add_selected_content('/content/element/{{ file_url }}')
+      }
     });
 
-    function add_selected_content(element_render_url, selected_v = "") {
-        if (selected_v !== "") {
-            if (selected_v == "empty") {
-                selected_val = "";
-            } else {
-                selected_val = selected_v;
-            }
-        } else {
-            selected_val = "./" + $("#add_content_addfield").val();
-        }
-        console.log("adding " + selected_val);
+    $('#addfieldModal').on('shown.bs.modal', function () {
+      const filters = $(".gridaddcontent").attr('filters');
+      const path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
 
-        if (selected_val == null) {
-            flash("No file selected!")
-        } else {
-            // find unique element id
-            var element_id = 0;
-            var element_found = false;
-            do {
-                element = "element_" + element_id;
+      currentModalAddContentPath = "{{ file_url | path }}";
+      navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield', filters);
+    });
+  });
 
-                if (element in {{ grid_id }}elements)
-                element_id = element_id + 1;
-                else
-                element_found = true;
-            }
-            while (!element_found);
-
-            console.log("element " + element);
-
-            // now add element
-            new_element_data = {"url": selected_val}
-
-            slate_data = saveGrid();
-
-            if (isDict(slate_data['elements'])) {
-                console.log("is dict slate_data elements");
-                slate_data['elements'][element] = new_element_data;
-            } else {
-                console.log("is not dict slate_data elements");
-                var elem = {};
-                elem[element] = new_element_data;
-                slate_data['elements'] = elem;
-            }
-
-            console.log(slate_data)
-
-            // if (element_render_url === '') {
-            //   addContent(element, new_element_data, "");
-            // } else {
-            $.ajax({
-                type: 'POST',
-                url: element_render_url + "?element=" + element,
-                datatype: "html",
-                contentType: 'application/json',
-                data: JSON.stringify(slate_data),
-                success: function (data) {
-                    if (data['data'] == 'ok') {
-                    let html = data['results'];
-
-                    addContent(element, new_element_data, html);
-                    } else {
-                    console.log('Submission was not successful.');
-                    console.log(data);
-                    flash("Couldn't save content: " + data['error'], "danger");
-                    }
-                },
-                error: function (data) {
-                    console.log('An error occurred.');
-                    console.log(data);
-                    flash("Couldn't render element content, access denied", "danger");
-                }
-            })
-            // }
-            // $("#addfieldModal").modal('hide');
-        }
+  function add_selected_content(element_render_url, selected_v = "") {
+    if (selected_v !== "") {
+      if (selected_v == "empty") {
+        selected_val = "";
+      } else {
+        selected_val = selected_v;
+      }
+    } else {
+      selected_val = "./" + $("#add_content_addfield").val();
     }
+    console.log("adding " + selected_val);
+
+    if (selected_val == null) {
+      flash("No file selected!")
+    } else {
+      // find unique element id
+      var element_id = 0;
+      var element_found = false;
+      do {
+          element = "element_" + element_id;
+
+          if (element in {{ grid_id }}elements)
+          element_id = element_id + 1;
+          else
+          element_found = true;
+      }
+      while (!element_found);
+
+      console.log("element " + element);
+
+      // now add element
+      new_element_data = {"url": selected_val};
+      slate_data = saveGrid();
+
+      if (isDict(slate_data['elements'])) {
+        console.log("is dict slate_data elements");
+        slate_data['elements'][element] = new_element_data;
+      } else {
+        console.log("is not dict slate_data elements");
+        var elem = {};
+        elem[element] = new_element_data;
+        slate_data['elements'] = elem;
+      }
+
+      console.log(slate_data)
+
+      // if (element_render_url === '') {
+      //   addContent(element, new_element_data, "");
+      // } else {
+      $.ajax({
+        type: 'POST',
+        url: element_render_url + "?element=" + element,
+        datatype: "html",
+        contentType: 'application/json',
+        data: JSON.stringify(slate_data),
+        success: function (data) {
+          if (data['data'] == 'ok') {
+            let html = data['results'];
+            addContent(element, new_element_data, html);
+          } else {
+            console.log('Submission was not successful.');
+            console.log(data);
+            flash("Couldn't save content: " + data['error'], "danger");
+          }
+        },
+        error: function (data) {
+          console.log('An error occurred.');
+          console.log(data);
+          flash("Couldn't render element content, access denied", "danger");
+        }
+      })
+      // }
+      // $("#addfieldModal").modal('hide');
+    }
+  }
 </script>
