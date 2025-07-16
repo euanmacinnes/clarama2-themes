@@ -176,10 +176,9 @@ function check_fields_valid() {
     return valid;
 }
 
-
 /**
  * saveGrid is in the _grid_edit.html and is dynamically generated with the saved grid definition inside the HTML
- */
+*/
 function get_fields(fields, cell, field_submit) {
     let socket_div = $("#edit_socket");
 
@@ -191,11 +190,11 @@ function get_fields(fields, cell, field_submit) {
     $('.stream').each(
         function (index) {
             var stream = $(this);
-
+            
             var current_stream = stream.attr("stream")
-
+            
             var stream_cells = get_cell(stream, "");
-
+            
             console.log("Saving stream " + current_stream);
             stream_dict = {};
             stream_dict[current_stream] = stream_cells;
@@ -210,22 +209,145 @@ function get_fields(fields, cell, field_submit) {
         field_submit(registry);
 }
 
+/**
+ * Cell Navigation and Execution Functions
+ * Provides keyboard shortcuts for navigating and executing cells
+ */
+function initializeCellNavigation() {
+    let currentCellIndex = null;
+    
+    function getAllCells() {
+        return $('.clarama-cell-item').toArray().sort((a, b) => {
+            const aStep = parseInt($(a).attr('step'));
+            const bStep = parseInt($(b).attr('step'));
+            return aStep - bStep;
+        });
+    }
+    
+    function getCurrentCell() {
+        let currentCell = null;
+        
+        // Check if any cell editor has focus
+        $('.cell-editor').each(function() {
+            if ($(this).is(':focus') || $(this).find(':focus').length > 0) {
+                currentCell = $(this).closest('.clarama-cell-item')[0];
+                return false; // break
+            }
+        });
+        
+        // If no cell has focus, try to find the last clicked cell
+        if (!currentCell && currentCellIndex !== null) {
+            const cells = getAllCells();
+            if (currentCellIndex < cells.length) {
+                currentCell = cells[currentCellIndex];
+            }
+        }
+        
+        // If still no cell, default to the first cell
+        if (!currentCell) {
+            const cells = getAllCells();
+            if (cells.length > 0) {
+                currentCell = cells[0];
+                currentCellIndex = 0;
+            }
+        }
+        
+        return currentCell;
+    }
+    
+    function moveToNextCell(currentCell) {
+        const cells = getAllCells();
+        const currentIndex = cells.indexOf(currentCell);
+        
+        if (currentIndex !== -1 && currentIndex < cells.length - 1) {
+            const nextCell = cells[currentIndex + 1];
+            currentCellIndex = currentIndex + 1;
+            
+            const nextEditor = $(nextCell).find('.cell-editor').first();
+            if (nextEditor.length > 0) {
+                nextEditor.focus();
+                
+                const textInput = nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                if (textInput.length > 0) {
+                    textInput.focus();
+                }
+            }
+            
+            return nextCell;
+        }
+        
+        return null;
+    }
+    
+    function runCurrentCell(cell) {
+        if (!cell) return false;
+        
+        const $cell = $(cell);
+        const runButton = $cell.find('.celleditrun').first();
+        runButton.click();
+    }
+
+    function toggleDebugForCurrentCell(cell) {
+        if (!cell) return false;
+        
+        const $cell = $(cell);
+        const debugButton = $cell.find('.celleditdebug').first();
+        debugButton.click();
+    }
+    
+    // Event handlers
+    $(document).on('click', '.clarama-cell-item', function() {
+        const cells = getAllCells();
+        currentCellIndex = cells.indexOf(this);
+    });
+    
+    $(document).on('focus', '.cell-editor, .cell-editor input, .cell-editor textarea', function() {
+        const cell = $(this).closest('.clarama-cell-item')[0];
+        if (cell) {
+            const cells = getAllCells();
+            currentCellIndex = cells.indexOf(cell);
+        }
+    });
+    
+    $(document).on('keydown', function(e) {
+        // Ctrl+Enter: Run current cell and move to next
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
+            e.preventDefault();
+            
+            const currentCell = getCurrentCell();
+            if (!currentCell) return;
+            
+            runCurrentCell(currentCell);
+            moveToNextCell(currentCell);
+        }
+
+        // Ctrl+\ : Toggle debug for current cell
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
+            e.preventDefault();
+            
+            const currentCell = getCurrentCell();
+            if (!currentCell) return;
+            
+            toggleDebugForCurrentCell(currentCell);
+        }
+    });
+}
 
 /**
  * Enable the custom daterange dropdown, using a custom attribute "data", parsed for JSON, to use to define custom
  * date ranges
- */
+*/
 $.fn.daterange = function () {
     return this.each(function () {
         let embedded = $(this);
-
+        
         let data = embedded.attr("data");
-
+        
         let date_ranges = {};
-
+        
         if (typeof data !== "undefined") {
             const range_data = JSON.parse(data);
-
+            
             if ('dateranges' in range_data) {
                 for (const [key, value] of Object.entries(range_data['dateranges']).reverse()) {
                     let range_name = value['name'];
@@ -418,117 +540,34 @@ $.fn.editor = function () {
     });
 }
 
-/**
- * Cell Navigation and Execution Functions
- * Provides keyboard shortcuts for navigating and executing cells
- */
-function initializeCellNavigation() {
-    let currentCellIndex = null;
+// This is to allow the shortcut to be read through the code editors
+$(document).on('focus', '.source-editor, .text-editor, .ace_text-input', function() {
+    const editor = $(this);
     
-    function getAllCells() {
-        return $('.clarama-cell-item').toArray().sort((a, b) => {
-            const aStep = parseInt($(a).attr('step'));
-            const bStep = parseInt($(b).attr('step'));
-            return aStep - bStep;
-        });
-    }
-    
-    function getCurrentCell() {
-        let currentCell = null;
-        
-        // Check if any cell editor has focus
-        $('.cell-editor').each(function() {
-            if ($(this).is(':focus') || $(this).find(':focus').length > 0) {
-                currentCell = $(this).closest('.clarama-cell-item')[0];
-                return false; // break
-            }
-        });
-        
-        // If no cell has focus, try to find the last clicked cell
-        if (!currentCell && currentCellIndex !== null) {
-            const cells = getAllCells();
-            if (currentCellIndex < cells.length) {
-                currentCell = cells[currentCellIndex];
-            }
-        }
-        
-        // If still no cell, default to the first cell
-        if (!currentCell) {
-            const cells = getAllCells();
-            if (cells.length > 0) {
-                currentCell = cells[0];
-                currentCellIndex = 0;
-            }
-        }
-        
-        return currentCell;
-    }
-    
-    function moveToNextCell(currentCell) {
-        const cells = getAllCells();
-        const currentIndex = cells.indexOf(currentCell);
-        
-        if (currentIndex !== -1 && currentIndex < cells.length - 1) {
-            const nextCell = cells[currentIndex + 1];
-            currentCellIndex = currentIndex + 1;
+    if (editor.hasClass('source-editor') && editor.attr('id')) {
+        try {
+            const aceEditor = ace.edit(editor.attr('id'));
             
-            // Focus on the next cell's editor
-            const nextEditor = $(nextCell).find('.cell-editor').first();
-            if (nextEditor.length > 0) {
-                nextEditor.focus();
-                
-                // If there's a text input or textarea in the editor, focus on it
-                const textInput = nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
-                if (textInput.length > 0) {
-                    textInput.focus();
+            // Remove any existing command to avoid duplicates
+            aceEditor.commands.removeCommand('toggleDebug');
+            
+            // Add the debug toggle command to ACE editor
+            aceEditor.commands.addCommand({
+                name: 'toggleDebug',
+                bindKey: {win: 'Ctrl-\\', mac: 'Cmd-\\'},
+                exec: function(editor) {
+                    const editorElement = $(editor.container);
+                    const currentCell = editorElement.closest('.clarama-cell-item')[0];
+                    if (currentCell) {
+                        toggleDebugForCurrentCell(currentCell);
+                    }
                 }
-            }
-            
-            return nextCell;
+            });
+        } catch (e) {
+            console.log('Could not bind debug shortcut to ACE editor:', e);
         }
-        
-        return null;
     }
-    
-    function runCurrentCell(cell) {
-        if (!cell) return false;
-        
-        const $cell = $(cell);
-        const runButton = $cell.find('.celleditrun').first();
-        if (runButton.length > 0) {
-            runButton.click();
-            return true;
-        }
-        
-        return false;
-    }
-    
-    // Event handlers
-    $(document).on('click', '.clarama-cell-item', function() {
-        const cells = getAllCells();
-        currentCellIndex = cells.indexOf(this);
-    });
-    
-    $(document).on('focus', '.cell-editor, .cell-editor input, .cell-editor textarea', function() {
-        const cell = $(this).closest('.clarama-cell-item')[0];
-        if (cell) {
-            const cells = getAllCells();
-            currentCellIndex = cells.indexOf(cell);
-        }
-    });
-    
-    $(document).on('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
-            e.preventDefault();
-            
-            const currentCell = getCurrentCell();
-            if (!currentCell) return;
-            
-            const wasRun = runCurrentCell(currentCell);
-            const nextCell = moveToNextCell(currentCell);
-        }
-    });
-}
+});
 
 $(document).ready(function() {
     initializeCellNavigation();
