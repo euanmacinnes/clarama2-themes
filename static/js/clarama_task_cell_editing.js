@@ -18,7 +18,6 @@ function get_cell_fields(cell_owner) {
     return registry;
 }
 
-
 $.fn.enablesortcolor = function () {
     return this.each(function () {
         var panelList = $(this);

@@ -13,13 +13,13 @@
                     <button type="button" class="btn btn-outline-primary input-group-text" data-bs-toggle="modal" id="browseFileBtn"
                         data-bs-target="#browseFileModal"
                         inputId="{{ target }}_elemInput"
-                        filters="*.task.yaml">
+                        filters="*.field.yaml|*.task.yaml|*.md">
                         <i class="bi bi-folder2-open"></i>
                     </button>
 
                     <span class="input-group-text"><a id="{{ target }}_elemInput" href="/content/edit/{{ element_content_url }}" target="_blank">{{ target_element['url'] }}</a></span>
 
-                    <button type="button" class="btn btn-outline-secondary border-end-0 p-1" onclick="clearInput('{{ target }}_elemInput', event)" style="font-size: 1rem;border-color: #dee2e6;">
+                    <button type="button" class="btn btn-outline-secondary border-end-0 p-1" onclick="clearInput('{{ target }}_elemInput', 'url', '{{ target }}', event)" style="font-size: 1rem;border-color: #dee2e6;">
                       <i class="bi bi-x"></i>
                     </button>
 
@@ -28,7 +28,7 @@
                     <input type="text" class="form-control removeInputFocus" id="{{ target }}_paramsInput" placeholder="my_param=something"
                             value="{{ target_element['params'] }}">
 
-                    <button type="button" class="btn btn-outline-secondary p-1 border-end-0" onclick="clearInput('{{ target }}_paramsInput', event)" style="font-size: 1rem;border-color: #dee2e6;">
+                    <button type="button" class="btn btn-outline-secondary p-1 border-end-0" onclick="clearInput('{{ target }}_paramsInput', 'params', '{{ target }}', event)" style="font-size: 1rem;border-color: #dee2e6;">
                         <i class="bi bi-x"></i>
                     </button>
 
