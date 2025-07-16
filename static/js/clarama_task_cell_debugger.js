@@ -1,5 +1,3 @@
-/* clarama_task_cell_debugger.js */
-
 // ========================================
 // DEBUGGER FUNCTIONS
 // ========================================
@@ -22,13 +20,10 @@ function set_debug_behaviour(task_registry, code_command, field_registry) {
  * @param {jQuery} cell_button - The cell button element
  * @param {Function} outputCallback - Optional callback for output
  */
-function cell_debugger_run(cell_button, outputCallback) {
+function cell_debugger_run(cell_button, outputCallback) {    
     const taskIndex = cell_button.attr('step') || cell_button.attr('data-task-index');
     const shownIndex = cell_button.closest('li.clarama-cell-item').find('button.step-label').text().trim();
     
-    console.log("Debug running for task index:", taskIndex);
-    
-    // Set up callback for variable listing
     window['cell_debugger_variables_callback_' + taskIndex] = function(output) {
         console.log("Variables debugger callback received output for task", taskIndex, ":", output);
         populateVariablesList(output, taskIndex, false);
@@ -38,12 +33,11 @@ function cell_debugger_run(cell_button, outputCallback) {
         }
     };
 
-    get_field_values({}, true, function(field_registry) {
+    get_field_values({}, true, function (field_registry) {
         const task_registry = get_cell_fields(cell_button);
-        const code_command = 'list(locals().keys());';
-        set_debug_behaviour(task_registry, code_command, field_registry);
-        
+        set_debug_behaviour(task_registry, 'print(list(locals().keys()));', field_registry);
         const socket_div = $("#edit_socket");
+        
         field_registry['clarama_task_kill'] = false;
         
         const task_kernel_id = socket_div.attr("task_kernel_id");
@@ -56,8 +50,6 @@ function cell_debugger_run(cell_button, outputCallback) {
             contentType: 'application/json',
             data: JSON.stringify(task_registry),
             success: function(data) {
-                console.log('task_registry: ', task_registry);
-                
                 if (data['data'] == 'ok') {
                     console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was successful for task', shownIndex);
                     flash(`Cell ${shownIndex} debug toggled on`, "success");
@@ -96,13 +88,11 @@ function debug_console_run(taskIndex, code) {
     const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
     const shownIndex = cellElement.closest('li.clarama-cell-item').find('button.step-label').text().trim();
     const executionKey = `console_executing_${currentTaskIndex}`;
-    
     if (window[executionKey]) {
         console.log("Console execution already in progress for task", currentTaskIndex);
         return;
     }
     
-    // Get code from input if not provided
     if (!code) {
         let consoleInput = document.getElementById(`console_input_${currentTaskIndex}`);
         
@@ -130,7 +120,7 @@ function debug_console_run(taskIndex, code) {
     
     window[executionKey] = true;
     
-    // Set up callback for console output
+    // Use the current task index for the callback function name
     window[`cell_debugger_callback_${currentTaskIndex}`] = function(output) {
         console.log("Console callback received output for task", currentTaskIndex, ":", output);
         
@@ -155,7 +145,6 @@ function debug_console_run(taskIndex, code) {
         const task_kernel_id = socket_div.attr("task_kernel_id");
         const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
         const taskUrl = get_url(url, field_registry);
-        
         console.log("Console execution: Running code at", taskUrl, "for task", currentTaskIndex);
 
         $.ajax({
@@ -165,9 +154,6 @@ function debug_console_run(taskIndex, code) {
             contentType: 'application/json',
             data: JSON.stringify(task_registry),
             success: function(data) {
-                console.log('console task registry: ', task_registry);
-                console.log('console data: ', data);
-                
                 if (data['data'] == 'ok') {
                     console.log('Console code submitted successfully for task', currentTaskIndex);
                 } else {
@@ -178,7 +164,6 @@ function debug_console_run(taskIndex, code) {
                 delete window[executionKey];
             },
             error: function(error) {
-                console.log("Console execution AJAX error for task", currentTaskIndex, ":", error);
                 flash("Console execution failed: access denied", "danger");
                 delete window[`cell_debugger_callback_${currentTaskIndex}`];
                 delete window[executionKey];
@@ -206,7 +191,6 @@ function inspectVariable(varName, taskIndex) {
 
     window[`cell_debugger_callback_${currentTaskIndex}`] = function(output) {
         console.log("Variable inspection output for task", currentTaskIndex, "(not updating variable list):", output);
-        // You can add UI code here to display output
     };
 
     get_field_values({}, true, function(field_registry) {
@@ -364,47 +348,37 @@ function populateVariablesList(output, taskIndex, useTemplate = false) {
         let variableNames = [];
 
         if (output === null || output === undefined || output === 'None' || output === '') {
+            console.log("No output or empty output received");
             const emptyMessage = createEmptyVariablesMessage("No variables found");
             variablesList.innerHTML = '';
             variablesList.appendChild(emptyMessage);
             return;
         }
 
-        // Parse output based on format
-        if (output.length === 1 && typeof output[0] === 'string') {
-            let stringToParse = output[0];
-            
-            if (stringToParse.startsWith("[") && stringToParse.endsWith("]")) {
-                let innerContent = stringToParse.slice(1, -1).trim();
-                
-                if (innerContent.length === 0) {
-                    variableNames = [];
-                } else {
-                    variableNames = innerContent.split(',').map(item => {
-                        return item.trim().replace(/^['"]|['"]$/g, '');
-                    }).filter(item => item.length > 0);
-                }
-            } else {
-                variableNames = [stringToParse];
-            }
-        } else {
-            variableNames = output;
-        }
+        let stringToParse = output;
+        
+        // Decode HTML entities first
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = stringToParse;
+        stringToParse = tempDiv.textContent || tempDiv.innerText || stringToParse;
+        
+        variableNames = parseVariableString(stringToParse);
 
-        // Decode HTML entities and remove quotes
+        // Clean up variable names
         variableNames = variableNames.map(name => {
             const div = document.createElement("div");
             div.innerHTML = name;
             let decoded = div.textContent || div.innerText || "";
     
-            if (
-                (decoded.startsWith('"') && decoded.endsWith('"')) ||
-                (decoded.startsWith("'") && decoded.endsWith("'"))
-            ) {
+            // Remove surrounding quotes
+            if ((decoded.startsWith('"') && decoded.endsWith('"')) ||
+                (decoded.startsWith("'") && decoded.endsWith("'"))) {
                 decoded = decoded.slice(1, -1);
             }
-            return decoded;
+            return decoded.trim();
         });
+
+        // console.log("Variables before filtering:", variableNames);
 
         // Filter out empty strings and system variables
         variableNames = variableNames.filter(name => {
@@ -418,6 +392,8 @@ function populateVariablesList(output, taskIndex, useTemplate = false) {
                    name !== 'exit' &&
                    name !== 'quit';
         });
+
+        // console.log("Variables after filtering:", variableNames);
 
         if (variableNames.length > 0) {
             const container = createVariablesContainer(taskIndex);
@@ -439,6 +415,81 @@ function populateVariablesList(output, taskIndex, useTemplate = false) {
         variablesList.appendChild(errorMessage);
         flash('Error parsing variables: ' + e, 'danger');
     }
+}
+
+/**
+ * Parse a string representation of a Python list into individual variable names
+ * @param {string} stringToParse - The string to parse (e.g., "['var1', 'var2', 'var3']")
+ * @returns {string[]} Array of variable names
+ */
+function parseVariableString(stringToParse) {
+    let variableNames = [];
+    
+    stringToParse = stringToParse.trim();
+    
+    if (stringToParse.startsWith("[") && stringToParse.endsWith("]")) {
+        let innerContent = stringToParse.slice(1, -1).trim();
+        
+        console.log("Inner content:", innerContent);
+        
+        if (innerContent.length === 0) {
+            return [];
+        }
+        
+        variableNames = splitRespectingQuotes(innerContent);
+        
+        console.log("After splitRespectingQuotes:", variableNames);
+        
+    } else {
+        variableNames = [stringToParse];
+    }
+    
+    return variableNames;
+}
+
+/**
+ * Split a string by commas while respecting quoted strings
+ * @param {string} str - The string to split
+ * @returns {string[]} Array of split strings
+ */
+function splitRespectingQuotes(str) {
+    console.log("splitRespectingQuotes input:", str);
+    
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = null;
+    
+    for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        
+        if ((char === '"' || char === "'") && !inQuotes) {
+            // Start of quoted string
+            inQuotes = true;
+            quoteChar = char;
+            // Don't include the quote in the result
+        } else if (char === quoteChar && inQuotes) {
+            // End of quoted string
+            inQuotes = false;
+            quoteChar = null;
+            // Don't include the quote in the result
+        } else if (char === ',' && !inQuotes) {
+            // Comma outside of quotes - split here
+            if (current.trim()) {
+                result.push(current.trim());
+            }
+            current = '';
+        } else if (char !== '"' && char !== "'") {
+            // Only add non-quote characters
+            current += char;
+        }
+    }
+    
+    if (current.trim()) {
+        result.push(current.trim());
+    }
+    
+    return result;
 }
 
 // ========================================
@@ -496,9 +547,6 @@ function handleVariableClick(button) {
     inspectVariable(varName, taskIndex);
 }
 
-/**
- * jQuery plugin for variable interaction
- */
 $.fn.interact_variable = function() {
     return this.each(function() {
         const $this = $(this);
