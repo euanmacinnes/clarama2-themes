@@ -192,8 +192,6 @@ function updateDebuggerIds(cellElement, oldStep, newStep) {
         window[`console_executing_${newStep}`] = window[`console_executing_${oldStep}`];
         delete window[`console_executing_${oldStep}`];
     }
-    
-    console.log(`Updated debugger IDs from ${oldStep} to ${newStep}`);
 }
 
 function reinitializeConsoleHandlers(stream) {

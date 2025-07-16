@@ -129,6 +129,7 @@
         }
     }
 
+    // Enhanced cell copy/paste functionality with proper content handling
     $(document).ready(() => {
         $('.loop-iterable').each(function () {
             toggle_loop($(this));
@@ -146,31 +147,26 @@
             toggle_loop($(this));
         });
 
-        $('#context-menu').hide();
+        // Hide both context menus initially
+        $('#panel-context-menu').hide();
+        $('#output-context-menu').hide();
 
         // Variable to store the current cell results element that was right-clicked
         let currentCellResults = null;
         
-        // Right-click event on cell results - target the actual results div
+        // Right-click event on cell results - target the actual results div (output area)
         $('[id^="results_"]').on('contextmenu', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             
             currentCellResults = $(this);
-            
-            const viewportWidth = $(window).width();
-            const viewportHeight = $(window).height();
-            const scrollTop = $(window).scrollTop();
-            const scrollLeft = $(window).scrollLeft();
+            $('#panel-context-menu').hide();
             
             let mouseX = e.clientX;
             let mouseY = e.clientY;
             
-            const $contextMenu = $('#context-menu');
+            const $contextMenu = $('#output-context-menu');
             
-            const menuWidth = $contextMenu.outerWidth();
-            const menuHeight = $contextMenu.outerHeight();
-            
-            // Position the context menu at adjusted mouse location
             $contextMenu.css({
                 display: 'block',
                 position: 'fixed', 
@@ -182,20 +178,313 @@
             return false;
         });
         
-        // Hide context menu when clicking elsewhere
+        // Right-click event on panel (editor area)
+        $('.panel').on('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); 
+
+            currentContextCell = $(this).closest('.clarama-cell-item');
+            $('#output-context-menu').hide();
+            
+            let mouseX = e.clientX;
+            let mouseY = e.clientY;
+            
+            const $contextMenu = $('#panel-context-menu');
+            
+            $contextMenu.css({
+                display: 'block',
+                position: 'fixed', 
+                left: mouseX + 'px',
+                top: mouseY + 'px',
+                zIndex: 1000
+            });
+            
+            return false;
+        });
+        
+        // Hide context menus when clicking elsewhere
         $(document).on('click', function(e) {
-            if (!$(e.target).closest('#context-menu').length) {
-                $('#context-menu').hide();
+            if (!$(e.target).closest('#panel-context-menu, #output-context-menu').length) {
+                $('#panel-context-menu').hide();
+                $('#output-context-menu').hide();
+            }
+        });
+
+        $(document).on('contextmenu', function(e) {
+            if (!$(e.target).closest('.panel, .cell-editor, [id^="results_"]').length) {
+                $('#panel-context-menu').hide();
+                $('#output-context-menu').hide();
             }
         });
         
-        // Hide context menu on scroll
         $(window).on('scroll', function() {
-            $('#context-menu').hide();
+            $('#panel-context-menu').hide();
+            $('#output-context-menu').hide();
         });
 
+        function extractCellContent(cell) {
+            const cellType = cell.attr('steptype');
+            const taskIndex = cell.attr('step');
+            let content = {};
+            
+            console.log('Extracting content for cell type:', cellType, 'task index:', taskIndex);
+            
+            switch(cellType) {
+                case 'shell':
+                case 'code':
+                    // Code cells - look for ACE editor
+                    const codeEditorDiv = cell.find('.ace_editor').eq(0);
+                    if (codeEditorDiv.length && codeEditorDiv.get(0).env && codeEditorDiv.get(0).env.editor) {
+                        content.code = codeEditorDiv.get(0).env.editor.getValue();
+                    } else {
+                        // Fallback to textarea or div content
+                        const codeElement = cell.find(`#content_query_${taskIndex}`);
+                        if (codeElement.length) {
+                            content.code = codeElement.val() || codeElement.text() || codeElement.html();
+                        }
+                    }
+                    break;
+                    
+                case 'markdown':
+                    let markdownElement = cell.find('.text-editor, .clarama-text-editor, .clarama-cell-content');
+                    
+                    if (markdownElement.length > 0) {
+                        content.markdown = markdownElement.trumbowyg('html');
+                    } else {
+                        console.warn('Could not find markdown element at all');
+                    }
+                    break;
+                
+                case 'notification':
+                    // Notification cells - extract targets and message
+                    const notificationContent = cell.find('.alert, .alert-secondary');
+                    const targetsElement = notificationContent.find(`.source-editor`);
+                    const messageElement = notificationContent.find(`.text-editor, .clarama-text-editor`);
+                    if (targetsElement.length) {
+                        const targetsEditor = targetsElement.get(0);
+                        content.targets = targetsEditor.env.editor.getValue();
+                    }
+                    
+                    if (messageElement.length) {
+                        content.message_content = messageElement.trumbowyg('html');
+                    }
+                    break;
+                    
+                // case 'source':
+                // case 'task':
+                //     // Source/Task cells - extract source path
+                //     const sourceElement = cell.find(`#task_step_${taskIndex}_source`);
+                //     if (sourceElement.length) {
+                //         content.source = sourceElement.val();
+                //     }
+                //     break;
+                    
+                // case 'url':
+                //     // URL cells - extract mode, URL, and parameters
+                //     const modeElement = cell.find(`#content_query_${taskIndex}_mode`);
+                //     const urlElement = cell.find(`#content_query_${taskIndex}_url`);
+                //     const paramsElement = cell.find(`#content_query_${taskIndex}_params`);
+                    
+                //     if (modeElement.length) {
+                //         content.mode = modeElement.val();
+                //     }
+                //     if (urlElement.length) {
+                //         content.url = urlElement.val();
+                //     }
+                //     if (paramsElement.length) {
+                //         const paramsEditor = paramsElement.get(0);
+                //         if (paramsEditor.env && paramsEditor.env.editor) {
+                //             content.parameters = paramsEditor.env.editor.getValue();
+                //         } else {
+                //             content.parameters = paramsElement.val() || paramsElement.text();
+                //         }
+                //     }
+                //     break;
+                    
+                // case 'data':
+                    // Data cells - extract output and other data-specific fields
+                    const outputElement = cell.find(`#${taskIndex}_output`);
+                    if (outputElement.length) {
+                        content.output = outputElement.val();
+                    }
+                    break;
+                    
+                default:
+                    console.warn('Unknown cell type:', cellType);
+                    // Generic fallback - try to find any content elements
+                    const genericContent = cell.find(`#content_query_${taskIndex}`);
+                    if (genericContent.length) {
+                        content.generic = genericContent.val() || genericContent.text() || genericContent.html();
+                    }
+            }
+            console.log('content: ', content);
+            return content;
+        }
+
+        // Enhanced cell content application function
+        function applyCellContent(cell, content, cellType) {
+            const taskIndex = cell.attr('step');
+            
+            console.log('Applying content to cell type:', cellType, 'task index:', taskIndex, 'content:', content);
+            
+            switch(cellType) {
+                case 'shell':
+                case 'code':
+                    if (content.code) {
+                        setTimeout(() => {
+                            const codeEditorDiv = cell.find('.ace_editor').eq(0);
+                            if (codeEditorDiv.length && codeEditorDiv.get(0).env && codeEditorDiv.get(0).env.editor) {
+                                codeEditorDiv.get(0).env.editor.setValue(content.code);
+                                codeEditorDiv.get(0).env.editor.clearSelection();
+                            } else {
+                                // Fallback to direct element setting
+                                const codeElement = cell.find(`#content_query_${taskIndex}`);
+                                if (codeElement.length) {
+                                    codeElement.val(content.code);
+                                    codeElement.text(content.code);
+                                }
+                            }
+                        }, 100);
+                    }
+                    break;
+                    
+                case 'markdown':
+                    if (content.markdown) {
+                        setTimeout(() => {
+                            let markdownElement = cell.find('.text-editor, .clarama-text-editor, .clarama-cell-content');
+                            
+                            if (markdownElement.length) {
+                                console.log('Found markdown element for applying content:', markdownElement);
+                                markdownElement.val(content.markdown);
+                                
+                                if (typeof markdownElement.trumbowyg === 'function') {
+                                    try {
+                                        if (markdownElement.data('trumbowyg')) {
+                                            markdownElement.trumbowyg('html', content.markdown);
+                                            console.log('Successfully set Trumbowyg content');
+                                        } else {
+                                            console.log('Trumbowyg not initialized yet, just set textarea value');
+                                        }
+                                    } catch(e) {
+                                        console.warn('Could not set Trumbowyg content:', e);
+                                    }
+                                }
+                            } else {
+                                console.warn('Could not find markdown element for applying content');
+                            }
+                        }, 100);
+                    }
+                    break;
+                    
+                case 'notification':
+                    setTimeout(() => {
+                        const notificationContent = cell.find('.alert, .alert-secondary');
+                        const targetsElement = notificationContent.find(`.source-editor`);
+                        const messageElement = notificationContent.find(`.text-editor, .clarama-text-editor`);
+                        if (content.targets) {
+                            if (targetsElement.length) {
+                                const targetsEditor = targetsElement.get(0);
+                                if (targetsEditor.env && targetsEditor.env.editor) {
+                                    targetsEditor.env.editor.setValue(content.targets);
+                                    targetsEditor.env.editor.clearSelection();
+                                } else {
+                                    targetsElement.val(content.targets);
+                                }
+                            }
+                        }
+                        
+                        if (content.message_content) {
+                            if (typeof messageElement.trumbowyg === 'function') {
+                                try {
+                                    if (messageElement.data('trumbowyg')) {
+                                        messageElement.trumbowyg('html', content.message_content);
+                                        console.log('Successfully set Trumbowyg content');
+                                    } else {
+                                        console.log('Trumbowyg not initialized yet, just set textarea value');
+                                    }
+                                } catch(e) {
+                                    console.warn('Could not set Trumbowyg content:', e);
+                                }
+                            }
+                        } else {
+                            console.warn('Could not find markdown element for applying content');
+                        }
+                    }, 100);
+                    break;
+                    
+                // case 'source':
+                // case 'task':
+                //     if (content.source) {
+                //         const sourceElement = cell.find(`#task_step_${taskIndex}_source`);
+                //         if (sourceElement.length) {
+                //             sourceElement.val(content.source);
+                //             // Update the browse link if it exists
+                //             const browseLink = cell.find(`#task_step_${taskIndex}_browse_link`);
+                //             if (browseLink.length) {
+                //                 browseLink.attr('href', content.source);
+                //                 browseLink.show();
+                //             }
+                //         }
+                //     }
+                //     break;
+                    
+                // case 'url':
+                //     setTimeout(() => {
+                //         if (content.mode) {
+                //             const modeElement = cell.find(`#content_query_${taskIndex}_mode`);
+                //             if (modeElement.length) {
+                //                 modeElement.val(content.mode);
+                //             }
+                //         }
+                        
+                //         if (content.url) {
+                //             const urlElement = cell.find(`#content_query_${taskIndex}_url`);
+                //             if (urlElement.length) {
+                //                 urlElement.val(content.url);
+                //             }
+                //         }
+                        
+                //         if (content.parameters) {
+                //             const paramsElement = cell.find(`#content_query_${taskIndex}_params`);
+                //             if (paramsElement.length) {
+                //                 const paramsEditor = paramsElement.get(0);
+                //                 if (paramsEditor.env && paramsEditor.env.editor) {
+                //                     paramsEditor.env.editor.setValue(content.parameters);
+                //                     paramsEditor.env.editor.clearSelection();
+                //                 } else {
+                //                     paramsElement.val(content.parameters);
+                //                 }
+                //             }
+                //         }
+                //     }, 100);
+                //     break;
+                    
+                // case 'data':
+                    if (content.output) {
+                        const outputElement = cell.find(`#${taskIndex}_output`);
+                        if (outputElement.length) {
+                            outputElement.val(content.output);
+                            // Trigger output type setting if function exists
+                            if (typeof datacell_setOutput === 'function') {
+                                datacell_setOutput(taskIndex, content.output, taskIndex);
+                            }
+                        }
+                    }
+                    break;
+                    
+                default:
+                    if (content.generic) {
+                        const genericElement = cell.find(`#content_query_${taskIndex}`);
+                        if (genericElement.length) {
+                            genericElement.val(content.generic);
+                        }
+                    }
+            }
+        }
+
+        // Context menu functions
         window.clear_cell_output = function() {
-            $('#context-menu').hide();
+            $('#output-context-menu').hide();
             
             if (currentCellResults) {
                 const cellOffset = currentCellResults.offset();
@@ -210,5 +499,153 @@
                 currentCellResults = null; 
             }
         };
+        
+        window.task_cell_copy = function() {
+            $('#panel-context-menu').hide();
+            
+            if (!currentContextCell) {
+                console.warn('No cell selected for copy operation');
+                return;
+            }
+            
+            try {
+                const taskIndex = currentContextCell.attr('step') || currentContextCell.attr('data-task-index');
+                const stepType = currentContextCell.attr('steptype');
+                const stream = currentContextCell.closest('.stream').attr('stream');
+                
+                // Get the JSON data for this step
+                const jsonScript = $('#json_' + taskIndex);
+                
+                // Extract cell content using the enhanced function
+                const cellContent = extractCellContent(currentContextCell);
+                
+                // Get loop iterable value if present
+                let loopIterable = '';
+                const loopInput = currentContextCell.find('.loop-iterable');
+                if (loopInput.length) {
+                    loopIterable = loopInput.val();
+                }
+                
+                // Store all relevant cell data
+                window.copiedCellData = {
+                    stepType: stepType,
+                    stream: stream,
+                    taskIndex: taskIndex,
+                    cellContent: cellContent,
+                    loopIterable: loopIterable,
+                    timestamp: new Date().getTime()
+                };
+                
+                console.log('Copied cell data:', window.copiedCellData);
+                flash('Cell copied successfully', 'success');
+                
+                // Visual feedback
+                currentContextCell.addClass('bg-info');
+                setTimeout(function() {
+                    currentContextCell.removeClass('bg-info');
+                }, 200);
+                
+            } catch (error) {
+                console.error('Error copying cell:', error);
+                flash('Failed to copy cell.', 'danger');
+            }
+        };
+        
+        window.task_cell_paste = function() {
+            $('#panel-context-menu').hide();
+            
+            if (!window.copiedCellData) {
+                console.warn('No cell data to paste');
+                flash('No cell data to paste. Please copy a cell first.', 'danger');
+                return;
+            }
+            
+            if (!currentContextCell) {
+                console.warn('No target cell selected for paste operation');
+                return;
+            }
+            
+            try {
+                const targetStream = currentContextCell.closest('.stream');
+                const targetStreamId = targetStream.attr('stream');
+                const targetStreamFile = targetStream.attr('stream-file');
+                
+                new_step_id = new_step_id + 1;
+                const newStepUrl = '/step/' + targetStreamId + '/' + window.copiedCellData.stepType + '/' + new_step_id + '/' + targetStreamFile + '/';
+                
+                // Get HTML for new step
+                get_html(newStepUrl, function(new_step) {
+                    const $new_element = $(new_step);
+                    
+                    currentContextCell.after($new_element);
+                    sortUpdate(targetStream);
+                    initializeNewCellDebugger($new_element);
+                    
+                    // Apply copied data to the new cell
+                    const newTaskIndex = $new_element.attr('step');
+                    
+                    // Set loop iterable if present
+                    if (window.copiedCellData.loopIterable) {
+                        const loopInput = $new_element.find('.loop-iterable');
+                        if (loopInput.length) {
+                            loopInput.val(window.copiedCellData.loopIterable);
+                            toggle_loop(loopInput);
+                        }
+                    }
+                    
+                    // Apply cell content
+                    applyCellContent($new_element, window.copiedCellData.cellContent, window.copiedCellData.stepType);
+                    
+                    // Visual feedback
+                    $new_element.addClass('bg-success');
+                    setTimeout(function() {
+                        $new_element.removeClass('bg-success');
+                    }, 200);
+                    
+                    // Focus on the new cell
+                    setTimeout(function() {
+                        const newEditorDiv = $new_element.find('.ace_editor').eq(0);
+                        if (newEditorDiv.length && newEditorDiv.get(0).env && newEditorDiv.get(0).env.editor) {
+                            const editor = newEditorDiv.get(0).env.editor;
+                            editor.focus();
+                            editor.gotoLine(1, 0);
+                        }
+                    }, 200);
+                    
+                    flash('Cell pasted successfully', 'success');
+                });
+                
+            } catch (error) {
+                console.error('Error pasting cell:', error);
+                flash('Failed to paste cell. Please try again.', 'danger');
+            }
+        };
+        
+        // Add keyboard shortcuts for copy/paste
+        $(document).on('keydown', function(e) {
+            // Check if we're in a focused cell editor
+            const activeEditor = $('.ace_editor.ace_focus');
+            if (activeEditor.length) {
+                const cellItem = activeEditor.closest('.clarama-cell-item');
+                
+                // Ctrl+Shift+C for copy cell
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
+                    e.preventDefault();
+                    currentContextCell = cellItem;
+                    window.task_cell_copy();
+                    return false;
+                }
+                
+                // Ctrl+Shift+V for paste cell
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 86) {
+                    e.preventDefault();
+                    currentContextCell = cellItem;
+                    window.task_cell_paste();
+                    return false;
+                }
+            }
+        });
+        
+        console.log('Enhanced cell copy/paste functionality initialized');
     });
 </script>

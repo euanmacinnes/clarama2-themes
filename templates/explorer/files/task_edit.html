@@ -1,6 +1,14 @@
+<!-- task_edit.html -->
 {% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
 
-<div class="dropdown-menu dropdown-menu-sm" id="context-menu">
+<!-- Panel Context Menu (for copy/paste) -->
+<div class="dropdown-menu dropdown-menu-sm" id="panel-context-menu">
+    <a class="dropdown-item content_item bi bi-copy" href="#" onclick="task_cell_copy();">&nbsp;Copy Cell</a>
+    <a class="dropdown-item content_item bi bi-clipboard" href="#" onclick="task_cell_paste();">&nbsp;Paste Cell</a>
+</div>
+
+<!-- Output Context Menu (for clear output only) -->
+<div class="dropdown-menu dropdown-menu-sm" id="output-context-menu">
     <a class="dropdown-item content_item bi bi-eraser-fill" href="#" onclick="clear_cell_output();">&nbsp;Clear Cell Output</a>
 </div>
 
