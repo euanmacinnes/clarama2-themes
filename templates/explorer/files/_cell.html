@@ -270,14 +270,14 @@
                     }
                     break;
                     
-                // case 'source':
-                // case 'task':
-                //     // Source/Task cells - extract source path
-                //     const sourceElement = cell.find(`#task_step_${taskIndex}_source`);
-                //     if (sourceElement.length) {
-                //         content.source = sourceElement.val();
-                //     }
-                //     break;
+                case 'source':
+                case 'task':
+                    // Source/Task cells - extract source path
+                    const sourceElement = cell.find('.input-group').find(`.form-control`);
+                    if (sourceElement.length) {
+                        content.source = sourceElement.val();
+                    }
+                    break;
                     
                 // case 'url':
                 //     // URL cells - extract mode, URL, and parameters
@@ -303,11 +303,11 @@
                     
                 // case 'data':
                     // Data cells - extract output and other data-specific fields
-                    const outputElement = cell.find(`#${taskIndex}_output`);
-                    if (outputElement.length) {
-                        content.output = outputElement.val();
-                    }
-                    break;
+                    // const outputElement = cell.find(`#${taskIndex}_output`);
+                    // if (outputElement.length) {
+                    //     content.output = outputElement.val();
+                    // }
+                    // break;
                     
                 default:
                     console.warn('Unknown cell type:', cellType);
@@ -412,21 +412,23 @@
                     }, 100);
                     break;
                     
-                // case 'source':
-                // case 'task':
-                //     if (content.source) {
-                //         const sourceElement = cell.find(`#task_step_${taskIndex}_source`);
-                //         if (sourceElement.length) {
-                //             sourceElement.val(content.source);
-                //             // Update the browse link if it exists
-                //             const browseLink = cell.find(`#task_step_${taskIndex}_browse_link`);
-                //             if (browseLink.length) {
-                //                 browseLink.attr('href', content.source);
-                //                 browseLink.show();
-                //             }
-                //         }
-                //     }
-                //     break;
+                case 'source':
+                case 'task':
+                    if (content.source) {
+                        setTimeout(() => {
+                            const cellLeftContent = cell.find(`.left-content`);
+                            const sourceElement = cellLeftContent.find('.form-control');
+                            if (sourceElement.length) {
+                                sourceElement.val(content.source);
+                            }
+                            const browseLink = cellLeftContent.find(`.text-decoration-none`);
+                            if (browseLink.length) {
+                                browseLink.attr('href', content.source).show();
+                            }
+                        }, 100);
+                    }
+                    break;
+
                     
                 // case 'url':
                 //     setTimeout(() => {
@@ -460,17 +462,17 @@
                 //     break;
                     
                 // case 'data':
-                    if (content.output) {
-                        const outputElement = cell.find(`#${taskIndex}_output`);
-                        if (outputElement.length) {
-                            outputElement.val(content.output);
-                            // Trigger output type setting if function exists
-                            if (typeof datacell_setOutput === 'function') {
-                                datacell_setOutput(taskIndex, content.output, taskIndex);
-                            }
-                        }
-                    }
-                    break;
+                    // if (content.output) {
+                    //     const outputElement = cell.find(`#${taskIndex}_output`);
+                    //     if (outputElement.length) {
+                    //         outputElement.val(content.output);
+                    //         // Trigger output type setting if function exists
+                    //         if (typeof datacell_setOutput === 'function') {
+                    //             datacell_setOutput(taskIndex, content.output, taskIndex);
+                    //         }
+                    //     }
+                    // }
+                    // break;
                     
                 default:
                     if (content.generic) {
