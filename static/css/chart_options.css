@@ -54,17 +54,27 @@
     opacity: 0;
 }
 
-.grid9-col-1 {      /* Series Formats */
+.grid9-col-1 { /* Series Formats */
     flex: 0 0 auto;
     width: 10.8887%; /* this is derived from (100-2)/9 because the last col (bin icon) i set width: 2% */
 }
 
-.grid10-col-1 {     /* Series Groups */
+.grid10-col-1 { /* Series Groups */
     flex: 0 0 auto;
     width: 9.6%; /* this is derived from (100-2-2)/10 because the last col (bin icon) i set width: 2% and draggable div set width: 2% */
 }
 
-.grid13-col-1 {     /* Series Annotations */
+.grid11-col-1 { /* Series Annotations */
+    flex: 0 0 auto;
+    width: 9.6%; /* this is derived from (100-2-4)/10 because the last col (bin icon) i set width: 2% and dotted div set width: 4% */
+}
+
+.grid13-col-1 { /* Series Annotations */
     flex: 0 0 auto;
     width: 7.8333%; /* this is derived from (100-2-4)/12 because the last col (bin icon) i set width: 2% and dotted div set width: 4% */
+}
+
+.grid14-col-1 { /* Series Annotations */
+    flex: 0 0 auto;
+    width: 7.230%; /* this is derived from (100-2-4 = 94)/13 because the last col (bin icon) i set width: 2% and dotted div set width: 4% */
 }

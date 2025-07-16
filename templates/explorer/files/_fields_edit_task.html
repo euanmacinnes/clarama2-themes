@@ -4,8 +4,11 @@
          filters="*.field.yaml|*.md"><i
             class="fs-5 bi bi-node-plus pe-1" class="col"></i> Add Content
     </div>
-    <div class="col-1 gridaddcontent d-flex align-items-center" type="button" onclick="add_text();"><i
-            class="fs-5 bi bi-body-text pe-1" class="col"></i> Add Text
+    <div class="col-1 d-flex align-items-center" type="button" onclick="add_text();">
+        <i class="fs-5 bi bi-body-text pe-1" class="col"></i> Add Text
+    </div>
+    <div class="col-1 d-flex align-items-center" type="button" onclick="add_selected_content('/content/element/{{ file_url }}', 'empty')">
+        <i class="fs-5 bi bi-plus-square-dotted pe-2"></i> Add Blank
     </div>
     <div class="col">&nbsp;</div>
     <div class="col-auto trash d-flex align-items-center"><i class="fs-5 bi bi-trash3 pe-1"></i> Drag here to remove

@@ -158,8 +158,15 @@
                             get the
                             dictionary
                             from<br/>
-                            <b>options</b> is for a manual list of options for a select/select-multiple<br/>
+                            <b>options</b> is for a manual list of options for a select/select-multiple. Dictionary of
+                            id: value
+                            value:<br/>
                         </p>
+                    </td>
+                    <td style="vertical-align: top;padding-top: 5px;">
+                        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#browseFileModal" filters="*.table.yaml|*.task.yaml|*.source.yaml|*.csv" style="font-size: 13px;line-height: 14px;" inputId="field_data_source">
+                            Pick source
+                        </button>
                     </td>
                 </tr>
                 <tr>
@@ -331,4 +338,6 @@
     }
 </script>
 
+{% include theme("explorer/files/browse_file_modal.html") %}
+{% include theme("explorer/files/file_modal_shared_logic.html") %}
 {% include theme("web/file_footer.html") %}
