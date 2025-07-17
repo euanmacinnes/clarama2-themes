@@ -82,7 +82,6 @@ function cell_item_run(cell_button) {
     console.log("CLARAMA_TASK.js: RUNNING");
     get_field_values({}, true, function (field_registry) { // Get only the field values, not the full field definitions, text or code
         var task_registry = get_cell_fields(cell_button);
-        task_registry['streams'][0]['main'][0]['clear'] = false;
         task_registry['parameters'] = field_registry
 
         console.log("CLARAMA_TASK.js: cell_edit_run Getting Socket");
