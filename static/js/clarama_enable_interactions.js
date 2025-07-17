@@ -1,4 +1,4 @@
-function enable_interactions(parent, reload = false) {
+function enable_interactions(parent, reload = false, runtask = false) {
     console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class"));
 
     //      parent.find('.clarama-execute').execute();
@@ -71,6 +71,13 @@ function enable_interactions(parent, reload = false) {
         parent.find('.clarama-post-embedded').attr('clarama_loaded', false);
         parent.find('.clarama-embedded').attr('clarama_loaded', false);
     }
+
+    if (runtask) {
+        console.log("runtask autorun")
+        parent.find('.clarama-post-embedded').attr('autorun', true);
+        parent.find('.clarama-embedded').attr('autorun', true);
+    }
+
     parent.find('.clarama-post-embedded').load_post();
     parent.find('.clarama-embedded').load();
     Prism.highlightAll(); // Manually trigger highlighting

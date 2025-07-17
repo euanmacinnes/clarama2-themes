@@ -12,15 +12,15 @@
             <div class="container-fluid">
                 <div class="row">
                     {% for key, ftype in fieldtypes.items() %}
-                        <div class="col">
+                        <div class="col-1">
                             <label id="field_{{ key }}" key="{{ key }}"
                                    class="btn {% if field_config['type'] == key %} clicked btn-primary {% else %} btn-light {% endif %} field"
                                    style="width: 100%;">
                                 <i class="bi fs-4 {{ ftype['icon'] }}" style="width: 100%;"> </i></label>
-                            <div style="overflow-wrap: initial; width: 100%" class="text-center">
-                                <br/><b>{{ ftype['name'] }}</b>
+                            <div style="overflow-wrap: initial; width: 100%" class="text-center mt-1">
+                                <b>{{ ftype['name'] }}</b>
                             </div>
-                            <br/>{{ ftype['description'] }}
+                            <p class="text-center mt-1">{{ ftype['description'] }}</p>
                             </label>
                         </div>
                     {% endfor %}
@@ -134,6 +134,21 @@
 
                     </td>
                 </tr>
+                <!-- <tr>
+                    <td style="vertical-align: top">
+                        <h5 style="padding: 5px;"> Filters </h5>
+                    </td>
+                    <td>
+                        <input id="filters" name="filters" type="text"
+                               class="form-control clarama-field"
+                               autocomplete="on"
+                               placeholder="filters value"
+                               value="{{ get(field_config,'filters','') }}"
+                                {% include theme("explorer/files/field_tooltip.html") %}
+                        />
+
+                    </td>
+                </tr> -->
                 <tr>
                     <td style="vertical-align: top">
                         <h5 style="padding: 5px;"> Data </h5>

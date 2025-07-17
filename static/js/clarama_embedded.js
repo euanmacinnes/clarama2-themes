@@ -177,6 +177,8 @@ $.fn.load_post = function (onfinished, args, json) {
         console.log("POST loading " + embedded.attr("class") + " = " + embedded.attr("url") + JSON.stringify(args));
 
         if (embedded.attr("clarama_loaded") !== "true") {
+            
+            console.log("embedded.attr(autorun) loadpost", embedded.attr("autorun"))
             embedded.html('<div class="d-flex justify-content-center align-items-center"><div class="loading-spinner"></div></div>')
                 .promise()
                 .done(function () {
@@ -281,6 +283,7 @@ $.fn.load_post = function (onfinished, args, json) {
                             console.warn('JQuery Error loading ' + $CLARAMA_ROOT + final_url)
                             console.warn(error);
                         });
+                        
                     embedded.attr("clarama_loaded", true)
                 });
         }
@@ -354,6 +357,7 @@ $.fn.load = function (onfinished, args) {
         // console.log("GET loading " + embedded.attr("class") + " = " + embedded.attr("url") + ' with args ' + JSON.stringify(args));
 
         if ((embedded.attr("clarama_loaded") !== "true") && (embedded.attr("autorun") !== "False")) {
+            console.log("embedded.attr(autorun) load", embedded.attr("autorun"))
             embedded.html('<div class="d-flex justify-content-center align-items-center"><div class="loading-spinner"></div></div>')
                 .promise()
                 .done(function () {

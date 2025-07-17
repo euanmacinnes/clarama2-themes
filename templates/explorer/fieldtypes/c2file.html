@@ -1,0 +1,21 @@
+{% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
+
+{% block content %}
+    <div class="input-group">
+        <input id="{{ field_id }}" name="{{ field_name }}" type="text" 
+            class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus clarama-field clarama-delay-field"
+            placeholder="{{ get(field_config,'placeholder') }}" 
+            {{ field_config | required }}
+            {{ field_config | readonly }}
+            value="{{ field_value or get(field_config,'default','') }}"
+            {% include theme("explorer/files/field_tooltip.html") %}
+        />
+        <button type="button" 
+            class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2" 
+            data-bs-toggle="modal" data-bs-target="#browseFileModal" 
+            inputId="{{ field_id }}" 
+            filters="{{ get(field_config,'filters') }}">
+                <i class="bi bi-folder2-open"></i>
+        </button>
+    </div>
+{% endblock %}
