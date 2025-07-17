@@ -271,9 +271,35 @@
             toggle_favorite(file, fullpath, icon, '{{username}}', file_div[0]);
         }
 
+        function isValidFilename(name) {
+            // Disallow slashes
+            if (name.includes("/")) {
+                flash("File or folder name cannot contain a slash (/).", "danger");
+                return false;
+            }
+
+            // Disallow starting with '.' or '..'
+            if (name.startsWith(".") || name.startsWith("..")) {
+                flash("File or folder name cannot start with '.' or '..'.", "danger");
+                return false;
+            }
+
+            if (name.trim() === "") {
+                flash("File or folder name cannot be empty.", "danger");
+                return false;
+            }
+
+            return true;
+        }
+
         function content_new() {
-            var new_content = $("#new_content").val();
+            var new_content = $("#new_content").val().trim();
             var new_content_type = $("#new_content_type").val();
+
+            if (!isValidFilename(new_content)) {
+                return; // Stop if invalid
+            }
+
             var file = "/render/new/{{ local_url }}?new_content=" + encodeURIComponent(new_content) + "&new_content_type=" + encodeURIComponent(new_content_type);
 
             execute_json_url(file, true);

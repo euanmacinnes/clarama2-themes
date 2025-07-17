@@ -2,61 +2,42 @@
     class="row bg-white text-dark clarama-cell-item"
     steptype="{{ task_step['type'] }}"
 >
-    <div class="panel col-2 col-lg-1
-                 {% if task_last %}
-                    bg-primary
-                 {% else %}
-                    bg-secondary
-                 {% endif %}
-                 text-light draggable-heading justify-content-end position-relative"
-         style="padding:0">
-        <hr class="faded"/>
-        <div class="container-fluid">
-            <div class="row">
+    <div class="panel col-2 col-lg-1 d-flex flex-column position-relative bg-{{ 'primary' if task_last else 'secondary' }} text-light draggable-heading" style="padding:0">
+        <hr class="faded" style="margin: 0"/>
+        <div class="container-fluid pt-2">
+            <div class="row g-1 align-items-center">
                 <div class="col-auto">
-                    <button type="button" class="btn text-white step-label">{{ task_index }}</button>
+                    <button type="button" class="btn text-white step-label px-2 py-1">{{ task_index }}</button>
                 </div>
                 <div class="col">
-                    <input type="text" id="loop-iterable-{{ task_index }}"
-                           loop-id="{{ task_index }}"
-                           class="form-control loop-iterable loop-inactive"
-                           value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}"
-                           opacity="0.04">
-                </div>
-            </div>
-            {% if task_step['type'] != "markdown" %}
-                <div class="row">
-                    <div class="col">&nbsp;</div>
-                    <div class="col-auto hoverover auto-hover pb-3"
-                         id="task_toolbar_{{ stream }}_{{ task_index }}_play"
-                         opacity="0.04">
-                        <button type="button" class="btn celleditrun" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
-                                <i class="mb-3 fs-4 bi bi-play-fill " style="width: 75px;"></i>
+                    <div class="btn-group">
+                        <button type="button" class="btn celleditrun p-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
+                            <i class="fs-5 bi bi-play-fill"></i>
                         </button>
                         {% if task_step['type'] != "data" %}
-                        <button type="button" class="btn celleditdebug" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Debug (Ctrl-\)"
-                                data-task-index="{{ task_index }}">
-                                <i class="mb-3 fs-4 bi bi-bug-fill"></i>
+                        <button type="button" class="btn celleditdebug p-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Debug (Ctrl-\\)" data-task-index="{{ task_index }}">
+                            <i class="fs-5 bi bi-bug-fill"></i>
                         </button>
                         {% endif %}
                     </div>
                 </div>
-            {% endif %}
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <input type="text" id="loop-iterable-{{ task_index }}"
+                        loop-id="{{ task_index }}"
+                        class="form-control loop-iterable loop-inactive"
+                        value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <div class="cell-timing container-fluid px-0"></div>
+                </div>
+            </div>
         </div>
-
         <div class="cell-spin" style="opacity: 0">
-            <div
-                    class="d-flex justify-content-center spinner-border text-info position-absolute start-50"
-                    role="status"
-                    style="width: 4rem; height: 4rem;"
-            >
-            </div>
-        </div>
-        <div class="d-flex justify-content-center position-absolute bottom-0">
-            <div class="container-fluid cell-timing">
-            </div>
+            <div class="d-flex justify-content-center spinner-border text-info position-absolute start-50" role="status" style="width: 4rem; height: 4rem;"></div>
         </div>
     </div>
     <div class="col-10 col-lg-11" style="padding:0px;">
@@ -131,6 +112,7 @@
         }
     }
 
+    // Enhanced cell copy/paste functionality with proper content handling
     $(document).ready(() => {
         $('.loop-iterable').each(function () {
             toggle_loop($(this));
@@ -147,5 +129,679 @@
         $("input").on("change", function () {
             toggle_loop($(this));
         });
+
+        // Hide both context menus initially
+        $('#panel-context-menu').hide();
+        $('#output-context-menu').hide();
+
+        // Variable to store the current cell results element that was right-clicked
+        let currentCellResults = null;
+        
+        // Right-click event on cell results - target the actual results div (output area)
+        $('[id^="results_"]').on('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            currentCellResults = $(this);
+            $('#panel-context-menu').hide();
+            
+            let mouseX = e.clientX;
+            let mouseY = e.clientY;
+            
+            const $contextMenu = $('#output-context-menu');
+            
+            $contextMenu.css({
+                display: 'block',
+                position: 'fixed', 
+                left: mouseX + 'px',
+                top: mouseY + 'px',
+                zIndex: 1000
+            });
+            
+            return false;
+        });
+        
+        // Right-click event on panel (editor area)
+        $('.panel').on('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); 
+
+            currentContextCell = $(this).closest('.clarama-cell-item');
+            $('#output-context-menu').hide();
+            
+            let mouseX = e.clientX;
+            let mouseY = e.clientY;
+            
+            const $contextMenu = $('#panel-context-menu');
+            
+            $contextMenu.css({
+                display: 'block',
+                position: 'fixed', 
+                left: mouseX + 'px',
+                top: mouseY + 'px',
+                zIndex: 1000
+            });
+            
+            return false;
+        });
+        
+        // Hide context menus when clicking elsewhere
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#panel-context-menu, #output-context-menu').length) {
+                $('#panel-context-menu').hide();
+                $('#output-context-menu').hide();
+            }
+        });
+
+        $(document).on('contextmenu', function(e) {
+            if (!$(e.target).closest('.panel, .cell-editor, [id^="results_"]').length) {
+                $('#panel-context-menu').hide();
+                $('#output-context-menu').hide();
+            }
+        });
+        
+        $(window).on('scroll', function() {
+            $('#panel-context-menu').hide();
+            $('#output-context-menu').hide();
+        });
+
+        function extractCellContent(cell) {
+            const cellType = cell.attr('steptype');
+            const taskIndex = cell.attr('step');
+            let content = {};
+            
+            console.log('Extracting content for cell type:', cellType, 'task index:', taskIndex);
+            
+            switch(cellType) {
+                case 'shell':
+                case 'code':
+                    // Code cells - look for ACE editor
+                    const codeEditorDiv = cell.find('.ace_editor').eq(0);
+                    content.code = codeEditorDiv.get(0).env.editor.getValue();
+                    break;
+                    
+                case 'markdown':
+                    let markdownElement = cell.find('.text-editor, .clarama-text-editor, .clarama-cell-content');
+                    
+                    if (markdownElement.length > 0) {
+                        content.markdown = markdownElement.trumbowyg('html');
+                    } else {
+                        console.warn('Could not find markdown element at all');
+                    }
+                    break;
+                
+                case 'notification':
+                    // Notification cells - extract targets and message
+                    const notificationContent = cell.find('.alert, .alert-secondary');
+                    const targetsElement = notificationContent.find(`.source-editor`);
+                    const messageElement = notificationContent.find(`.text-editor, .clarama-text-editor`);
+                    if (targetsElement.length) {
+                        const targetsEditor = targetsElement.get(0);
+                        content.targets = targetsEditor.env.editor.getValue();
+                    }
+                    
+                    if (messageElement.length) {
+                        content.message_content = messageElement.trumbowyg('html');
+                    }
+                    break;
+                    
+                case 'source':
+                case 'task':
+                    // Source/Task cells - extract source path
+                    const sourceElement = cell.find('.input-group').find(`.form-control`);
+                    if (sourceElement.length) {
+                        content.source = sourceElement.val();
+                    }
+                    break;
+                    
+                case 'url':
+                    // URL cells - extract mode, URL, and parameters
+                    const modeElement = cell.find(`.col-md-2`).find(`.form-control`);
+                    const urlElement = cell.find(`.col-md-10`).find(`.form-control`);
+                    const paramsElement = cell.find(`.source-editor`);
+                    
+                    if (modeElement.length) {
+                        content.mode = modeElement.val();
+                    }
+                    if (urlElement.length) {
+                        content.url = urlElement.val();
+                    }
+                    if (paramsElement.length) {
+                        const paramsEditor = paramsElement.get(0);
+                        if (paramsEditor.env && paramsEditor.env.editor) {
+                            content.parameters = paramsEditor.env.editor.getValue();
+                        } else {
+                            content.parameters = paramsElement.val() || paramsElement.text();
+                        }
+                    }
+                    break;
+                    
+                case 'data':
+                    content = get_data_cell(cell);
+                    console.log('content: ', content);
+                    break;                    
+                    
+                default:
+                    console.warn('Unknown cell type:', cellType);
+                    // Generic fallback - try to find any content elements
+                    const genericContent = cell.find(`#content_query_${taskIndex}`);
+                    if (genericContent.length) {
+                        content.generic = genericContent.val() || genericContent.text() || genericContent.html();
+                    }
+            }
+            console.log('content: ', content);
+            return content;
+        }
+
+        // Enhanced cell content application function
+        function applyCellContent(cell, content, cellType) {
+            const taskIndex = cell.attr('step');
+            
+            console.log('Applying content to cell type:', cellType, 'task index:', taskIndex, 'content:', content);
+            
+            switch(cellType) {
+                case 'shell':
+                case 'code':
+                    if (content.code) {
+                        setTimeout(() => {
+                            const codeEditorDiv = cell.find('.ace_editor').eq(0);
+                            codeEditorDiv.get(0).env.editor.setValue(content.code);
+                            codeEditorDiv.get(0).env.editor.clearSelection();
+                        }, 100);
+                    }
+                    break;
+                    
+                case 'markdown':
+                    if (content.markdown) {
+                        setTimeout(() => {
+                            let markdownElement = cell.find('.text-editor, .clarama-text-editor, .clarama-cell-content');
+                            
+                            if (markdownElement.length) {
+                                console.log('Found markdown element for applying content:', markdownElement);
+                                markdownElement.val(content.markdown);
+                                
+                                if (typeof markdownElement.trumbowyg === 'function') {
+                                    try {
+                                        if (markdownElement.data('trumbowyg')) {
+                                            markdownElement.trumbowyg('html', content.markdown);
+                                            console.log('Successfully set Trumbowyg content');
+                                        } else {
+                                            console.log('Trumbowyg not initialized yet, just set textarea value');
+                                        }
+                                    } catch(e) {
+                                        console.warn('Could not set Trumbowyg content:', e);
+                                    }
+                                }
+                            } else {
+                                console.warn('Could not find markdown element for applying content');
+                            }
+                        }, 100);
+                    }
+                    break;
+                    
+                case 'notification':
+                    setTimeout(() => {
+                        const notificationContent = cell.find('.alert, .alert-secondary');
+                        const targetsElement = notificationContent.find(`.source-editor`);
+                        const messageElement = notificationContent.find(`.text-editor, .clarama-text-editor`);
+                        if (content.targets) {
+                            if (targetsElement.length) {
+                                const targetsEditor = targetsElement.get(0);
+                                if (targetsEditor.env && targetsEditor.env.editor) {
+                                    targetsEditor.env.editor.setValue(content.targets);
+                                    targetsEditor.env.editor.clearSelection();
+                                } else {
+                                    targetsElement.val(content.targets);
+                                }
+                            }
+                        }
+                        
+                        if (content.message_content) {
+                            if (typeof messageElement.trumbowyg === 'function') {
+                                try {
+                                    if (messageElement.data('trumbowyg')) {
+                                        messageElement.trumbowyg('html', content.message_content);
+                                        console.log('Successfully set Trumbowyg content');
+                                    } else {
+                                        console.log('Trumbowyg not initialized yet, just set textarea value');
+                                    }
+                                } catch(e) {
+                                    console.warn('Could not set Trumbowyg content:', e);
+                                }
+                            }
+                        } else {
+                            console.warn('Could not find markdown element for applying content');
+                        }
+                    }, 100);
+                    break;
+                    
+                case 'source':
+                case 'task':
+                    if (content.source) {
+                        setTimeout(() => {
+                            const cellLeftContent = cell.find(`.left-content`);
+                            const sourceElement = cellLeftContent.find('.form-control');
+                            if (sourceElement.length) {
+                                sourceElement.val(content.source);
+                            }
+                            const browseLink = cellLeftContent.find(`.text-decoration-none`);
+                            if (browseLink.length) {
+                                browseLink.attr('href', content.source).show();
+                            }
+                        }, 100);
+                    }
+                    break;
+
+                case 'url':
+                    setTimeout(() => {
+                        const modeElement = cell.find(`.col-md-2`).find(`.form-control`);
+                        const urlElement = cell.find(`.col-md-10`).find(`.form-control`);
+                        const paramsElement = cell.find(`.source-editor`);
+                        if (content.mode) {
+                            if (modeElement.length) {
+                                modeElement.val(content.mode);
+                            }
+                        }
+                        
+                        if (content.url) {
+                            if (urlElement.length) {
+                                urlElement.val(content.url);
+                            }
+                        }
+                        
+                        if (content.parameters) {
+                            if (paramsElement.length) {
+                                const paramsEditor = paramsElement.get(0);
+                                if (paramsEditor.env && paramsEditor.env.editor) {
+                                    paramsEditor.env.editor.setValue(content.parameters);
+                                    paramsEditor.env.editor.clearSelection();
+                                } else {
+                                    paramsElement.val(content.parameters);
+                                }
+                            }
+                        }
+                    }, 100);
+                    break;
+                 
+                case 'data':
+                    var output_id = "task_step_" + dataid + "_output";
+                    $("#" + output_id).val(content.output || 'table');
+                    
+                    // Set the active output button
+                    datacell_setOutput('task_step_' + dataid, content.output || 'table', dataid);
+                    
+                    // Handle tabs data
+                    if (content.tabs && content.tabs.length > 0) {
+                        // Clear existing tabs first (except the first one)
+                        var existingTabs = cell.find('#dataSourceTabs button.nav-link').not('.add-source-tab');
+                        existingTabs.slice(1).each(function() {
+                            var tabId = $(this).attr('id').split('_').pop();
+                            // Dispose Monaco editor if exists
+                            var editorId = "content_query_" + dataid + "_tab_" + tabId;
+                            var $editorDiv = $("#" + editorId);
+                            if ($editorDiv.length) {
+                                var editorInstance = $editorDiv.data('monacoEditor');
+                                if (editorInstance && typeof editorInstance.dispose === 'function') {
+                                    editorInstance.dispose();
+                                }
+                            }
+                            $(this).closest('li').remove();
+                            $("#tabContentBlock_" + dataid + "_" + tabId).remove();
+                        });
+                        
+                        // Add new tabs as needed
+                        var tabsNeeded = content.tabs.length;
+                        var existingTabsCount = cell.find('#dataSourceTabs button.nav-link').not('.add-source-tab').length;
+                        
+                        // Add additional tabs if needed
+                        for (var i = existingTabsCount; i < tabsNeeded; i++) {
+                            // Trigger add tab functionality
+                            cell.find('#add-source-tab').trigger('click');
+                        }
+                        
+                        // Wait for tabs to be created, then populate them
+                        setTimeout(function() {
+                            content.tabs.forEach(function(tab_data, index) {
+                                var tabId = index; // Assuming sequential tab IDs starting from 0
+                                
+                                // Set source
+                                var sourceId = "content_source_" + dataid + "_tab_" + tabId;
+                                $("#" + sourceId).val(tab_data.source || '').trigger('change');
+                                
+                                // Set content (SQL/code)
+                                var contentId = "content_query_" + dataid + "_tab_" + tabId;
+                                var $contentDiv = $("#" + contentId);
+                                if ($contentDiv.length) {
+                                    // Check if it's a Monaco editor
+                                    var editorInstance = $contentDiv.data('monacoEditor');
+                                    if (editorInstance && typeof editorInstance.setValue === 'function') {
+                                        editorInstance.setValue(tab_data.content || '');
+                                    } else {
+                                        // Fallback to ACE editor if Monaco not available
+                                        try {
+                                            var editor = ace.edit(contentId);
+                                            editor.setValue(tab_data.content || '');
+                                        } catch (e) {
+                                            console.warn("Could not set editor content for tab " + tabId);
+                                        }
+                                    }
+                                }
+                            });
+                        }, 500);
+                    }
+                    
+                    // Populate table configuration
+                    if (content.table) {
+                        var table = content.table;
+                        
+                        cell.find('.table-title').val(table.title || '');
+                        cell.find('.table-slate').val(table.slate || '');
+                        cell.find('.table-search').prop('checked', table.search || false);
+                        cell.find('.table-export').prop('checked', table.export || false);
+                        cell.find('.table-filter').prop('checked', table.filter || false);
+                        cell.find('.table-checkbox').prop('checked', table.checkbox || false);
+                        cell.find('.table-multiselect-row').prop('checked', table['multiselect-row'] || false);
+                        cell.find('.table-pagination').prop('checked', table.pagination !== false); // Default true
+                        cell.find('.table-sortable').prop('checked', table.sortable !== false); // Default true
+                        cell.find('.table-pagesize').val(table.pagesize || 15);
+                        cell.find('.table-footer').prop('checked', table.footer || false);
+                        
+                        // Set table style
+                        if (table.style) {
+                            cell.find('.table-style').val(table.style);
+                        }
+                    }
+                    
+                    // Populate chart configuration
+                    if (content.chart) {
+                        var chart = content.chart;
+                        
+                        cell.find('.chart-title').val(chart.title || '');
+                        cell.find('.chart-subtitle').val(chart.subtitle || '');
+                        cell.find('.chart-legend').val(chart.legend || 'Off');
+                        cell.find('.chart-xaxis-type').val(chart['xaxis-type'] || 'category');
+                        
+                        // Set advanced YAML
+                        if (chart.advanced) {
+                            var advancedEditor = cell.find('.chart-advanced');
+                            if (advancedEditor.length) {
+                                try {
+                                    var editor = ace.edit(advancedEditor.attr('id'));
+                                    editor.setValue(chart.advanced);
+                                } catch (e) {
+                                    console.warn("Could not set advanced chart YAML");
+                                }
+                            }
+                        }
+                        
+                        // Clear existing series groups and recreate them
+                        var seriesGrpContainer = cell.find('#seriesGrp' + dataid);
+                        seriesGrpContainer.find('.chart-series-groups').closest('li').remove();
+                        
+                        if (chart['series-groups'] && chart['series-groups'].length > 0) {
+                            chart['series-groups'].forEach(function(group, index) {
+                                // Add new series group
+                                cell.find('#addSG' + dataid).trigger('click');
+                                
+                                // Wait for UI to update, then populate
+                                setTimeout(function() {
+                                    var groupElements = cell.find('.chart-series-groups').eq(index);
+                                    if (groupElements.length) {
+                                        groupElements.find('.series-tab').val(group['series-tab'] || 0);
+                                        groupElements.find('.series-type').val(group['series-type'] || 'Line');
+                                        groupElements.find('.series-x').val(group['series-x'] || '');
+                                        groupElements.find('.series-y').val(group['series-y'] || '');
+                                        groupElements.find('.series-z').val(group['series-z'] || '');
+                                        groupElements.find('.series-ymin').val(group['series-ymin'] || '');
+                                        groupElements.find('.series-ymax').val(group['series-ymax'] || '');
+                                        groupElements.find('.series-s').val(group['series-s'] || '');
+                                        groupElements.find('.series-u').val(group['series-u'] || '');
+                                        groupElements.find('.series-l').val(group['series-l'] || '');
+                                        
+                                        // Trigger change to update field availability
+                                        groupElements.find('.series-type').trigger('change');
+                                    }
+                                }, 100 * (index + 1));
+                            });
+                        }
+                        
+                        // Clear existing series formats and recreate them
+                        var seriesFormatContainer = cell.find('#seriesFormat' + dataid);
+                        seriesFormatContainer.find('.chart-series-formats').closest('li').remove();
+                        
+                        if (chart['series-formats'] && chart['series-formats'].length > 0) {
+                            chart['series-formats'].forEach(function(format, index) {
+                                // Add new series format
+                                cell.find('#addSF' + dataid).trigger('click');
+                                
+                                setTimeout(function() {
+                                    var formatElements = cell.find('.chart-series-formats').eq(index);
+                                    if (formatElements.length) {
+                                        formatElements.find('.format-nrx').val(format['format-nrx'] || '');
+                                        formatElements.find('.format-ua').val(format['format-ua'] || '');
+                                        formatElements.find('.format-f').prop('checked', format['format-f'] || false);
+                                        formatElements.find('.format-p').prop('checked', format['format-p'] || false);
+                                        formatElements.find('.format-dt').prop('checked', format['format-dt'] || false);
+                                        formatElements.find('.format-pr').val(format['format-pr'] || '');
+                                        formatElements.find('.format-pointstyle').val(format['format-ps'] || '');
+                                        formatElements.find('.format-lw').val(format['format-lw'] || '');
+                                        formatElements.find('.chart-col').val(format['format-col'] || '');
+                                        formatElements.find('.chart-col-back').val(format['format-col-back'] || '');
+                                        formatElements.find('.format-title').val(format['format-title'] || '');
+                                    }
+                                }, 100 * (index + 1));
+                            });
+                        }
+                        
+                        // Clear existing series annotations and recreate them
+                        var seriesAnnoContainer = cell.find('#seriesAnno' + dataid);
+                        seriesAnnoContainer.find('.chart-series-annotations').closest('li').remove();
+                        
+                        if (chart['series-annos'] && chart['series-annos'].length > 0) {
+                            chart['series-annos'].forEach(function(anno, index) {
+                                // Add new series annotation
+                                cell.find('#addAN' + dataid).trigger('click');
+                                
+                                setTimeout(function() {
+                                    var annoElements = cell.find('.chart-series-annotations').eq(index);
+                                    if (annoElements.length) {
+                                        annoElements.find('.anno-tab').val(anno['anno-tab'] || 0);
+                                        annoElements.find('.anno-label').val(anno['anno-label'] || '');
+                                        annoElements.find('.anno-i').val(anno['anno-i'] || '');
+                                        annoElements.find('.anno-x').val(anno['anno-x'] || '');
+                                        annoElements.find('.anno-y').val(anno['anno-y'] || '');
+                                        annoElements.find('.anno-xm').val(anno['anno-xm'] || '');
+                                        annoElements.find('.anno-ym').val(anno['anno-ym'] || '');
+                                        annoElements.find('.anno-u').val(anno['anno-u'] || '');
+                                        annoElements.find('.anno-s').val(anno['anno-s'] || '');
+                                        annoElements.find('.anno-dt').prop('checked', anno['anno-dt'] || false);
+                                        annoElements.find('.anno-width').val(anno['anno-width'] || '');
+                                        annoElements.find('.anno-type').val(anno['anno-type'] || '');
+                                        annoElements.find('.chart-col').val(anno['anno-col'] || '');
+                                        annoElements.find('.chart-col-back').val(anno['anno-col-back'] || '');
+                                    }
+                                }, 100 * (index + 1));
+                            });
+                        }
+                    }
+                    
+                    console.log('Data cell pasted successfully');
+                    break;
+                  
+                default:
+                    if (content.generic) {
+                        const genericElement = cell.find(`#content_query_${taskIndex}`);
+                        if (genericElement.length) {
+                            genericElement.val(content.generic);
+                        }
+                    }
+            }
+        }
+
+        // Context menu functions
+        window.clear_cell_output = function() {
+            $('#output-context-menu').hide();
+            
+            if (currentCellResults) {
+                const cellOffset = currentCellResults.offset();
+                const windowScrollTop = $(window).scrollTop();
+                
+                currentCellResults.empty();
+                
+                requestAnimationFrame(() => {
+                    $(window).scrollTop(windowScrollTop);
+                });
+                
+                currentCellResults = null; 
+            }
+        };
+        
+        window.task_cell_copy = function() {
+            $('#panel-context-menu').hide();
+            
+            if (!currentContextCell) {
+                console.warn('No cell selected for copy operation');
+                return;
+            }
+            
+            try {
+                const taskIndex = currentContextCell.attr('step') || currentContextCell.attr('data-task-index');
+                const stepType = currentContextCell.attr('steptype');
+                const stream = currentContextCell.closest('.stream').attr('stream');
+                
+                // Get the JSON data for this step
+                const jsonScript = $('#json_' + taskIndex);
+                
+                // Extract cell content using the enhanced function
+                const cellContent = extractCellContent(currentContextCell);
+                
+                // Get loop iterable value if present
+                let loopIterable = '';
+                const loopInput = currentContextCell.find('.loop-iterable');
+                if (loopInput.length) {
+                    loopIterable = loopInput.val();
+                }
+                
+                // Store all relevant cell data
+                window.copiedCellData = {
+                    stepType: stepType,
+                    stream: stream,
+                    taskIndex: taskIndex,
+                    cellContent: cellContent,
+                    loopIterable: loopIterable,
+                    timestamp: new Date().getTime()
+                };
+                
+                console.log('Copied cell data:', window.copiedCellData);
+                flash('Cell copied successfully', 'success');
+                
+                // Visual feedback
+                currentContextCell.addClass('bg-info');
+                setTimeout(function() {
+                    currentContextCell.removeClass('bg-info');
+                }, 200);
+                
+            } catch (error) {
+                console.error('Error copying cell:', error);
+                flash('Failed to copy cell.', 'danger');
+            }
+        };
+        
+        window.task_cell_paste = function() {
+            $('#panel-context-menu').hide();
+            
+            if (!window.copiedCellData) {
+                console.warn('No cell data to paste');
+                flash('No cell data to paste. Please copy a cell first.', 'danger');
+                return;
+            }
+            
+            if (!currentContextCell) {
+                console.warn('No target cell selected for paste operation');
+                return;
+            }
+            
+            try {
+                const targetStream = currentContextCell.closest('.stream');
+                const targetStreamId = targetStream.attr('stream');
+                const targetStreamFile = targetStream.attr('stream-file');
+                
+                new_step_id = new_step_id + 1;
+                const newStepUrl = '/step/' + targetStreamId + '/' + window.copiedCellData.stepType + '/' + new_step_id + '/' + targetStreamFile + '/';
+                
+                // Get HTML for new step
+                get_html(newStepUrl, function(new_step) {
+                    const $new_element = $(new_step);
+                    
+                    currentContextCell.after($new_element);
+                    sortUpdate(targetStream);
+                    initializeNewCellDebugger($new_element);
+                    
+                    // Apply copied data to the new cell
+                    const newTaskIndex = $new_element.attr('step');
+                    
+                    // Set loop iterable if present
+                    if (window.copiedCellData.loopIterable) {
+                        const loopInput = $new_element.find('.loop-iterable');
+                        if (loopInput.length) {
+                            loopInput.val(window.copiedCellData.loopIterable);
+                            toggle_loop(loopInput);
+                        }
+                    }
+                    
+                    // Apply cell content
+                    applyCellContent($new_element, window.copiedCellData.cellContent, window.copiedCellData.stepType);
+                    
+                    // Visual feedback
+                    $new_element.addClass('bg-success');
+                    setTimeout(function() {
+                        $new_element.removeClass('bg-success');
+                    }, 200);
+                    
+                    // Focus on the new cell
+                    setTimeout(function() {
+                        const newEditorDiv = $new_element.find('.ace_editor').eq(0);
+                        if (newEditorDiv.length && newEditorDiv.get(0).env && newEditorDiv.get(0).env.editor) {
+                            const editor = newEditorDiv.get(0).env.editor;
+                            editor.focus();
+                            editor.gotoLine(1, 0);
+                        }
+                    }, 200);
+                    
+                    flash('Cell pasted successfully', 'success');
+                });
+                
+            } catch (error) {
+                console.error('Error pasting cell:', error);
+                flash('Failed to paste cell. Please try again.', 'danger');
+            }
+        };
+        
+        // Add keyboard shortcuts for copy/paste
+        $(document).on('keydown', function(e) {
+            // Check if we're in a focused cell editor
+            const activeEditor = $('.ace_editor.ace_focus');
+            if (activeEditor.length) {
+                const cellItem = activeEditor.closest('.clarama-cell-item');
+                
+                // Ctrl+Shift+C for copy cell
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
+                    e.preventDefault();
+                    currentContextCell = cellItem;
+                    window.task_cell_copy();
+                    return false;
+                }
+                
+                // Ctrl+Shift+V for paste cell
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 86) {
+                    e.preventDefault();
+                    currentContextCell = cellItem;
+                    window.task_cell_paste();
+                    return false;
+                }
+            }
+        });
+        
+        console.log('Enhanced cell copy/paste functionality initialized');
     });
 </script>

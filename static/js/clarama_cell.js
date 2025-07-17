@@ -12,7 +12,7 @@
  * @returns {Object} Object containing the cell type and code content
  */
 function get_code_cell(cell) {
-    var id = cell.attr('id')
+    var id = cell.attr('id');
     var editor = ace.edit(id);
     var code = editor.getValue();
 
@@ -381,6 +381,7 @@ function get_cell_values(cell) {
 
 
     console.log('cell data: ', cell_data);
+    // cell_data["content"] = "locals().keys()";
     return cell_data;
 }
 
