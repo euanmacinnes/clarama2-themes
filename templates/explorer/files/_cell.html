@@ -2,59 +2,42 @@
     class="row bg-white text-dark clarama-cell-item"
     steptype="{{ task_step['type'] }}"
 >
-    <div class="panel col-2 col-lg-1 d-flex flex-column justify-content-between
-                 {% if task_last %}
-                    bg-primary
-                 {% else %}
-                    bg-secondary
-                 {% endif %}
-                 text-light draggable-heading justify-content-end position-relative"
-         style="padding:0">
-        <hr class="faded"/>
-        <div class="container-fluid">
-            <div class="row">
+    <div class="panel col-2 col-lg-1 d-flex flex-column position-relative bg-{{ 'primary' if task_last else 'secondary' }} text-light draggable-heading" style="padding:0">
+        <hr class="faded" style="margin: 0"/>
+        <div class="container-fluid pt-2">
+            <div class="row g-1 align-items-center">
                 <div class="col-auto">
-                    <button type="button" class="btn text-white step-label">{{ task_index }}</button>
+                    <button type="button" class="btn text-white step-label px-2 py-1">{{ task_index }}</button>
                 </div>
                 <div class="col">
-                    <input type="text" id="loop-iterable-{{ task_index }}"
-                           loop-id="{{ task_index }}"
-                           class="form-control loop-iterable loop-inactive"
-                           value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}"
-                           opacity="0.04">
-                </div>
-            </div>
-            {% if task_step['type'] != "markdown" %}
-                <div class="row">
-                    <div class="col">&nbsp;</div>
-                    <div class="col-auto pb-3"
-                         id="task_toolbar_{{ stream }}_{{ task_index }}_play"
-                         opacity="0.04">
-                        <button type="button" class="btn celleditrun" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
-                                <i class="mb-3 fs-4 bi bi-play-fill " style="width: 75px;"></i>
+                    <div class="btn-group">
+                        <button type="button" class="btn celleditrun p-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
+                            <i class="fs-5 bi bi-play-fill"></i>
                         </button>
                         {% if task_step['type'] != "data" %}
-                        <button type="button" class="btn celleditdebug" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Debug (Ctrl-\)"
-                                data-task-index="{{ task_index }}">
-                                <i class="mb-3 fs-4 bi bi-bug-fill"></i>
+                        <button type="button" class="btn celleditdebug p-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Debug (Ctrl-\\)" data-task-index="{{ task_index }}">
+                            <i class="fs-5 bi bi-bug-fill"></i>
                         </button>
                         {% endif %}
                     </div>
                 </div>
-            {% endif %}
-        </div>
-
-        <div class="cell-spin" style="opacity: 0">
-            <div
-                    class="d-flex justify-content-center spinner-border text-info position-absolute start-50"
-                    role="status"
-                    style="width: 4rem; height: 4rem;"
-            >
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <input type="text" id="loop-iterable-{{ task_index }}"
+                        loop-id="{{ task_index }}"
+                        class="form-control loop-iterable loop-inactive"
+                        value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <div class="cell-timing container-fluid px-0"></div>
+                </div>
             </div>
         </div>
-        <div class="cell-timing container-fluid">
+        <div class="cell-spin" style="opacity: 0">
+            <div class="d-flex justify-content-center spinner-border text-info position-absolute start-50" role="status" style="width: 4rem; height: 4rem;"></div>
         </div>
     </div>
     <div class="col-10 col-lg-11" style="padding:0px;">
@@ -234,15 +217,7 @@
                 case 'code':
                     // Code cells - look for ACE editor
                     const codeEditorDiv = cell.find('.ace_editor').eq(0);
-                    if (codeEditorDiv.length && codeEditorDiv.get(0).env && codeEditorDiv.get(0).env.editor) {
-                        content.code = codeEditorDiv.get(0).env.editor.getValue();
-                    } else {
-                        // Fallback to textarea or div content
-                        const codeElement = cell.find(`#content_query_${taskIndex}`);
-                        if (codeElement.length) {
-                            content.code = codeElement.val() || codeElement.text() || codeElement.html();
-                        }
-                    }
+                    content.code = codeEditorDiv.get(0).env.editor.getValue();
                     break;
                     
                 case 'markdown':
@@ -279,35 +254,32 @@
                     }
                     break;
                     
-                // case 'url':
-                //     // URL cells - extract mode, URL, and parameters
-                //     const modeElement = cell.find(`#content_query_${taskIndex}_mode`);
-                //     const urlElement = cell.find(`#content_query_${taskIndex}_url`);
-                //     const paramsElement = cell.find(`#content_query_${taskIndex}_params`);
+                case 'url':
+                    // URL cells - extract mode, URL, and parameters
+                    const modeElement = cell.find(`.col-md-2`).find(`.form-control`);
+                    const urlElement = cell.find(`.col-md-10`).find(`.form-control`);
+                    const paramsElement = cell.find(`.source-editor`);
                     
-                //     if (modeElement.length) {
-                //         content.mode = modeElement.val();
-                //     }
-                //     if (urlElement.length) {
-                //         content.url = urlElement.val();
-                //     }
-                //     if (paramsElement.length) {
-                //         const paramsEditor = paramsElement.get(0);
-                //         if (paramsEditor.env && paramsEditor.env.editor) {
-                //             content.parameters = paramsEditor.env.editor.getValue();
-                //         } else {
-                //             content.parameters = paramsElement.val() || paramsElement.text();
-                //         }
-                //     }
-                //     break;
+                    if (modeElement.length) {
+                        content.mode = modeElement.val();
+                    }
+                    if (urlElement.length) {
+                        content.url = urlElement.val();
+                    }
+                    if (paramsElement.length) {
+                        const paramsEditor = paramsElement.get(0);
+                        if (paramsEditor.env && paramsEditor.env.editor) {
+                            content.parameters = paramsEditor.env.editor.getValue();
+                        } else {
+                            content.parameters = paramsElement.val() || paramsElement.text();
+                        }
+                    }
+                    break;
                     
-                // case 'data':
-                    // Data cells - extract output and other data-specific fields
-                    // const outputElement = cell.find(`#${taskIndex}_output`);
-                    // if (outputElement.length) {
-                    //     content.output = outputElement.val();
-                    // }
-                    // break;
+                case 'data':
+                    content = get_data_cell(cell);
+                    console.log('content: ', content);
+                    break;                    
                     
                 default:
                     console.warn('Unknown cell type:', cellType);
@@ -333,17 +305,8 @@
                     if (content.code) {
                         setTimeout(() => {
                             const codeEditorDiv = cell.find('.ace_editor').eq(0);
-                            if (codeEditorDiv.length && codeEditorDiv.get(0).env && codeEditorDiv.get(0).env.editor) {
-                                codeEditorDiv.get(0).env.editor.setValue(content.code);
-                                codeEditorDiv.get(0).env.editor.clearSelection();
-                            } else {
-                                // Fallback to direct element setting
-                                const codeElement = cell.find(`#content_query_${taskIndex}`);
-                                if (codeElement.length) {
-                                    codeElement.val(content.code);
-                                    codeElement.text(content.code);
-                                }
-                            }
+                            codeEditorDiv.get(0).env.editor.setValue(content.code);
+                            codeEditorDiv.get(0).env.editor.clearSelection();
                         }, 100);
                     }
                     break;
@@ -429,51 +392,242 @@
                     }
                     break;
 
-                    
-                // case 'url':
-                //     setTimeout(() => {
-                //         if (content.mode) {
-                //             const modeElement = cell.find(`#content_query_${taskIndex}_mode`);
-                //             if (modeElement.length) {
-                //                 modeElement.val(content.mode);
-                //             }
-                //         }
+                case 'url':
+                    setTimeout(() => {
+                        const modeElement = cell.find(`.col-md-2`).find(`.form-control`);
+                        const urlElement = cell.find(`.col-md-10`).find(`.form-control`);
+                        const paramsElement = cell.find(`.source-editor`);
+                        if (content.mode) {
+                            if (modeElement.length) {
+                                modeElement.val(content.mode);
+                            }
+                        }
                         
-                //         if (content.url) {
-                //             const urlElement = cell.find(`#content_query_${taskIndex}_url`);
-                //             if (urlElement.length) {
-                //                 urlElement.val(content.url);
-                //             }
-                //         }
+                        if (content.url) {
+                            if (urlElement.length) {
+                                urlElement.val(content.url);
+                            }
+                        }
                         
-                //         if (content.parameters) {
-                //             const paramsElement = cell.find(`#content_query_${taskIndex}_params`);
-                //             if (paramsElement.length) {
-                //                 const paramsEditor = paramsElement.get(0);
-                //                 if (paramsEditor.env && paramsEditor.env.editor) {
-                //                     paramsEditor.env.editor.setValue(content.parameters);
-                //                     paramsEditor.env.editor.clearSelection();
-                //                 } else {
-                //                     paramsElement.val(content.parameters);
-                //                 }
-                //             }
-                //         }
-                //     }, 100);
-                //     break;
+                        if (content.parameters) {
+                            if (paramsElement.length) {
+                                const paramsEditor = paramsElement.get(0);
+                                if (paramsEditor.env && paramsEditor.env.editor) {
+                                    paramsEditor.env.editor.setValue(content.parameters);
+                                    paramsEditor.env.editor.clearSelection();
+                                } else {
+                                    paramsElement.val(content.parameters);
+                                }
+                            }
+                        }
+                    }, 100);
+                    break;
+                 
+                case 'data':
+                    var output_id = "task_step_" + dataid + "_output";
+                    $("#" + output_id).val(content.output || 'table');
                     
-                // case 'data':
-                    // if (content.output) {
-                    //     const outputElement = cell.find(`#${taskIndex}_output`);
-                    //     if (outputElement.length) {
-                    //         outputElement.val(content.output);
-                    //         // Trigger output type setting if function exists
-                    //         if (typeof datacell_setOutput === 'function') {
-                    //             datacell_setOutput(taskIndex, content.output, taskIndex);
-                    //         }
-                    //     }
-                    // }
-                    // break;
+                    // Set the active output button
+                    datacell_setOutput('task_step_' + dataid, content.output || 'table', dataid);
                     
+                    // Handle tabs data
+                    if (content.tabs && content.tabs.length > 0) {
+                        // Clear existing tabs first (except the first one)
+                        var existingTabs = cell.find('#dataSourceTabs button.nav-link').not('.add-source-tab');
+                        existingTabs.slice(1).each(function() {
+                            var tabId = $(this).attr('id').split('_').pop();
+                            // Dispose Monaco editor if exists
+                            var editorId = "content_query_" + dataid + "_tab_" + tabId;
+                            var $editorDiv = $("#" + editorId);
+                            if ($editorDiv.length) {
+                                var editorInstance = $editorDiv.data('monacoEditor');
+                                if (editorInstance && typeof editorInstance.dispose === 'function') {
+                                    editorInstance.dispose();
+                                }
+                            }
+                            $(this).closest('li').remove();
+                            $("#tabContentBlock_" + dataid + "_" + tabId).remove();
+                        });
+                        
+                        // Add new tabs as needed
+                        var tabsNeeded = content.tabs.length;
+                        var existingTabsCount = cell.find('#dataSourceTabs button.nav-link').not('.add-source-tab').length;
+                        
+                        // Add additional tabs if needed
+                        for (var i = existingTabsCount; i < tabsNeeded; i++) {
+                            // Trigger add tab functionality
+                            cell.find('#add-source-tab').trigger('click');
+                        }
+                        
+                        // Wait for tabs to be created, then populate them
+                        setTimeout(function() {
+                            content.tabs.forEach(function(tab_data, index) {
+                                var tabId = index; // Assuming sequential tab IDs starting from 0
+                                
+                                // Set source
+                                var sourceId = "content_source_" + dataid + "_tab_" + tabId;
+                                $("#" + sourceId).val(tab_data.source || '').trigger('change');
+                                
+                                // Set content (SQL/code)
+                                var contentId = "content_query_" + dataid + "_tab_" + tabId;
+                                var $contentDiv = $("#" + contentId);
+                                if ($contentDiv.length) {
+                                    // Check if it's a Monaco editor
+                                    var editorInstance = $contentDiv.data('monacoEditor');
+                                    if (editorInstance && typeof editorInstance.setValue === 'function') {
+                                        editorInstance.setValue(tab_data.content || '');
+                                    } else {
+                                        // Fallback to ACE editor if Monaco not available
+                                        try {
+                                            var editor = ace.edit(contentId);
+                                            editor.setValue(tab_data.content || '');
+                                        } catch (e) {
+                                            console.warn("Could not set editor content for tab " + tabId);
+                                        }
+                                    }
+                                }
+                            });
+                        }, 500);
+                    }
+                    
+                    // Populate table configuration
+                    if (content.table) {
+                        var table = content.table;
+                        
+                        cell.find('.table-title').val(table.title || '');
+                        cell.find('.table-slate').val(table.slate || '');
+                        cell.find('.table-search').prop('checked', table.search || false);
+                        cell.find('.table-export').prop('checked', table.export || false);
+                        cell.find('.table-filter').prop('checked', table.filter || false);
+                        cell.find('.table-checkbox').prop('checked', table.checkbox || false);
+                        cell.find('.table-multiselect-row').prop('checked', table['multiselect-row'] || false);
+                        cell.find('.table-pagination').prop('checked', table.pagination !== false); // Default true
+                        cell.find('.table-sortable').prop('checked', table.sortable !== false); // Default true
+                        cell.find('.table-pagesize').val(table.pagesize || 15);
+                        cell.find('.table-footer').prop('checked', table.footer || false);
+                        
+                        // Set table style
+                        if (table.style) {
+                            cell.find('.table-style').val(table.style);
+                        }
+                    }
+                    
+                    // Populate chart configuration
+                    if (content.chart) {
+                        var chart = content.chart;
+                        
+                        cell.find('.chart-title').val(chart.title || '');
+                        cell.find('.chart-subtitle').val(chart.subtitle || '');
+                        cell.find('.chart-legend').val(chart.legend || 'Off');
+                        cell.find('.chart-xaxis-type').val(chart['xaxis-type'] || 'category');
+                        
+                        // Set advanced YAML
+                        if (chart.advanced) {
+                            var advancedEditor = cell.find('.chart-advanced');
+                            if (advancedEditor.length) {
+                                try {
+                                    var editor = ace.edit(advancedEditor.attr('id'));
+                                    editor.setValue(chart.advanced);
+                                } catch (e) {
+                                    console.warn("Could not set advanced chart YAML");
+                                }
+                            }
+                        }
+                        
+                        // Clear existing series groups and recreate them
+                        var seriesGrpContainer = cell.find('#seriesGrp' + dataid);
+                        seriesGrpContainer.find('.chart-series-groups').closest('li').remove();
+                        
+                        if (chart['series-groups'] && chart['series-groups'].length > 0) {
+                            chart['series-groups'].forEach(function(group, index) {
+                                // Add new series group
+                                cell.find('#addSG' + dataid).trigger('click');
+                                
+                                // Wait for UI to update, then populate
+                                setTimeout(function() {
+                                    var groupElements = cell.find('.chart-series-groups').eq(index);
+                                    if (groupElements.length) {
+                                        groupElements.find('.series-tab').val(group['series-tab'] || 0);
+                                        groupElements.find('.series-type').val(group['series-type'] || 'Line');
+                                        groupElements.find('.series-x').val(group['series-x'] || '');
+                                        groupElements.find('.series-y').val(group['series-y'] || '');
+                                        groupElements.find('.series-z').val(group['series-z'] || '');
+                                        groupElements.find('.series-ymin').val(group['series-ymin'] || '');
+                                        groupElements.find('.series-ymax').val(group['series-ymax'] || '');
+                                        groupElements.find('.series-s').val(group['series-s'] || '');
+                                        groupElements.find('.series-u').val(group['series-u'] || '');
+                                        groupElements.find('.series-l').val(group['series-l'] || '');
+                                        
+                                        // Trigger change to update field availability
+                                        groupElements.find('.series-type').trigger('change');
+                                    }
+                                }, 100 * (index + 1));
+                            });
+                        }
+                        
+                        // Clear existing series formats and recreate them
+                        var seriesFormatContainer = cell.find('#seriesFormat' + dataid);
+                        seriesFormatContainer.find('.chart-series-formats').closest('li').remove();
+                        
+                        if (chart['series-formats'] && chart['series-formats'].length > 0) {
+                            chart['series-formats'].forEach(function(format, index) {
+                                // Add new series format
+                                cell.find('#addSF' + dataid).trigger('click');
+                                
+                                setTimeout(function() {
+                                    var formatElements = cell.find('.chart-series-formats').eq(index);
+                                    if (formatElements.length) {
+                                        formatElements.find('.format-nrx').val(format['format-nrx'] || '');
+                                        formatElements.find('.format-ua').val(format['format-ua'] || '');
+                                        formatElements.find('.format-f').prop('checked', format['format-f'] || false);
+                                        formatElements.find('.format-p').prop('checked', format['format-p'] || false);
+                                        formatElements.find('.format-dt').prop('checked', format['format-dt'] || false);
+                                        formatElements.find('.format-pr').val(format['format-pr'] || '');
+                                        formatElements.find('.format-pointstyle').val(format['format-ps'] || '');
+                                        formatElements.find('.format-lw').val(format['format-lw'] || '');
+                                        formatElements.find('.chart-col').val(format['format-col'] || '');
+                                        formatElements.find('.chart-col-back').val(format['format-col-back'] || '');
+                                        formatElements.find('.format-title').val(format['format-title'] || '');
+                                    }
+                                }, 100 * (index + 1));
+                            });
+                        }
+                        
+                        // Clear existing series annotations and recreate them
+                        var seriesAnnoContainer = cell.find('#seriesAnno' + dataid);
+                        seriesAnnoContainer.find('.chart-series-annotations').closest('li').remove();
+                        
+                        if (chart['series-annos'] && chart['series-annos'].length > 0) {
+                            chart['series-annos'].forEach(function(anno, index) {
+                                // Add new series annotation
+                                cell.find('#addAN' + dataid).trigger('click');
+                                
+                                setTimeout(function() {
+                                    var annoElements = cell.find('.chart-series-annotations').eq(index);
+                                    if (annoElements.length) {
+                                        annoElements.find('.anno-tab').val(anno['anno-tab'] || 0);
+                                        annoElements.find('.anno-label').val(anno['anno-label'] || '');
+                                        annoElements.find('.anno-i').val(anno['anno-i'] || '');
+                                        annoElements.find('.anno-x').val(anno['anno-x'] || '');
+                                        annoElements.find('.anno-y').val(anno['anno-y'] || '');
+                                        annoElements.find('.anno-xm').val(anno['anno-xm'] || '');
+                                        annoElements.find('.anno-ym').val(anno['anno-ym'] || '');
+                                        annoElements.find('.anno-u').val(anno['anno-u'] || '');
+                                        annoElements.find('.anno-s').val(anno['anno-s'] || '');
+                                        annoElements.find('.anno-dt').prop('checked', anno['anno-dt'] || false);
+                                        annoElements.find('.anno-width').val(anno['anno-width'] || '');
+                                        annoElements.find('.anno-type').val(anno['anno-type'] || '');
+                                        annoElements.find('.chart-col').val(anno['anno-col'] || '');
+                                        annoElements.find('.chart-col-back').val(anno['anno-col-back'] || '');
+                                    }
+                                }, 100 * (index + 1));
+                            });
+                        }
+                    }
+                    
+                    console.log('Data cell pasted successfully');
+                    break;
+                  
                 default:
                     if (content.generic) {
                         const genericElement = cell.find(`#content_query_${taskIndex}`);
