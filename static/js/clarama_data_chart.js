@@ -1057,6 +1057,8 @@ function bChart(chart_id, chart_data) {
         console.log("FINAL LABELS: " + unique_labels.length);
         console.log(unique_labels);
         data['labels'] = unique_labels;
+
+        xaxis_scale['labels'] = unique_labels;
     }
 
 
