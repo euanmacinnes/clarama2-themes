@@ -22,7 +22,7 @@ function get_url(url, field_registry) {
     return new_url;
 }
 
-function _task_run(socket_div, hidden = false) {
+function _task_run(socket_div) {
     json_div = socket_div + '_args';
 
     get_field_values({}, true, function (field_registry) {
@@ -72,20 +72,9 @@ function _task_run(socket_div, hidden = false) {
             .then((response) => {
                 console.log("CLARAMA_TASK.js: TASK RUN RESPONSE " + task);
                 console.log(response);
-
-                if (hidden) {
-                    if (!response.ok) {
-                        alert("Task failed! " + response.statusText);
-                        return;
-                    }
-                    alert("Task ran successfully! " + response.statusText);
-                }
             })
             .catch((error) => {
                 console.error("Fetch error:", error);
-                if (hidden) {
-                    alert("Network or server error! " + error.message);
-                }
             });
         /*fetch(task)
             .then((response) => {

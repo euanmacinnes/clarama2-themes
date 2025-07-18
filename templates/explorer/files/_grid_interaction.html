@@ -30,7 +30,7 @@
         const target = event.target.closest('.grid-stack-item');
         if (!target) return;
 
-        event.preventDefault();
+        // event.preventDefault();
 
         const elementId = target.getAttribute('gs-id');
         // console.log("elementId", elementId);
@@ -51,7 +51,8 @@
         // console.log("menuInteractions", menuInteractions);
         // console.log("menuInteractions length", menuInteractions.length);
         if (menuInteractions.length === 0) return;
-
+        event.preventDefault();
+        
         let table_selection = null;
         const row = event.target.closest('tr');
         if (row && row.closest('table')) {
@@ -83,10 +84,10 @@
         contextMenu.innerHTML = menuInteractions.map((interaction, i) => {
             if (interaction.element == "tab") {
                 return `<a href="${interaction.url}" target="_blank" class="text-decoration-none text-black">
-                    <button class="dropdown-item datasource" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
+                    <button class="dropdown-item datasource" data-id="${elementId}" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
                 </a>`
             } else {
-                return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
+                return `<button class="dropdown-item" data-id="${elementId}" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
             }            
         }).join('');
 
@@ -98,6 +99,8 @@
                     const field_values = merge_dicts(field_registry, table_selection);
                     console.log("field_values", field_values);
 
+                    const eid = button.dataset.id;
+                    console.log('Clicked menu item id:', eid);
                     const url = button.dataset.url;
                     console.log('Clicked menu item URL:', url);
                     const elem = button.dataset.elem;
@@ -118,11 +121,12 @@
 
                             // ensure that runBtn exists n socket has an Id before simulating the click on the task run btn
                             if (runBtn && socketId) {
-                                runBtn.attr("hiddenCM", "true")
                                 runBtn.click();
                                 clearInterval(interval); // this will stop looping n finding the runBtn n socketId
 
-                                // show alert or modal
+                                // reload the element bec the change wont be reflected
+                                field_values['clarama_var_run'] = 'True'
+                                reload($(`#${eid}`), field_values)
                             }
                         }, 300);
                     } 
