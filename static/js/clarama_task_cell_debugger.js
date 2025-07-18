@@ -227,22 +227,28 @@ function inspectVariable(varName, taskIndex) {
             const codeChecker = `
 from pprint import pprint
 import pandas as pd
+import inspect
 try:
     val = ${varName}
-    val_str = str(val)
     
     # Check if it's a pandas DataFrame
     if isinstance(val, pd.DataFrame):
         print(val.info())
-    # Check if it's a class/function/method (starts with <)
-    elif val_str.startswith("<"):
+    # Check if it's a class, function, method, or module (not just string representation)
+    elif inspect.isclass(val) or inspect.isfunction(val) or inspect.ismethod(val) or inspect.ismodule(val) or inspect.isbuiltin(val):
         help(${varName})
     else:
+        # For everything else (including strings that happen to start with '<'), use pprint
         pprint(${varName})
 except NameError:
     print(f"Variable '${varName}' is not defined")
 except Exception as e:
     print(f"Error inspecting variable '${varName}': {e}")
+    # Fallback - try to at least show the variable
+    try:
+        print(${varName})
+    except:
+        print(f"Could not display variable '${varName}'")
 `;
 
             set_debug_behaviour(task_registry, codeChecker, field_registry);
