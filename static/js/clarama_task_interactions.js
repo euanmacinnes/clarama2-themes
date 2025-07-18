@@ -1,15 +1,18 @@
 // This function is called by the user when they click on a Run button
 function task_run(parent) {
     parent.find("#run").click(function () {
+        console.log("inside task_run")
         if (check_fields_valid()) {
             console.log("RUNNING");
             // Get only the field values, not the full field definitions, text or code
 
             socket_div = $(this).attr("socket")
+            console.log("socket_div",socket_div)
 
             $('#task_progress_main').attr('aria-valuenow', 0);
 
-            _task_run(socket_div);
+            isHidden = $(this).attr("hiddenCM")
+            _task_run(socket_div, isHidden);
         }
     });
 }

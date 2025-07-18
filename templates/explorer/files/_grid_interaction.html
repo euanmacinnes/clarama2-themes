@@ -110,9 +110,22 @@
                         document.getElementById(elem).append(showInteractionContent('run', url+"?"+params));
                         enable_interactions($(`#${elem}`));
                     } else if (elem == "hidden") {
-                        // need to handle the logic
+                        // this prob isnt the most ideal way but i think itll do for now since autorun isnt work
+                        playHiddenContent(url, field_values);
+                        const interval = setInterval(() => {
+                            const runBtn = $("#run");
+                            const socketId = $("#" + runBtn.attr("socket")).attr("task_kernel_id");
+
+                            // ensure that runBtn exists n socket has an Id before simulating the click on the task run btn
+                            if (runBtn && socketId) {
+                                runBtn.attr("hiddenCM", "true")
+                                runBtn.click();
+                                clearInterval(interval); // this will stop looping n finding the runBtn n socketId
+
+                                // show alert or modal
+                            }
+                        }, 300);
                     } 
-                    
                     contextMenu.classList.add('d-none');
                 });
             });
@@ -140,7 +153,14 @@
         const iModal = document.getElementById("interactionModalBody");
         iModal.innerHTML = '';
         iModal.append(showInteractionContent('modal', url, parameters));
-        enable_interactions($("#interactionModalBody"), true);
+        enable_interactions($("#interactionModalBody"), true, true);
+    }
+
+    function playHiddenContent(url, parameters = "") {
+        const iModal = document.getElementById("interactionModalBody");
+        iModal.innerHTML = '';
+        iModal.append(showInteractionContent('modal', url, parameters));
+        enable_interactions($("#interactionModalBody"), true, true);
     }
 
     function triggerTabInteraction(url, parameters = "") {

@@ -18,11 +18,11 @@ function get_url(url, field_registry) {
     //console.log(queryparams);
 
     var new_url = $CLARAMA_ROOT + url + '?' + jQuery.param(queryparams);
-    //console.log(new_url);
+    console.log(new_url);
     return new_url;
 }
 
-function _task_run(socket_div) {
+function _task_run(socket_div, hidden = false) {
     json_div = socket_div + '_args';
 
     get_field_values({}, true, function (field_registry) {
@@ -44,11 +44,14 @@ function _task_run(socket_div) {
         }
 
         var task_socket = $("#" + socket_div);
+        console.log("task_socket", task_socket)
 
         field_merged['clarama_task_kill'] = task_socket.attr("task_kill");
 
         task_kernel_id = task_socket.attr("task_kernel_id");
+        console.log("task_kernel_id", task_kernel_id)
         url = $CLARAMA_ENVIRONMENTS_TASK_RUN + task_kernel_id;
+        console.log("url", url)
 
         // Pass in the task's user-defined parameters from the field_registry, and paste into the header the internal configuration
 
@@ -69,6 +72,20 @@ function _task_run(socket_div) {
             .then((response) => {
                 console.log("CLARAMA_TASK.js: TASK RUN RESPONSE " + task);
                 console.log(response);
+
+                if (hidden) {
+                    if (!response.ok) {
+                        alert("Task failed! " + response.statusText);
+                        return;
+                    }
+                    alert("Task ran successfully! " + response.statusText);
+                }
+            })
+            .catch((error) => {
+                console.error("Fetch error:", error);
+                if (hidden) {
+                    alert("Network or server error! " + error.message);
+                }
             });
         /*fetch(task)
             .then((response) => {
