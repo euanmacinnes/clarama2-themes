@@ -11,7 +11,7 @@
         <a class="dropdown-item content_item bi bi-copy" href="#" onclick="context_copy();">&nbsp;Copy</a>
         <a class="dropdown-item content_item bi bi-clipboard" href="#" onclick="context_paste();">&nbsp;Paste</a>
         <hr/>
-        <a class="dropdown-item content_item bi bi-trash3" href="#" onclick="context_delete();">&nbsp;Delete</a>
+        <a class="dropdown-item content_item bi bi-trash3" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">&nbsp;Delete</a>
     </div>
 
     <!-- Just Paste, for the drop area -->
@@ -255,6 +255,25 @@
                         <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
                              style="width: 0%"></div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- dlt confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="confirmDeleteBtn" type="button" class="btn btn-danger" onclick="context_delete()">Yes</button>
                 </div>
             </div>
         </div>
