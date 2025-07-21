@@ -541,7 +541,7 @@
   };
 
   // document.querySelector('#saved').value = JSON.stringify(options);
-  let {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#{{ grid_id }}-containment-wrapper'), {{ grid_id }}options);
+  var {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#{{ grid_id }}-containment-wrapper'), {{ grid_id }}options);
 
   const savedColCount = {{ grid_id }}settings["column"];
   console.log("savedColCount", savedColCount)
@@ -958,5 +958,5 @@
 </script>
 
 {% include theme("explorer/files/browse_file_modal.html") %}
-{% include theme("explorer/files/add_field_modal.html") %}
 {% include theme("explorer/files/file_modal_shared_logic.html") %}
+{% include theme("explorer/files/add_field_modal.html") %}

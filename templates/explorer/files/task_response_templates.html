@@ -190,6 +190,7 @@
                 view += template.replaceAll('%ROW%', encoded_row)
                     .replaceAll('%SLATE%', '{tableslate_content}')
                     .replaceAll('%GRID_ID%', grid_id)
+                    .replaceAll('%ROW_NUMBER%', i + 1)
             })
 
             return `${view}`
@@ -200,7 +201,10 @@
 
 <template id="slateRowTemplate">
     <div class="row mx-0 clarama-slate-record">
-        <div class="col mt-3 clarama-post-embedded" url="/render/embed/%SLATE%"
+        <div class="col-1" style="padding-top: 8px;">
+            %ROW_NUMBER%.
+        </div>
+        <div class="col-11 mt-3 clarama-post-embedded" url="/render/embed/%SLATE%"
              encoded_record="true">
             <div id="record" class="encoded_post">%ROW%</div>
         </div>
