@@ -18,13 +18,10 @@ document.addEventListener('contextmenu', (event) => {
     const elementId = target.getAttribute('gs-id');
     const gridId = grid.getAttribute('grid_id');
 
-
     console.log("elementId", elementId);
     console.log("gridId", gridId);
 
-
     const elementInteractions = eval(gridId + "elements[elementId]['links']");
-    //const elementInteractions = elements[elementId]['links'];
 
     const menuInteractions = [];
 

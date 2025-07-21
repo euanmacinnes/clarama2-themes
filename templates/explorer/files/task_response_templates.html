@@ -185,7 +185,7 @@
             let view = ''
 
             $.each(data, function (i, row) {
-                let encoded_row = btoa(JSON.stringify(row))
+                let encoded_row = btoa(JSON.stringify({record: row}))
                 let grid_id = encodeURIComponent('{tableslate_content}_' + i);
                 view += template.replaceAll('%ROW%', encoded_row)
                     .replaceAll('%SLATE%', '{tableslate_content}')
@@ -200,13 +200,12 @@
 
 
 <template id="slateRowTemplate">
-    <div class="row mx-0 clarama-slate-record">
+    <div class="row mx-0 clarama-slate-record" encoded_json="%ROW%">
         <div class="col-1" style="padding-top: 8px;">
             %ROW_NUMBER%.
         </div>
-        <div class="col-11 mt-3 clarama-post-embedded" url="/render/embed/%SLATE%"
-             encoded_record="true">
-            <div id="record" class="encoded_post">%ROW%</div>
+        <div class="col-11 mt-3 clarama-post-embedded clarama-record-header" url="/render/embed/%SLATE%"
+             encoded_record_class="clarama-slate-record">
         </div>
     </div>
 </template>

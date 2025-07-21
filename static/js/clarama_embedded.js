@@ -185,6 +185,14 @@ $.fn.load_post = function (onfinished, args, json) {
                     var url = embedded.attr("url");
                     var json_div = embedded.attr("post_json");
                     var json_attr = embedded.attr("json");
+                    var json_encoded_class = embedded.attr("encoded_record_class");
+
+                    if (json_encoded_class !== undefined) {
+                        console.log("JSON encoded record class " + json_encoded_class);
+                    } else
+                        console.log("NO JSON encoded record class on " + embedded.attr("id"));
+
+                    var json_encoded = embedded.closest('.' + json_encoded_class).attr("encoded_json");
                     //console.log("Looking for " + json_div + " for " + url)
                     var json_element = document.getElementById(json_div);
 
@@ -212,7 +220,16 @@ $.fn.load_post = function (onfinished, args, json) {
                         }
                     }
 
-                    console.log("JSON Payload");
+                    if (json_encoded !== undefined) {
+                        try {
+                            console.log("JSON Payload B64 encoded " + json_encoded);
+                            json_payload = JSON.parse(atob(json_encoded));
+                        } catch {
+                            console.error("Error decoding JSON");
+                        }
+                    }
+
+                    console.log("JSON Payload for " + url);
                     console.log(json_payload);
                     console.log("url", url);
                     const final_url = merge_url_params(url, args);
