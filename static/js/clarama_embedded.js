@@ -81,7 +81,7 @@ var current_embedded = '';
 
 window.onerror = function (message, source, lineno, colno, error) {
     console.error("Global error:", message);
-    console.error("Last embedded", current_embedded);
+    console.error("Source:", source, "Line No:", lineno, "Col No:", colno, "Last embedded", current_embedded);
     return true; // Prevent default error handling
 }
 
@@ -177,7 +177,7 @@ $.fn.load_post = function (onfinished, args, json) {
         console.log("POST loading " + embedded.attr("class") + " = " + embedded.attr("url") + JSON.stringify(args));
 
         if (embedded.attr("clarama_loaded") !== "true") {
-            
+
             console.log("embedded.attr(autorun) loadpost", embedded.attr("autorun"))
             embedded.html('<div class="d-flex justify-content-center align-items-center"><div class="loading-spinner"></div></div>')
                 .promise()
@@ -254,7 +254,7 @@ $.fn.load_post = function (onfinished, args, json) {
                                     console.log("INTERACTIONS " + embedded.attr("id") + ': ' + final_url);
                                     console.log({html: html});
                                     try {
-                                        current_embedded = html;
+                                        current_embedded = final_url;
                                         embedded.html(html).promise()
                                             .done(function () {
                                                 enable_interactions(embedded);
@@ -283,7 +283,7 @@ $.fn.load_post = function (onfinished, args, json) {
                             console.warn('JQuery Error loading ' + $CLARAMA_ROOT + final_url)
                             console.warn(error);
                         });
-                        
+
                     embedded.attr("clarama_loaded", true)
                 });
         }
@@ -394,7 +394,7 @@ $.fn.load = function (onfinished, args) {
                             console.log({'html': html})
                             try {
                                 console.log(final_url)
-                                current_embedded = html;
+                                current_embedded = final_url;
                                 embedded.html(html).promise()
                                     .done(function () {
                                         enable_interactions(embedded);

@@ -10,15 +10,21 @@ document.addEventListener('contextmenu', (event) => {
 
     console.log("in grid interaction")
     const target = event.target.closest('.grid-stack-item');
+    const grid = event.target.closest('.clarama-grid');
     if (!target) return;
 
     event.preventDefault();
 
     const elementId = target.getAttribute('gs-id');
-    // console.log("elementId", elementId);
+    const gridId = grid.getAttribute('grid_id');
 
-    //const elementInteractions = {{ grid_id }}elements[elementId]['links'];
-    const elementInteractions = elements[elementId]['links'];
+
+    console.log("elementId", elementId);
+    console.log("gridId", gridId);
+
+
+    const elementInteractions = eval(gridId + "elements[elementId]['links']");
+    //const elementInteractions = elements[elementId]['links'];
 
     const menuInteractions = [];
 
