@@ -541,7 +541,7 @@
   };
 
   // document.querySelector('#saved').value = JSON.stringify(options);
-  let {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#containment-wrapper'), {{ grid_id }}options);
+  let {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#{{ grid_id }}-containment-wrapper'), {{ grid_id }}options);
 
   const savedColCount = {{ grid_id }}settings["column"];
   console.log("savedColCount", savedColCount)
