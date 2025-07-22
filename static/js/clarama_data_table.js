@@ -48,6 +48,12 @@ function bTable(table_id, table_data) {
         exportTypes: ['json', 'xml', 'csv', 'txt', 'excel', 'pdf'],
         columns: table_columns,
         data: table_rows,
+        onCustomViewPostBody: function () {
+            var slate_records = $('.clarama-slate-record');
+            console.log('SLATE RECORDS:');
+            console.log(slate_records);
+            enable_interactions(slate_records);
+        },
         onClickRow: function (row, $element, field) {
             // alert(JSON.stringify(row));
             table_selection = {

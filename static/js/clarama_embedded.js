@@ -81,7 +81,7 @@ var current_embedded = '';
 
 window.onerror = function (message, source, lineno, colno, error) {
     console.error("Global error:", message);
-    console.error("Last embedded", current_embedded);
+    console.error("Source:", source, "Line No:", lineno, "Col No:", colno, "Last embedded", current_embedded);
     return true; // Prevent default error handling
 }
 
@@ -177,7 +177,7 @@ $.fn.load_post = function (onfinished, args, json) {
         console.log("POST loading " + embedded.attr("class") + " = " + embedded.attr("url") + JSON.stringify(args));
 
         if (embedded.attr("clarama_loaded") !== "true") {
-            
+
             console.log("embedded.attr(autorun) loadpost", embedded.attr("autorun"))
             embedded.html('<div class="d-flex justify-content-center align-items-center"><div class="loading-spinner"></div></div>')
                 .promise()
@@ -185,6 +185,14 @@ $.fn.load_post = function (onfinished, args, json) {
                     var url = embedded.attr("url");
                     var json_div = embedded.attr("post_json");
                     var json_attr = embedded.attr("json");
+                    var json_encoded_class = embedded.attr("encoded_record_class");
+
+                    if (json_encoded_class !== undefined) {
+                        console.log("JSON encoded record class " + json_encoded_class);
+                    } else
+                        console.log("NO JSON encoded record class on " + embedded.attr("id"));
+
+                    var json_encoded = embedded.closest('.' + json_encoded_class).attr("encoded_json");
                     //console.log("Looking for " + json_div + " for " + url)
                     var json_element = document.getElementById(json_div);
 
@@ -212,7 +220,16 @@ $.fn.load_post = function (onfinished, args, json) {
                         }
                     }
 
-                    console.log("JSON Payload");
+                    if (json_encoded !== undefined) {
+                        try {
+                            console.log("JSON Payload B64 encoded " + json_encoded);
+                            json_payload = JSON.parse(atob(json_encoded));
+                        } catch {
+                            console.error("Error decoding JSON");
+                        }
+                    }
+
+                    console.log("JSON Payload for " + url);
                     console.log(json_payload);
                     console.log("url", url);
                     const final_url = merge_url_params(url, args);
@@ -254,7 +271,7 @@ $.fn.load_post = function (onfinished, args, json) {
                                     console.log("INTERACTIONS " + embedded.attr("id") + ': ' + final_url);
                                     console.log({html: html});
                                     try {
-                                        current_embedded = html;
+                                        current_embedded = final_url;
                                         embedded.html(html).promise()
                                             .done(function () {
                                                 enable_interactions(embedded);
@@ -283,7 +300,7 @@ $.fn.load_post = function (onfinished, args, json) {
                             console.warn('JQuery Error loading ' + $CLARAMA_ROOT + final_url)
                             console.warn(error);
                         });
-                        
+
                     embedded.attr("clarama_loaded", true)
                 });
         }
@@ -394,7 +411,7 @@ $.fn.load = function (onfinished, args) {
                             console.log({'html': html})
                             try {
                                 console.log(final_url)
-                                current_embedded = html;
+                                current_embedded = final_url;
                                 embedded.html(html).promise()
                                     .done(function () {
                                         enable_interactions(embedded);

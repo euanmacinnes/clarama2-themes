@@ -12,7 +12,8 @@
     <div class="d-flex align-items-center me-4" type="button" onclick="add_text();">
         <i class="fs-5 bi bi-body-text pe-2"></i> Add Text
     </div>
-    <div class="d-flex align-items-center" type="button" onclick="add_selected_content('/content/element/{{ file_url }}', 'empty')">
+    <div class="d-flex align-items-center" type="button"
+         onclick="add_selected_content('/content/element/{{ file_url }}', 'empty')">
         <i class="fs-5 bi bi-plus-square-dotted pe-2"></i> Add Blank
     </div>
     <div class="col">&nbsp;</div>
@@ -20,24 +21,31 @@
     </div>
     <div class="col">&nbsp;</div>
     <div class="dropdown">
-        <div class="col-auto d-flex align-items-center" id="settingsDropdown" data-bs-toggle="dropdown" aria-expanded="false"><i class="fs-5 bi bi-gear pe-2"></i></div>
+        <div class="col-auto d-flex align-items-center" id="settingsDropdown" data-bs-toggle="dropdown"
+             aria-expanded="false"><i class="fs-5 bi bi-gear pe-2"></i></div>
         <ul class="dropdown-menu p-3" aria-labelledby="settingsDropdown" style="min-width: 300px;">
             <li class="mb-3">
-                <button class="btn btn-danger w-100" onclick="resetSlate()"><i class="bi bi-trash pe-2"></i>Clean Slate</button>
-            </li>
-            
-            <li class="input-group mb-3">
-                <input id="settings_table_source" type="text" class="form-control rounded-end-0 removeInputFocus"
-                    placeholder="Table name"
-                    value="{{ source }}">
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#browseFileModal" filters="*.table.yaml" inputId="settings_table_source"><i class="bi bi-table"></i></button>
+                <button class="btn btn-danger w-100" onclick="resetSlate()"><i class="bi bi-trash pe-2"></i>Clean Slate
+                </button>
             </li>
 
-            <li><hr class="dropdown-divider subtle-divider"></li>
-            
+            <li class="input-group mb-3">
+                <input id="settings_table_source" type="text" class="form-control rounded-end-0 removeInputFocus"
+                       placeholder="Table name"
+                       value="{{ source }}">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
+                        data-bs-target="#browseFileModal" filters="*.table.yaml" inputId="settings_table_source"><i
+                        class="bi bi-table"></i></button>
+            </li>
+
+            <li>
+                <hr class="dropdown-divider subtle-divider">
+            </li>
+
             <li>
                 <label for="gs_columnRange" class="form-label ps-0">Columns (4 - 24)</label>
-                <input type="range" class="form-range" min="4" max="24" value="12" id="gs_columnRange" oninput="updateColumnLabel(this.value)">
+                <input type="range" class="form-range" min="4" max="24" value="12" id="gs_columnRange"
+                       oninput="updateColumnLabel(this.value)">
                 <div>Selected: <span id="colValue">12</span></div>
             </li>
         </ul>
@@ -46,6 +54,7 @@
 </div>
 <hr/>
 <div class="row d-flex">
-    <div id="containment-wrapper" class="col" width="100%" height="100%">
+    <div id="{{ grid_id }}-containment-wrapper" class="col clarama-grid" width="100%" height="100%"
+         grid_id="{{ grid_id }}">
     </div>
 </div>
