@@ -255,38 +255,6 @@
             return content;
         }
 
-        function applyCellContent(cell, content, cellType) {
-            const taskIndex = cell.attr('step');
-            
-            console.log('Applying content to cell type:', cellType, 'task index:', taskIndex, 'content:', content);
-            
-            switch(cellType) {
-                case 'shell':
-                    break;
-                case 'code':
-                    break;
-
-                case 'markdown':
-                    break;
-
-                case 'notification':
-                    break;
-
-                case 'source':
-                case 'task':
-                    break;
-
-                case 'url':
-                    break;
-
-                case 'data':
-                    break;
-
-                default:
-                    flash('Could not paste cell', 'danger');
-            }
-        }
-
         // Context menu functions
         window.clear_cell_output = function() {
             $('#output-context-menu').hide();
@@ -369,7 +337,6 @@
                 new_step_id = new_step_id + 1;
                 const newStepUrl = '/step/' + targetStreamId + '/' + window.copiedCellData.stepType + '/' + new_step_id + '/' + targetStreamFile + '/';
                 
-                // Get HTML for new step
                 get_html(newStepUrl, function(new_step) {
                     const $new_element = $(new_step);
                     
@@ -377,10 +344,8 @@
                     sortUpdate(targetStream);
                     initializeNewCellDebugger($new_element);
                     
-                    // Apply copied data to the new cell
                     const newTaskIndex = $new_element.attr('step');
                     
-                    // Set loop iterable if present
                     if (window.copiedCellData.loopIterable) {
                         const loopInput = $new_element.find('.loop-iterable');
                         if (loopInput.length) {
@@ -389,12 +354,36 @@
                         }
                     }
                     
-                    applyCellContent($new_element, window.copiedCellData.cellContent, window.copiedCellData.stepType);
-                    flash('Cell pasted successfully', 'success');
-                    
-                    requestAnimationFrame(() => {
-                        $(window).scrollTop(windowScrollTop);
-                    });
+                    // Find the clarama-post-embedded element
+                    const embeddedElement = $new_element.find('.clarama-post-embedded');
+                    if (embeddedElement.length > 0) {
+                        const jsonContent = JSON.stringify(window.copiedCellData.cellContent);
+                        embeddedElement.attr('json', jsonContent);
+                        
+                        embeddedElement.attr("clarama_loaded", "false");
+                        embeddedElement.attr("autorun", "true");
+                        
+                        console.log('Loading pasted content into cell:', newTaskIndex);
+                        console.log('JSON payload:', window.copiedCellData.cellContent);
+                        
+                        embeddedElement.load_post(function() {
+                            console.log('Cell paste load_post completed for task:', newTaskIndex);
+                            flash('Cell pasted successfully', 'success');
+                                                        enable_interactions($new_element);
+                            
+                            requestAnimationFrame(() => {
+                                $(window).scrollTop(windowScrollTop);
+                            });
+                        });
+                        
+                    } else {
+                        console.warn('No clarama-post-embedded element found in new cell');
+                        flash('Cell created but content could not be loaded', 'warning');
+                        
+                        requestAnimationFrame(() => {
+                            $(window).scrollTop(windowScrollTop);
+                        });
+                    }
                 });
                 
             } catch (error) {
