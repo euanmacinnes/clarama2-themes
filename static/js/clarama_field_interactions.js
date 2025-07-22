@@ -80,7 +80,7 @@ function perform_interact(field, args = {}) {
 
                             case "changed":
                                 linked_element[0].innerHTML = "";
-                                linked_element[0].append(showInteractionContent('run', link.url + "?" + link.params));
+                                linked_element[0].append(showInteractionContent(field, 'run', link.url + "?" + link.params));
                                 enable_interactions($(`#${link.element}`));
                                 break;
 
@@ -92,14 +92,14 @@ function perform_interact(field, args = {}) {
                         let fullUrl = url + "?" + params;
                         $('.select2-container').blur();
                         if (element === 'popup') {
-                            showPopupNearMouse(fullUrl, field_values);
+                            showPopupNearMouse(field, fullUrl, field_values);
                         } else if (element === 'modal') {
-                            showModalWithContent(fullUrl, field_values);
+                            showModalWithContent(field, fullUrl, field_values);
                             // linked_element = grid.find('#interactionModalContent');
                             // console.log("linked_element modal", linked_element)
                             // reload(linked_element, field_values)
                         } else if (element === 'tab') {
-                            triggerTabInteraction(fullUrl, field_values);
+                            triggerTabInteraction(field, fullUrl, field_values);
                         }
                         // else {
                         //     const toOverride = document.getElementById(element);
