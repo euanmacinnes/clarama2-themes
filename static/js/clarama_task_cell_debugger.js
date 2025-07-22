@@ -24,6 +24,14 @@ function cell_debugger_run(cell_button, outputCallback) {
     const taskIndex = cell_button.attr('step') || cell_button.attr('data-task-index');
     const shownIndex = cell_button.closest('li.clarama-cell-item').find('button.step-label').text().trim();
     
+    // Prevent multiple simultaneous runs
+    const runningKey = `cell_debugger_running_${taskIndex}`;
+    if (window[runningKey]) {
+        console.log("Cell debugger already running for task", taskIndex);
+        return;
+    }
+    window[runningKey] = true;
+    
     window['cell_debugger_variables_callback_' + taskIndex] = function(output) {
         console.log("Variables debugger callback received output for task", taskIndex, ":", output);
         populateVariablesList(output, taskIndex, false);
@@ -31,6 +39,9 @@ function cell_debugger_run(cell_button, outputCallback) {
         if (outputCallback) {
             outputCallback(output);
         }
+        
+        // Clear running flag
+        delete window[runningKey];
     };
 
     get_field_values({}, true, function (field_registry) {
@@ -59,6 +70,7 @@ function cell_debugger_run(cell_button, outputCallback) {
                     variablesList.html('<div class="text-danger p-3">Error loading variables: ' + data['error'] + '</div>');
                     flash("Couldn't run debug content: " + data['error'], "danger");
                     window['cell_debugger_variables_callback_' + taskIndex] = null;
+                    delete window[runningKey];
                 }
             },
             error: function(data) {
@@ -68,6 +80,7 @@ function cell_debugger_run(cell_button, outputCallback) {
                 variablesList.html('<div class="text-danger p-3">Error loading variables</div>');
                 flash("Couldn't run debug content, access denied", "danger");
                 window['cell_debugger_variables_callback_' + taskIndex] = null;
+                delete window[runningKey];
             }
         });
     });
@@ -133,6 +146,8 @@ function debug_console_run(taskIndex, code) {
         if (consoleOutput) {
             consoleOutput.textContent = output;
         }
+        
+        delete window[executionKey];
     };
 
     get_field_values({}, true, function(field_registry) {
@@ -159,9 +174,8 @@ function debug_console_run(taskIndex, code) {
                 } else {
                     console.log('Console execution was not successful for task', currentTaskIndex);
                     delete window[`cell_debugger_callback_${currentTaskIndex}`];
+                    delete window[executionKey];
                 }
-                
-                delete window[executionKey];
             },
             error: function(error) {
                 flash("Console execution failed: access denied", "danger");
@@ -180,52 +194,112 @@ function debug_console_run(taskIndex, code) {
  */
 function inspectVariable(varName, taskIndex) {
     console.log("Inspecting variable:", varName, "in task:", taskIndex);
-
-    const cellElement = $(`li.clarama-cell-item[step="${taskIndex}"]`);
-    if (!cellElement.length) {
-        console.error("Cell element not found for task index", taskIndex);
-        return;
-    }
+    debounce(function(varName, taskIndex) {
+        const cellElement = $(`li.clarama-cell-item[step="${taskIndex}"]`);
+        if (!cellElement.length) {
+            console.error("Cell element not found for task index", taskIndex);
+            return;
+        }
+        
+        const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
+        const inspectionKey = `variable_inspecting_${currentTaskIndex}`;
+        
+        if (window[inspectionKey]) {
+            console.log("Variable inspection already in progress for task", currentTaskIndex);
+            return;
+        }
+        
+        window[inspectionKey] = true;
     
-    const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
-
-    window[`cell_debugger_callback_${currentTaskIndex}`] = function(output) {
-        console.log("Variable inspection output for task", currentTaskIndex, "(not updating variable list):", output);
-    };
-
-    get_field_values({}, true, function(field_registry) {
-        const task_registry = get_cell_fields(cellElement);
-
-        // Python snippet that captures help() output or variable value, uses pprint for better formatting
-        const codeChecker = `
+        // Clean up any existing callback
+        if (window[`cell_debugger_callback_${currentTaskIndex}`]) {
+            delete window[`cell_debugger_callback_${currentTaskIndex}`];
+        }
+    
+        window[`cell_debugger_callback_${currentTaskIndex}`] = function(output) {
+            delete window[inspectionKey];
+        };
+    
+        get_field_values({}, true, function(field_registry) {
+            const task_registry = get_cell_fields(cellElement);
+    
+            // Python snippet that captures help() output or variable value, uses pprint for better formatting
+            const codeChecker = `
 from pprint import pprint
-val_str = str(${varName})
-if val_str.startswith("<"):
-    help(${varName})
-else:
-    pprint(${varName})
+import pandas as pd
+import inspect
+try:
+    val = ${varName}
+    
+    # Check if it's a pandas DataFrame
+    if isinstance(val, pd.DataFrame):
+        print(val.info())
+    # Check if it's a class, function, method, or module (not just string representation)
+    elif inspect.isclass(val) or inspect.isfunction(val) or inspect.ismethod(val) or inspect.ismodule(val) or inspect.isbuiltin(val):
+        help(${varName})
+    else:
+        # For everything else (including strings that happen to start with '<'), use pprint
+        pprint(${varName})
+except NameError:
+    print(f"Variable '${varName}' is not defined")
+except Exception as e:
+    print(f"Error inspecting variable '${varName}': {e}")
+    # Fallback - try to at least show the variable
+    try:
+        print(${varName})
+    except:
+        print(f"Could not display variable '${varName}'")
 `;
-        set_debug_behaviour(task_registry, codeChecker, field_registry);
 
-        const socket_div = $("#edit_socket");
-        const task_kernel_id = socket_div.attr("task_kernel_id");
-        const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-
-        $.ajax({
-            type: 'POST',
-            url: url,
-            datatype: "json",
-            contentType: 'application/json',
-            data: JSON.stringify(task_registry),
-            success: function(data) {
-                console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Inspection successful for task', currentTaskIndex);
-            },
-            error: function(error) {
-                console.log("InspectVariable AJAX error for task", currentTaskIndex, ":", error);
-                flash("Couldn't inspect variable", "danger");
-            }
+            set_debug_behaviour(task_registry, codeChecker, field_registry);
+    
+            const socket_div = $("#edit_socket");
+            const task_kernel_id = socket_div.attr("task_kernel_id");
+            const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
+    
+            $.ajax({
+                type: 'POST',
+                url: url,
+                datatype: "json",
+                contentType: 'application/json',
+                data: JSON.stringify(task_registry),
+                success: function(data) {
+                    if (data['data'] !== 'ok') {
+                        console.log('Variable inspection was not successful for task', currentTaskIndex);
+                        delete window[`cell_debugger_callback_${currentTaskIndex}`];
+                        delete window[inspectionKey];
+                    }
+                },
+                error: function(error) {
+                    console.log("InspectVariable AJAX error for task", currentTaskIndex, ":", error);
+                    flash("Couldn't inspect variable", "danger");
+                    delete window[`cell_debugger_callback_${currentTaskIndex}`];
+                    delete window[inspectionKey];
+                }
+            });
         });
-    });
+    }, 200)(varName, taskIndex);
+}
+
+/**
+ * Debounce function to limit how often a function can be called
+ * @param {Function} func - Function to debounce
+ * @param {number} wait - Wait time in milliseconds
+ * @param {boolean} immediate - Whether to execute immediately
+ * @returns {Function} Debounced function
+ */
+function debounce(func, wait, immediate) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            timeout = null;
+            if (!immediate) func.apply(this, args);
+        };
+        const callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(this, args);
+    };
 }
 
 // ========================================
@@ -312,6 +386,14 @@ function createEmptyVariablesMessage(message = "No user variables found") {
  * @param {boolean} useTemplate - Whether to use template support
  */
 function populateVariablesContainer(container, variableNames, taskIndex, useTemplate = false) {
+    // Clear existing content and event listeners
+    const existingButtons = container.querySelectorAll('.variable-item');
+    existingButtons.forEach(button => {
+        if (button._variableClickHandler) {
+            button.removeEventListener('click', button._variableClickHandler);
+        }
+    });
+    
     container.innerHTML = '';
     const fragment = document.createDocumentFragment();
 
@@ -343,6 +425,11 @@ function populateVariablesContainer(container, variableNames, taskIndex, useTemp
  */
 function populateVariablesList(output, taskIndex, useTemplate = false) {
     const variablesList = $(`#variables_${taskIndex}`)[0];
+    
+    if (!variablesList) {
+        console.error("Variables list element not found for task", taskIndex);
+        return;
+    }
     
     try {
         let variableNames = [];
@@ -378,8 +465,6 @@ function populateVariablesList(output, taskIndex, useTemplate = false) {
             return decoded.trim();
         });
 
-        // console.log("Variables before filtering:", variableNames);
-
         // Filter out empty strings and system variables
         variableNames = variableNames.filter(name => {
             return name && 
@@ -392,8 +477,6 @@ function populateVariablesList(output, taskIndex, useTemplate = false) {
                    name !== 'exit' &&
                    name !== 'quit';
         });
-
-        // console.log("Variables after filtering:", variableNames);
 
         if (variableNames.length > 0) {
             const container = createVariablesContainer(taskIndex);
@@ -497,7 +580,7 @@ function splitRespectingQuotes(str) {
 // ========================================
 
 /**
- * Attaches click handlers to variable buttons
+ * Attaches click handlers to variable buttons with debouncing
  * @param {HTMLElement} container - Container element
  * @param {string} taskIndex - Task index
  */
@@ -505,11 +588,13 @@ function attachVariableClickHandlers(container, taskIndex) {
     const variableButtons = container.querySelectorAll('.variable-item');
     
     variableButtons.forEach(button => {
+        // Remove existing handler if present
         if (button._variableClickHandler) {
             button.removeEventListener('click', button._variableClickHandler);
         }
         
-        button._variableClickHandler = function(e) {
+        // Create debounced click handler
+        button._variableClickHandler = debounce(function(e) {
             e.preventDefault();
             e.stopPropagation();
             
@@ -523,14 +608,14 @@ function attachVariableClickHandlers(container, taskIndex) {
             this.classList.add('selected');
             
             inspectVariable(varName, taskIdx);
-        };
+        }, 150);
         
         button.addEventListener('click', button._variableClickHandler);
     });
 }
 
 /**
- * Handles variable button click
+ * Handles variable button click (legacy function, now uses debounced handler)
  * @param {HTMLElement} button - Button element
  */
 function handleVariableClick(button) {
@@ -551,20 +636,25 @@ $.fn.interact_variable = function() {
     return this.each(function() {
         const $this = $(this);
         
+        // Remove existing handlers
         $this.off('click.variable');
         
-        $this.on('click.variable', function(e) {
+        const debouncedHandler = debounce(function(e) {
             e.preventDefault();
             e.stopPropagation();
             
             const varName = this.dataset.variable;
             const taskIndex = this.dataset.taskIndex;
             const container = this.closest('.variables-horizontal-container');
-                        
+            
+            // Update UI immediately
             $(container).find('.variable-item').removeClass('selected');
             $(this).addClass('selected');
             
+            // Inspect variable
             inspectVariable(varName, taskIndex);
-        });
+        }, 150);
+        
+        $this.on('click.variable', debouncedHandler);
     });
 };
