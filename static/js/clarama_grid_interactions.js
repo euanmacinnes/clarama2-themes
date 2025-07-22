@@ -88,14 +88,14 @@ document.addEventListener('contextmenu', (event) => {
                 console.log('Clicked menu item elem:', elem);
                 const params = button.dataset.params;
                 console.log('Clicked menu item params:', params);
-                if (elem == "modal") showModalWithContent(url, field_values);
+                if (elem == "modal") showModalWithContent(button, url, field_values);
                 else if (elem.includes("element_")) {
                     document.getElementById(elem).innerHTML = "";
                     document.getElementById(elem).append(showInteractionContent('run', url + "?" + params));
                     enable_interactions($(`#${elem}`));
                 } else if (elem == "hidden") {
                     // this prob isnt the most ideal way but i think itll do for now since autorun isnt work
-                    playHiddenContent(url, field_values);
+                    playHiddenContent(button, url, field_values);
                     const interval = setInterval(() => {
                         const runBtn = $("#run");
                         const socketId = $("#" + runBtn.attr("socket")).attr("task_kernel_id");
@@ -132,28 +132,35 @@ document.addEventListener('mousemove', function (e) {
     lastMouseEvent = e;
 });
 
-function showModalWithContent(url, parameters = "") {
+function showModalWithContent(field, url, parameters = "") {
     $('#interactionModal').modal('show');
     const iModal = document.getElementById("interactionModalBody");
     iModal.innerHTML = '';
-    iModal.append(showInteractionContent('modal', url, parameters));
+    iModal.append(showInteractionContent(field, 'modal', url, parameters));
     enable_interactions($("#interactionModalBody"), true, true);
 }
 
-function playHiddenContent(url, parameters = "") {
+function playHiddenContent(field, url, parameters = "") {
     const iModal = document.getElementById("interactionModalBody");
     iModal.innerHTML = '';
-    iModal.append(showInteractionContent('modal', url, parameters));
+    iModal.append(showInteractionContent(field, 'modal', url, parameters));
     enable_interactions($("#interactionModalBody"), true, true);
 }
 
-function triggerTabInteraction(url, parameters = "") {
+function filePath(field) {
+  console.log("grid interactions FILE PATH");
+  console.log(field);
+  console.log(field.closest(".clarama-grid"));
+  return field.closest(".clarama-grid").attr("file_path");
+}
+
+function triggerTabInteraction(field, url, parameters = "") {
     // console.log("parameters", parameters)
-    let fullUrl = "/content/default/" + resolveRelativeFilePath("{{ file_url | path }}", url);
+    let fullUrl = "/content/default/" + resolveRelativeFilePath(filePath(field), url);
     window.open(fullUrl, "_blank");
 }
 
-function showPopupNearMouse(url, parameters = "") {
+function showPopupNearMouse(field, url, parameters = "") {
     const ipopup = document.getElementById('interactionPopup');
     // console.log("ipopup", ipopup)
 
@@ -178,7 +185,7 @@ function showPopupNearMouse(url, parameters = "") {
 
     ipopup.style.display = 'block';
     ipopup.innerHTML = '';
-    ipopup.append(showInteractionContent('popup', url, parameters));
+    ipopup.append(showInteractionContent(field, 'popup', url, parameters));
     enable_interactions($("#interactionPopup"), true);
 
     document.addEventListener('click', function hideOnClick(e) {
@@ -189,17 +196,19 @@ function showPopupNearMouse(url, parameters = "") {
     });
 }
 
-function showInteractionContent(interaction, relativeP, parameters) {
+function showInteractionContent(field, interaction, relativeP, parameters) {
     let currentP;
     let ICurl;
+
+    let file_path = filePath(field);
 
     if (relativeP === "/System/Slates/Tasks/Issue_Details.task.yaml") {
         ICurl = '/render/popup' + relativeP;
     } else {
-        if ('{{ file_url | path }}'[0] === '/') {
-            currentP = ($CLARAMA_ROOT + '/render/popup' + '{{ file_url | path }}');
+        if (file_path[0] === '/') {
+            currentP = ($CLARAMA_ROOT + '/render/popup' + file_path);
         } else {
-            currentP = ($CLARAMA_ROOT + '/render/popup' + '/{{ file_url | path }}');
+            currentP = ($CLARAMA_ROOT + '/render/popup' + '/' + file_path);
         }
         console.log("fileurl/path", '{{ file_url | path }}');
 
