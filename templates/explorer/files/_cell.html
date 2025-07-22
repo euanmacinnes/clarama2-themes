@@ -314,6 +314,8 @@
             }
             
             try {
+                const windowScrollTop = $(window).scrollTop();
+                
                 const taskIndex = currentContextCell.attr('step') || currentContextCell.attr('data-task-index');
                 const stepType = currentContextCell.attr('steptype');
                 const stream = currentContextCell.closest('.stream').attr('stream');
@@ -329,12 +331,20 @@
                 console.log('Copied cell data:', window.copiedCellData);
                 flash('Cell copied successfully', 'success');
                 
+                requestAnimationFrame(() => {
+                    $(window).scrollTop(windowScrollTop);
+                });
+                
             } catch (error) {
                 console.error('Error copying cell:', error);
                 flash('Failed to copy cell.', 'danger');
+                
+                requestAnimationFrame(() => {
+                    $(window).scrollTop(windowScrollTop);
+                });
             }
         };
-        
+
         window.task_cell_paste = function() {
             $('#panel-context-menu').hide();
             
@@ -350,6 +360,8 @@
             }
             
             try {
+                const windowScrollTop = $(window).scrollTop();
+                
                 const targetStream = currentContextCell.closest('.stream');
                 const targetStreamId = targetStream.attr('stream');
                 const targetStreamFile = targetStream.attr('stream-file');
@@ -379,39 +391,22 @@
                     
                     applyCellContent($new_element, window.copiedCellData.cellContent, window.copiedCellData.stepType);
                     flash('Cell pasted successfully', 'success');
+                    
+                    requestAnimationFrame(() => {
+                        $(window).scrollTop(windowScrollTop);
+                    });
                 });
                 
             } catch (error) {
                 console.error('Error pasting cell:', error);
                 flash('Failed to paste cell. Please try again.', 'danger');
+                
+                requestAnimationFrame(() => {
+                    $(window).scrollTop(windowScrollTop);
+                });
             }
         };
-        
-        // Add keyboard shortcuts for copy/paste
-        $(document).on('keydown', function(e) {
-            // Check if we're in a focused cell editor
-            const activeEditor = $('.ace_editor.ace_focus');
-            if (activeEditor.length) {
-                const cellItem = activeEditor.closest('.clarama-cell-item');
-                
-                // Ctrl+Shift+C for copy cell
-                if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
-                    e.preventDefault();
-                    currentContextCell = cellItem;
-                    window.task_cell_copy();
-                    return false;
-                }
-                
-                // Ctrl+Shift+V for paste cell
-                if (e.ctrlKey && e.shiftKey && e.keyCode === 86) {
-                    e.preventDefault();
-                    currentContextCell = cellItem;
-                    window.task_cell_paste();
-                    return false;
-                }
-            }
-        });
-        
+
         console.log('Enhanced cell copy/paste functionality initialized');
     });
 </script>
