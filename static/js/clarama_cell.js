@@ -367,7 +367,6 @@ function get_shell_cell(cell) {
     return {"type": "shell", "content": code};
 }
 
-
 /**
  * Calls the specific get_<cell_type>_cell function to extract the entire cell information
  * @param {jQuery} cell - jQuery object representing the cell
@@ -413,12 +412,8 @@ function get_cell(cell_owner, topic) {
 
             if (topic != "") {
                 console.log("Getting Cell with STEP: " + topic)
-
-
                 cell['topic'] = topic;
                 cell['step'] = topic;
-
-
             }
 
             owner_cells.push(cell);
