@@ -45,6 +45,7 @@ function perform_interact(field, args = {}) {
                 console.log(field_values);
                 //flash(element + ' links to ' + links);
                 for (const link of links) {
+                    if (link.contextMenu) continue;
                     if (typeof link === 'string' || (typeof link === 'object' && link.element.includes("element_"))) {
                         if (typeof link === 'object') {
                             linked_element = grid.find('#' + link.element);
