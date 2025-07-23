@@ -27,7 +27,7 @@
         saveButtonElement = $('#' + saveButtonId);
 
         if (editorElement.length === 0 || saveButtonElement.length === 0) {
-            console.warn('Unsaved changes handler: Could not find editor or save button elements');
+            console.warn('Could not find editor or save button elements');
             return;
         }
 
@@ -73,7 +73,7 @@
             }
         }
 
-        console.warn('Unsaved changes handler: Could not auto-detect editor configuration');
+        console.warn('Could not auto-detect editor configuration');
     }
 
     // Get current content based on editor type
@@ -389,7 +389,7 @@
             const modal = $('#unsaved-changes-modal');
             
             if (modal.length === 0) {
-                console.error('Unsaved changes handler: Modal not found. Please include saving_prompt_template.html');
+                console.error('Modal not found. Please include saving_prompt_template.html');
                 resolve('cancel');
                 return;
             }
