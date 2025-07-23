@@ -1,7 +1,8 @@
 /**
  * Clarama Cell Interactions JS - Functions for handling user interactions with cells
  * @fileoverview This file provides functions to handle various interactions with cells
- * in the Clarama interface, including running cells, inserting and deleting steps,
+ * in the Clarama interface, including running cells, toggling the cell debugger, 
+ * inserting and deleting steps, copy and pasting cells, clearing the outputs of the cells,
  * setting output types, and navigating between cells.
  */
 
@@ -324,7 +325,7 @@ function cell_delete_step(parent) {
  * can be open at a time.
  */
 function cell_toggle_debug_view(parent) {
-    parent.find(".celleditdebug").off('click.debug'); // Use namespaced event
+    parent.find(".celleditdebug").off('click.debug');
     parent.find(".celleditdebug").on("click.debug", function () {
         var debugButton = $(this);
         var cellItem = debugButton.closest('.clarama-cell-item');
