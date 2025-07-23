@@ -596,12 +596,7 @@ function taskCellCopy() {
     
     try {
         const windowScrollTop = $(window).scrollTop();
-        
-        const taskIndex = currentContextCell.attr('step') || currentContextCell.attr('data-task-index');
         const stepType = currentContextCell.attr('steptype');
-        const stream = currentContextCell.closest('.stream').attr('stream');
-        
-        const jsonScript = $('#json_' + taskIndex);
         const cellContent = extractCellContent(currentContextCell);
         
         window.copiedCellData = {
@@ -631,21 +626,20 @@ function taskCellCopy() {
  */
 function taskCellPaste() {
     $('#panel-context-menu').hide();
-    
+
     if (!window.copiedCellData) {
         console.warn('No cell data to paste');
-        flash('No cell data to paste. Please copy a cell first.', 'danger');
+        flash('No cell to paste. Please copy a cell first.', 'danger');
         return;
     }
     
     if (!currentContextCell) {
-        console.warn('No target cell selected for paste operation');
+        console.warn('No target cell selected for paste');
         return;
     }
     
     try {
         const windowScrollTop = $(window).scrollTop();
-        
         const targetStream = currentContextCell.closest('.stream');
         const targetStreamId = targetStream.attr('stream');
         const targetStreamFile = targetStream.attr('stream-file');
@@ -654,14 +648,14 @@ function taskCellPaste() {
         const newStepUrl = '/step/' + targetStreamId + '/' + window.copiedCellData.stepType + '/' + new_step_id + '/' + targetStreamFile + '/';
         
         get_html(newStepUrl, function(new_step) {
+            const windowScrollTop = $(window).scrollTop();
             const $new_element = $(new_step);
-            
+
             currentContextCell.after($new_element);
+
             sortUpdate(targetStream);
             initializeNewCellDebugger($new_element);
-            
-            const newTaskIndex = $new_element.attr('step');
-            
+
             if (window.copiedCellData.loopIterable) {
                 const loopInput = $new_element.find('.loop-iterable');
                 if (loopInput.length) {
@@ -669,35 +663,27 @@ function taskCellPaste() {
                     toggle_loop(loopInput);
                 }
             }
-            
-            // Find the clarama-post-embedded element
+
             const embeddedElement = $new_element.find('.clarama-post-embedded');
             if (embeddedElement.length > 0) {
                 const jsonContent = JSON.stringify(window.copiedCellData.cellContent);
                 embeddedElement.attr('json', jsonContent);
-                
                 embeddedElement.attr("clarama_loaded", "false");
                 embeddedElement.attr("autorun", "true");
                 
                 embeddedElement.load_post(function() {
                     flash('Cell pasted successfully', 'success');
                     enable_interactions($new_element);
-                    
-                    requestAnimationFrame(() => {
-                        $(window).scrollTop(windowScrollTop);
-                    });
                 });
-                
             } else {
-                console.warn('No clarama-post-embedded element found in new cell');
-                flash('Cell created but content could not be loaded', 'warning');
-                
-                requestAnimationFrame(() => {
-                    $(window).scrollTop(windowScrollTop);
-                });
+                flash('Cell created but content could not be loaded', 'danger');
             }
         });
-        
+
+        requestAnimationFrame(() => {
+            $(window).scrollTop(windowScrollTop);
+        });
+
     } catch (error) {
         console.error('Error pasting cell:', error);
         flash('Failed to paste cell. Please try again.', 'danger');
