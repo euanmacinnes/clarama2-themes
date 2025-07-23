@@ -5,8 +5,8 @@
 let lastMouseEvent = null;
 var currentModalAddContentPath = "";
 
-document.addEventListener('contextmenu', (event) => {
-    if (contextMenu.dataset.contextType === 'table') return;
+$(document).on('contextmenu', function(event) {
+    if ($('#contextMenu').data('contextType') === 'table') return;
 
     console.log("in grid interaction")
     const target = event.target.closest('.grid-stack-item');
@@ -15,8 +15,8 @@ document.addEventListener('contextmenu', (event) => {
 
     event.preventDefault();
 
-    const elementId = target.getAttribute('gs-id');
-    const gridId = grid.getAttribute('grid_id');
+    const elementId = $(target).attr('gs-id');
+    const gridId = $(grid).attr('grid_id');
 
     console.log("elementId", elementId);
     console.log("gridId", gridId);
@@ -61,89 +61,97 @@ document.addEventListener('contextmenu', (event) => {
 
     console.log("table_selection", table_selection)
 
-    contextMenu.dataset.elementId = elementId;
-    contextMenu.dataset.tableSelection = table_selection ? JSON.stringify(table_selection) : '';
+    const $contextMenu = $('#contextMenu');
+    $contextMenu.data('elementId', elementId)
+    $contextMenu.data('tableSelection', table_selection ? JSON.stringify(table_selection) : '')
 
-    contextMenu.innerHTML = menuInteractions.map((interaction, i) => {
-        if (interaction.element == "tab") {
+    $contextMenu.html(menuInteractions.map((interaction, i) => {
+        if (interaction.element === "tab") {
             return `<a href="${interaction.url}" target="_blank" class="text-decoration-none text-black">
-                    <button class="dropdown-item datasource" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
-                </a>`
+                        <button class="dropdown-item datasource" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
+                    </a>`;
         } else {
             return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
         }
-    }).join('');
+    }).join(''));
 
-    contextMenu.querySelectorAll('button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            get_field_values({}, true, function (field_registry) {
-                const rawTableSelection = contextMenu.dataset.tableSelection || '';
-                const table_selection = rawTableSelection ? JSON.parse(rawTableSelection) : {};
-                const field_values = merge_dicts(field_registry, table_selection);
-                console.log("field_values", field_values);
+    $contextMenu.find('button').on('click', function(e) {
+        const $button = $(this);
 
-                const url = button.dataset.url;
-                console.log('Clicked menu item URL:', url);
-                const elem = button.dataset.elem;
-                console.log('Clicked menu item elem:', elem);
-                const params = button.dataset.params;
-                console.log('Clicked menu item params:', params);
-                if (elem == "modal") showModalWithContent(button, url, field_values);
-                else if (elem.includes("element_")) {
-                    document.getElementById(elem).innerHTML = "";
-                    document.getElementById(elem).append(showInteractionContent('run', url + "?" + params));
-                    enable_interactions($(`#${elem}`));
-                } else if (elem == "hidden") {
-                    // this prob isnt the most ideal way but i think itll do for now since autorun isnt work
-                    playHiddenContent(button, url, field_values);
-                    const interval = setInterval(() => {
-                        const runBtn = $("#run");
-                        const socketId = $("#" + runBtn.attr("socket")).attr("task_kernel_id");
+        get_field_values({}, true, function (field_registry) {
+            const rawTableSelection = $contextMenu.data('tableSelection') || '';
+            const table_selection = rawTableSelection ? JSON.parse(rawTableSelection) : {};
+            const field_values = merge_dicts(field_registry, table_selection);
+            console.log("field_values", field_values);
 
-                        // ensure that runBtn exists n socket has an Id before simulating the click on the task run btn
-                        if (runBtn && socketId) {
-                            runBtn.attr("hiddenCM", "true")
-                            runBtn.click();
-                            clearInterval(interval); // this will stop looping n finding the runBtn n socketId
+            const url = $button.data('url');
+            console.log('Clicked menu item URL:', url);
+            const elem = $button.data('elem');
+            console.log('Clicked menu item elem:', elem);
+            const params = $button.data('params');
+            console.log('Clicked menu item params:', params);
 
-                            // show alert or modal
-                        }
-                    }, 300);
-                }
-                contextMenu.classList.add('d-none');
-            });
+            const fileU = $contextMenu.attr('file_path');
+            console.log('fileU', fileU)
+showModalWithContent
+            if (elem == "modal") (fileU, url, field_values, true);
+            else if (elem.includes("element_")) {
+                $("#" + elem).html('').append(showInteractionContent(fileU, 'run', url + "?" + params, true));
+                enable_interactions($("#" + elem));
+            } else if (elem == "hidden") {
+                // this prob isnt the most ideal way but i think itll do for now since autorun isnt work
+                playHiddenContent(fileU, url, field_values, true);
+                const interval = setInterval(() => {
+                    const runBtn = $("#run");
+                    const socketId = $("#" + runBtn.attr("socket")).attr("task_kernel_id");
+
+                    // ensure that runBtn exists n socket has an Id before simulating the click on the task run btn
+                    if (runBtn && socketId) {
+                        runBtn.attr("hiddenCM", "true")
+                        runBtn.click();
+                        clearInterval(interval); // this will stop looping n finding the runBtn n socketId
+
+                        flash("hidden content ran");
+                    }
+                }, 300);
+            }
+            $contextMenu.addClass('d-none');
         });
     });
 
-    contextMenu.style.top = `${event.pageY - 100}px`;
-    contextMenu.style.left = `${event.pageX}px`;
-    contextMenu.classList.remove('d-none');
-
-    contextMenu.dataset.elementId = elementId;
+    $contextMenu.css({
+        top: `${event.pageY - 100}px`,
+        left: `${event.pageX}px`
+    });
+    $contextMenu.removeClass('d-none');
+    $contextMenu.data('elementId', elementId);
 });
 
-document.addEventListener('click', (event) => {
-    if (contextMenu.classList.contains('d-none')) return;
-    if (contextMenu.contains(event.target)) return;
-    contextMenu.classList.add('d-none');
+$(document).on('click', function(event) {
+    const $contextMenu = $('#contextMenu');
+    if (!$contextMenu.length) return;
+
+    if ($contextMenu.hasClass('d-none')) return;
+    if ($contextMenu[0].contains(event.target)) return;
+    $contextMenu.addClass('d-none');
 });
 
 document.addEventListener('mousemove', function (e) {
     lastMouseEvent = e;
 });
 
-function showModalWithContent(field, url, parameters = "") {
+function showModalWithContent(field, url, parameters = "", contextM = false) {
     $('#interactionModal').modal('show');
     const iModal = document.getElementById("interactionModalBody");
     iModal.innerHTML = '';
-    iModal.append(showInteractionContent(field, 'modal', url, parameters));
+    iModal.append(showInteractionContent(field, 'modal', url, parameters, contextM));
     enable_interactions($("#interactionModalBody"), true, true);
 }
 
-function playHiddenContent(field, url, parameters = "") {
+function playHiddenContent(field, url, parameters = "", contextM = false) {
     const iModal = document.getElementById("interactionModalBody");
     iModal.innerHTML = '';
-    iModal.append(showInteractionContent(field, 'modal', url, parameters));
+    iModal.append(showInteractionContent(field, 'modal', url, parameters, contextM));
     enable_interactions($("#interactionModalBody"), true, true);
 }
 
@@ -196,34 +204,33 @@ function showPopupNearMouse(field, url, parameters = "") {
     });
 }
 
-function showInteractionContent(field, interaction, relativeP, parameters) {
+function showInteractionContent(field, interaction, relativeP, parameters, contextM = false) {
     let currentP;
     let ICurl;
+    let file_path;
 
-    let file_path = filePath(field);
+    if (!contextM) file_path = filePath(field);
+    else file_path = field;
 
-    if (relativeP === "/System/Slates/Tasks/Issue_Details.task.yaml") {
-        ICurl = '/render/popup' + relativeP;
+    if (file_path[0] === '/') {
+        currentP = ($CLARAMA_ROOT + '/render/popup' + file_path);
     } else {
-        if (file_path[0] === '/') {
-            currentP = ($CLARAMA_ROOT + '/render/popup' + file_path);
-        } else {
-            currentP = ($CLARAMA_ROOT + '/render/popup' + '/' + file_path);
-        }
-        console.log("fileurl/path", '{{ file_url | path }}');
-
-        let currentSegments = currentP.split('/');
-        let relativeSegments = relativeP.split('/');
-        for (let segment of relativeSegments) {
-            if (segment === '..') {
-                currentSegments.pop();
-            } else if (segment !== '.' && segment !== '') {
-                currentSegments.push(segment);
-            }
-        }
-
-        ICurl = $CLARAMA_ROOT + currentSegments.join('/');
+        currentP = ($CLARAMA_ROOT + '/render/popup' + '/' + file_path);
     }
+    console.log("fileurl/path", '{{ file_url | path }}');
+
+    let currentSegments = currentP.split('/');
+    let relativeSegments = relativeP.split('/');
+    for (let segment of relativeSegments) {
+        if (segment === '..') {
+            currentSegments.pop();
+        } else if (segment !== '.' && segment !== '') {
+            currentSegments.push(segment);
+        }
+    }
+
+    ICurl = $CLARAMA_ROOT + currentSegments.join('/');
+    
     // console.log("$CLARAMA_ROOT", $CLARAMA_ROOT)
     // console.log("ICurl", ICurl)
 
