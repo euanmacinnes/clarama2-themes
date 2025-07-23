@@ -2,34 +2,34 @@ document.addEventListener('DOMContentLoaded', function () {
     load_favorites($CLARAMA_USER);
 
     const checkFilesLoaded = setInterval(function () {
-        if (favoriteFiles.length > 0) { // Wait until favoriteFiles is populated
+        if (favoriteFiles.length > 0) { // wait til favoriteFiles is populated
             clearInterval(checkFilesLoaded);
             if (document.getElementById("fav-dropdown") !== null) {
                 document.getElementById("fav-dropdown").style.display = "block";
             }
 
             if (document.getElementById("my-favorites-container") !== null) {
-                render_my_favorites(); // Render the content
+                render_home_favorites();
             }
-            render_favorites(); // Render the content
+            render_nav_favorites(); 
 
             var starIcon = document.getElementById("page-fav");
             if (starIcon !== null) {
                 if (favoriteFiles.some(row => row[1] === window.location.pathname)) {
                     starIcon.classList.remove('bi-star');
-                    starIcon.classList.add('bi-star-fill'); // Mark as favorite
+                    starIcon.classList.add('bi-star-fill');
                 } else {
-                    starIcon.classList.remove('bi-star-fill'); // Unmark as favorite
+                    starIcon.classList.remove('bi-star-fill');
                     starIcon.classList.add('bi-star');
                 }
             }
         }
-    }, 100); // Check every 100ms
+    }, 100); // check every 100ms
 
     const breadcrumbList = document.querySelector(".root-nav");
     const breadcrumbItems = Array.from(breadcrumbList.querySelectorAll(".nav-item"));
-    console.log(breadcrumbItems);
-    console.log(breadcrumbItems.length);
+    console.log("breadcrumbItems", breadcrumbItems);
+    console.log("breadcrumbItems length", breadcrumbItems.length);
     const maxItems = 4;
 
     if (breadcrumbItems.length > maxItems) {
@@ -62,11 +62,12 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // this is displayed in clarama home pg
-function render_my_favorites() {
+function render_home_favorites() {
     document.getElementById("my-favorites-container").style.display = "block";
     const container = document.getElementById('my-favorites-listing');
+    if (!container) return;
+    
     console.log(favoriteFiles)
-
     favoriteFiles.forEach((file, index) => {
         const decodedUrl = decodeURIComponent(file[1]); // so that %20 shows as a space
 
@@ -87,11 +88,12 @@ function render_my_favorites() {
     });
 }
 
-// this is the dropdown that'll appear when favorites dropdown is selected
-function render_favorites() {
+// this is the dropdown that'll appear when favorites dropdown in navbar is selected
+function render_nav_favorites() {
     const container = document.getElementById('favorites-listing');
-    console.log(favoriteFiles)
+    if (!container) return;
 
+    console.log(favoriteFiles)
     favoriteFiles.forEach((file, index) => {
         const decodedUrl = decodeURIComponent(file[1]); // so that %20 shows as a space
 
