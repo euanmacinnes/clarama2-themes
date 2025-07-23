@@ -88,6 +88,8 @@ function perform_interact(field, args = {}) {
                                 flash("Don't know how to interact " + linked_type + " - " + link, 'danger');
                         }
                     } else if (typeof link === 'object') {
+                        // !!! context menu code is in clarama_grid_interactions.js
+
                         const {element, url, params} = link;
                         let fullUrl = url + "?" + params;
                         $('.select2-container').blur();
@@ -100,26 +102,27 @@ function perform_interact(field, args = {}) {
                             // reload(linked_element, field_values)
                         } else if (element === 'tab') {
                             triggerTabInteraction(field, fullUrl, field_values);
+                        } else if (element === 'hidden') {
+                            console.log("field in hidden PI", field)
+                            playHiddenContent(field, fullUrl, field_values);
+                            const interval = setInterval(() => {
+                                const runBtn = $("#run");
+                                const socketId = $("#" + runBtn.attr("socket")).attr("task_kernel_id");
+
+                                // ensure that runBtn exists n socket has an Id before simulating the click on the task run btn
+                                if (runBtn && socketId) {
+                                    runBtn.attr("hiddenCM", "true")
+                                    runBtn.click();
+                                    clearInterval(interval); // this will stop looping n finding the runBtn n socketId
+
+                                    flash("hidden content ran");
+                                }
+                            }, 300);
                         }
-                        // else {
-                        //     const toOverride = document.getElementById(element);
-                        //     console.log("toOverride", toOverride)
-                        //     toOverride.innerHTML = "";
-                        //     toOverride.append(showInteractionContent(url));
-                        //     enable_interactions($(`#${element}`));
-                        // }
                     }
                 }
             });
         }
-
-        // if (field.length && field.is('table') && field_values['row']['issue_id']) {
-        //     showModalWithContent("/System/Slates/Tasks/Issue_Details.task.yaml");
-        //     // linked_element = $('#interactionModalBody');
-        //     // console.log("linked_element modal", linked_element)
-        //     // console.log("field_values issue_id", field_values);
-        //     // reload(linked_element, field_values)
-        // }
     }
 }
 
