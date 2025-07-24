@@ -579,10 +579,6 @@
   }
 
   function addContent(element, data, html) {
-    console.log("element", element)
-    console.log("data", data)
-    console.log("html", html)
-    console.log("type of html", typeof html)
     if (isDict({{ grid_id }}elements)) {
       {{ grid_id }}elements[element] = data;
     } else {
@@ -610,11 +606,11 @@
     enable_interactions($("#" + element).parent());
   }
 
-  function resetSlate() {
+  function resetSlate(grid) {
     if (confirm("Are you sure? This will clear all the elements on the slate.")) {
       {{ grid_id }}elements = {};
       {{ grid_id }}grid['engine']['nodes'] = [];
-      document.querySelector('#containment-wrapper .grid-stack').innerHTML = "";
+      document.querySelector(`#${grid}-containment-wrapper .grid-stack`).innerHTML = "";
       flash("Slate has been reset.", "success");
     }
   }
