@@ -1,7 +1,7 @@
 {% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
-    <input id="{{ field_id }}" name="{{ field_name }}" step="0.001" type="date"
+    <input data-id="{{ field_id }}" name="{{ field_name }}" step="0.001" type="date"
            class="form-control col clarama-field clarama-delay-field"
            fieldtype="html"
             {{ field_config | required }}

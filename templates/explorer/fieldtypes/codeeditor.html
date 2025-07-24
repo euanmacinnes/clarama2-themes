@@ -1,7 +1,7 @@
 {% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
-    <div id="{{ field_id }}"
+    <div data-id="{{ field_id }}"
          name="{{ field_name }}"
          editor="{{ get(field_config,'language') or 'sql' }}"
          class="source-editor form-control clarama-field clarama-editor-field"
