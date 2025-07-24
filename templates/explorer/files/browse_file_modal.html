@@ -47,7 +47,7 @@
         });
     });
 
-    function add_selected_file() {
+    async function add_selected_file() {
         const selected_val = "./" + $("#add_content_browsefile").val();
         console.log("adding " + selected_val);
         if (selected_val == null) {
@@ -94,20 +94,54 @@
         const targetInput = document.getElementById(inputId);
         let target = inputId.replace('_elemInput', ''); 
         if (targetInput) {
+            let absolutePath = resolveRelativeFilePath("{{ file_url | path }}", newSource)
             if (inputId.includes('_elemInput')) {
-                targetInput.href = "/content/edit/" + resolveRelativeFilePath("{{ file_url | path }}", newSource);
+                targetInput.href = "/content/edit/" + absolutePath;
                 targetInput.textContent = newSource;
                 {{ grid_id }}elements[target]['url'] = newSource;
 
                 let parentDiv = document.getElementById(target);
                 const currentUrl = parentDiv.getAttribute('url');
-                parentDiv.setAttribute('url', "/render/embed/" + resolveRelativeFilePath("{{ file_url | path }}", newSource) + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
+                parentDiv.setAttribute('url', "/render/embed/" + absolutePath + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
                 
                 console.log("new url", document.getElementById(target).getAttribute('url'))
                 enable_interactions($(`#${target}`).parent(), true);
             } else if (inputId == "settings_table_source") {
                 targetInput.value = newSource;
                 {{ grid_id }}settings["table"] = newSource;
+
+                let filename = absolutePath.split("/").pop();
+                let nameOnly = filename.split(".")[0];
+
+                let tableSourceDir = absolutePath.substring(0, absolutePath.lastIndexOf('/')) + "/" + nameOnly + " fields";
+
+                const targetPath = path.split('?')[0].split('/').slice(3).join('/');
+                console.log("targetPath", targetPath)
+                relativePath = getRelativePath("{{ file_url | path }}", targetPath);
+                console.log("relativePath", relativePath)
+
+                console.log("table source path", tableSourceDir)
+                fetch("/content/json/" + tableSourceDir)
+                    .then((response) => response.json())
+                    .then(async (json_files) => {
+                        console.log("json files", json_files)
+
+                        all_fields = json_files['results']['files'];
+                        for (const filePath of all_fields) {
+                            let AbsFullFilePath = json_files['results']['filename'] + "/" + filePath;
+                            let relativeFullFilePath = "./" + getRelativePath("{{ file_url | path }}", AbsFullFilePath)
+                            
+                            // console.log("filePath", filePath);
+                            // console.log("AbsFullFilePath", AbsFullFilePath);
+                            // console.log("relativeFullFilePath", relativeFullFilePath);
+                            try {
+                                await add_selected_content('/content/element/{{ file_url }}', relativeFullFilePath);
+                                console.log("success");
+                            } catch(err) {
+                                console.error("error", err)
+                            }
+                        };
+                    });
             } else {
                 targetInput.value = newSource;
             }

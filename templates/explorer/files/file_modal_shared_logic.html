@@ -8,7 +8,7 @@
     function renderBreadcrumb(path, breadcrumbId, selectId, filters) {
         const targetPath = path.split('?')[0].split('/').slice(3).join('/');
         relativePath = getRelativePath("{{ file_url | path }}", targetPath);
-
+        
         const breadcrumb = document.getElementById(breadcrumbId);
         breadcrumb.innerHTML = '';
 
@@ -78,91 +78,73 @@
         fetch(path)
             .then((response) => response.json())
             .then((json_files) => {
-            console.log("json files", json_files)
-            $(`#${selectId}`).empty();
-            // const allPaths = json_files['results']['files'];
-            // const foldersSet = new Set();
-            // const filesSet = new Set();
-            // console.log(`json_files returned: ${allPaths}`);
+                console.log("json files", json_files)
+                $(`#${selectId}`).empty();
 
-            // // Determine folders and files
-            // allPaths.forEach(filePath => {
-            //   // console.log("File path:", filePath);
-            //   const parts = filePath.split('/');
-            //   if (parts.length > 1) {
-            //     foldersSet.add(parts[0]); // Top-level folder
-            //   } else {
-            //     filesSet.add(filePath); // Root-level file
-            //   }
-            // });
+                const sortedFolders = naturalSort(json_files['results']['folders']);
+                const sortedFiles = naturalSort(json_files['results']['files']);
+                console.log("folders", sortedFolders)
+                console.log("files", sortedFiles)
 
-            // const sortedFolders = naturalSort([...foldersSet]);
-            // const sortedFiles = naturalSort([...filesSet]);
-            const sortedFolders = naturalSort(json_files['results']['folders']);
-            const sortedFiles = naturalSort(json_files['results']['files']);
-            console.log("folders", sortedFolders)
-            console.log("files", sortedFiles)
+                // using regex to filter
+                // *.field.yaml -> /^.*\.field\.yaml$/
+                // *.task.yaml -> /^.*\.task\.yaml$/
+                // *.md -> /^.*\.md$/
+                console.log("filters", filters);
+                const filePathFilters = filters
+                    .split('|')
+                    .map(path => {
+                        const escaped = path.replace(/\./g, '\\.').replace(/\*/g,  '.*');
+                        return new RegExp(`${escaped}`);
+                    })
 
-            // using regex to filter
-            // *.field.yaml -> /^.*\.field\.yaml$/
-            // *.task.yaml -> /^.*\.task\.yaml$/
-            // *.md -> /^.*\.md$/
-            console.log("filters", filters);
-            const filePathFilters = filters
-                .split('|')
-                .map(path => {
-                const escaped = path.replace(/\./g, '\\.').replace(/\*/g,  '.*');
-                return new RegExp(`${escaped}`);
-                })
+                console.log("filePathFilters", filePathFilters)
 
-            console.log("filePathFilters", filePathFilters)
+                // render folders
+                sortedFolders.forEach(folder => {
+                    const option = document.createElement('option');
+                    option.value = folder;
+                    option.className = "bi bi-folder-fill";
+                    option.innerHTML = `&nbsp; ${folder}`;
+                    if (path.split('?')[0] == "/content/json/") {
+                        option.addEventListener('dblclick', () => navigateToPath(`/content/json/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
+                    } else {
+                        option.addEventListener('dblclick', () => navigateToPath(`${path.split('?')[0]}/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
+                    }
+                    selectElement.appendChild(option);
+                });
 
-            // Render folders
-            sortedFolders.forEach(folder => {
-                const option = document.createElement('option');
-                option.value = folder;
-                option.className = "bi bi-folder-fill";
-                option.innerHTML = `&nbsp; ${folder}`;
-                if (path.split('?')[0] == "/content/json/") {
-                option.addEventListener('dblclick', () => navigateToPath(`/content/json/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
-                } else {
-                option.addEventListener('dblclick', () => navigateToPath(`${path.split('?')[0]}/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
-                }
-                selectElement.appendChild(option);
+                // render files with relative paths
+                sortedFiles.forEach(filePath => {
+                    // only display the files that match the filters
+                    const matches = filePathFilters.some(regex => regex.test(filePath));
+                    if (!matches) return
+
+                    const option = document.createElement('option');
+
+                    // store relative path in val
+                    console.log("relativePath", relativePath)
+                    const trimmedPath = relativePath.trim();
+                    console.log("trimmedPath", trimmedPath)
+                    if (/^(?:\.\.\/)+$/.test(trimmedPath) || trimmedPath === '') {
+                        option.value = trimmedPath + filePath;
+                    } else {
+                        option.value = trimmedPath + "/" + filePath;
+                    }
+
+                    let matchedIcon = Object.entries(filetypeCSS)
+                        .find(([ext, _]) => filePath.endsWith(ext));
+                    if (!matchedIcon) {
+                        const simpleExt = `.${filePath.split('.').pop()}`;
+                        matchedIcon = filetypeCSS[simpleExt] ? [simpleExt, filetypeCSS[simpleExt]] : null;
+                    }
+                    const icon = matchedIcon ? matchedIcon[1] : "bi-file-earmark";
+                    option.className = `bi ${icon}`;
+
+                    option.innerHTML = `&nbsp; ${filePath}`;
+                    selectElement.appendChild(option);
+                });
             });
-
-            // Render files with relative paths
-            sortedFiles.forEach(filePath => {
-                // if (!sortedFolders.has(filePath.split('/')[0])) { // ensure it's not a folder
-
-                // only display the files that match the filters
-                const matches = filePathFilters.some(regex => regex.test(filePath));
-                if (!matches) return
-
-                const option = document.createElement('option');
-
-                // store relative path in val
-                const trimmedPath = relativePath.trim();
-                if (/^(?:\.\.\/)+$/.test(trimmedPath) || trimmedPath === '') {
-                    option.value = trimmedPath + filePath;
-                } else {
-                    option.value = trimmedPath + "/" + filePath;
-                }
-
-                let matchedIcon = Object.entries(filetypeCSS)
-                    .find(([ext, _]) => filePath.endsWith(ext));
-                if (!matchedIcon) {
-                    const simpleExt = `.${filePath.split('.').pop()}`;
-                    matchedIcon = filetypeCSS[simpleExt] ? [simpleExt, filetypeCSS[simpleExt]] : null;
-                }
-                const icon = matchedIcon ? matchedIcon[1] : "bi-file-earmark";
-                option.className = `bi ${icon}`;
-
-                option.innerHTML = `&nbsp; ${filePath}`;
-                selectElement.appendChild(option);
-                // }
-            });
-        });
     }
 
     // Function to navigate to a specific path

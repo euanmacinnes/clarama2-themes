@@ -5,6 +5,16 @@
 let lastMouseEvent = null;
 var currentModalAddContentPath = "";
 
+function handle_add_selected_content(url, selecte_v = "") {
+    add_selected_content(url, selecte_v)
+      .then(() => {
+        console.log("success");
+      })
+      .catch((err) => {
+        console.error("error", err);
+      });
+}
+
 $(document).on('contextmenu', function(event) {
     if ($('#contextMenu').data('contextType') === 'table') return;
 
