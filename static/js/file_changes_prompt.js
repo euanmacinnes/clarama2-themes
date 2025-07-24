@@ -501,17 +501,14 @@
             }
         }, 2000);
 
-        // Set up change detection
         setupChangeDetection();
 
         // Handle save button click
         saveButtonElement.on('click', function (e) {
-            // Mark as saving immediately to prevent change detection
             isSaving = true;
             hasUnsavedChanges = false;
             console.log('Save button clicked');
             
-            // Let the original save logic run, but mark as saved afterward
             setTimeout(() => {
                 markAsSaved();
             }, 1000);
@@ -520,9 +517,8 @@
         // Handle beforeunload event (browser navigation, refresh, close)
         $(window).on('beforeunload', function (e) {
             if (hasUnsavedChanges && !isSaving) {
-                const message = 'You have unsaved changes. Are you sure you want to leave?';
-                e.originalEvent.returnValue = message;
-                return message;
+                e.preventDefault();
+                return true;
             }
         });
 
@@ -552,7 +548,7 @@
         });
 
         // Handle form submissions to check for unsaved changes
-        $('form').on('submit', function(e) {
+        $('form:not(#interactionForm)').on('submit', function(e) {
             if (hasUnsavedChanges && !isSaving) {
                 e.preventDefault();
                 const form = this;
