@@ -26,7 +26,8 @@
                     <button id="save" type="button" class="btn btn-secondary clarama-task clarama-task-save"
                             url="{{ file_url }}" title="save"><i
                             class="bi bi-floppy"></i></button>
-                    <button id="stop" type="button" class="btn btn-secondary clarama-task clarama-task-stop" title="stop"><i
+                    <button id="stop" type="button" class="btn btn-secondary clarama-task clarama-task-stop"
+                            title="stop"><i
                             class="bi bi-stop-fill"></i></button>
                     <button id="editrun" type="button" class="btn btn-secondary kernel-play-button clarama-task-editrun"
                             socket="edit_socket" kill="False" title="play"><i
@@ -42,15 +43,15 @@
                         </li>
                         <table width="100%">
                             <td width="90%"><a
-                                    class="dropdown-item environments {% if environment is not defined or environment=='default'%}active{% endif %}"
+                                    class="dropdown-item environments {% if environment is not defined or environment=='default' %}active{% endif %}"
                                     href="#"
                                     id="environment_default"
                                     env=""
                                     onclick="set_environment('default')"><i>System Default</i></a>
                             </td>
-                        <td>
-                            &nbsp;
-                        </td>
+                            <td>
+                                &nbsp;
+                            </td>
                             {% for key, env in environments.items()|sort(attribute='1') %}
                                 <tr>
                                     <td width="90%"><a
@@ -140,7 +141,7 @@
          task="{{ file_url }}" task_kill="False"></div>
 </div>
 
-<div id="step_json">
+<div id="step_json" class="tex2jax_ignore no-mathjax">
     {% for streamslist in streams %}
         {% for stream, steps in streamslist.items() %}
             {% for step in steps %}

@@ -174,12 +174,14 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div id="${toastId}" class="toast text-dark bg-{{ category }}-subtle border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div id="${toastId}" class="toast text-dark bg-{{ category }}-subtle border-0" role="alert"
+                     aria-live="assertive" aria-atomic="true">
                     <div class="d-flex">
                         <div class="toast-body w-100 py-3 px-4" style="word-break: break-word;">
                             {{ message }}
                         </div>
-                        <button type="button" class="btn-close btn-close-dark me-2 mt-2" style="font-size: 8px;" data-bs-dismiss="toast" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-dark me-2 mt-2" style="font-size: 8px;"
+                                data-bs-dismiss="toast" aria-label="Close"></button>
                     </div>
                 </div>
             {% endfor %}
@@ -269,7 +271,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.toast').forEach(el => {
-            const toast = new bootstrap.Toast(el, { delay: 5000 });
+            const toast = new bootstrap.Toast(el, {delay: 5000});
             toast.show();
         });
     });
@@ -315,10 +317,10 @@
         window.open(modifiedUrl, '_blank');
     });
 
-    document.addEventListener("keydown", function(e) {
-        const savebutton = document.getElementById("save") 
-                        || document.getElementById("markdown_save") 
-                        || document.getElementById("content_editor_raw_save");
+    document.addEventListener("keydown", function (e) {
+        const savebutton = document.getElementById("save")
+            || document.getElementById("markdown_save")
+            || document.getElementById("content_editor_raw_save");
         if ((e.ctrlKey || e.metaKey) && e.key === "s" && savebutton) {
             e.preventDefault();
             savebutton.click();
