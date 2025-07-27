@@ -36,14 +36,19 @@ function getRelativeTime(date) {
     const diffSec = Math.floor(diffMs / 1000);
     const diffMin = Math.floor(diffSec / 60);
     const diffHr = Math.floor(diffMin / 60);
- 
+
     if (diffSec < 60) return "Just now";
     if (diffMin < 60) return `${diffMin} min${diffMin > 1 ? "s" : ""} ago`;
     return `${diffHr} hour${diffHr > 1 ? "s" : ""} ago`;
 }
 
 var hasUnseenDanger = false;
+
 function flash(message, category = "info") {
+    if (category === 'danger') {
+        console.error(message);
+
+    }
     const now = new Date();
     const relativeTime = getRelativeTime(now);
 
@@ -65,17 +70,17 @@ function flash(message, category = "info") {
                 </div>
             </div>
         `;
-        
+
         $('#toast_container').append(toastHtml);
-        
+
         const toastElement = document.getElementById(toastId);
-        const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 }); 
+        const bsToast = new bootstrap.Toast(toastElement, {delay: 5000});
         bsToast.show();
-        
+
         toastElement.addEventListener('hidden.bs.toast', () => {
-            toastElement.remove(); 
+            toastElement.remove();
         });
-        
+
         // html = '<div class="row alert flash-alert alert-' + category + '">' + message + '</div>'
         // $("#notification_popup").append(html);
     }
@@ -116,11 +121,11 @@ function flash(message, category = "info") {
 window.addEventListener('scroll', function () {
     const toastContainer = document.getElementById('toast_container');
     const scrollY = window.scrollY;
-   
+
     if (scrollY > 10) {
-      toastContainer.style.top = '12px';
+        toastContainer.style.top = '12px';
     } else {
-      toastContainer.style.top = '80px';
+        toastContainer.style.top = '80px';
     }
 });
 
@@ -128,7 +133,7 @@ setInterval(() => {
     $("#alerts li").each(function () {
         const timestamp = $(this).data("timestamp");
         if (!timestamp) return;
- 
+
         const date = new Date(timestamp);
         const relativeTime = getRelativeTime(date);
         $(this).find("small").text(relativeTime);
