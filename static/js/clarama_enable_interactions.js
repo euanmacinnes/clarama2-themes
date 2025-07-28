@@ -15,6 +15,7 @@ function enable_interactions(parent, reload = false, runtask = false) {
             ['formatting'],
             ['fontsize', 'foreColor', 'backColor'],
             ['strong', 'em', 'del'],
+            ['mathml'],
             ['superscript', 'subscript'],
             ['link'],
             ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],

@@ -37,7 +37,7 @@ function perform_interact(field, args = {}) {
     if (grid_id !== undefined) {
         var element_array = eval(grid_id + "elements");
         var eobj = element_array[element];
-        console.log("eobj", eobj)
+        console.log("eobj", eobj, " for ", grid_id + "elements", " element ", element)
         if ('links' in eobj) {
             get_field_values({}, true, function (field_registry) {
                 field_values = merge_dicts(field_registry, args);

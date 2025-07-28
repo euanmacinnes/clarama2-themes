@@ -330,6 +330,27 @@ function get_source_cell(cell) {
 }
 
 /**
+ * Extracts data from a task cell
+ * @param {jQuery} cell - jQuery object representing the task cell
+ * @returns {Object} Object containing the cell type and source information
+ */
+function get_task_cell(cell) {
+    var dataid = cell.attr('dataid');
+
+    var id = "content_query_" + dataid;
+
+    console.log("Getting data " + id);
+
+    var source_id = "task_step_" + dataid + "_source";
+    var source = $("#" + source_id).val();
+
+    return {
+        "type": "task",
+        "source": source
+    };
+}
+
+/**
  * Extracts data from a URL cell
  * @param {jQuery} cell - jQuery object representing the URL cell
  * @returns {Object} Object containing the cell type, mode, URL, and parameters
@@ -366,7 +387,6 @@ function get_shell_cell(cell) {
 
     return {"type": "shell", "content": code};
 }
-
 
 /**
  * Calls the specific get_<cell_type>_cell function to extract the entire cell information
@@ -413,12 +433,8 @@ function get_cell(cell_owner, topic) {
 
             if (topic != "") {
                 console.log("Getting Cell with STEP: " + topic)
-
-
                 cell['topic'] = topic;
                 cell['step'] = topic;
-
-
             }
 
             owner_cells.push(cell);

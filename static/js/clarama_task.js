@@ -22,7 +22,15 @@ function get_url(url, field_registry) {
     return new_url;
 }
 
-function _task_run(socket_div) {
+function html_decode(input) {
+    input = input.replaceAll('&quot;', '"');
+    input = input.replaceAll('&amp;', '&');
+    input = input.replaceAll('&lt;', '<');
+    input = input.replaceAll('&gt;', '>');
+    return input;
+}
+
+function _task_run(socket_div, hidden = false) {
     json_div = socket_div + '_args';
 
     get_field_values({}, true, function (field_registry) {
@@ -33,8 +41,13 @@ function _task_run(socket_div) {
 
 
         if (json_data != null) {
-            var json_element = JSON.parse(json_data.innerHTML);
-            field_merged = Object.assign({}, field_registry, json_element);
+            try {
+                var json_element = JSON.parse(html_decode(json_data.innerHTML));
+                field_merged = Object.assign({}, field_registry, json_element);
+            } catch (err) {
+                console.error("CLARAMA_TASK.js : " + json_div + " div containing JSON is not valid JSON")
+                console.error(err)
+            }
 
             //if (json_element != null && json_element.value == '') {
             //console.log("found json element for task in " + json_div);

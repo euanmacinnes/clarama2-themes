@@ -1,15 +1,14 @@
-<!-- task_edit.html -->
 {% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
 
 <!-- Panel Context Menu (for copy/paste) -->
 <div class="dropdown-menu dropdown-menu-sm" id="panel-context-menu">
-    <a class="dropdown-item content_item bi bi-copy" href="#" onclick="task_cell_copy();">&nbsp;Copy Cell</a>
-    <a class="dropdown-item content_item bi bi-clipboard" href="#" onclick="task_cell_paste();">&nbsp;Paste Cell</a>
+    <a class="dropdown-item content_item bi bi-copy" href="#">&nbsp;Copy Cell</a>
+    <a class="dropdown-item content_item bi bi-clipboard" href="#">&nbsp;Paste Cell</a>
 </div>
 
 <!-- Output Context Menu (for clear output only) -->
 <div class="dropdown-menu dropdown-menu-sm" id="output-context-menu">
-    <a class="dropdown-item content_item bi bi-eraser-fill" href="#" onclick="clear_cell_output();">&nbsp;Clear Cell Output</a>
+    <a class="dropdown-item content_item bi bi-eraser-fill" href="#">&nbsp;Clear Cell Output</a>
 </div>
 
 <form>
@@ -27,7 +26,8 @@
                     <button id="save" type="button" class="btn btn-secondary clarama-task clarama-task-save"
                             url="{{ file_url }}" title="save"><i
                             class="bi bi-floppy"></i></button>
-                    <button id="stop" type="button" class="btn btn-secondary clarama-task clarama-task-stop" title="stop"><i
+                    <button id="stop" type="button" class="btn btn-secondary clarama-task clarama-task-stop"
+                            title="stop"><i
                             class="bi bi-stop-fill"></i></button>
                     <button id="editrun" type="button" class="btn btn-secondary kernel-play-button clarama-task-editrun"
                             socket="edit_socket" kill="False" title="play"><i
@@ -43,15 +43,15 @@
                         </li>
                         <table width="100%">
                             <td width="90%"><a
-                                    class="dropdown-item environments {% if environment is not defined or environment=='default'%}active{% endif %}"
+                                    class="dropdown-item environments {% if environment is not defined or environment=='default' %}active{% endif %}"
                                     href="#"
                                     id="environment_default"
                                     env=""
                                     onclick="set_environment('default')"><i>System Default</i></a>
                             </td>
-                        <td>
-                            &nbsp;
-                        </td>
+                            <td>
+                                &nbsp;
+                            </td>
                             {% for key, env in environments.items()|sort(attribute='1') %}
                                 <tr>
                                     <td width="90%"><a
@@ -141,7 +141,7 @@
          task="{{ file_url }}" task_kill="False"></div>
 </div>
 
-<div id="step_json">
+<div id="step_json" class="tex2jax_ignore no-mathjax">
     {% for streamslist in streams %}
         {% for stream, steps in streamslist.items() %}
             {% for step in steps %}

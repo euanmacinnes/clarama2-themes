@@ -16,6 +16,10 @@ function handle_add_selected_content(url, selecte_v = "") {
 }
 
 $(document).on('contextmenu', function(event) {
+    const cm = document.getElementById('contextMenu');
+    if (cm === undefined) return;
+    if (contextMenu === undefined) return;
+
     if ($('#contextMenu').data('contextType') === 'table') return;
 
     console.log("in grid interaction")
@@ -137,13 +141,13 @@ showModalWithContent
     $contextMenu.data('elementId', elementId);
 });
 
-$(document).on('click', function(event) {
-    const $contextMenu = $('#contextMenu');
-    if (!$contextMenu.length) return;
+document.addEventListener('click', (event) => {
+    const cm = document.getElementById('contextMenu');
+    if (cm === undefined) return;
 
-    if ($contextMenu.hasClass('d-none')) return;
-    if ($contextMenu[0].contains(event.target)) return;
-    $contextMenu.addClass('d-none');
+    if (contextMenu.classList.contains('d-none')) return;
+    if (contextMenu.contains(event.target)) return;
+    contextMenu.classList.add('d-none');
 });
 
 document.addEventListener('mousemove', function (e) {
@@ -166,10 +170,10 @@ function playHiddenContent(field, url, parameters = "", contextM = false) {
 }
 
 function filePath(field) {
-  console.log("grid interactions FILE PATH");
-  console.log(field);
-  console.log(field.closest(".clarama-grid"));
-  return field.closest(".clarama-grid").attr("file_path");
+    console.log("grid interactions FILE PATH");
+    console.log(field);
+    console.log(field.closest(".clarama-grid"));
+    return field.closest(".clarama-grid").attr("file_path");
 }
 
 function triggerTabInteraction(field, url, parameters = "") {
