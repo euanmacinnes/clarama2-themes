@@ -107,8 +107,8 @@ $(document).on('contextmenu', function(event) {
 
             const fileU = $contextMenu.attr('file_path');
             console.log('fileU', fileU)
-showModalWithContent
-            if (elem == "modal") (fileU, url, field_values, true);
+
+            if (elem == "modal") showModalWithContent(fileU, url, field_values, true);
             else if (elem.includes("element_")) {
                 $("#" + elem).html('').append(showInteractionContent(fileU, 'run', url + "?" + params, true));
                 enable_interactions($("#" + elem));
