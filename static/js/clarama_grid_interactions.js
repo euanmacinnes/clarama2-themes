@@ -6,6 +6,10 @@ let lastMouseEvent = null;
 var currentModalAddContentPath = "";
 
 document.addEventListener('contextmenu', (event) => {
+    const cm = document.getElementById('contextMenu');
+    if (cm === undefined) return;
+    if (contextMenu === undefined) return;
+
     if (contextMenu.dataset.contextType === 'table') return;
 
     console.log("in grid interaction")
@@ -123,6 +127,9 @@ document.addEventListener('contextmenu', (event) => {
 });
 
 document.addEventListener('click', (event) => {
+    const cm = document.getElementById('contextMenu');
+    if (cm === undefined) return;
+
     if (contextMenu.classList.contains('d-none')) return;
     if (contextMenu.contains(event.target)) return;
     contextMenu.classList.add('d-none');
@@ -148,10 +155,10 @@ function playHiddenContent(field, url, parameters = "") {
 }
 
 function filePath(field) {
-  console.log("grid interactions FILE PATH");
-  console.log(field);
-  console.log(field.closest(".clarama-grid"));
-  return field.closest(".clarama-grid").attr("file_path");
+    console.log("grid interactions FILE PATH");
+    console.log(field);
+    console.log(field.closest(".clarama-grid"));
+    return field.closest(".clarama-grid").attr("file_path");
 }
 
 function triggerTabInteraction(field, url, parameters = "") {

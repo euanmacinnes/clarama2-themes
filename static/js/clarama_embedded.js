@@ -206,6 +206,7 @@ $.fn.load_post = function (onfinished, args, json) {
                         try {
                             var je = $("<textarea/>").html(json_element.innerHTML).text(); // Hack to get json from a div element (which will be just text)
                             json_payload = JSON.parse(je);
+                            console.log("CLARAMA_EMBEDDED: JSON Payload from div " + json_div);
                         } catch {
                             // Ignore, leave it as blank JSON to default the content (e.g. for new steps)
                         }
@@ -522,7 +523,7 @@ function execute_json_url(clarama_url, reload = false) {
         if (json['data'] == 'ok') {
             flash(json['results']);
         } else {
-            flash(json['results'], 'danger');
+            flash('JSON error calling ' + clarama_url, 'danger');
         }
 
     })
@@ -539,7 +540,7 @@ function execute_json_url_async(clarama_url, reload = false) {
             if (json['data'] == 'ok') {
                 flash(json['results']);
             } else {
-                flash(json['results'], 'danger');
+                flash('JSON error calling ' + clarama_url, 'danger');
             }
 
             resolve(json);

@@ -29,8 +29,7 @@ let socket_taskQueue = [];
 
 let socket_topics = ['clarama-systemwide'];
 
-function topic_subscribe()
-{
+function topic_subscribe() {
     console.log("CLARAMA_WEBSOCKET.JS registering topics");
     console.log(socket_topics);
     task_active_socket.send(JSON.stringify({topics: socket_topics}));
@@ -78,9 +77,11 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
 }
 
 function get_task(embedded, task_url, socket_id, autorun) {
+    console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " getting");
     fetch(task_url)
         .then((response) => {
             if (response.ok) {
+                console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " response " + response.status);
                 return response.json();
             }
             console.log(response);
@@ -109,7 +110,7 @@ function get_task(embedded, task_url, socket_id, autorun) {
 
         })
         .catch((error) => {
-            flash(task_url + " error " + error, category = 'danger');
+            flash('WEBSOCKET TASK ' + task_url + " error " + error, category = 'danger');
         });
 }
 
@@ -356,7 +357,7 @@ function onMessage(event, socket_url, webSocket) {
             if (dict['class'] === "template") {
                 let output_text = dict['values']['output'];
                 let step_id = dict['step_id'];
-                
+
                 console.log("Template message received - Step ID:", step_id, "Output:", output_text);
 
                 // Extract task index from step_id (assuming format like "step_123")
@@ -375,7 +376,7 @@ function onMessage(event, socket_url, webSocket) {
                     let consoleCallbackKey = 'cell_debugger_console_callback_' + taskIndex;
                     let variablesCallbackKey = 'cell_debugger_variables_callback_' + taskIndex;
                     let generalCallbackKey = 'cell_debugger_callback_' + taskIndex;
-                    
+
                     if (typeof window[consoleCallbackKey] === "function") {
                         console.log("Found console callback, calling with output:", output_text);
                         try {
@@ -403,7 +404,7 @@ function onMessage(event, socket_url, webSocket) {
                     } else {
                         let debuggerCallbacks = Object.keys(window).filter(key => key.startsWith('cell_debugger_callback_'));
                         console.log("Available debugger callbacks:", debuggerCallbacks);
-                        
+
                         if (debuggerCallbacks.length === 1) {
                             console.log("Using single available callback:", debuggerCallbacks[0]);
                             try {
