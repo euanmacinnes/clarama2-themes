@@ -1,4 +1,5 @@
-var activeDropdownId = null;
+var activeDropdownId = null; // track currently opened dropdown menu's id
+
 document.addEventListener('shown.bs.dropdown', function (event) {
     if (event.target.id == 'navbarAlertDropdown') {
         const $bellIcon = $('#alertsmenu i.bi');
@@ -18,6 +19,7 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     const dropdownMenu = dropdown.querySelector('.dropdown-menu');
     if (!dropdownMenu) return;
 
+    // add listener to each input to handle parameter-saving when typing
     const inputs = dropdownMenu.querySelectorAll('input');
     inputs.forEach(input => {
         input.addEventListener('input', () => {
@@ -27,6 +29,7 @@ document.addEventListener('shown.bs.dropdown', function (event) {
         });
     });
     
+    // add hover listeners to items in the dropdown to highlight associated grid element on the grid
     const items = dropdownMenu.querySelectorAll('.slate-elem-dropdown-item');
     items.forEach(item => {
         item.addEventListener('mouseover', () => {
@@ -52,10 +55,17 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     }
 });
 
+// removes the interaction in the ui
 $(document).on('click', '.delete-grid-interaction', function () {
     $(this).closest('li').remove();
 });
 
+// newIndex - unique index or id for the interaction
+// gelem_target - target grid element id
+// selectedValue - selected interaction (type)
+// selectedValueUrl - url of selected interaction
+// urlParams - extra params to send
+// menuItemName - (optional, only for context menu) context menu item label
 function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, menuItemName="") {
     const newGI = document.createElement("div");
     newGI.className = "clarama-post-embedded clarama-replaceable";
