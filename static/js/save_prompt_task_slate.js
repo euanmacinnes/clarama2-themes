@@ -202,7 +202,6 @@ function setupSaveHooks() {
 function showUnsavedChangesModal(target, actionType) {
     const modal = new bootstrap.Modal(document.getElementById('unsaved-changes-modal'));
     
-    // Store the target and action type for later use
     $('#unsaved-changes-modal').data('target', target);
     $('#unsaved-changes-modal').data('actionType', actionType);
     
