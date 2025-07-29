@@ -24,7 +24,10 @@
 </div>
 
 <script type="text/javascript">
+    // this will not add a grid element
+
     $( document ).ready(() => {
+        // this allows double click to add file
         $('#add_content_browsefile').on('dblclick', 'option', function () {
             const selectedItem = $(this); 
             if (!isFolder(selectedItem)) {
@@ -33,6 +36,7 @@
             }
         });
 
+        // this loads the folder/file in the browse modal
         $('#browseFileModal').on('shown.bs.modal', function (event) {
             const button = $(event.relatedTarget);
             const filters = button.attr('filters'); 
@@ -48,7 +52,7 @@
     });
 
     async function add_selected_file() {
-        const selected_val = "./" + $("#add_content_browsefile").val();
+        const selected_val = "./" + $("#add_content_browsefile").val(); // ./ bec current directory
         console.log("adding " + selected_val);
         if (selected_val == null) {
             flash("No file selected!");
@@ -58,8 +62,11 @@
         const newSource = $CLARAMA_ROOT + selected_val;
 
         const inputId = $("#browseFileModal").data('inputId');
-        console.log("inputId", inputId)
+        // console.log("inputId", inputId)
 
+        // this applies to the part in .field.yaml under data pick source
+        // once u pick a source itll replace the current code editors's 'source: '
+        // if no 'source: ' is found then itll j insert at the last row
         if (inputId == "field_data_source") {
             const fieldEditor = ace.edit("data");
             console.log("fieldEditor", fieldEditor)
@@ -91,11 +98,11 @@
             return;
         }
 
-        const targetInput = document.getElementById(inputId);
+        const targetInput = document.getElementById(inputId); // this just the input field to put the url
         let target = inputId.replace('_elemInput', ''); 
         if (targetInput) {
             let absolutePath = resolveRelativeFilePath("{{ file_url | path }}", newSource)
-            if (inputId.includes('_elemInput')) {
+            if (inputId.includes('_elemInput')) { // this is the grid element's dropdown menu
                 targetInput.href = "/content/edit/" + absolutePath;
                 targetInput.textContent = newSource;
                 {{ grid_id }}elements[target]['url'] = newSource;
@@ -104,9 +111,9 @@
                 const currentUrl = parentDiv.getAttribute('url');
                 parentDiv.setAttribute('url', "/render/embed/" + absolutePath + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
                 
-                console.log("new url", document.getElementById(target).getAttribute('url'))
+                // console.log("new url", document.getElementById(target).getAttribute('url'))
                 enable_interactions($(`#${target}`).parent(), true);
-            } else if (inputId == "settings_table_source") {
+            } else if (inputId == "settings_table_source") { // this part is to generate the fields in a slate when a table in the slate settings is selected
                 targetInput.value = newSource;
                 {{ grid_id }}settings["table"] = newSource;
 
@@ -128,13 +135,14 @@
 
                         all_fields = json_files['results']['files'];
                         for (const filePath of all_fields) {
-                            let AbsFullFilePath = json_files['results']['filename'] + "/" + filePath;
-                            let relativeFullFilePath = "./" + getRelativePath("{{ file_url | path }}", AbsFullFilePath)
+                            let absFullFilePath = json_files['results']['filename'] + "/" + filePath;
+                            let relativeFullFilePath = "./" + getRelativePath("{{ file_url | path }}", absFullFilePath)
                             
                             // console.log("filePath", filePath);
-                            // console.log("AbsFullFilePath", AbsFullFilePath);
+                            // console.log("absFullFilePath", absFullFilePath);
                             // console.log("relativeFullFilePath", relativeFullFilePath);
                             try {
+                                // did async-await to ensure itll run finish first before proceeding to next loop
                                 await add_selected_content('/content/element/{{ file_url }}', relativeFullFilePath);
                                 console.log("success");
                             } catch(err) {

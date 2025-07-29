@@ -26,31 +26,39 @@ function debounce(func, timeout = 500) {
 }
 
 function perform_interact(field, args = {}) {
-    console.log("field", field);
-    console.log("Interacting from " + field.attr("id"));
-    console.log("args", args);
+    // console.log("field", field);
+    // console.log("Interacting from " + field.attr("id"));
+    // console.log("args", args);
+
     var element = field.parents(".clarama-element").attr('id');
     var grid = field.parents(".grid-stack");
     var grid_id = field.parents(".clarama-element").attr('grid-id');
-    console.log("grid_id", grid_id)
+    // console.log("grid_id", grid_id)
 
     if (grid_id !== undefined) {
         var element_array = eval(grid_id + "elements");
         var eobj = element_array[element];
-        console.log("eobj", eobj, " for ", grid_id + "elements", " element ", element)
+        // console.log("eobj", eobj, " for ", grid_id + "elements", " element ", element);
+
         if ('links' in eobj) {
             get_field_values({}, true, function (field_registry) {
                 field_values = merge_dicts(field_registry, args);
+                // console.log("perform_interact field_values", field_values);
                 links = eobj["links"]; // array of file names to refresh
-                console.log(field_values);
                 //flash(element + ' links to ' + links);
+
                 for (const link of links) {
-                    if (link.contextMenu) continue;
-                    if (typeof link === 'string' || (typeof link === 'object' && link.element.includes("element_"))) {
+                    if (link.contextMenu) continue; // context menu code is in clarama_grid_interactions.js
+                    
+                    // typeof link === 'string' exists so bec of old code
+                    // bec we implemented interactions thus link type can be object
+                    if (typeof link === 'string' || (typeof link === 'object' && link.element.includes("element_"))) { // for interaction type element
                         if (typeof link === 'object') {
                             linked_element = grid.find('#' + link.element);
-                            if (element_array[link.element]['url'] !== link.url && link.url !== "") {
-                                linked_type = "changed";
+
+                            // need to check if (interaction) element url differs bec the element-type might change based on url
+                            if (element_array[link.element]['url'] !== link.url && link.url !== "") { 
+                                linked_type = "changed"; 
                             } else {
                                 linked_type = linked_element.attr("element-type");
                             }
@@ -58,9 +66,8 @@ function perform_interact(field, args = {}) {
                             linked_element = grid.find('#' + link);
                             linked_type = linked_element.attr("element-type");
                         }
-                        console.log("linked_element", linked_element)
+                        // console.log("linked_element", linked_element)
 
-                        // console.log("Linking " + link + '->' + linked_type);
                         switch (linked_type) {
                             case ".task":
                                 field_values['clarama_var_run'] = 'True'
@@ -89,22 +96,18 @@ function perform_interact(field, args = {}) {
                                 flash("Don't know how to interact " + linked_type + " - " + link, 'danger');
                         }
                     } else if (typeof link === 'object') {
-                        // !!! context menu code is in clarama_grid_interactions.js
-
-                        const {element, url, params} = link;
+                        const { element, url, params } = link; // only need these
                         let fullUrl = url + "?" + params;
                         $('.select2-container').blur();
+
                         if (element === 'popup') {
                             showPopupNearMouse(field, fullUrl, field_values);
                         } else if (element === 'modal') {
                             showModalWithContent(field, fullUrl, field_values);
-                            // linked_element = grid.find('#interactionModalContent');
-                            // console.log("linked_element modal", linked_element)
-                            // reload(linked_element, field_values)
                         } else if (element === 'tab') {
                             triggerTabInteraction(field, fullUrl, field_values);
                         } else if (element === 'hidden') {
-                            console.log("field in hidden PI", field)
+                            // this prob isnt the most ideal way but i think itll do for now since autorun isnt work
                             playHiddenContent(field, fullUrl, field_values);
                             const interval = setInterval(() => {
                                 const runBtn = $("#run");

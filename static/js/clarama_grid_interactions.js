@@ -5,6 +5,7 @@
 let lastMouseEvent = null;
 var currentModalAddContentPath = "";
 
+// this exists because add_selected_content() has a promise so need to catch here 
 function handle_add_selected_content(url, selecte_v = "") {
     add_selected_content(url, selecte_v)
       .then(() => {
@@ -17,12 +18,10 @@ function handle_add_selected_content(url, selecte_v = "") {
 
 $(document).on('contextmenu', function(event) {
     const cm = document.getElementById('contextMenu');
-    if (cm === undefined) return;
-    if (contextMenu === undefined) return;
+    if (!cm) return;
 
-    if ($('#contextMenu').data('contextType') === 'table') return;
+    // if ($('#contextMenu').data('contextType') === 'table') return;
 
-    console.log("in grid interaction")
     const target = event.target.closest('.grid-stack-item');
     const grid = event.target.closest('.clarama-grid');
     if (!target) return;
@@ -31,9 +30,8 @@ $(document).on('contextmenu', function(event) {
 
     const elementId = $(target).attr('gs-id');
     const gridId = $(grid).attr('grid_id');
-
-    console.log("elementId", elementId);
-    console.log("gridId", gridId);
+    // console.log("elementId", elementId);
+    // console.log("gridId", gridId);
 
     const elementInteractions = eval(gridId + "elements[elementId]['links']");
 
@@ -50,12 +48,14 @@ $(document).on('contextmenu', function(event) {
     // console.log("menuInteractions length", menuInteractions.length);
     if (menuInteractions.length === 0) return;
 
+    // if it is a table, the context menu shld do it like onClickRow in bTable() 
     let table_selection = null;
     const row = event.target.closest('tr');
     if (row && row.closest('table')) {
         const $tr = $(row);
         const $table = $tr.closest('table');
         const table_id = $table.attr('id');
+
         if (table_id) {
             const rowIndex = $tr.data('index');
             const rowData = $('#' + table_id).bootstrapTable('getData')[rowIndex];
@@ -72,8 +72,7 @@ $(document).on('contextmenu', function(event) {
             }
         }
     }
-
-    console.log("table_selection", table_selection)
+    // console.log("table_selection", table_selection)
 
     const $contextMenu = $('#contextMenu');
     $contextMenu.data('elementId', elementId)
@@ -99,14 +98,14 @@ $(document).on('contextmenu', function(event) {
             console.log("field_values", field_values);
 
             const url = $button.data('url');
-            console.log('Clicked menu item URL:', url);
+            // console.log('Clicked menu item URL:', url);
             const elem = $button.data('elem');
-            console.log('Clicked menu item elem:', elem);
+            // console.log('Clicked menu item elem:', elem);
             const params = $button.data('params');
-            console.log('Clicked menu item params:', params);
+            // console.log('Clicked menu item params:', params);
 
             const fileU = $contextMenu.attr('file_path');
-            console.log('fileU', fileU)
+            // console.log('fileU', fileU)
 
             if (elem == "modal") showModalWithContent(fileU, url, field_values, true);
             else if (elem.includes("element_")) {
@@ -143,13 +142,14 @@ $(document).on('contextmenu', function(event) {
 
 document.addEventListener('click', (event) => {
     const cm = document.getElementById('contextMenu');
-    if (cm === undefined) return;
+    if (!cm) return;
 
-    if (contextMenu.classList.contains('d-none')) return;
-    if (contextMenu.contains(event.target)) return;
-    contextMenu.classList.add('d-none');
+    if (cm.classList.contains('d-none')) return;
+    if (cm.contains(event.target)) return;
+    cm.classList.add('d-none');
 });
 
+// this is to know where to display the popup interaction
 document.addEventListener('mousemove', function (e) {
     lastMouseEvent = e;
 });
@@ -170,9 +170,9 @@ function playHiddenContent(field, url, parameters = "", contextM = false) {
 }
 
 function filePath(field) {
-    console.log("grid interactions FILE PATH");
-    console.log(field);
-    console.log(field.closest(".clarama-grid"));
+    // console.log("grid interactions FILE PATH");
+    // console.log(field);
+    // console.log(field.closest(".clarama-grid"));
     return field.closest(".clarama-grid").attr("file_path");
 }
 
@@ -231,7 +231,7 @@ function showInteractionContent(field, interaction, relativeP, parameters, conte
     } else {
         currentP = ($CLARAMA_ROOT + '/render/popup' + '/' + file_path);
     }
-    console.log("fileurl/path", '{{ file_url | path }}');
+    // console.log("fileurl/path", '{{ file_url | path }}');
 
     let currentSegments = currentP.split('/');
     let relativeSegments = relativeP.split('/');
