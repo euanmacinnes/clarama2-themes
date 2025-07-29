@@ -314,7 +314,6 @@ function executeOriginalAction(target, actionType) {
             $tempButton.remove();
             break;
         case 'dropdown-item':
-            // Execute the original onclick function for dropdown items
             if (target.onclick) {
                 eval(target.onclick);
             }
