@@ -13,7 +13,7 @@
         <i class="fs-5 bi bi-body-text pe-2"></i> Add Text
     </div>
     <div class="d-flex align-items-center" type="button"
-         onclick="add_selected_content('/content/element/{{ file_url }}', 'empty')">
+         onclick="handle_add_selected_content('/content/element/{{ file_url }}', 'empty')">
         <i class="fs-5 bi bi-plus-square-dotted pe-2"></i> Add Blank
     </div>
     <div class="col">&nbsp;</div>
@@ -25,7 +25,7 @@
              aria-expanded="false"><i class="fs-5 bi bi-gear pe-2"></i></div>
         <ul class="dropdown-menu p-3" aria-labelledby="settingsDropdown" style="min-width: 300px;">
             <li class="mb-3">
-                <button class="btn btn-danger w-100" onclick="resetSlate()"><i class="bi bi-trash pe-2"></i>Clean Slate
+                <button class="btn btn-danger w-100" onclick="resetSlate('{{ grid_id }}')"><i class="bi bi-trash pe-2"></i>Clean Slate
                 </button>
             </li>
 

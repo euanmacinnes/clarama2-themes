@@ -2,71 +2,39 @@ document.addEventListener('DOMContentLoaded', function () {
     load_favorites($CLARAMA_USER);
 
     const checkFilesLoaded = setInterval(function () {
-        if (favoriteFiles.length > 0) { // Wait until favoriteFiles is populated
+        if (favoriteFiles.length > 0) { // wait til favoriteFiles is populated
             clearInterval(checkFilesLoaded);
             if (document.getElementById("fav-dropdown") !== null) {
                 document.getElementById("fav-dropdown").style.display = "block";
             }
 
             if (document.getElementById("my-favorites-container") !== null) {
-                render_my_favorites(); // Render the content
+                render_home_favorites();
             }
-            render_favorites(); // Render the content
+            render_nav_favorites(); 
 
+            // toggle favs based on whether current pg is in favs
             var starIcon = document.getElementById("page-fav");
             if (starIcon !== null) {
                 if (favoriteFiles.some(row => row[1] === window.location.pathname)) {
                     starIcon.classList.remove('bi-star');
-                    starIcon.classList.add('bi-star-fill'); // Mark as favorite
+                    starIcon.classList.add('bi-star-fill');
                 } else {
-                    starIcon.classList.remove('bi-star-fill'); // Unmark as favorite
+                    starIcon.classList.remove('bi-star-fill');
                     starIcon.classList.add('bi-star');
                 }
             }
         }
-    }, 100); // Check every 100ms
-
-    const breadcrumbList = document.querySelector(".root-nav");
-    const breadcrumbItems = Array.from(breadcrumbList.querySelectorAll(".nav-item"));
-    console.log(breadcrumbItems);
-    console.log(breadcrumbItems.length);
-    const maxItems = 4;
-
-    if (breadcrumbItems.length > maxItems) {
-        const first = breadcrumbItems[0];
-        const keepCount = maxItems - 2;
-        const lastItems = breadcrumbItems.slice(-keepCount);
-        const middleItems = breadcrumbItems.slice(1, -keepCount);
-        const ellipsisLi = document.createElement("li");
-        ellipsisLi.className = "nav-item breadcrumb-ellipsis d-flex align-items-center";
-        ellipsisLi.innerHTML = `
-            <i class="nav-link bi bi-chevron-right p-0"></i>
-            <span class="nav-link px-2">...</span>
-            <ul class="hidden-items list-unstyled m-0 py-0 px-2">
-                ${middleItems.map((item, index) => {
-                    const clone = item.cloneNode(true);
-                    if (index === 0) {
-                        const icon = clone.querySelector('i');
-                        if (icon) icon.remove();
-                    }
-                    return `<li class="d-flex flex-row align-items-center">${clone.innerHTML}</li>`;
-                }).join('')}
-            </ul>
-        `;
-    
-        breadcrumbList.innerHTML = "";
-        breadcrumbList.appendChild(first);
-        breadcrumbList.appendChild(ellipsisLi);
-        lastItems.forEach(item => breadcrumbList.appendChild(item));    
-    }
+    }, 100); // check every 100ms until favs r loaded
 });
 
 // this is displayed in clarama home pg
-function render_my_favorites() {
+function render_home_favorites() {
     document.getElementById("my-favorites-container").style.display = "block";
     const container = document.getElementById('my-favorites-listing');
-    console.log(favoriteFiles)
-
+    if (!container) return;
+    
+    // console.log("render_home_favorites favoriteFiles", favoriteFiles);
     favoriteFiles.forEach((file, index) => {
         const decodedUrl = decodeURIComponent(file[1]); // so that %20 shows as a space
 
@@ -87,11 +55,12 @@ function render_my_favorites() {
     });
 }
 
-// this is the dropdown that'll appear when favorites dropdown is selected
-function render_favorites() {
+// this is the dropdown that'll appear when favorites dropdown in navbar is selected
+function render_nav_favorites() {
     const container = document.getElementById('favorites-listing');
-    console.log(favoriteFiles)
+    if (!container) return;
 
+    // console.log("render_nav_favorites favoriteFiles", favoriteFiles);
     favoriteFiles.forEach((file, index) => {
         const decodedUrl = decodeURIComponent(file[1]); // so that %20 shows as a space
 
@@ -113,16 +82,20 @@ function render_favorites() {
 function toggle_nav_favorite(breadcrumb) {
     const path = window.location.pathname;
     const parts = path.split('/');
-    const fileName = parts.pop();
+    const fileName = parts.pop(); // get last segment of path
 
     var icon = "";
     var dir = "file";
+
+    // mayb not a v gd way to detect if its a folder/file... but this was done at the beginning of my internship haha
+    // filetypeCSS is in the root.html where i defined the file types in an object -> but instead of this need to change to take from claram.ui.yaml
     if (!fileName.includes('.')) {
         icon = "bi-folder-fill";
         dir = "folder";
     } else {
+        // this matches appropriate icons based on file ext
         let matchedIcon = Object.entries(filetypeCSS)
-            .find(([ext, _]) => fileName.endsWith(ext));
+            .find(([ext, _]) => fileName.endsWith(ext)); // ext is the key, _ is the value but bec idn the value so i j named it as _
 
         if (!matchedIcon) {
             const simpleExt = `.${fileName.split('.').pop()}`;

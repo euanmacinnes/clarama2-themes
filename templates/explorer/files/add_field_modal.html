@@ -11,7 +11,7 @@
             </ol>
           </nav>
   
-          <button type="button" class="btn btn-primary" onclick="add_selected_content('/content/element/{{ file_url }}', 'empty')">Add Empty Grid</button>
+          <button type="button" class="btn btn-primary" onclick="handle_add_selected_content('/content/element/{{ file_url }}', 'empty')">Add Empty Grid</button>
   
           <div class="d-flex align-items-center w-100">
             <p class="mb-1 pe-2">New: </p>
@@ -80,7 +80,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="button" class="btn btn-primary"
-            onclick="add_selected_content('/content/element/{{ file_url }}')">Add
+            onclick="handle_add_selected_content('/content/element/{{ file_url }}')">Add
           </button>
         </div>
       </div>
@@ -88,6 +88,8 @@
 </div>
 
 <script type="text/javascript">
+  // this will add a grid element when file is selected
+
   $( document ).ready(() => {
     // double-click on a file in the modal
     $('#add_content_addfield').on('dblclick', 'option', function () {
@@ -95,7 +97,7 @@
       const selectedItem = $(this); 
       if (!isFolder(selectedItem)) {
         console.log("File selected: " + selectedItem.val());
-        add_selected_content('/content/element/{{ file_url }}')
+        handle_add_selected_content('/content/element/{{ file_url }}')
       }
     });
 
@@ -127,14 +129,14 @@
       var element_id = 0;
       var element_found = false;
       do {
-          element = "element_" + element_id;
+        element = "element_" + element_id;
 
-          if (element in {{ grid_id }}elements)
+        if (element in {{ grid_id }}elements) {
           element_id = element_id + 1;
-          else
+        } else {
           element_found = true;
-      }
-      while (!element_found);
+        }
+      } while (!element_found);
 
       console.log("element " + element);
 
@@ -154,33 +156,33 @@
 
       console.log(slate_data)
 
-      // if (element_render_url === '') {
-      //   addContent(element, new_element_data, "");
-      // } else {
-      $.ajax({
-        type: 'POST',
-        url: element_render_url + "?element=" + element,
-        datatype: "html",
-        contentType: 'application/json',
-        data: JSON.stringify(slate_data),
-        success: function (data) {
-          if (data['data'] == 'ok') {
-            let html = data['results'];
-            addContent(element, new_element_data, html);
-          } else {
-            console.log('Submission was not successful.');
+      return new Promise((resolve, reject) => { // added promise so that itll wait 
+        $.ajax({
+          type: 'POST',
+          url: element_render_url + "?element=" + element,
+          datatype: "html",
+          contentType: 'application/json',
+          data: JSON.stringify(slate_data),
+          success: function (data) {
+            if (data['data'] == 'ok') {
+              let html = data['results'];
+              addContent(element, new_element_data, html);
+            } else {
+              console.log('Submission was not successful.');
+              console.log(data);
+              flash("Couldn't save content: " + data['error'], "danger");
+            }
+            resolve();
+          },
+          error: function (data) {
+            console.log('An error occurred.');
             console.log(data);
-            flash("Couldn't save content: " + data['error'], "danger");
+            flash("Couldn't render element content, access denied", "danger");
+            reject(err);
           }
-        },
-        error: function (data) {
-          console.log('An error occurred.');
-          console.log(data);
-          flash("Couldn't render element content, access denied", "danger");
-        }
-      })
-      // }
-      // $("#addfieldModal").modal('hide');
+        });
+      });
     }
+    
   }
 </script>

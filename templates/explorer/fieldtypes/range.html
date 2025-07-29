@@ -12,7 +12,7 @@
                max="{{ get(field_config,'maximum','5') }}"
                value="{{ field_value or get(field_config,'default','') }}"
                oninput="this.nextElementSibling.value=this.value"/>
-        <input id="{{ field_id }}" name="{{ field_name }}" type="range"
+        <input data-id="{{ field_id }}" name="{{ field_name }}" type="range"
                class="form-control form-range clarama-field clarama-now-field input-group-append"
                style="width: 90%"
                fieldtype="html"

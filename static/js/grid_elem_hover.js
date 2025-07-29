@@ -26,6 +26,7 @@ document.addEventListener('shown.bs.dropdown', function (event) {
             saveElementParams(target);
         });
     });
+    
     const items = dropdownMenu.querySelectorAll('.slate-elem-dropdown-item');
     items.forEach(item => {
         item.addEventListener('mouseover', () => {

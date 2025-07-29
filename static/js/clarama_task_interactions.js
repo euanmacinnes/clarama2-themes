@@ -11,8 +11,8 @@ function task_run(parent) {
 
             $('#task_progress_main').attr('aria-valuenow', 0);
 
-            isHidden = $(this).attr("hiddenCM")
-            _task_run(socket_div, isHidden);
+            // isHidden = $(this).attr("hiddenCM")
+            _task_run(socket_div);
         }
     });
 }

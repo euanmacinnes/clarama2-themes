@@ -85,20 +85,9 @@ function _task_run(socket_div, hidden = false) {
             .then((response) => {
                 console.log("CLARAMA_TASK.js: TASK RUN RESPONSE " + task);
                 console.log(response);
-
-                if (hidden) {
-                    if (!response.ok) {
-                        alert("Task failed! " + response.statusText);
-                        return;
-                    }
-                    alert("Task ran successfully! " + response.statusText);
-                }
             })
             .catch((error) => {
                 console.error("Fetch error:", error);
-                if (hidden) {
-                    alert("Network or server error! " + error.message);
-                }
             });
         /*fetch(task)
             .then((response) => {
