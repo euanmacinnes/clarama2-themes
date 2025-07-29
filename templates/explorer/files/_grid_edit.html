@@ -18,6 +18,13 @@
             </label>
             <input type="text" id="menu-item" class="form-control mt-2 d-none" name="checkMenuItemName" placeholder="Menu Item Name">
           </div>
+
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" value="" id="wait">
+            <label class="form-check-label" for="wait" id="waitLabel">
+              Wait for previous interaction to finish executing
+            </label>
+          </div>
           <!-- <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" value="" id="checkMenu">
             <label class="form-check-label" for="checkMenu">
@@ -44,9 +51,6 @@
 
               <input type="radio" class="btn-check" name="interactionType" id="tabType" autocomplete="off" value="tab" required>
               <label class="btn btn-outline-primary" for="tabType">Tab</label>
-              
-              <input type="radio" class="btn-check" name="interactionType" id="pauseType" autocomplete="off" value="pause" required>
-              <label class="btn btn-outline-primary" for="pauseType">Pause</label>
 
               <input type="radio" class="btn-check" name="interactionType" id="hiddenType" autocomplete="off" value="hidden" required>
               <label class="btn btn-outline-primary" for="hiddenType">Hidden</label>
@@ -134,7 +138,7 @@
     if (typeof(button) === "object") {
       var type = button.getAttribute('data-element');
       var initialType = type;
-      const allowedTypes = ['popup', 'modal', 'pause', 'menu', 'tab', 'hidden'];
+      const allowedTypes = ['popup', 'modal', 'menu', 'tab', 'hidden'];
       if (!allowedTypes.includes(type)) type = 'element';
 
       const target = button.getAttribute('data-target');
@@ -272,7 +276,7 @@
     input.classList.toggle('d-none', !isChecked);
     if (isChecked) input.focus();
     
-    ['popupType', 'pauseType'].forEach(id => {
+    ['popupType'].forEach(id => {
       const radio = document.getElementById(id);
       const label = document.querySelector(`label[for="${id}"]`);
       radio.classList.toggle('d-none', isChecked);
@@ -719,9 +723,7 @@
 
       console.log(element);
 
-
       // Now add the element
-
       new_element_data = {"text": "new text"};
 
       // this render_data is the jinja values needed to render the text template.
@@ -790,7 +792,7 @@
     var checkedType = $('input[name="interactionType"]:checked').val();
     const isContextMenu = $('#cMenu').is(':checked');
     console.log("isContextMenu", isContextMenu)
-    const allowedTypes = ['popup', 'modal', 'pause', 'tab', 'hidden'];
+    const allowedTypes = ['popup', 'modal', 'tab', 'hidden'];
     if (!checkedType) {
       alert("Please select an interaction type");
       return;
@@ -816,7 +818,7 @@
     }
 
     var elementToAddInteraction = {{ grid_id }}elements[gridElem];
-    if (!elementToAddInteraction.links || elementToAddInteraction.links.length === 0) {
+    if (!elementToAddInteraction.links || elementToAddInteraction.links.length === 0) { 
       elementToAddInteraction.links = [];
       nextUid = '0';
     } else {
@@ -831,11 +833,11 @@
     console.log("uid", uid)
     if (uid == "") {
       if (isContextMenu) {
-        console.log("uid empty, is ContextMenu")
+        // console.log("uid empty, is ContextMenu")
         elementToAddInteraction.links.push({ uid: nextUid, contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
         grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams, menuItem));
       } else {
-        console.log("uid empty, is not ContextMenu")
+        // console.log("uid empty, is not ContextMenu")
         elementToAddInteraction.links.push({ uid: nextUid, element: checkedType, url: file_url, params: urlParams });
         grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams));
       }
@@ -844,10 +846,10 @@
       let linkIdx = elementToAddInteraction.links.findIndex(link => link.uid == uid);
 
       if (isContextMenu) {
-        console.log("uid, is ContextMenu")
+        // console.log("uid, is ContextMenu")
         elementToAddInteraction.links[linkIdx] = { uid: uid, contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
       } else {
-        console.log("uid, is not ContextMenu")
+        // console.log("uid, is not ContextMenu")
         elementToAddInteraction.links[linkIdx] = { uid: uid, element: checkedType, url: file_url, params: urlParams };
       }
 
