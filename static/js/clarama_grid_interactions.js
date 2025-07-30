@@ -5,7 +5,7 @@
 let lastMouseEvent = null;
 var currentModalAddContentPath = "";
 
-// this exists because add_selected_content() has a promise so need to catch here 
+// this exists because add_selected_content() has a promise n the onlcick will call add_selected_content() but it wont be able to catch err onclick
 function handle_add_selected_content(url, selecte_v = "") {
     add_selected_content(url, selecte_v)
       .then(() => {
@@ -20,18 +20,19 @@ $(document).on('contextmenu', function(event) {
     const cm = document.getElementById('contextMenu');
     if (!cm) return;
 
-    // if ($('#contextMenu').data('contextType') === 'table') return;
+    if ($('#contextMenu').data('contextType') === 'table') return;
 
     const target = event.target.closest('.grid-stack-item');
     const grid = event.target.closest('.clarama-grid');
     if (!target) return;
+    if (!grid) return;
 
     event.preventDefault();
 
     const elementId = $(target).attr('gs-id');
     const gridId = $(grid).attr('grid_id');
-    // console.log("elementId", elementId);
-    // console.log("gridId", gridId);
+    console.log("elementId", elementId);
+    console.log("gridId", gridId);
 
     const elementInteractions = eval(gridId + "elements[elementId]['links']");
 
@@ -183,8 +184,12 @@ function triggerTabInteraction(field, url, parameters = "") {
 }
 
 function showPopupNearMouse(field, url, parameters = "") {
+    console.log("showPopupNearMouse field", field)
+    console.log("showPopupNearMouse url", url)
+    console.log("showPopupNearMouse parameters", parameters)
     const ipopup = document.getElementById('interactionPopup');
-    // console.log("ipopup", ipopup)
+    console.log("showPopupNearMouse ipopup", ipopup)
+    console.log("showPopupNearMouse lastMouseEvent", lastMouseEvent)
 
     if (lastMouseEvent) {
         const popupMaxWidthPercent = 43;
@@ -210,12 +215,17 @@ function showPopupNearMouse(field, url, parameters = "") {
     ipopup.append(showInteractionContent(field, 'popup', url, parameters));
     enable_interactions($("#interactionPopup"), true);
 
-    document.addEventListener('click', function hideOnClick(e) {
-        if (!ipopup.contains(e.target)) {
-            ipopup.style.display = 'none';
-            document.removeEventListener('click', hideOnClick);
-        }
-    });
+    // add eventlistener only when popup fullt rendered
+    setTimeout(() => {
+        // this will detect clicks outside the popup so that the popup will close
+        const hideOnClick = (e) => {
+            if (!ipopup.contains(e.target)) {
+                ipopup.style.display = 'none';
+                document.removeEventListener('mousedown', hideOnClick);
+            }
+        };
+        document.addEventListener('mousedown', hideOnClick);
+    }, 0);
 }
 
 function showInteractionContent(field, interaction, relativeP, parameters, contextM = false) {
