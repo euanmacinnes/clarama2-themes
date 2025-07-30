@@ -35,7 +35,7 @@ $(document).on('contextmenu', function(event) {
     console.log("gridId", gridId);
 
     const elementInteractions = eval(gridId + "elements[elementId]['links']");
-
+    if (!elementInteractions) return;
     const menuInteractions = [];
 
     if (elementInteractions.length === 0) return;
