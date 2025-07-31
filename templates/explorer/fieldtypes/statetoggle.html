@@ -2,46 +2,50 @@
 
 {% block content %}
     {% set current_state = (field_value or get(field_config, 'default', '0')) | int %}
-    {% set state_options = field_config.get('data',{}).get('options',['/art/state_0.png', '/art/state_1.png', '/art/state_2.png']) or ['/art/state_0.png', '/art/state_1.png', '/art/state_2.png'] %}
+    {% set state_options = field_config.get('data',{}).get('options') or [] %}
     {% set max_states = state_options | length %}
 
-    <button id="{{ field_id }}"
-            type="submit"
-            name="{{ field_name }}"
-            value="{{ current_state }}"
-            fieldtype="html"
-            class="btn clarama-field clarama-delay-field state-toggle-btn p-0 border-0"
-            onclick="cycleState_{{ field_id }}()"
-            data-state="{{ current_state }}"
-            data-max-states="{{ max_states }}"
-            style="background: none;"
-            {{ field_config | required }}
-            {{ field_config | readonly }}
-            {% include theme("explorer/files/field_tooltip.html") %}>
-        <img id="img_{{ field_id }}"
-             src="{{ static(state_options[current_state % max_states]) }}"
-             alt="State {{ current_state }}"
-             width="108"
-             height="38">
-    </button>
+    {% if max_states > 0 %}
+        <button id="{{ field_id }}"
+                type="submit"
+                name="{{ field_name }}"
+                value="{{ current_state }}"
+                fieldtype="html"
+                class="btn clarama-field clarama-delay-field state-toggle-btn p-0 border-0"
+                {% if max_states > 1 %}onclick="cycleState_{{ field_id }}()"{% endif %}
+                data-state="{{ current_state }}"
+                data-max-states="{{ max_states }}"
+                style="background: none;"
+                {{ field_config | required }}
+                {{ field_config | readonly }}
+                {% include theme("explorer/files/field_tooltip.html") %}>
+            <img id="img_{{ field_id }}"
+                 src="{{ static(state_options[current_state % max_states]) }}"
+                 alt="State {{ current_state }}"
+                 width="108"
+                 height="38">
+        </button>
 
-    <script>
-        function cycleState_{{ field_id }}() {
-            const btn = document.getElementById("{{ field_id }}");
-            const img = document.getElementById("img_{{ field_id }}");
-            
-            const maxStates = parseInt(btn.dataset.maxStates) || 3;
-            const stateOptions = {{ state_options | tojson | safe }};
+        {% if max_states > 1 %}
+        <script>
+            function cycleState_{{ field_id }}() {
+                const btn = document.getElementById("{{ field_id }}");
+                const img = document.getElementById("img_{{ field_id }}");
+                
+                const maxStates = parseInt(btn.dataset.maxStates);
+                const stateOptions = {{ state_options | tojson | safe }};
 
-            let state = parseInt(btn.dataset.state);
-            if (isNaN(state)) state = 0;
+                let state = parseInt(btn.dataset.state);
+                if (isNaN(state)) state = 0;
 
-            const next = (state + 1) % maxStates;
-            btn.dataset.state = next;
-            btn.value = next;
+                const next = (state + 1) % maxStates;
+                btn.dataset.state = next;
+                btn.value = next;
 
-            img.src = "{{ static('') }}" + stateOptions[next];
-            img.alt = "State " + next;
-        }
-    </script>
+                img.src = "{{ static('') }}" + stateOptions[next];
+                img.alt = "State " + next;
+            }
+        </script>
+        {% endif %}
+    {% endif %}
 {% endblock %}
