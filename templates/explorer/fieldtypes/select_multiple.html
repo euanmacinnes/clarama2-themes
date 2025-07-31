@@ -21,12 +21,12 @@
                     </option>
                 {% endif %}
             {% endif %}
-            {%- for item in field_config.get('data',{}).get('options',{}) -%}
+            {%- for item in field_config.get('data',{}).get('options',[]) or [] -%}
                 {% if item is mapping %}
-                    <option value="{{ item['id'] }}" {% if item['id'] in field_config["default"] %}
+                    <option value="{{ item['id'] }}" {% if field_config.get("default") and item['id'] in field_config["default"] %}
                             selected="selected" {% endif %}>{{ item['value'] }}</option>
                 {% else %}
-                    <option value="{{ item }}" {% if item in field_config["default"] %}
+                    <option value="{{ item }}" {% if field_config.get("default") and item in field_config["default"] %}
                             selected="selected" {% endif %}>{{ item }}</option>
                 {% endif %}
             {% endfor %}
