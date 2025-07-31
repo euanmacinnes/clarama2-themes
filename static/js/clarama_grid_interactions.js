@@ -8,15 +8,15 @@ var currentModalAddContentPath = "";
 // this exists because add_selected_content() has a promise so need to catch here 
 function handle_add_selected_content(url, selecte_v = "") {
     add_selected_content(url, selecte_v)
-      .then(() => {
-        console.log("success");
-      })
-      .catch((err) => {
-        console.error("error", err);
-      });
+        .then(() => {
+            console.log("success");
+        })
+        .catch((err) => {
+            console.error("error", err);
+        });
 }
 
-$(document).on('contextmenu', function(event) {
+$(document).on('contextmenu', function (event) {
     const cm = document.getElementById('contextMenu');
     if (!cm) return;
 
@@ -36,6 +36,8 @@ $(document).on('contextmenu', function(event) {
     const elementInteractions = eval(gridId + "elements[elementId]['links']");
 
     const menuInteractions = [];
+
+    if (elementInteractions === undefined) return;
 
     if (elementInteractions.length === 0) return;
     for (let i = 0; i < elementInteractions.length; i++) {
@@ -88,7 +90,7 @@ $(document).on('contextmenu', function(event) {
         }
     }).join(''));
 
-    $contextMenu.find('button').on('click', function(e) {
+    $contextMenu.find('button').on('click', function (e) {
         const $button = $(this);
 
         get_field_values({}, true, function (field_registry) {
@@ -244,7 +246,7 @@ function showInteractionContent(field, interaction, relativeP, parameters, conte
     }
 
     ICurl = $CLARAMA_ROOT + currentSegments.join('/');
-    
+
     // console.log("$CLARAMA_ROOT", $CLARAMA_ROOT)
     // console.log("ICurl", ICurl)
 
