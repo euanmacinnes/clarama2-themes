@@ -276,6 +276,21 @@ function get_text_cell(cell) {
     return {"type": "markdown", "content": myContent};
 }
 
+function get_question_cell(cell) {
+    var dataid = cell.attr('dataid');
+
+    var id = "content_query_" + dataid;
+
+    var question = $("#" + id).val();
+
+    console.log("Getting question " + question);
+
+    return {
+        "type": "question",
+        "source": question
+    };
+}
+
 /**
  * Extracts data from a notification cell
  * @param {jQuery} cell - jQuery object representing the notification cell
@@ -341,12 +356,12 @@ function get_task_cell(cell) {
 
     console.log("Getting data " + id);
 
-    var source_id = "task_step_" + dataid + "_source";
-    var source = $("#" + source_id).val();
+    var task_id = "task_step_" + dataid + "_task";
+    var task = $("#" + task_id).val();
 
     return {
         "type": "task",
-        "source": source
+        "source": task
     };
 }
 
