@@ -131,8 +131,12 @@ function setupNavigationListeners() {
         });
     });
     
-    $(document).on('click', '.clarama-task-stop, .clarama-task-editrun, #kernel_status, #environment', function(e) {
+    $(document).on('click', '.clarama-task-stop, .clarama-task-editrun, #kernel_status:not(.dropdown-toggle)', function(e) {
         if (isNavigating) return;
+        
+        if ($(this).hasClass('dropdown-toggle') || $(this).attr('data-bs-toggle') === 'dropdown') {
+            return;
+        }
         
         e.preventDefault();
         const button = this;
@@ -142,6 +146,28 @@ function setupNavigationListeners() {
                 showUnsavedChangesModal(button, 'button');
             } else {
                 executeOriginalAction(button, 'button');
+            }
+        });
+    });
+    
+    $(document).on('click', '.dropdown-item.environments', function(e) {
+        if (isNavigating) return;
+        
+        e.preventDefault();
+        const item = this;
+        const onclickAttr = $(this).attr('onclick');
+        
+        checkForUnsavedChanges().then(hasChanges => {
+            if (hasChanges) {
+                showUnsavedChangesModal({
+                    element: item,
+                    onclick: onclickAttr
+                }, 'dropdown-item');
+            } else {
+                // Execute the original onclick function
+                if (onclickAttr) {
+                    eval(onclickAttr);
+                }
             }
         });
     });
@@ -202,7 +228,6 @@ function setupSaveHooks() {
 function showUnsavedChangesModal(target, actionType) {
     const modal = new bootstrap.Modal(document.getElementById('unsaved-changes-modal'));
     
-    // Store the target and action type for later use
     $('#unsaved-changes-modal').data('target', target);
     $('#unsaved-changes-modal').data('actionType', actionType);
     
@@ -253,6 +278,12 @@ function setupModalHandlers() {
         executeOriginalAction(target, actionType);
     });
     
+    // Cancel button - just close the modal
+    $('#cancel-changes').on('click', function() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('unsaved-changes-modal'));
+        modal.hide();
+    });
+    
     // Reset navigation flag when modal is hidden without action
     $('#unsaved-changes-modal').on('hidden.bs.modal', function() {
         // Only reset if we're not in the middle of navigating
@@ -281,6 +312,11 @@ function executeOriginalAction(target, actionType) {
             $tempButton.insertAfter($button);
             $tempButton[0].click();
             $tempButton.remove();
+            break;
+        case 'dropdown-item':
+            if (target.onclick) {
+                eval(target.onclick);
+            }
             break;
     }
 }

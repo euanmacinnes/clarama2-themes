@@ -1,0 +1,62 @@
+<li id="{{ (task_topic ~ '_stream_' ~ stream ~ '_step') }}_{{ task_index }}" step="{{ task_index }}"
+    class="row bg-white text-dark clarama-cell-item"
+    steptype="{{ task_step['type'] }}"
+>
+    <!-- the Editing -->
+    <div id="step_{{ stream }}_{{ task_index }}"
+         class="clarama-post-embedded cell-editor"
+         url="{{ call('clarama_content.content_template_render','explorer/steps/' ~ task_step['type'] ~ '_edit') }}?loop_index={{ task_index }}">
+    </div>
+    <!-- the Results -->
+    <div class="container-fluid cell-response">
+        <div id="results_{{ task_index }}" class="cell-results"
+             {% if task_step['type'] == "data" %}style="min-height: 50px;" {% endif %}>
+        </div>
+    </div>
+</li>
+
+<script>
+    function toggle_loop(elem) {
+        var val = (elem.val()).trim();
+
+        loop_id = elem.attr('loop-id');
+
+        //console.log("LOOP" + elem.attr('id'));
+
+        //console.log('LOOP .loop-' + loop_id + ' : ' + val);
+
+        //console.log($('.loop-' + loop_id));
+
+        if (val == '') {
+            elem.addClass('loop-inactive');
+            elem.removeClass('loop-active');
+            $('.loop-' + loop_id).addClass("loop-hidden");
+            $('.loop-' + loop_id).removeClass("loop-show");
+        } else {
+            elem.addClass('loop-active');
+            elem.removeClass('loop-inactive');
+            $('.loop-' + loop_id).removeClass("loop-hidden");
+            $('.loop-' + loop_id).addClass("loop-show");
+        }
+    }
+
+    $(document).ready(() => {
+        $('.loop-iterable').each(function () {
+            toggle_loop($(this));
+        });
+
+        $('.loop-iterable').bind('keypress keydown keyup', function (e) {
+            if (e.keyCode == 13) {
+                e.preventDefault();
+            }
+            toggle_loop($(this));
+        });
+
+        $("input").off("change");
+        $("input").on("change", function () {
+            toggle_loop($(this));
+        });
+
+        initializeCellCopyPaste();
+    });
+</script>

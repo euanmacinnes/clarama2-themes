@@ -8,12 +8,12 @@ var currentModalAddContentPath = "";
 // this exists because add_selected_content() has a promise n the onlcick will call add_selected_content() but it wont be able to catch err onclick
 function handle_add_selected_content(url, selecte_v = "") {
     add_selected_content(url, selecte_v)
-      .then(() => {
-        console.log("success");
-      })
-      .catch((err) => {
-        console.error("error", err);
-      });
+        .then(() => {
+            console.log("success");
+        })
+        .catch((err) => {
+            console.error("error", err);
+        });
 }
 
 // window.addEventListener('DOMContentLoaded', () => {
@@ -27,7 +27,7 @@ function handle_add_selected_content(url, selecte_v = "") {
 //     }
 // });
 
-$(document).on('contextmenu', function(event) {
+$(document).on('contextmenu', function (event) {
     const cm = document.getElementById('contextMenu');
     if (!cm) return;
 
@@ -48,6 +48,8 @@ $(document).on('contextmenu', function(event) {
     const elementInteractions = eval(gridId + "elements[elementId]['links']");
     if (!elementInteractions) return;
     const menuInteractions = [];
+
+    if (elementInteractions === undefined) return;
 
     if (elementInteractions.length === 0) return;
     for (let i = 0; i < elementInteractions.length; i++) {
@@ -94,7 +96,7 @@ $(document).on('contextmenu', function(event) {
         return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
     }).join(''));
 
-    $contextMenu.find('button').on('click', function(e) {
+    $contextMenu.find('button').on('click', function (e) {
         const $button = $(this);
 
         get_field_values({}, true, function (field_registry) {
@@ -293,7 +295,7 @@ function showInteractionContent(field, interaction, relativeP, field_values, con
     }
 
     ICurl = $CLARAMA_ROOT + currentSegments.join('/');
-    
+
     // console.log("$CLARAMA_ROOT", $CLARAMA_ROOT)
     // console.log("ICurl", ICurl)
 
