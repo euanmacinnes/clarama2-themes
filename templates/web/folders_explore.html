@@ -11,7 +11,8 @@
         <a class="dropdown-item content_item bi bi-copy" href="#" onclick="context_copy();">&nbsp;Copy</a>
         <a class="dropdown-item content_item bi bi-clipboard" href="#" onclick="context_paste();">&nbsp;Paste</a>
         <hr/>
-        <a class="dropdown-item content_item bi bi-trash3" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">&nbsp;Delete</a>
+        <a class="dropdown-item content_item bi bi-trash3" href="#" data-bs-toggle="modal"
+           data-bs-target="#deleteConfirmModal">&nbsp;Delete</a>
     </div>
 
     <!-- Just Paste, for the drop area -->
@@ -50,6 +51,11 @@
                                             new_file_type="markdown" data-bs-toggle="tooltip"
                                             data-bs-title="Markdown File (Help Content)" data-bs-placement="bottom"><i
                                             class="bi bi-blockquote-left"></i></button>
+                                    <button id="new_5" type="button" class="btn text-white toggle_show hoverover"
+                                            opacity=0.15 style="opacity: 0.15" new_file_class="bi-chat-left-text"
+                                            new_file_type="conversation" data-bs-toggle="tooltip"
+                                            data-bs-title="Conversation" data-bs-placement="bottom"><i
+                                            class="bi bi-chat-left-text"></i></button>
                                 </div>
                             </div>
                             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -81,6 +87,9 @@
                                             <a class="dropdown-item toggle_show" new_file_type="markdown"
                                                new_file_class="bi-blockquote-left" href="#"><i
                                                     class="bi bi-blockquote-left"></i> Markdown</a>
+                                            <a class="dropdown-item toggle_show" new_file_type="conversation"
+                                               new_file_class="bi-chat-left-text" href="#"><i
+                                                    class="bi bi-chat-left-text"></i> Conversation</a>
                                             <a class="dropdown-item toggle_show" new_file_type="source"
                                                new_file_class="bi-database" href="#"><i class="bi bi-database"></i>
                                                 Source</a>
@@ -180,7 +189,8 @@
                                        style="text-decoration:none">
                                         <div class="row align-items-center">
                                             <div class="col">
-                                                <div class="row row-cols-auto align-items-center flex-nowrap" style="width: 100%;">
+                                                <div class="row row-cols-auto align-items-center flex-nowrap"
+                                                     style="width: 100%;">
                                                     <input type="checkbox"
                                                            class="multi-select-checkbox clarama-checkbox form-check-input me-2 d-none"
                                                     />
@@ -190,7 +200,8 @@
                                             </div>-->
                                                     </i>
                                                     <div id="file_{{ loop.index }}"
-                                                         class="col d-flex align-items-center listing_div" style="word-break: break-word;">{{ file | filebasename }}</div>
+                                                         class="col d-flex align-items-center listing_div"
+                                                         style="word-break: break-word;">{{ file | filebasename }}</div>
                                                 </div>
                                             </div>
                                             <div class="col col-sm-3 text-end">{{ get(filetype_names, file | fileextension, file | fileextension) }}</div>
@@ -261,7 +272,8 @@
     </div>
 
     <!-- dlt confirmation Modal -->
-    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
+         aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -273,7 +285,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button id="confirmDeleteBtn" type="button" class="btn btn-danger" onclick="context_delete()">Yes</button>
+                    <button id="confirmDeleteBtn" type="button" class="btn btn-danger" onclick="context_delete()">Yes
+                    </button>
                 </div>
             </div>
         </div>
@@ -796,76 +809,76 @@
         // Prevent opening files/folders when in select mode
         $('.listing').on('click', function (e) {
             if ($(e.target).hasClass('multi-select-checkbox')) return;
- 
+
             // Hide any open context menu
             $("#context-menu").removeClass("show").hide();
             $("#dropzone-context-menu").removeClass("show").hide();
- 
+
             const index = listings.index(this);
             const checkbox = $(this).closest('.favorites-div').find('.multi-select-checkbox');
- 
+
             if (e.ctrlKey && !selecting) enterSelectMode()      // actvate select mode with ctrl key
- 
+
             if (e.shiftKey) {
                 if (!selecting) enterSelectMode()               // activate select mode with shift key
- 
+
                 if (anchorIndex === null) {
                     anchorIndex = index;
                     checkbox.prop('checked', true);
                 } else {
                     const start = Math.min(anchorIndex, index);
                     const end = Math.max(anchorIndex, index);
- 
+
                     // Uncheck all first
                     checkboxes.prop('checked', false);
- 
+
                     for (let i = start; i <= end; i++) {
                         checkboxes.eq(i).prop('checked', true);
                     }
                 }
- 
+
                 e.preventDefault();
                 e.stopPropagation();
- 
+
             } else if (selecting) {
                 const isChecked = checkbox.prop('checked');
                 checkbox.prop('checked', !isChecked);
- 
+
                 if (!isChecked && anchorIndex === null) anchorIndex = index;
- 
+
                 // If all checkboxes are now unchecked, reset anchorIndex
                 if (checkboxes.filter(':checked').length === 0) anchorIndex = null;
- 
+
                 e.preventDefault();
                 e.stopPropagation();
             }
- 
-            $(document).on('keydown', function (e) {    
-               
+
+            $(document).on('keydown', function (e) {
+
                 if (e.key === "Escape" && selecting) {          // Exit select mode on Escape ke
                     exitSelectMode();
                 }
-               
+
                 // if (e.key === "Delete" && selecting) {          // Delete selected listings on Delete key
                 //     e.preventDefault();                         // Should add a "confirm delete" prompt before deleting
                 //     context_delete(); 
                 // }
- 
+
                 if (e.ctrlKey && e.key === "c") {               // Ctrl + c (copy)
                     e.preventDefault();
                     context_copy();
                 }
-               
+
                 if (e.ctrlKey && e.key === "x") {               // Ctrl + c (cut)
                     e.preventDefault();
                     context_cut();
                 }
- 
+
                 // if (e.ctrlKey && e.key === "v") {               // Ctrl + v (paste)
                 //     e.preventDefault();
                 //     context_paste();
                 // }
- 
+
             });
         });
     </script>
