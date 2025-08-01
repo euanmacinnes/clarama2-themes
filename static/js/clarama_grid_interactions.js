@@ -16,6 +16,17 @@ function handle_add_selected_content(url, selecte_v = "") {
       });
 }
 
+// window.addEventListener('DOMContentLoaded', () => {
+//     const params = new URLSearchParams(window.location.search);
+//     const json = params.get('json');
+ 
+//     const contentElem = document.getElementById('content');
+//     if (contentElem && json) {
+//         contentElem.setAttribute('json', json);
+//         console.log('Params received:', JSON.parse(json));
+//     }
+// });
+
 $(document).on('contextmenu', function(event) {
     const cm = document.getElementById('contextMenu');
     if (!cm) return;
@@ -80,13 +91,7 @@ $(document).on('contextmenu', function(event) {
     $contextMenu.data('tableSelection', table_selection ? JSON.stringify(table_selection) : '')
 
     $contextMenu.html(menuInteractions.map((interaction, i) => {
-        if (interaction.element === "tab") {
-            return `<a href="${interaction.url}" target="_blank" class="text-decoration-none text-black">
-                        <button class="dropdown-item datasource" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
-                    </a>`;
-        } else {
-            return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
-        }
+        return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
     }).join(''));
 
     $contextMenu.find('button').on('click', function(e) {
@@ -110,7 +115,7 @@ $(document).on('contextmenu', function(event) {
 
             if (elem == "modal") showModalWithContent(fileU, url, field_values, true);
             else if (elem.includes("element_")) {
-                $("#" + elem).html('').append(showInteractionContent(fileU, 'run', url + "?" + params, true));
+                $("#" + elem).html('').append(showInteractionContent(fileU, 'run', url + "?" + params, field_values, true));
                 enable_interactions($("#" + elem));
             } else if (elem == "hidden") {
                 // this prob isnt the most ideal way but i think itll do for now since autorun isnt work
@@ -128,6 +133,8 @@ $(document).on('contextmenu', function(event) {
                         flash("hidden content ran");
                     }
                 }, 300);
+            } else if (elem == "tab") {
+                triggerTabInteraction(fileU, url, field_values, true);
             }
             $contextMenu.addClass('d-none');
         });
@@ -155,18 +162,18 @@ document.addEventListener('mousemove', function (e) {
     lastMouseEvent = e;
 });
 
-function showModalWithContent(field, url, parameters = "", contextM = false) {
+function showModalWithContent(field, url, field_values = "", contextM = false) {
     $('#interactionModal').modal('show');
     const iModal = document.getElementById("interactionModalBody");
     iModal.innerHTML = '';
-    iModal.append(showInteractionContent(field, 'modal', url, parameters, contextM));
+    iModal.append(showInteractionContent(field, 'modal', url, field_values, contextM));
     enable_interactions($("#interactionModalBody"), true, true);
 }
 
-function playHiddenContent(field, url, parameters = "", contextM = false) {
+function playHiddenContent(field, url, field_values = "", contextM = false) {
     const iModal = document.getElementById("interactionModalBody");
     iModal.innerHTML = '';
-    iModal.append(showInteractionContent(field, 'modal', url, parameters, contextM));
+    iModal.append(showInteractionContent(field, 'modal', url, field_values, contextM));
     enable_interactions($("#interactionModalBody"), true, true);
 }
 
@@ -177,16 +184,48 @@ function filePath(field) {
     return field.closest(".clarama-grid").attr("file_path");
 }
 
-function triggerTabInteraction(field, url, parameters = "") {
-    // console.log("parameters", parameters)
-    let fullUrl = "/content/default/" + resolveRelativeFilePath(filePath(field), url);
-    window.open(fullUrl, "_blank");
+function triggerTabInteraction(field, url, field_values = "", contextM = false) {
+    console.log("triggerTabInteraction field_values", field_values);
+
+    let final_field;
+    if (!contextM) final_field = filePath(field);
+    else final_field = field;
+ 
+    // const params = new URLSearchParams({ json: JSON.stringify(field_values) }).toString();
+    // console.log("triggerTabInteraction params", params)
+    let tabPath = resolveRelativeFilePath(final_field, url);
+    // let fullUrl;
+    // if (tabPath.charAt(tabPath.length - 1) == "?") fullUrl = "/content/default/" + tabPath + params;
+    // else fullUrl = "/content/default/" + tabPath + "?" + params;
+ 
+    // window.open(fullUrl, "_blank");
+
+    $.ajax({
+        type: 'POST',
+        url: "/content/default/" + tabPath,
+        datatype: "json",
+        contentType: 'application/json',
+        data: JSON.stringify(field_values),
+        success: function(response) {
+            console.log("response", response)
+            var newWindow = window.open("/content/default/" + tabPath, '_blank');
+            if (newWindow) {
+                newWindow.document.write(response); 
+                newWindow.document.close();
+            } else {
+                console.warn('Pop-up blocked or unable to open new window.');
+            }
+        },
+        error: function(err) {
+            console.error('AJAX error:', err);
+        }
+    });
 }
 
-function showPopupNearMouse(field, url, parameters = "") {
+function showPopupNearMouse(field, url, field_values = "") {
     console.log("showPopupNearMouse field", field)
     console.log("showPopupNearMouse url", url)
-    console.log("showPopupNearMouse parameters", parameters)
+    console.log("showPopupNearMouse field_values", field_values)
     const ipopup = document.getElementById('interactionPopup');
     console.log("showPopupNearMouse ipopup", ipopup)
     console.log("showPopupNearMouse lastMouseEvent", lastMouseEvent)
@@ -212,7 +251,7 @@ function showPopupNearMouse(field, url, parameters = "") {
 
     ipopup.style.display = 'block';
     ipopup.innerHTML = '';
-    ipopup.append(showInteractionContent(field, 'popup', url, parameters));
+    ipopup.append(showInteractionContent(field, 'popup', url, field_values));
     enable_interactions($("#interactionPopup"), true);
 
     // add eventlistener only when popup fullt rendered
@@ -228,7 +267,7 @@ function showPopupNearMouse(field, url, parameters = "") {
     }, 0);
 }
 
-function showInteractionContent(field, interaction, relativeP, parameters, contextM = false) {
+function showInteractionContent(field, interaction, relativeP, field_values, contextM = false) {
     let currentP;
     let ICurl;
     let file_path;
@@ -261,7 +300,7 @@ function showInteractionContent(field, interaction, relativeP, parameters, conte
     const newIC = document.createElement("div");
     newIC.className = "clarama-post-embedded clarama-replaceable";
     newIC.setAttribute("url", `${ICurl}`);
-    newIC.setAttribute("json", JSON.stringify(parameters));
+    newIC.setAttribute("json", JSON.stringify(field_values));
     // newIC.setAttribute("autorun", "True");
     return newIC;
 }
