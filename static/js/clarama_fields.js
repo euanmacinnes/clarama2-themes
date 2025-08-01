@@ -222,7 +222,7 @@ function toggleDebugForCurrentCell(cell) {
  * Provides keyboard shortcuts for navigating and executing cells
  */
 function initializeCellNavigation() {
-    let currentCellIndex = null;
+    let currentCellStep = null;
     
     function getAllCells() {
         return $('.clarama-cell-item').toArray().sort((a, b) => {
@@ -230,6 +230,10 @@ function initializeCellNavigation() {
             const bStep = parseInt($(b).attr('step'));
             return aStep - bStep;
         });
+    }
+    
+    function getCellByStep(stepNumber) {
+        return $(`.clarama-cell-item[step="${stepNumber}"]`).first()[0];
     }
     
     function getCurrentCell() {
@@ -243,12 +247,9 @@ function initializeCellNavigation() {
             }
         });
         
-        // If no cell has focus, try to find the last clicked cell
-        if (!currentCell && currentCellIndex !== null) {
-            const cells = getAllCells();
-            if (currentCellIndex < cells.length) {
-                currentCell = cells[currentCellIndex];
-            }
+        // If no cell has focus, try to find the cell by step number
+        if (!currentCell && currentCellStep !== null) {
+            currentCell = getCellByStep(currentCellStep);
         }
         
         // If still no cell, default to the first cell
@@ -256,7 +257,7 @@ function initializeCellNavigation() {
             const cells = getAllCells();
             if (cells.length > 0) {
                 currentCell = cells[0];
-                currentCellIndex = 0;
+                currentCellStep = parseInt($(currentCell).attr('step'));
             }
         }
         
@@ -264,12 +265,18 @@ function initializeCellNavigation() {
     }
     
     function moveToNextCell(currentCell) {
-        const cells = getAllCells();
-        const currentIndex = cells.indexOf(currentCell);
+        if (!currentCell) return null;
         
-        if (currentIndex !== -1 && currentIndex < cells.length - 1) {
-            const nextCell = cells[currentIndex + 1];
-            currentCellIndex = currentIndex + 1;
+        const currentStep = parseInt($(currentCell).attr('step'));
+        console.log('Current cell step:', currentStep);
+        
+        // Find the next cell by step number
+        const nextStep = currentStep + 1;
+        const nextCell = getCellByStep(nextStep);
+        
+        if (nextCell) {
+            currentCellStep = nextStep;
+            // console.log('Moving to next cell step:', nextStep);
             
             const nextEditor = $(nextCell).find('.cell-editor').first();
             if (nextEditor.length > 0) {
@@ -281,7 +288,64 @@ function initializeCellNavigation() {
                 }
             }
             
+            // Anchor scroll position to the next cell
+            function anchorToNextCell() {
+                const nextCellTop = nextCell.getBoundingClientRect().top + window.pageYOffset;
+                const viewportOffset = 100;
+                
+                window.scrollTo({
+                    top: nextCellTop - viewportOffset,
+                    behavior: 'smooth'
+                });
+            }
+            
+            setTimeout(anchorToNextCell, 200);
+            
+            // Monitor for DOM changes that might affect positioning
+            if (window.MutationObserver) {
+                const observer = new MutationObserver(function(mutations) {
+                    let shouldReanchor = false;
+                    
+                    mutations.forEach(function(mutation) {
+                        // Check if the mutation affects content before our next cell
+                        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                            const mutationTarget = mutation.target;
+                            
+                            // Check if this mutation is in a cell before our target cell
+                            const mutationCell = $(mutationTarget).closest('.clarama-cell-item')[0];
+                            if (mutationCell) {
+                                const mutationStep = parseInt($(mutationCell).attr('step'));
+                                if (mutationStep < nextStep) {
+                                    shouldReanchor = true;
+                                }
+                            }
+                        }
+                    });
+                    
+                    if (shouldReanchor) {
+                        anchorToNextCell();
+                    }
+                });
+                
+                // Observe the current cell's results area for changes
+                const currentCellResults = $(currentCell).find('.cell-results')[0];
+                if (currentCellResults) {
+                    observer.observe(currentCellResults, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true
+                    });
+                    
+                    // Stop observing after 10 seconds or when cell execution likely finishes
+                    setTimeout(() => {
+                        observer.disconnect();
+                    }, 10000);
+                }
+            }
+            
             return nextCell;
+        } else {
+            console.log('No next cell found after step:', currentStep);
         }
         
         return null;
@@ -292,20 +356,36 @@ function initializeCellNavigation() {
         
         const $cell = $(cell);
         const runButton = $cell.find('.celleditrun').first();
-        runButton.click();
+        if (runButton.length > 0) {
+            runButton.click();
+            return true;
+        }
+        return false;
+    }
+    
+    function toggleDebugForCurrentCell(cell) {
+        if (!cell) return false;
+        
+        const $cell = $(cell);
+        const debugButton = $cell.find('.celleditdebug').first();
+        if (debugButton.length > 0) {
+            debugButton.click();
+            return true;
+        }
+        return false;
     }
     
     // Event handlers
     $(document).on('click', '.clarama-cell-item', function() {
-        const cells = getAllCells();
-        currentCellIndex = cells.indexOf(this);
+        currentCellStep = parseInt($(this).attr('step'));
+        console.log('Clicked on cell step:', currentCellStep);
     });
     
     $(document).on('focus', '.cell-editor, .cell-editor input, .cell-editor textarea', function() {
         const cell = $(this).closest('.clarama-cell-item')[0];
         if (cell) {
-            const cells = getAllCells();
-            currentCellIndex = cells.indexOf(cell);
+            currentCellStep = parseInt($(cell).attr('step'));
+            console.log('Focused on cell step:', currentCellStep);
         }
     });
     
@@ -317,8 +397,13 @@ function initializeCellNavigation() {
             const currentCell = getCurrentCell();
             if (!currentCell) return;
             
-            runCurrentCell(currentCell);
-            moveToNextCell(currentCell);
+            const runSuccess = runCurrentCell(currentCell);
+            
+            if (runSuccess) {
+                setTimeout(() => {
+                    moveToNextCell(currentCell);
+                }, 300);
+            }
         }
 
         // Ctrl+\ : Toggle debug for current cell
