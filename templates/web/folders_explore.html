@@ -859,10 +859,10 @@
                     exitSelectMode();
                 }
 
-                // if (e.key === "Delete" && selecting) {          // Delete selected listings on Delete key
-                //     e.preventDefault();                         // Should add a "confirm delete" prompt before deleting
-                //     context_delete(); 
-                // }
+                if (e.key === "Delete" && selecting) {          // Delete selected listings on Delete key
+                    e.preventDefault();
+                    $('#deleteConfirmModal').modal('show');
+                }
 
                 if (e.ctrlKey && e.key === "c") {               // Ctrl + c (copy)
                     e.preventDefault();

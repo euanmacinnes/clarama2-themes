@@ -8,10 +8,10 @@ $(document).ready(function() {
     setTimeout(() => {
         captureInitialState();
         captureInitialSlateState();
+        setupModalHandlers();
     }, 1000);
     
     setupNavigationListeners();
-    setupModalHandlers();
     setupChangeDetection();
     setupSaveHooks();
 });
@@ -134,7 +134,8 @@ function setupNavigationListeners() {
     $(document).on('click', '.clarama-task-stop, .clarama-task-editrun, #kernel_status:not(.dropdown-toggle)', function(e) {
         if (isNavigating) return;
         
-        if ($(this).hasClass('dropdown-toggle') || $(this).attr('data-bs-toggle') === 'dropdown') {
+        if ($(this).hasClass('dropdown-toggle') || $(this).attr('data-bs-toggle') === 'dropdown' 
+            || $(this).hasClass('clarama-task-stop') || $(this).hasClass('clarama-task-editrun')) {
             return;
         }
         
@@ -152,6 +153,12 @@ function setupNavigationListeners() {
     
     $(document).on('click', '.dropdown-item.environments', function(e) {
         if (isNavigating) return;
+        
+        const isInEnvironmentDropdown = $(this).closest('ul[aria-labelledby="environment"]').length > 0;
+        
+        if (isInEnvironmentDropdown) {
+            return; // Let the default behavior happen (don't prevent default)
+        }
         
         e.preventDefault();
         const item = this;
@@ -238,86 +245,105 @@ function showUnsavedChangesModal(target, actionType) {
  * Set up modal button handlers
  */
 function setupModalHandlers() {
+    $('#save-and-continue').off('click.modal');
+    $('#discard-changes').off('click.modal');
+    $('#cancel-changes').off('click.modal');
+    
     // Save and continue button
-    $('#save-and-continue').on('click', function() {
+    $('#save-and-continue').on('click.modal', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         const modal = bootstrap.Modal.getInstance(document.getElementById('unsaved-changes-modal'));
         const target = $('#unsaved-changes-modal').data('target');
         const actionType = $('#unsaved-changes-modal').data('actionType');
         
-        // Trigger save - check which type of save to use
-        if (typeof saveGrid === 'function' && $('#save[onclick*="save("]').length > 0) {
-            // This is a slate page, trigger the slate save
-            $('#save').click();
-        } else {
-            // This is a task page, trigger the task save
-            $('#save').click();
+        isNavigating = true;
+        
+        try {
+            const saveButton = document.getElementById('save');
+            if (saveButton) {
+                $(saveButton).off('click.unsaved');
+                saveButton.click();
+            } else {
+                console.log("Save button not found!");
+            }
+        } catch (error) {
+            console.error("Error clicking save button:", error);
         }
         
-        // Wait for save to complete, then continue
         setTimeout(() => {
-            isNavigating = true;
             hasUnsavedChanges = false;
-            modal.hide();
+            
+            if (modal) {
+                modal.hide();
+            }
             
             // Execute the original action
             executeOriginalAction(target, actionType);
-        }, 1500); // Longer timeout for slate saves
+        }, 800); 
     });
     
-    // Discard changes button
-    $('#discard-changes').on('click', function() {
+    // Discard changes button  
+    $('#discard-changes').on('click.modal', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         const modal = bootstrap.Modal.getInstance(document.getElementById('unsaved-changes-modal'));
         const target = $('#unsaved-changes-modal').data('target');
         const actionType = $('#unsaved-changes-modal').data('actionType');
         
         isNavigating = true;
         hasUnsavedChanges = false;
-        modal.hide();
         
-        // Execute the original action
+        if (modal) {
+            modal.hide();
+        }
+        
         executeOriginalAction(target, actionType);
     });
     
-    // Cancel button - just close the modal
-    $('#cancel-changes').on('click', function() {
+    // Cancel button
+    $('#cancel-changes').on('click.modal', function(e) {
+        console.log("Cancel clicked!");
+        e.preventDefault();
+        e.stopPropagation();
+        
         const modal = bootstrap.Modal.getInstance(document.getElementById('unsaved-changes-modal'));
-        modal.hide();
-    });
-    
-    // Reset navigation flag when modal is hidden without action
-    $('#unsaved-changes-modal').on('hidden.bs.modal', function() {
-        // Only reset if we're not in the middle of navigating
-        setTimeout(() => {
-            if (isNavigating) {
-                isNavigating = false;
-            }
-        }, 100);
+        if (modal) {
+            modal.hide();
+        }
     });
 }
 
-/**
- * Execute the original action that was intercepted
- */
 function executeOriginalAction(target, actionType) {
+    console.log("Executing original action:", actionType, target);
+    
     switch (actionType) {
         case 'navigate':
+            console.log("Navigating to:", target);
             window.location.href = target;
             break;
         case 'submit':
-            $(target).off('submit.unsaved').trigger('submit');
+            console.log("Submitting form:", target);
+            if (target && target.submit) {
+                target.submit();
+            }
             break;
         case 'button':
-            const $button = $(target);
-            const $tempButton = $button.clone(false);
-            $tempButton.insertAfter($button);
-            $tempButton[0].click();
-            $tempButton.remove();
+            console.log("Clicking button:", target);
+            if (target && target.click) {
+                target.click();
+            }
             break;
         case 'dropdown-item':
-            if (target.onclick) {
+            console.log("Executing dropdown item:", target);
+            if (target && target.onclick) {
                 eval(target.onclick);
             }
             break;
+        default:
+            console.log("Unknown action type:", actionType);
     }
 }
 
