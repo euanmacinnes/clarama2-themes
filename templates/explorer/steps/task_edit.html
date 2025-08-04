@@ -2,29 +2,21 @@
     <div class="bg-info rounded text-light" style="padding: 5px">
         <div class="rounded text-light row">
             <div class="btn-group col align-items-center">
-                <!-- <button type="button" class="gridbrowsefile border border-0 bg-white input-group align-items-center" data-bs-toggle="modal" data-bs-target="#browseFileModal" inputId="task_step_{{ loop_index }}_source" filters="*.task.yaml">
-                    <input id="task_step_{{ loop_index }}_source" type="text" class="form-control border-0"
-                        placeholder="Task Filename" aria-label="Task relative filename"
-                        value="{{ source }}">
-                        <i class="bi bi-folder2-open px-2"></i>
-                    </input>
-                </button> -->
-
                 <div class="input-group">
                     <i class="bi bi-journal-arrow-down fs-4 me-2"></i>
-                    <input id="task_step_{{ loop_index }}_source" type="text"
+                    <input id="task_step_{{ loop_index }}_task" type="text"
                            class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus"
                            placeholder="Task Filename" aria-label="Task relative filename"
-                           value="{{ source }}">
+                           value="{{ task }}">
                     <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
                             data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                            inputId="task_step_{{ loop_index }}_source" filters="*.task.yaml">
+                            inputId="task_step_{{ loop_index }}_task" filters="*.task.yaml">
                         <i class="bi bi-folder2-open"></i>
                     </button>
                 </div>
 
-                {% if source %}
-                    <a href="{{ source }}" target="_blank" id="task_step_{{ loop_index }}_browse_link"
+                {% if task %}
+                    <a href="{{ task }}" target="_blank" id="task_step_{{ loop_index }}_browse_link"
                        class="text-decoration-none text-white">
                         <button id="task_step_{{ loop_index }}_browse" type="button"
                                 class="btn btn-secondary datasource" aria-haspopup="true"
@@ -42,7 +34,27 @@
                         </button>
                     </a>
                 {% endif %}
+
             </div>
+
+            <div class="input-group">
+                <input id="task_step_{{ loop_index }}_ping" type="number"
+                       class="form-control rounded-0 border border-end-0 border-light-subtle col-1 removeInputFocus"
+                       placeholder="Task Ping (milliseconds - default 100)" aria-label="Task ping"
+                       min="50"
+                       max="6000"
+                       value="{{ ping }}">
+
+                <input id="task_step_{{ loop_index }}_timeout" type="number"
+                       step="1"
+                       min="300"
+                       max="86400"
+                       class="form-control rounded-0 border border-end-0 border-light-subtle col-1 removeInputFocus"
+                       placeholder="Task Timeout (Seconds) - default 3000" aria-label="Task ping"
+                       value="{{ timeout }}">
+            </div>
+
+
         </div>
     </div>
 </div>
