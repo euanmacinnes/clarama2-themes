@@ -6,7 +6,8 @@
             {{ field_config | required }}
             {{ field_config | readonly }}
               class="row text-editor form-control clarama-text-editor clarama-field clarama-rtf-field"
-              celltype="text" style="height:100%">{{ field_value or get(field_config,'default','') }}</textarea>
+              celltype="text"
+              style="height:100%">{{ field_value or get(field_config,'default','') | unsafe }}</textarea>
 
     <script type="text/javascript">
         $(document).ready(() => {
