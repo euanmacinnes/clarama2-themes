@@ -66,9 +66,9 @@ $(document).on('click', '.delete-grid-interaction', function () {
 // selectedValueUrl - url of selected interaction
 // urlParams - extra params to send
 // menuItemName - (optional, only for context menu) context menu item label
-function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, menuItemName="") {
+function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, wait, menuItemName="") {
     const newGI = document.createElement("div");
     newGI.className = "clarama-post-embedded clarama-replaceable";
-    newGI.setAttribute("url", `/template/render/explorer/steps/grid_edit_interaction?uid=${newIndex}&current_element=${selectedValue}&target=${gelem_target}&current_element_url=${selectedValueUrl}&current_element_params=${urlParams}&menu_item_name=${menuItemName}`);
+    newGI.setAttribute("url", `/template/render/explorer/steps/grid_edit_interaction?uid=${newIndex}&current_element=${selectedValue}&target=${gelem_target}&current_element_url=${selectedValueUrl}&current_element_params=${urlParams}&do_wait=${wait}&menu_item_name=${menuItemName}`);
     return newGI;
 }
