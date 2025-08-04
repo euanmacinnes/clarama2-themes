@@ -16,17 +16,6 @@ function handle_add_selected_content(url, selecte_v = "") {
         });
 }
 
-// window.addEventListener('DOMContentLoaded', () => {
-//     const params = new URLSearchParams(window.location.search);
-//     const json = params.get('json');
- 
-//     const contentElem = document.getElementById('content');
-//     if (contentElem && json) {
-//         contentElem.setAttribute('json', json);
-//         console.log('Params received:', JSON.parse(json));
-//     }
-// });
-
 $(document).on('contextmenu', function (event) {
     const cm = document.getElementById('contextMenu');
     if (!cm) return;
@@ -193,35 +182,34 @@ function triggerTabInteraction(field, url, field_values = "", contextM = false) 
     if (!contextM) final_field = filePath(field);
     else final_field = field;
  
-    // const params = new URLSearchParams({ json: JSON.stringify(field_values) }).toString();
-    // console.log("triggerTabInteraction params", params)
-    let tabPath = resolveRelativeFilePath(final_field, url);
-    // let fullUrl;
-    // if (tabPath.charAt(tabPath.length - 1) == "?") fullUrl = "/content/default/" + tabPath + params;
-    // else fullUrl = "/content/default/" + tabPath + "?" + params;
- 
-    // window.open(fullUrl, "_blank");
-
-    $.ajax({
-        type: 'POST',
-        url: "/content/default/" + tabPath,
-        datatype: "json",
-        contentType: 'application/json',
-        data: JSON.stringify(field_values),
-        success: function(response) {
-            console.log("response", response)
-            var newWindow = window.open("/content/default/" + tabPath, '_blank');
+    let fullUrl = "/content/default/" + resolveRelativeFilePath(final_field, url);
+    if (fullUrl.charAt(fullUrl.length - 1) == "?") fullUrl = fullUrl.slice(0, -1);
+    console.log('triggerTabInteraction fullUrl', fullUrl);
+    console.log('triggerTabInteraction data', JSON.stringify(field_values));
+    
+    fetch($CLARAMA_ROOT + fullUrl + "?b64params=" + btoa(JSON.stringify(field_values)),
+        {
+            // headers: {
+            //     'Accept': 'application/json',
+            //     'Content-Type': 'application/json'
+            // },
+            method: "get",
+            // body: JSON.stringify(field_values)
+        })
+        .then(response => response.text())
+        .then(htmlContent => {
+            console.log("htmlContent", htmlContent)
+            const newWindow = window.open("", "_blank");
             if (newWindow) {
-                newWindow.document.write(response); 
+                newWindow.document.write(htmlContent);
                 newWindow.document.close();
             } else {
-                console.warn('Pop-up blocked or unable to open new window.');
+                alert("Popup blocked! Please allow popups for this site.");
             }
-        },
-        error: function(err) {
-            console.error('AJAX error:', err);
-        }
-    });
+        })
+        .catch((error) => {
+            console.error('Error fetching HTML:', error);
+        });
 }
 
 function showPopupNearMouse(field, url, field_values = "") {

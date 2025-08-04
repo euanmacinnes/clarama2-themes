@@ -615,6 +615,7 @@
       {{ grid_id }}elements = {};
       {{ grid_id }}grid['engine']['nodes'] = [];
       document.querySelector(`#${grid}-containment-wrapper .grid-stack`).innerHTML = "";
+      document.getElementById('settings_table_source').value = "";
       flash("Slate has been reset.", "success");
     }
   }
