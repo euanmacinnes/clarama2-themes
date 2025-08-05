@@ -75,12 +75,32 @@
                     data-bs-target="#interactionSettingsModal" onclick="openInteractionSettings('{{ target }}')" style="cursor: pointer;"></i></h6>
             </li>
             <div id="grid_element_target-{{ target }}">
+                <!-- 
+                    need to check if link.element is defined bec the old ver bef the interaction was implemented will hv smth like this:
+                        (i cnt rmb if last time got params in the element, iirc thr isnt but jic ill j check for it)
+                        element_6:
+                            links:
+                            - element_5
+                            url: ./End Date.field.yaml
+
+                    meanwhile with the interactions its like this:
+                        element_0:
+                            links:
+                            -   element: element_0
+                                params: ''
+                                uid: '0'
+                                url: ''
+                                wait: false
+                            spacing: '5'
+                            url: ./11_1sf.field.yaml
+                -->
                 {% for link in elements[target]['links'] %}
                     {% set uid = link.uid %}
                     {% if link.element is defined %}
                         {% set current_element = link.element %}
                         {% set current_element_url = link.url %}
                         {% set current_element_params = link.params %}
+                        {% set do_wait = link.wait %}
                         {% set menu_item_name = link.menu_item_name %}
                     {% else %}
                         {% set current_element = link %}

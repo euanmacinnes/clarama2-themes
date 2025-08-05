@@ -21,7 +21,7 @@
 
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" value="" id="wait">
-            <label class="form-check-label" for="wait" id="waitLabel">
+            <label class="form-check-label" for="wait">
               Wait for previous interaction to finish executing
             </label>
           </div>
@@ -115,12 +115,14 @@
     const cmItem_field = document.getElementById('menu-item');
     const inputId_field = document.getElementById('grid-elem');
     const cMenu = document.getElementById('cMenu');
+    const wait_cb = document.getElementById('wait');
     const label = document.getElementById('contextLabel');
 
     document.getElementById('interaction-target').value = button;
     browseBtn.setAttribute('gridElem', button);
 
     cMenu.checked = false;
+    wait_cb.checked = false;
     label.classList.remove('d-none');
     updateContextMenuUI(false);
 
@@ -145,6 +147,7 @@
       const url = button.getAttribute('data-url');
       const index = button.getAttribute('data-index');
       const params = button.getAttribute('data-params');
+      const doWait = button.getAttribute('data-wait');
       const menuItem = button.getAttribute('data-menuName');
 
       currentTarget = target;
@@ -153,6 +156,7 @@
       document.getElementById('interaction-params').value = params;
 
       if (type == "element") showElementOptions(url, initialType);
+      if (doWait) wait_cb.checked = true;
       if (menuItem) {
         cmItem_field.classList.remove('d-none');
         cMenu.checked = true;
@@ -282,14 +286,6 @@
       radio.classList.toggle('d-none', isChecked);
       label.classList.toggle('d-none', isChecked);
     });
-    
-    // document.querySelectorAll('input[name="interactionType"]').forEach(r => {
-    //   r.checked = false;
-    // });
-
-    // const dropdownContainer = document.getElementById('elementDropdownContainer');
-    // dropdownContainer.classList.remove('d-none');
-    // dropdownContainer.innerHTML = "";
   }
 
   document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
@@ -615,6 +611,7 @@
       {{ grid_id }}elements = {};
       {{ grid_id }}grid['engine']['nodes'] = [];
       document.querySelector(`#${grid}-containment-wrapper .grid-stack`).innerHTML = "";
+      document.getElementById('settings_table_source').value = "";
       flash("Slate has been reset.", "success");
     }
   }
@@ -791,7 +788,9 @@
     
     var checkedType = $('input[name="interactionType"]:checked').val();
     const isContextMenu = $('#cMenu').is(':checked');
-    console.log("isContextMenu", isContextMenu)
+    const doWait = $('#wait').is(':checked');
+    // console.log("isContextMenu", isContextMenu);
+    // console.log("doWait", doWait);
     const allowedTypes = ['popup', 'modal', 'tab', 'hidden'];
     if (!checkedType) {
       alert("Please select an interaction type");
@@ -834,12 +833,12 @@
     if (uid == "") {
       if (isContextMenu) {
         // console.log("uid empty, is ContextMenu")
-        elementToAddInteraction.links.push({ uid: nextUid, contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
-        grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams, menuItem));
+        elementToAddInteraction.links.push({ uid: nextUid, contextMenu: isContextMenu, wait: doWait, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
+        grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams, doWait, menuItem));
       } else {
         // console.log("uid empty, is not ContextMenu")
-        elementToAddInteraction.links.push({ uid: nextUid, element: checkedType, url: file_url, params: urlParams });
-        grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams));
+        elementToAddInteraction.links.push({ uid: nextUid, wait: doWait, element: checkedType, url: file_url, params: urlParams });
+        grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, doWait, urlParams));
       }
       enable_interactions($("#grid_element_target-" + gridElem));
     } else {
@@ -847,10 +846,10 @@
 
       if (isContextMenu) {
         // console.log("uid, is ContextMenu")
-        elementToAddInteraction.links[linkIdx] = { uid: uid, contextMenu: isContextMenu, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
+        elementToAddInteraction.links[linkIdx] = { uid: uid, contextMenu: isContextMenu, wait: doWait, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
       } else {
         // console.log("uid, is not ContextMenu")
-        elementToAddInteraction.links[linkIdx] = { uid: uid, element: checkedType, url: file_url, params: urlParams };
+        elementToAddInteraction.links[linkIdx] = { uid: uid, wait: doWait, element: checkedType, url: file_url, params: urlParams };
       }
 
       const li = grid_element_target.querySelector(`li[loop-index="${uid}"]`);
@@ -871,6 +870,7 @@
         gearIcon.setAttribute('data-element', checkedType);
         gearIcon.setAttribute('data-url', file_url);
         gearIcon.setAttribute('data-params', urlParams);
+        gearIcon.setAttribute('data-wait', doWait);
         if (isContextMenu) {
           gearIcon.setAttribute('data-menuName', menuItem);
         } else {

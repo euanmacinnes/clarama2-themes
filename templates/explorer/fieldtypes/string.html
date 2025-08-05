@@ -8,7 +8,7 @@
             {{ field_config | readonly }}
            autocomplete="on"
            placeholder="{{ get(field_config,'placeholder','') }}"
-           value="{{ field_value or get(field_config,'default','') }}"
+           value="{{ field_value or get(field_config,'default','') | unsafe }}"
             {% include theme("explorer/files/field_tooltip.html") %}
     />
 {% endblock %}

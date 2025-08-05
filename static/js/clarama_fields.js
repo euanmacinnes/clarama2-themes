@@ -73,7 +73,7 @@ function get_field_values(registry, raw, field_submit) {
             function (index) {
                 var input = $(this);
                 // var panel = $("#panel_" + input.attr('name'));
-                console.log("Input Field " + input.attr("id") + ':' + input.val());
+                console.log("Input Field " + input.attr("data-id") + ':' + input.val());
 
                 switch (input.attr('fieldtype')) {
                     case 'file':
@@ -165,9 +165,9 @@ function check_fields_valid() {
                         valid = false;
                         input.tooltip('show');
                     }
-                    console.log("Input Field " + input.attr("id") + ':' + inputval + ':' + valid);
+                    console.log("Input Field " + input.attr("data-id") + ':' + inputval + ':' + valid);
                 } else {
-                    console.log("Input Field " + input.attr("id") + ': not required');
+                    console.log("Input Field " + input.attr("data-id") + ': not required');
                 }
             }
         }
