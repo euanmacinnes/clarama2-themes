@@ -27,8 +27,6 @@ $(document).on('contextmenu', function (event) {
     if (!target) return;
     if (!grid) return;
 
-    event.preventDefault();
-
     const elementId = $(target).attr('gs-id');
     const gridId = $(grid).attr('grid_id');
     console.log("elementId", elementId);
@@ -50,6 +48,9 @@ $(document).on('contextmenu', function (event) {
     // console.log("menuInteractions", menuInteractions);
     // console.log("menuInteractions length", menuInteractions.length);
     if (menuInteractions.length === 0) return;
+
+    // only hide original context menu if thrs context menu interactions
+    event.preventDefault();
 
     // if it is a table, the context menu shld do it like onClickRow in bTable() 
     let table_selection = null;
