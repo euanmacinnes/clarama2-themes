@@ -22,7 +22,7 @@
 
 <form>
     <div class="gina-controls w-100 d-flex justify-content-start align-items-center px-3 mt-3">
-        <button class="gina-save" title="Save">
+        <button type="button" class="gina-save" title="Save">
             <i class="bi bi-floppy"></i>
         </button>
     </div>
@@ -60,3 +60,55 @@
 {% include theme("explorer/files/file_changes_prompt_template.html") %}
 {% include theme("explorer/files/task_response_templates.html") %}
 {% include theme("web/file_footer.html") %}
+
+<script type="text/javascript">
+    $(document).ready(() => {
+        $('.gina-save').on('click', function () {
+            console.log('Saving conversation...');
+
+            const steps = [];
+
+            // For each .cell-editor, collect its content
+            $('.clarama-post-embedded.cell-editor').each(function () {
+                const inputs = $(this).find('textarea, input, [contenteditable=true]');
+                const stepContent = inputs.map(function () {
+                    return $(this).val() || $(this).text();
+                }).get().join('\n');
+
+                steps.push({ content: stepContent });
+            });
+
+            const payload = {
+                conversation: {
+                    streams: [
+                        {
+                            main: steps
+                        }
+                    ]
+                }
+            };
+
+            console.log('Payload:', payload);
+
+            // this url is wrong
+            const filePath = "/content/save/" + $(this).attr("url");
+            console.log(filePath);
+
+            $.ajax({
+                url: filePath,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function (response) {
+                    flash('Conversation saved successfully', 'success');
+                    console.log('Save success:', response);
+                },
+                error: function (xhr, status, error) {
+                    flash('Failed to save conversation: ' + error, 'danger');
+                    console.error('Save failed:', error);
+                }
+            });
+        });
+    });
+</script>
+
