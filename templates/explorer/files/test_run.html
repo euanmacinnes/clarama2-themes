@@ -125,6 +125,86 @@
         </div>
     </div>
 
+    <!-- Test Blocks Section -->
+    <div class="row">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <hr/>
+            <button type="button" class="btn btn-secondary">Test Blocks</button>
+        </div>
+        <div class="col mb-3" style="padding: 0">
+            <hr/>
+            <div class="container-fluid">
+                {% if test.blocks %}
+                    {% for block in test.blocks %}
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5>{{ block.name }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <h6>Actions</h6>
+                                <ul class="list-group mb-3">
+                                    {% for action in block.actions %}
+                                        <li class="list-group-item">
+                                            {% if action.type == 'goto' %}
+                                                <strong>Go to URL:</strong> {{ action.url }}
+                                            {% elif action.type == 'get_by_role' %}
+                                                <strong>Get element by role:</strong> {{ action.role }} 
+                                                {% if action.name %}with name "{{ action.name }}"{% endif %}
+                                                
+                                                {% if action.actions %}
+                                                    <ul class="list-group mt-2">
+                                                        {% for role_action in action.actions %}
+                                                            <li class="list-group-item">
+                                                                {% if role_action.type == 'click' %}
+                                                                    <strong>Click</strong>
+                                                                {% elif role_action.type == 'fill' %}
+                                                                    <strong>Fill with:</strong> {{ role_action.value }}
+                                                                {% elif role_action.type == 'press' %}
+                                                                    <strong>Press key:</strong> {{ role_action.key }}
+                                                                {% endif %}
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% endif %}
+                                            {% elif action.type == 'page_locator' %}
+                                                <strong>Locate element:</strong> {{ action.selector }}
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                                
+                                {% if block.expects %}
+                                    <h6>Expectations</h6>
+                                    <ul class="list-group">
+                                        {% for expect in block.expects %}
+                                            <li class="list-group-item">
+                                                <strong>Element:</strong> {{ expect.element }}<br>
+                                                <strong>Condition:</strong> 
+                                                {% if expect.condition == 'visible' %}
+                                                    Is Visible
+                                                {% elif expect.condition == 'contains' %}
+                                                    Contains Text "{{ expect.value }}"
+                                                {% elif expect.condition == 'has_value' %}
+                                                    Has Value "{{ expect.value }}"
+                                                {% endif %}
+                                                <br>
+                                                <strong>Timeout:</strong> {{ expect.timeout }} ms
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        No test blocks defined. Click the Edit button to add test blocks.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- Test Results Section (initially hidden) -->
     <div class="row" id="test-results-section" style="display: none;">
         <div class="col-1 bg-secondary text-light" style="padding: 0">
