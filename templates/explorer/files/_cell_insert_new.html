@@ -76,5 +76,22 @@
                data-bs-placement="bottom"
                title="Add a question step to ask a specific LLM prompt"></i>Question
         </button>
+
+        <button id="step_new_insert_test_config" type="button" class="btn insert_step fs-4" steptype="test_config"
+                stream="{{ stream }}">
+            <i class="bi bi-gear-wide-connected fs-4 me-2"
+               data-bs-toggle="tooltip"
+               data-bs-placement="bottom"
+               title="Add a browser test configuration. This starts an offline recording, playback and test section for testing browser functionality"></i>Test
+            Configuration
+        </button>
+        <button id="step_new_insert_test_block" type="button" class="btn insert_step fs-4" steptype="test_block"
+                stream="{{ stream }}">
+            <i class="bi bi-pencil-square fs-4 me-2"
+               data-bs-toggle="tooltip"
+               data-bs-placement="bottom"
+               title="Add a browser test configuration. This starts an offline recording, playback and test section for testing browser functionality"></i>Test
+            Block
+        </button>
     </div>
 </center>
