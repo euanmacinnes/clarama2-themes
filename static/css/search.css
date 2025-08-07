@@ -1,4 +1,4 @@
-* { 
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -30,7 +30,7 @@
 }
 
 .nav-search-wrapper input:focus,
-.nav-search-wrapper input:not(:focus)+.nav-search-btn:focus {
+.nav-search-wrapper input:not(:focus) + .nav-search-btn:focus {
     outline: transparent;
 }
 
@@ -58,9 +58,10 @@ input[type="search"]::-webkit-search-cancel-button {
 }
 
 .clarama-edit-element.highlight {
-    border-color: #000 !important;
-    background-color: #eee !important; 
-    transition: background-color, border-color 0.2s ease-in-out;
+    border-color: DeepSkyBlue !important;
+    background-color: #eee !important;
+    box-shadow: 0 0 15px 5px rgba(0, 190, 255, 0.5);
+    transition: box-shadow, background-color, border-color 0.5s ease-in-out;
 }
 
 .bi-plus-circle.grid-interaction-add:hover {
@@ -75,7 +76,7 @@ input[type="search"]::-webkit-search-cancel-button {
     padding: 10px;
     background-color: white;
     border: 1px solid #ccc;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     max-width: 44%;
 }
 
@@ -144,7 +145,7 @@ input[type="search"]::-webkit-search-cancel-button {
     transform: translate(-50%);
     background: #191919;
     z-index: 100;
-    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
     padding: 0.5rem;
     border-radius: 0.25rem;
     font-size: 15px;
@@ -165,12 +166,12 @@ input[type="search"]::-webkit-search-cancel-button {
 }
 
 #contextMenu {
-    z-index: 1050; 
+    z-index: 1050;
     min-width: 150px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-#contextMenu .dropdown-item:focus, #contextMenu  .dropdown-item:hover {
+#contextMenu .dropdown-item:focus, #contextMenu .dropdown-item:hover {
     background-color: #f3f3f3 !important;
 }
 
@@ -181,20 +182,20 @@ input[type="search"]::-webkit-search-cancel-button {
 .nav-item {
     position: relative;
     border: none;
-    width:fit-content;
+    width: fit-content;
 }
 
 .tab-item::after {
     content: "";
     position: absolute;
     right: 0;
-    top: 25%; 
-    bottom: 25%; 
+    top: 25%;
+    bottom: 25%;
     width: 2px;
     background-color: #dee2e6;
 }
 
-.nav-link:not(.active) .tab-title { 
+.nav-link:not(.active) .tab-title {
     color: rgb(0, 45, 247);
 }
 

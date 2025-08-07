@@ -1,0 +1,237 @@
+{% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
+
+<div class="container-fluid bg-light">
+    <div class="row" style="padding: 0">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <button type="button" class="btn btn-secondary">Playwright Test</button>
+        </div>
+        <div class="col">
+            <div class="row">
+            </div>
+        </div>
+        <div class="col-auto">
+            <ul class="btn-group clarama-test" role="group" aria-label="test_functions">
+                <a href="{{ url_for('claramaservices_explorer.content_explore', mode='edit', subdir=file_url|dirname, filename=file_url|basename) }}"
+                   class="btn btn-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                <button id="btn-execute-test" class="btn btn-primary" title="Execute Test"><i
+                        class="bi bi-play-fill"></i> Run Test
+                </button>
+                <button id="btn-convert-test" class="btn btn-info" title="View Python Code"><i
+                        class="bi bi-code-slash"></i> View Code
+                </button>
+            </ul>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <hr/>
+            <button type="button" class="btn btn-secondary">Configuration</button>
+        </div>
+        <div class="col mb-3" style="padding: 0">
+            <hr/>
+            <div class="container-fluid">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Playwright Test Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <tbody>
+                            <tr>
+                                <th scope="row">Browser</th>
+                                <td>{{ test.browser|capitalize }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Headless Mode</th>
+                                <td>{% if test.headless %}Yes{% else %}No{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Viewport</th>
+                                <td>{{ test.viewport.width }} x {{ test.viewport.height }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Timeout</th>
+                                <td>{{ test.timeout }} ms</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Screenshot Mode</th>
+                                <td>
+                                    {% if test.screenshot == 'on' %}
+                                        Always
+                                    {% elif test.screenshot == 'off' %}
+                                        Never
+                                    {% elif test.screenshot == 'only-on-failure' %}
+                                        Only on Failure
+                                    {% else %}
+                                        {{ test.screenshot }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Video Recording</th>
+                                <td>
+                                    {% if test.video == 'on' %}
+                                        Always
+                                    {% elif test.video == 'off' %}
+                                        Never
+                                    {% elif test.video == 'retain-on-failure' %}
+                                        Retain on Failure
+                                    {% else %}
+                                        {{ test.video }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Trace Recording</th>
+                                <td>
+                                    {% if test.trace == 'on' %}
+                                        Always
+                                    {% elif test.trace == 'off' %}
+                                        Never
+                                    {% elif test.trace == 'retain-on-failure' %}
+                                        Retain on Failure
+                                    {% else %}
+                                        {{ test.trace }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Python Code Section (initially hidden) -->
+    <div class="row" id="python-code-section" style="display: none;">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <hr/>
+            <button type="button" class="btn btn-secondary">Python Code</button>
+        </div>
+        <div class="col mb-3" style="padding: 0">
+            <hr/>
+            <div class="container-fluid">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Generated Python Code</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="python-code-display" class="bg-dark text-light p-3"
+                             style="border-radius: 5px; max-height: 500px; overflow-y: auto;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Results Section (initially hidden) -->
+    <div class="row" id="test-results-section" style="display: none;">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <hr/>
+            <button type="button" class="btn btn-secondary">Test Results</button>
+        </div>
+        <div class="col mb-3" style="padding: 0">
+            <hr/>
+            <div class="container-fluid">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>Test Execution Results</h5>
+                        <span id="test-status-badge" class="badge"></span>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-results-message" class="alert mb-3"></div>
+                        <div id="test-results-details">
+                            <h6>Details:</h6>
+                            <pre id="test-results-json" class="bg-dark text-light p-3"
+                                 style="border-radius: 5px; max-height: 300px; overflow-y: auto;"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for handling test execution and code viewing -->
+<script>
+    $(document).ready(function () {
+        // Handle Execute Test button click
+        $('#btn-execute-test').click(function () {
+            // Show loading state
+            $('#test-results-section').show();
+            $('#test-status-badge').removeClass('bg-success bg-danger').addClass('bg-warning').text('Running...');
+            $('#test-results-message').removeClass('alert-success alert-danger').addClass('alert-warning').text('Test is running, please wait...');
+            $('#test-results-details').hide();
+
+            // Execute the test
+            $.ajax({
+                url: '{{ url_for("claramaservices_explorer.content_explore", mode="execute", subdir=file_url|dirname, filename=file_url|basename) }}',
+                method: 'POST',
+                success: function (response) {
+                    const result = JSON.parse(response);
+                    displayTestResults(result);
+                },
+                error: function (xhr) {
+                    $('#test-status-badge').removeClass('bg-warning bg-success').addClass('bg-danger').text('Error');
+                    $('#test-results-message').removeClass('alert-warning alert-success').addClass('alert-danger')
+                        .text('Failed to execute test: ' + xhr.statusText);
+                    $('#test-results-details').hide();
+                }
+            });
+        });
+
+        // Handle View Code button click
+        $('#btn-convert-test').click(function () {
+            // Show loading state
+            $('#python-code-section').show();
+            $('#python-code-display').text('Loading Python code...');
+
+            // Get the Python code
+            $.ajax({
+                url: '{{ url_for("claramaservices_explorer.content_explore", mode="convert", subdir=file_url|dirname, filename=file_url|basename) }}',
+                method: 'GET',
+                success: function (response) {
+                    const result = JSON.parse(response);
+                    if (result.status === 'success') {
+                        $('#python-code-display').text(result.python_code);
+                    } else {
+                        $('#python-code-display').text('Error: ' + result.message);
+                    }
+                },
+                error: function (xhr) {
+                    $('#python-code-display').text('Failed to load Python code: ' + xhr.statusText);
+                }
+            });
+        });
+
+        // Function to display test results
+        function displayTestResults(result) {
+            if (result.status === 'success') {
+                const testResult = result.results;
+
+                // Update status badge
+                if (testResult.success) {
+                    $('#test-status-badge').removeClass('bg-warning bg-danger').addClass('bg-success').text('Passed');
+                    $('#test-results-message').removeClass('alert-warning alert-danger').addClass('alert-success')
+                        .text(testResult.message || 'Test executed successfully');
+                } else {
+                    $('#test-status-badge').removeClass('bg-warning bg-success').addClass('bg-danger').text('Failed');
+                    $('#test-results-message').removeClass('alert-warning alert-success').addClass('alert-danger')
+                        .text(testResult.message || 'Test execution failed');
+                }
+
+                // Show details
+                $('#test-results-details').show();
+                $('#test-results-json').text(JSON.stringify(testResult.details || {}, null, 2));
+            } else {
+                $('#test-status-badge').removeClass('bg-warning bg-success').addClass('bg-danger').text('Error');
+                $('#test-results-message').removeClass('alert-warning alert-success').addClass('alert-danger')
+                    .text('Error: ' + result.message);
+                $('#test-results-details').hide();
+            }
+        }
+    });
+</script>
+
+{% include theme("web/file_footer.html") %}

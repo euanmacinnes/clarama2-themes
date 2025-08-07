@@ -357,11 +357,18 @@ function get_task_cell(cell) {
     console.log("Getting data " + id);
 
     var task_id = "task_step_" + dataid + "_task";
+    var task_ping = "task_step_" + dataid + "_ping";
+    var task_timeout = "task_step_" + dataid + "_timeout";
+
     var task = $("#" + task_id).val();
+    var ping = $("#" + task_ping).val();
+    var timeout = $("#" + task_timeout).val();
 
     return {
         "type": "task",
-        "source": task
+        "task": task,
+        "ping": ping,
+        "timeout": timeout
     };
 }
 
