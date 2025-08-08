@@ -10,7 +10,7 @@
     transition: opacity 0.4s ease;
 }
 
-/* GINA Title (outside container) */
+/* GINA Title */
 .gina-title {
     position: fixed;
     top: 50%;
@@ -72,12 +72,17 @@
     position: relative;
 }
 
+/* Input Wrapper - for positioning send button */
+.gina-input-wrapper {
+    margin-bottom: 16px;
+}
+
 /* Input Field */
 .gina-input {
     width: 100%;
     min-height: 120px;       
     resize: vertical;
-    padding: 14px 18px;
+    padding: 14px 60px 14px 18px; /* Added right padding for send button */
     font-size: 1rem;
     font-family: inherit;
     border: none;
@@ -92,11 +97,17 @@
     overflow-y: auto;
 }
 
+.gina-input.locked {
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 .gina-input::placeholder {
     color: rgba(255, 255, 255, 0.6);
 }
 
-.gina-input:focus {
+.gina-input:focus:not(.locked) {
     background-color: rgba(255, 255, 255, 0.25);
     box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
 }
@@ -125,8 +136,10 @@
     transform: scale(1.1);
 }
 
-/* Send Button Container */
+/* Send Button Container - positioned at bottom right of input */
 .gina-send-container {
+    bottom: 12px;
+    right: 12px;
     opacity: 0;
     transform: translateX(20px);
     pointer-events: none;
@@ -143,14 +156,15 @@
 .gina-send-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: rgba(150, 150, 150, 0.308);
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: rgba(0, 153, 247, 0.6);
     color: white;
     border: none;
-    border-radius: 25px;
-    font-size: 0.8rem;
-    font-weight: 500;
+    border-radius: 50%;
+    font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 153, 247, 0.3);
@@ -160,19 +174,74 @@
 .gina-send-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 153, 247, 0.4);
-    background: linear-gradient(135deg, #00b7ff76, #0098f782);
+    background: rgba(0, 153, 247, 0.8);
 }
 
 .gina-send-btn:active {
     transform: translateY(0);
 }
 
+.gina-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
 .gina-send-btn i {
     font-size: 1.1rem;
 }
 
-.send-text {
-    letter-spacing: 0.5px;
+/* Output Container */
+.gina-output-container {
+    margin-top: 16px;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+.gina-output-header {
+    padding: 12px 18px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.gina-output {
+    padding: 14px 18px;
+    color: #fff;
+    min-height: 60px;
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.gina-output.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.gina-output.loading::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* GINA Button Group Styles */
