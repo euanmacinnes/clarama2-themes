@@ -324,15 +324,37 @@
             return true;
         }
 
+        function getExistingNames(excludeElement = null) {
+            let existingNames = new Set();
+            $('.listing_div').each(function () {
+                // Skip the element we're currently editing
+                if (excludeElement && this === excludeElement) {
+                    return; // Continue to next iteration
+                }
+                
+                const name = $(this).text().trim();
+                if (name) existingNames.add(name);
+            });
+            return existingNames;
+        }
+
         function content_new() {
             var new_content = $("#new_content").val().trim();
             var new_content_type = $("#new_content_type").val();
 
-            if (!isValidFilename(new_content)) {
-                return; // Stop if invalid
+            if (!isValidFilename(new_content)) return;
+
+            const existingNames = getExistingNames();
+
+            if (existingNames.has(new_content)) {
+                flash("A file or folder with that name already exists.", "danger");
+                return;  // Stop creation
             }
 
-            var file = "/render/new/{{ local_url }}?new_content=" + encodeURIComponent(new_content) + "&new_content_type=" + encodeURIComponent(new_content_type);
+            const file = "/render/new/{{ local_url }}?new_content=" +
+                encodeURIComponent(new_content) +
+                "&new_content_type=" +
+                encodeURIComponent(new_content_type);
 
             execute_json_url(file, true);
         }
@@ -441,10 +463,26 @@
         }
 
         function rename_finished(object) {
-            var conattr = $(object).text();
+            var newName = $(object).text().trim();
             $(object).attr('contenteditable', false);
 
-            var file = "/render/rename/" + $("#context-menu").attr("listing_filepath") + '?new_name=' + conattr;
+            var existingNames = getExistingNames(object);
+
+            if (!isValidFilename(newName)) {
+                flash("Invalid file or folder name.", "danger");
+                return;
+            }
+
+            var currentName = $("#context-menu").attr("listing_file");
+            existingNames.delete(currentName);
+
+            if (existingNames.has(newName)) {
+                flash("A file or folder with that name already exists.", "danger");
+                $(object).text(currentName);
+                return;
+            }
+
+            var file = "/render/rename/" + $("#context-menu").attr("listing_filepath") + '?new_name=' + encodeURIComponent(newName);
 
             execute_json_url(file, true);
             console.log("renaming");

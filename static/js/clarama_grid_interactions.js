@@ -5,7 +5,7 @@
 let lastMouseEvent = null;
 var currentModalAddContentPath = "";
 
-// this exists because add_selected_content() has a promise so need to catch here 
+// this exists because add_selected_content() has a promise n the onlcick will call add_selected_content() but it wont be able to catch err onclick
 function handle_add_selected_content(url, selecte_v = "") {
     add_selected_content(url, selecte_v)
         .then(() => {
@@ -20,21 +20,22 @@ $(document).on('contextmenu', function (event) {
     const cm = document.getElementById('contextMenu');
     if (!cm) return;
 
-    // if ($('#contextMenu').data('contextType') === 'table') return;
+    if ($('#contextMenu').data('contextType') === 'table') return;
 
     const target = event.target.closest('.grid-stack-item');
     const grid = event.target.closest('.clarama-grid');
     if (!target) return;
+    if (!grid) return;
 
     event.preventDefault();
 
     const elementId = $(target).attr('gs-id');
     const gridId = $(grid).attr('grid_id');
-    // console.log("elementId", elementId);
-    // console.log("gridId", gridId);
+    console.log("elementId", elementId);
+    console.log("gridId", gridId);
 
     const elementInteractions = eval(gridId + "elements[elementId]['links']");
-
+    if (!elementInteractions) return;
     const menuInteractions = [];
 
     if (elementInteractions === undefined) return;
@@ -81,13 +82,7 @@ $(document).on('contextmenu', function (event) {
     $contextMenu.data('tableSelection', table_selection ? JSON.stringify(table_selection) : '')
 
     $contextMenu.html(menuInteractions.map((interaction, i) => {
-        if (interaction.element === "tab") {
-            return `<a href="${interaction.url}" target="_blank" class="text-decoration-none text-black">
-                        <button class="dropdown-item datasource" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>
-                    </a>`;
-        } else {
-            return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
-        }
+        return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
     }).join(''));
 
     $contextMenu.find('button').on('click', function (e) {
@@ -111,7 +106,7 @@ $(document).on('contextmenu', function (event) {
 
             if (elem == "modal") showModalWithContent(fileU, url, field_values, true);
             else if (elem.includes("element_")) {
-                $("#" + elem).html('').append(showInteractionContent(fileU, 'run', url + "?" + params, true));
+                $("#" + elem).html('').append(showInteractionContent(fileU, 'run', url + "?" + params, field_values, true));
                 enable_interactions($("#" + elem));
             } else if (elem == "hidden") {
                 // this prob isnt the most ideal way but i think itll do for now since autorun isnt work
@@ -129,6 +124,8 @@ $(document).on('contextmenu', function (event) {
                         flash("hidden content ran");
                     }
                 }, 300);
+            } else if (elem == "tab") {
+                triggerTabInteraction(fileU, url, field_values, true);
             }
             $contextMenu.addClass('d-none');
         });
@@ -156,18 +153,18 @@ document.addEventListener('mousemove', function (e) {
     lastMouseEvent = e;
 });
 
-function showModalWithContent(field, url, parameters = "", contextM = false) {
+function showModalWithContent(field, url, field_values = "", contextM = false) {
     $('#interactionModal').modal('show');
     const iModal = document.getElementById("interactionModalBody");
     iModal.innerHTML = '';
-    iModal.append(showInteractionContent(field, 'modal', url, parameters, contextM));
+    iModal.append(showInteractionContent(field, 'modal', url, field_values, contextM));
     enable_interactions($("#interactionModalBody"), true, true);
 }
 
-function playHiddenContent(field, url, parameters = "", contextM = false) {
+function playHiddenContent(field, url, field_values = "", contextM = false) {
     const iModal = document.getElementById("interactionModalBody");
     iModal.innerHTML = '';
-    iModal.append(showInteractionContent(field, 'modal', url, parameters, contextM));
+    iModal.append(showInteractionContent(field, 'modal', url, field_values, contextM));
     enable_interactions($("#interactionModalBody"), true, true);
 }
 
@@ -178,15 +175,50 @@ function filePath(field) {
     return field.closest(".clarama-grid").attr("file_path");
 }
 
-function triggerTabInteraction(field, url, parameters = "") {
-    // console.log("parameters", parameters)
-    let fullUrl = "/content/default/" + resolveRelativeFilePath(filePath(field), url);
-    window.open(fullUrl, "_blank");
+function triggerTabInteraction(field, url, field_values = "", contextM = false) {
+    console.log("triggerTabInteraction field_values", field_values);
+
+    let final_field;
+    if (!contextM) final_field = filePath(field);
+    else final_field = field;
+ 
+    let fullUrl = "/content/default/" + resolveRelativeFilePath(final_field, url);
+    if (fullUrl.charAt(fullUrl.length - 1) == "?") fullUrl = fullUrl.slice(0, -1);
+    console.log('triggerTabInteraction fullUrl', fullUrl);
+    console.log('triggerTabInteraction data', JSON.stringify(field_values));
+    
+    fetch($CLARAMA_ROOT + fullUrl + "?b64params=" + btoa(JSON.stringify(field_values)),
+        {
+            // headers: {
+            //     'Accept': 'application/json',
+            //     'Content-Type': 'application/json'
+            // },
+            method: "get",
+            // body: JSON.stringify(field_values)
+        })
+        .then(response => response.text())
+        .then(htmlContent => {
+            console.log("htmlContent", htmlContent)
+            const newWindow = window.open("", "_blank");
+            if (newWindow) {
+                newWindow.document.write(htmlContent);
+                newWindow.document.close();
+            } else {
+                alert("Popup blocked! Please allow popups for this site.");
+            }
+        })
+        .catch((error) => {
+            console.error('Error fetching HTML:', error);
+        });
 }
 
-function showPopupNearMouse(field, url, parameters = "") {
+function showPopupNearMouse(field, url, field_values = "") {
+    console.log("showPopupNearMouse field", field)
+    console.log("showPopupNearMouse url", url)
+    console.log("showPopupNearMouse field_values", field_values)
     const ipopup = document.getElementById('interactionPopup');
-    // console.log("ipopup", ipopup)
+    console.log("showPopupNearMouse ipopup", ipopup)
+    console.log("showPopupNearMouse lastMouseEvent", lastMouseEvent)
 
     if (lastMouseEvent) {
         const popupMaxWidthPercent = 43;
@@ -209,18 +241,23 @@ function showPopupNearMouse(field, url, parameters = "") {
 
     ipopup.style.display = 'block';
     ipopup.innerHTML = '';
-    ipopup.append(showInteractionContent(field, 'popup', url, parameters));
+    ipopup.append(showInteractionContent(field, 'popup', url, field_values));
     enable_interactions($("#interactionPopup"), true);
 
-    document.addEventListener('click', function hideOnClick(e) {
-        if (!ipopup.contains(e.target)) {
-            ipopup.style.display = 'none';
-            document.removeEventListener('click', hideOnClick);
-        }
-    });
+    // add eventlistener only when popup fullt rendered
+    setTimeout(() => {
+        // this will detect clicks outside the popup so that the popup will close
+        const hideOnClick = (e) => {
+            if (!ipopup.contains(e.target)) {
+                ipopup.style.display = 'none';
+                document.removeEventListener('mousedown', hideOnClick);
+            }
+        };
+        document.addEventListener('mousedown', hideOnClick);
+    }, 0);
 }
 
-function showInteractionContent(field, interaction, relativeP, parameters, contextM = false) {
+function showInteractionContent(field, interaction, relativeP, field_values, contextM = false) {
     let currentP;
     let ICurl;
     let file_path;
@@ -253,7 +290,7 @@ function showInteractionContent(field, interaction, relativeP, parameters, conte
     const newIC = document.createElement("div");
     newIC.className = "clarama-post-embedded clarama-replaceable";
     newIC.setAttribute("url", `${ICurl}`);
-    newIC.setAttribute("json", JSON.stringify(parameters));
+    newIC.setAttribute("json", JSON.stringify(field_values));
     // newIC.setAttribute("autorun", "True");
     return newIC;
 }

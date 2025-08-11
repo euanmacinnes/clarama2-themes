@@ -134,10 +134,16 @@ function setupNavigationListeners() {
     $(document).on('click', '.clarama-task-stop, .clarama-task-editrun, #kernel_status:not(.dropdown-toggle)', function(e) {
         if (isNavigating) return;
         
-        if ($(this).hasClass('dropdown-toggle') || $(this).attr('data-bs-toggle') === 'dropdown' 
-            || $(this).hasClass('clarama-task-stop') || $(this).hasClass('clarama-task-editrun')) {
+        if (
+            $(this).hasClass('dropdown-toggle') ||
+            $(this).attr('data-bs-toggle') === 'dropdown' ||
+            $(this).hasClass('clarama-task-stop') ||
+            $(this).hasClass('clarama-task-editrun') ||
+            $(this).is('#kernel_status')
+        ) {
             return;
         }
+        
         
         e.preventDefault();
         const button = this;

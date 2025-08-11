@@ -1,299 +1,214 @@
-(function() {
-    'use strict';
-    
-    let hasUnsavedChanges = false;
-    let originalContent = '';
-    let isSaving = false;
-    let editorElement = null;
-    let saveButtonElement = null;
-    let editorType = 'textarea';
-    let initialized = false;
+let initialContent = null;
+let hasUnsavedChanges = false;
+let isNavigating = false;
+let pendingAction = null; 
+let modalInstance = null;
 
-    // Configuration
-    function initializeFromDataAttributes() {
-        const configElement = $('[data-editor-id]').first();
-        if (configElement.length === 0) {
-            autoDetectConfiguration();
-            return;
-        }
+$(document).ready(() => {
+    setTimeout(() => {
+        captureInitialContent();
+        setupModalHandlers();
+    }, 500);
+    setupNavigationListeners();
+    setupChangeDetection();
+    setupSaveHooks();
+});
 
-        const editorId = configElement.data('editor-id');
-        const saveButtonId = configElement.data('save-button-id');
-        editorType = configElement.data('editor-type') || 'textarea';
+function captureInitialContent() {
+    initialContent = getEditorContent();
+    console.log("Initial content captured");
+}
 
-        editorElement = $('#' + editorId);
-        saveButtonElement = $('#' + saveButtonId);
-
-        if (editorElement.length === 0 || saveButtonElement.length === 0) {
-            console.warn('Unsaved changes handler: Could not find editor or save button elements');
-            return;
-        }
-
-        initialized = true;
+function getEditorContent() {
+    const markdownEl = document.getElementById('markdown');
+    if (markdownEl && typeof $(markdownEl).trumbowyg === 'function') {
+        return $(markdownEl).trumbowyg('html');
     }
-
-    // Auto-detect configuration for backward compatibility
-    function autoDetectConfiguration() {
-        // Try to detect markdown editor
-        if ($('#markdown').length && $('#markdown_save').length) {
-            editorElement = $('#markdown');
-            saveButtonElement = $('#markdown_save');
-            editorType = 'trumbowyg';
-            initialized = true;
-            return;
-        }
-
-        // Try to detect YAML/raw editor
-        const rawEditor = $('[id^="content_query_"]');
-        if (rawEditor.length) {
-            const saveButtonId = rawEditor.attr('savebutton');
-            if (saveButtonId && $('#' + saveButtonId).length) {
-                editorElement = rawEditor;
-                saveButtonElement = $('#' + saveButtonId);
-                editorType = rawEditor.attr('editor') || 'textarea';
-                initialized = true;
-                return;
-            }
-        }
-
-        console.warn('Unsaved changes handler: Could not auto-detect editor configuration');
+    const rawEl = document.querySelector('.source-editor');
+    if (!rawEl) return '';
+    if (rawEl.tagName.toLowerCase() === 'textarea' || rawEl.tagName.toLowerCase() === 'input') {
+        return rawEl.value;
     }
+    return rawEl.textContent || rawEl.innerText || '';
+}
 
-    // Get current content based on editor type
-    function getCurrentContent() {
-        if (!editorElement) return '';
+function checkForUnsavedChanges() {
+    return new Promise((resolve) => {
+        const current = getEditorContent();
+        hasUnsavedChanges = current !== initialContent;
+        resolve(hasUnsavedChanges);
+    });
+}
 
-        switch (editorType) {
-            case 'trumbowyg':
-                return editorElement.trumbowyg('html');
-            case 'monaco':
-                // Handle Monaco Editor
-                if (window.monaco) {
-                    const editor = window.monaco.editor.getEditors().find(e => 
-                        e.getDomNode().closest('#' + editorElement.attr('id'))
-                    );
-                    if (editor) return editor.getValue();
-                }
-                break;
-            case 'codemirror':
-                // Handle CodeMirror
-                const cmElement = editorElement.find('.CodeMirror')[0];
-                if (cmElement && cmElement.CodeMirror) {
-                    return cmElement.CodeMirror.getValue();
-                }
-                break;
-            default:
-                return editorElement.val() || editorElement.text();
-        }
-        return editorElement.val() || editorElement.text();
+function setupChangeDetection() {
+    // Use debounced input listener
+    let timeoutId;
+    const debouncedCheck = () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            checkForUnsavedChanges();
+        }, 500);
+    };
+
+    if ($('#markdown').length) {
+        $('#markdown').on('tbwchange keyup input', debouncedCheck);
+    } else {
+        $('.source-editor').on('input', debouncedCheck);
     }
+}
 
-    function setupChangeDetection() {
-        if (!editorElement) return;
+function setupNavigationListeners() {
+    $(document).on('click', 'a[href]:not([href^="#"]):not([target="_blank"])', function(e) {
+        if (isNavigating) return; // Already navigating, do nothing
 
-        editorElement.on('input change keyup paste blur', function() {
-            markAsChanged();
-        });
+        e.preventDefault();
+        const href = $(this).attr('href');
 
-        switch (editorType) {
-            case 'trumbowyg':
-                editorElement.on('tbwchange', function() {
-                    markAsChanged();
-                });
-                break;
-
-            case 'monaco':
-                if (window.monaco) {
-                    setTimeout(() => {
-                        const editor = window.monaco.editor.getEditors().find(e => 
-                            e.getDomNode().closest('#' + editorElement.attr('id'))
-                        );
-                        if (editor) {
-                            editor.onDidChangeModelContent(() => {
-                                markAsChanged();
-                            });
-                        }
-                    }, 1000);
-                }
-                break;
-
-            case 'codemirror':
-                setTimeout(() => {
-                    const cmElement = editorElement.find('.CodeMirror')[0];
-                    if (cmElement && cmElement.CodeMirror) {
-                        cmElement.CodeMirror.on('change', () => {
-                            markAsChanged();
-                        });
-                    }
-                }, 1000);
-                break;
-        }
-    }
-
-    function markAsChanged() {
-        if (!isSaving && initialized) {
-            hasUnsavedChanges = true;
-        }
-    }
-
-    // Function to mark content as saved
-    function markAsSaved() {
-        hasUnsavedChanges = false;
-        isSaving = false;
-        originalContent = getCurrentContent();
-    }
-
-    // Function to show unsaved changes dialog
-    function showUnsavedChangesDialog() {
-        return new Promise((resolve) => {
-            const modal = $('#unsaved-changes-modal');
-            
-            if (modal.length === 0) {
-                console.error('Unsaved changes handler: Modal not found. Please include saving_prompt_template.html');
-                resolve('cancel');
-                return;
-            }
-            
-            // Remove any existing event handlers to prevent duplicates
-            modal.off('click.unsaved');
-            modal.off('hidden.bs.modal.unsaved');
-            
-            // Handle save and continue
-            modal.on('click.unsaved', '#save-and-continue', () => {
-                saveContent().then(() => {
-                    modal.modal('hide');
-                    resolve('save');
-                }).catch(() => {
-                    resolve('cancel');
-                });
-            });
-            
-            // Handle discard changes
-            modal.on('click.unsaved', '#discard-changes', () => {
-                modal.modal('hide');
-                resolve('discard');
-            });
-            
-            // Handle cancel/close
-            modal.on('hidden.bs.modal.unsaved', () => {
-                resolve('cancel');
-            });
-            
-            modal.modal('show');
-        });
-    }
-
-    // Function to save content
-    function saveContent() {
-        return new Promise((resolve, reject) => {
-            if (!saveButtonElement) {
-                reject('Save button not found');
-                return;
-            }
-
-            isSaving = true;
-            hasUnsavedChanges = false; 
-            console.log('save');
-
-            saveButtonElement.trigger('click');
-            
-            setTimeout(() => {
-                markAsSaved();
-                resolve();
-            }, 500);
-        });
-    }
-
-    // Function to handle navigation attempts
-    function handleNavigation(callback) {
-        if (hasUnsavedChanges) {
-            showUnsavedChangesDialog().then((action) => {
-                if (action === 'save') {
-                    callback(true);
-                } else if (action === 'discard') {
-                    hasUnsavedChanges = false;
-                    callback(true);
-                } else {
-                    callback(false);
-                }
-            });
-        } else {
-            callback(true);
-        }
-    }
-
-    $(document).ready(function() {
-        initializeFromDataAttributes();
-        
-        if (!initialized) {
-            return;
-        }
-
-        // Store original content
-        setTimeout(() => {
-            originalContent = getCurrentContent();
-        }, 100);
-
-        // Set up change detection
-        setupChangeDetection();
-
-        // Handle save button click
-        saveButtonElement.on('click', function (e) {
-            // Mark as saving immediately to prevent change detection
-            isSaving = true;
-            hasUnsavedChanges = false;
-            
-            // Let the original save logic run, but mark as saved afterward
-            setTimeout(() => {
-                markAsSaved();
-            }, 100);
-        });
-
-        // Handle beforeunload event (browser navigation, refresh, close)
-        $(window).on('beforeunload', function (e) {
-            if (hasUnsavedChanges && !isSaving) {
-                const message = 'You have unsaved changes. Are you sure you want to leave?';
-                e.originalEvent.returnValue = message;
-                return message;
-            }
-        });
-
-        // Override link clicks to check for unsaved changes
-        $(document).on('click', 'a[href]:not([href="#"]):not([href^="javascript:"]):not([target="_blank"])', function(e) {
-            if (hasUnsavedChanges) {
-                e.preventDefault();
-                const href = this.href;
-                handleNavigation((proceed) => {
-                    if (proceed) {
-                        window.location.href = href;
-                    }
-                });
-            }
-        });
-
-        // Handle popstate event (back/forward buttons)
-        $(window).on('popstate', function (e) {
-            if (hasUnsavedChanges) {
-                e.preventDefault();
-                handleNavigation((proceed) => {
-                    if (proceed) {
-                        history.go(-1);
-                    }
-                });
-            }
-        });
-
-        // Handle form submissions to check for unsaved changes
-        $('form').on('submit', function(e) {
-            if (hasUnsavedChanges && !isSaving) {
-                e.preventDefault();
-                const form = this;
-                handleNavigation((proceed) => {
-                    if (proceed) {
-                        $(form).off('submit').submit();
-                    }
-                });
+        checkForUnsavedChanges().then(changed => {
+            if (changed) {
+                // Show modal and store the pending navigation action
+                pendingAction = { type: 'navigate', target: href };
+                showUnsavedChangesModal();
+            } else {
+                isNavigating = true;
+                window.location.href = href;
             }
         });
     });
-})();
+
+    // Intercept form submits unless they have .no-prompt class
+    $(document).on('submit', 'form:not(.no-prompt)', function(e) {
+        if (isNavigating) return;
+
+        e.preventDefault();
+        const form = this;
+
+        checkForUnsavedChanges().then(changed => {
+            if (changed) {
+                pendingAction = { type: 'submit', target: form };
+                showUnsavedChangesModal();
+            } else {
+                isNavigating = true;
+                form.submit();
+            }
+        });
+    });
+}
+
+function setupSaveHooks() {
+    $(document).ajaxSuccess((event, xhr, settings) => {
+        if (settings.url && settings.url.includes('/content/save/')) {
+            const response = xhr.responseJSON;
+            if (response && response.data === 'ok') {
+                updateInitialContentAfterSave();
+
+                if (modalInstance && pendingAction) {
+                    modalInstance.hide();
+                    executePendingAction();
+                }
+            }
+        }
+    });
+
+    // Also hook save button clicks to update initial content shortly after
+    $(document).on('click', '#markdown_save, #content_editor_raw_save', () => {
+        setTimeout(() => {
+            updateInitialContentAfterSave();
+
+            // If modal open and pending action exists, close modal and execute
+            if (modalInstance && pendingAction) {
+                modalInstance.hide();
+                executePendingAction();
+            }
+        }, 1000);
+    });
+}
+
+function updateInitialContentAfterSave() {
+    captureInitialContent();
+    hasUnsavedChanges = false;
+    console.log("Content marked as saved");
+}
+
+function showUnsavedChangesModal() {
+    if (!modalInstance) {
+        modalInstance = new bootstrap.Modal(document.getElementById('unsaved-changes-modal'), {
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    modalInstance.show();
+}
+
+function setupModalHandlers() {
+    $('#save-and-continue').off('click').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Disable buttons to prevent double click
+        disableModalButtons(true);
+
+        // Trigger save button click
+        const saveBtn = document.getElementById('markdown_save') || document.getElementById('content_editor_raw_save');
+        if (saveBtn) {
+            saveBtn.click();
+            // Wait for AJAX success to proceed (handled in ajaxSuccess)
+        } else {
+            console.warn("Save button not found, proceeding anyway");
+            hasUnsavedChanges = false;
+            modalInstance.hide();
+            executePendingAction();
+        }
+    });
+
+    $('#discard-changes').off('click').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        hasUnsavedChanges = false;
+        disableModalButtons(false);
+        modalInstance.hide();
+        executePendingAction();
+    });
+
+    $('#cancel-changes').off('click').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        disableModalButtons(false);
+        modalInstance.hide();
+
+        // Clear pending action, user canceled navigation
+        pendingAction = null;
+    });
+}
+
+function disableModalButtons(disable) {
+    $('#save-and-continue').prop('disabled', disable);
+    $('#discard-changes').prop('disabled', disable);
+    $('#cancel-changes').prop('disabled', disable);
+}
+
+function executePendingAction() {
+    if (!pendingAction) {
+        console.warn("No pending action to execute");
+        isNavigating = false;
+        return;
+    }
+
+    isNavigating = true;
+
+    const { type, target } = pendingAction;
+
+    if (type === 'navigate' && typeof target === 'string') {
+        pendingAction = null;
+        window.location.href = target;
+    } else if (type === 'submit' && target && typeof target.submit === 'function') {
+        pendingAction = null;
+        target.submit();
+    } else {
+        console.warn("Unknown pending action or invalid target", pendingAction);
+        isNavigating = false;
+        pendingAction = null;
+    }
+}
