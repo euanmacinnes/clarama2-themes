@@ -1,0 +1,236 @@
+{% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
+
+<div class="container-fluid bg-light">
+    <div class="row" style="padding: 0">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <button type="button" class="btn btn-secondary">Playwright Test</button>
+        </div>
+        <div class="col">
+            <div class="row">
+            </div>
+        </div>
+        <div class="col-auto">
+            <ul class="btn-group clarama-test" role="group" aria-label="test_functions">
+                <a href="{{ file_url }}/edit" class="btn btn-secondary" title="Edit Test"><i class="bi bi-pencil"></i></a>
+                <button id="execute" type="button" class="btn btn-secondary clarama-test clarama-test-execute"
+                        url="{{ file_url }}" title="Execute Test"><i class="bi bi-play"></i></button>
+            </ul>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <hr/>
+            <button type="button" class="btn btn-secondary">Configuration</button>
+        </div>
+        <div class="col mb-3" style="padding: 0">
+            <hr/>
+            <div class="container-fluid">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Browser</label>
+                            <p class="form-control-static">{{ test.browser|capitalize }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Headless Mode</label>
+                            <p class="form-control-static">{{ "Yes" if test.headless else "No" }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Viewport</label>
+                            <p class="form-control-static">{{ test.viewport.width }} x {{ test.viewport.height }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Timeout</label>
+                            <p class="form-control-static">{{ test.timeout }} ms</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Screenshot Mode</label>
+                            <p class="form-control-static">
+                                {% if test.screenshot == 'on' %}Always
+                                {% elif test.screenshot == 'off' %}Never
+                                {% elif test.screenshot == 'only-on-failure' %}Only on Failure
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Video Recording</label>
+                            <p class="form-control-static">
+                                {% if test.video == 'on' %}Always
+                                {% elif test.video == 'off' %}Never
+                                {% elif test.video == 'retain-on-failure' %}Retain on Failure
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Trace Recording</label>
+                            <p class="form-control-static">
+                                {% if test.trace == 'on' %}Always
+                                {% elif test.trace == 'off' %}Never
+                                {% elif test.trace == 'retain-on-failure' %}Retain on Failure
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test Blocks Section -->
+    <div class="row">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <hr/>
+            <button type="button" class="btn btn-secondary">Test Blocks</button>
+        </div>
+        <div class="col mb-3" style="padding: 0">
+            <hr/>
+            <div class="container-fluid">
+                {% if test.blocks %}
+                    {% for block in test.blocks %}
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5>{{ block.name }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <h6>Actions</h6>
+                                <ul class="list-group mb-3">
+                                    {% for action in block.actions %}
+                                        <li class="list-group-item">
+                                            {% if action.type == 'goto' %}
+                                                <strong>Go to URL:</strong> {{ action.url }}
+                                            {% elif action.type == 'get_by_role' %}
+                                                <strong>Get element by role:</strong> {{ action.role }} 
+                                                {% if action.name %}with name "{{ action.name }}"{% endif %}
+                                                
+                                                {% if action.actions %}
+                                                    <ul class="list-group mt-2">
+                                                        {% for role_action in action.actions %}
+                                                            <li class="list-group-item">
+                                                                {% if role_action.type == 'click' %}
+                                                                    <strong>Click</strong>
+                                                                {% elif role_action.type == 'fill' %}
+                                                                    <strong>Fill with:</strong> {{ role_action.value }}
+                                                                {% elif role_action.type == 'press' %}
+                                                                    <strong>Press key:</strong> {{ role_action.key }}
+                                                                {% endif %}
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% endif %}
+                                            {% elif action.type == 'page_locator' %}
+                                                <strong>Locate element:</strong> {{ action.selector }}
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                                
+                                {% if block.expects %}
+                                    <h6>Expectations</h6>
+                                    <ul class="list-group">
+                                        {% for expect in block.expects %}
+                                            <li class="list-group-item">
+                                                <strong>Element:</strong> {{ expect.element }}<br>
+                                                <strong>Condition:</strong> 
+                                                {% if expect.condition == 'visible' %}
+                                                    Is Visible
+                                                {% elif expect.condition == 'contains' %}
+                                                    Contains Text "{{ expect.value }}"
+                                                {% elif expect.condition == 'has_value' %}
+                                                    Has Value "{{ expect.value }}"
+                                                {% endif %}
+                                                <br>
+                                                <strong>Timeout:</strong> {{ expect.timeout }} ms
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        No test blocks defined. Click the Edit button to add test blocks.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Handle test execution
+        $('.clarama-test-execute').click(function() {
+            // Show loading indicator
+            var loadingHtml = '<div id="test-execution-loading" class="alert alert-info">' +
+                              '<i class="bi bi-hourglass-split"></i> Executing test... This may take a few moments.' +
+                              '</div>';
+            $('.container-fluid').prepend(loadingHtml);
+            
+            // Execute the test
+            $.ajax({
+                url: '/explorer/execute/' + $(this).attr('url'),
+                type: 'GET',
+                success: function(response) {
+                    $('#test-execution-loading').remove();
+                    
+                    var result = JSON.parse(response);
+                    
+                    if (result.status === 'success') {
+                        var testResult = result.results;
+                        var resultHtml = '<div id="test-execution-result" class="alert alert-' + 
+                                        (testResult.success ? 'success' : 'danger') + ' alert-dismissible fade show">' +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                                        '<h5>' + (testResult.success ? 'Test Passed' : 'Test Failed') + '</h5>' +
+                                        '<p>' + testResult.message + '</p>';
+                        
+                        // Add artifacts link if available
+                        if (testResult.test_id && Object.keys(testResult.artifacts).length > 0) {
+                            resultHtml += '<p><a href="/explorer/view_artifacts/' + $('.clarama-test-execute').attr('url') + 
+                                         '?test_id=' + testResult.test_id + '" class="btn btn-primary">' +
+                                         '<i class="bi bi-camera-video"></i> View Test Artifacts</a></p>';
+                        }
+                        
+                        resultHtml += '</div>';
+                        
+                        $('.container-fluid').prepend(resultHtml);
+                    } else {
+                        var errorHtml = '<div class="alert alert-danger alert-dismissible fade show">' +
+                                       '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                                       '<h5>Error Executing Test</h5>' +
+                                       '<p>' + result.message + '</p>' +
+                                       '</div>';
+                        $('.container-fluid').prepend(errorHtml);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#test-execution-loading').remove();
+                    var errorHtml = '<div class="alert alert-danger alert-dismissible fade show">' +
+                                   '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                                   '<h5>Error Executing Test</h5>' +
+                                   '<p>' + error + '</p>' +
+                                   '</div>';
+                    $('.container-fluid').prepend(errorHtml);
+                }
+            });
+        });
+    });
+</script>
+
+{% include theme("web/file_footer.html") %}

@@ -59,6 +59,20 @@
            data-bs-placement="bottom"
            title="Add a question step to ask a specific LLM prompt"></i>
     </button>
+    <button id="step_{{ task_index }}_insert_test_config" type="button" class="btn insert_step fs-4"
+            steptype="test_config">
+        <i class="bi bi-gear-wide-connected fs-4 mb-3"
+           data-bs-toggle="tooltip"
+           data-bs-placement="bottom"
+           title="Add a browser test configuration. This starts an offline recording, playback and test section for testing browser functionality"></i>
+    </button>
+    <button id="step_{{ task_index }}_insert_test_block" type="button" class="btn insert_step fs-4"
+            steptype="test_block">
+        <i class="bi bi-pencil-square fs-4 mb-3"
+           data-bs-toggle="tooltip"
+           data-bs-placement="bottom"
+           title="Add a browser test block"></i>
+    </button>
 </div>
 <div class="col">
     <hr/>
