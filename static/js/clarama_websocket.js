@@ -6,7 +6,7 @@ function set_environment(environment) {
     let socket_element = $("#edit_socket");
     socket_element.attr("environment", environment);
     socket_starting = false;
-    run_socket(socket_element, false);
+    run_socket(socket_element, true, false);
 }
 
 function reset_environment(environment) {
@@ -15,8 +15,9 @@ function reset_environment(environment) {
     $('#environment').html('...');
     let socket_element = $("#edit_socket");
     socket_element.attr("environment", environment);
+    socket_element.attr("refresh", true);
     socket_starting = false;
-    run_socket(socket_element, true);
+    run_socket(socket_element, false, true);
 }
 
 let task_active_socket = undefined;
@@ -114,7 +115,7 @@ function get_task(embedded, task_url, socket_id, autorun) {
         });
 }
 
-function socket_task(embedded, task, topic, reset_environment) {
+function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
     let mode = embedded.attr("mode"); // For passing internally to the kernel, so that the kernel knows it's original mode
     let autorun = embedded.attr("autorun");
     let socket_id = embedded.attr("id");
@@ -123,9 +124,12 @@ function socket_task(embedded, task, topic, reset_environment) {
     let env_url = '';
     if (environment !== undefined) {
         env_url = '&environment=' + environment;
-        refresh = true;
+
+        //refresh = true;
         console.log("CLARAMA_WEBSOCKET.js: overriding environment with " + env_url);
     }
+
+    if (refresh_kernel === true) refresh = true;
 
     let playbutton = $('.kernel-play-button');
 
@@ -172,7 +176,15 @@ function start_socket(reconnect = false, embedded) {
     }
 }
 
-function run_socket(embedded, reset_environment) {
+/**
+ * Initializes and manages the WebSocket connection using the provided embedded element and configuration.
+ * It sets up socket connection details, manages task and topic subscriptions, and initiates WebSocket communication.
+ *
+ * @param {Object} embedded - The embedded HTML element used as the source for WebSocket tasks and topics.
+ * @param {boolean} reset_environment - Indicates whether the WebSocket environment should be reset before establishing a connection. This will cause the pod to restart
+ * @return {void} This function does not return any value.
+ */
+function run_socket(embedded, refresh_kernel, reset_environment) {
     let task = embedded.attr("task")
     let topic = embedded.attr("topic");
 
@@ -180,7 +192,7 @@ function run_socket(embedded, reset_environment) {
 
     if (task !== undefined && topic !== undefined) {
         console.log("CLARAMA_WEBSOCKET.js: TASK " + task + " TOPIC " + topic + " RUNNING");
-        socket_task(embedded, task, topic, reset_environment);
+        socket_task(embedded, task, topic, refresh_kernel, reset_environment);
     }
 
     if (!socket_starting) {
