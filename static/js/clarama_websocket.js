@@ -192,7 +192,6 @@ function executeTask(embedded, task_url, socket_id, autorun) {
         });
 }
 
-<<<<<<< HEAD
 function handleTaskInteractionResume(resumeMessage) {
     const { step_id, instance } = resumeMessage;
     
