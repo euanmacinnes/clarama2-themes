@@ -1,0 +1,109 @@
+{% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
+
+<div class="container-fluid bg-light">
+    <div class="row" style="padding: 0">
+        <div class="col-1 bg-secondary text-light" style="padding: 0">
+            <button type="button" class="btn btn-secondary">Playwright Test Artifacts</button>
+        </div>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h4>Test Run: {{ test_id }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-auto">
+            <ul class="btn-group" role="group" aria-label="test_functions">
+                <a href="{{ file_url }}" class="btn btn-secondary" title="Back to Test"><i class="bi bi-arrow-left"></i> Back to Test</a>
+            </ul>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            {% if artifacts.status == 'error' %}
+                <div class="alert alert-danger">
+                    {{ artifacts.message }}
+                </div>
+            {% else %}
+                {% if artifacts.artifacts %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Test Artifacts</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% if artifacts.artifacts.screenshot %}
+                                <div class="col-md-6 mb-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Screenshot</h5>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <img src="{{ artifacts.artifacts.screenshot }}" class="img-fluid border" alt="Test Screenshot" style="max-height: 400px;">
+                                        </div>
+                                        <div class="card-footer">
+                                            <a href="{{ artifacts.artifacts.screenshot }}" class="btn btn-primary" target="_blank">
+                                                <i class="bi bi-download"></i> Download Screenshot
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if artifacts.artifacts.video %}
+                                <div class="col-md-6 mb-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Video Recording</h5>
+                                        </div>
+                                        <div class="card-body text-center">
+                                            <video controls class="img-fluid border" style="max-height: 400px;">
+                                                <source src="{{ artifacts.artifacts.video }}" type="video/webm">
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        </div>
+                                        <div class="card-footer">
+                                            <a href="{{ artifacts.artifacts.video }}" class="btn btn-primary" target="_blank">
+                                                <i class="bi bi-download"></i> Download Video
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if artifacts.artifacts.trace %}
+                                <div class="col-md-6 mb-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Trace Recording</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <p>
+                                                Playwright trace files can be viewed using the Playwright Trace Viewer.
+                                                Download the trace file and use the following command to view it:
+                                            </p>
+                                            <pre><code>npx playwright show-trace trace.zip</code></pre>
+                                        </div>
+                                        <div class="card-footer">
+                                            <a href="{{ artifacts.artifacts.trace }}" class="btn btn-primary">
+                                                <i class="bi bi-download"></i> Download Trace
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        No artifacts found for this test run.
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% include theme("web/file_footer.html") %}
