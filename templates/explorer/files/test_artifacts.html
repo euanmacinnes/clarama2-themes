@@ -14,7 +14,8 @@
         </div>
         <div class="col-auto">
             <ul class="btn-group" role="group" aria-label="test_functions">
-                <a href="{{ file_url }}" class="btn btn-secondary" title="Back to Test"><i class="bi bi-arrow-left"></i> Back to Test</a>
+                <a href="{{ file_url }}" class="btn btn-secondary" title="Back to Test"><i class="bi bi-arrow-left"></i>
+                    Back to Test</a>
             </ul>
         </div>
     </div>
@@ -34,64 +35,68 @@
                         <div class="card-body">
                             <div class="row">
                                 {% if artifacts.artifacts.screenshot %}
-                                <div class="col-md-6 mb-4">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h5>Screenshot</h5>
-                                        </div>
-                                        <div class="card-body text-center">
-                                            <img src="{{ artifacts.artifacts.screenshot }}" class="img-fluid border" alt="Test Screenshot" style="max-height: 400px;">
-                                        </div>
-                                        <div class="card-footer">
-                                            <a href="{{ artifacts.artifacts.screenshot }}" class="btn btn-primary" target="_blank">
-                                                <i class="bi bi-download"></i> Download Screenshot
-                                            </a>
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h5>Screenshot</h5>
+                                            </div>
+                                            <div class="card-body text-center">
+                                                <img src="{{ artifacts.artifacts.screenshot }}" class="img-fluid border"
+                                                     alt="Test Screenshot" style="max-height: 400px;">
+                                            </div>
+                                            <div class="card-footer">
+                                                <a href="{{ artifacts.artifacts.screenshot }}" class="btn btn-primary"
+                                                   target="_blank">
+                                                    <i class="bi bi-download"></i> Download Screenshot
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
                                 {% endif %}
 
                                 {% if artifacts.artifacts.video %}
-                                <div class="col-md-6 mb-4">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h5>Video Recording</h5>
-                                        </div>
-                                        <div class="card-body text-center">
-                                            <video controls class="img-fluid border" style="max-height: 400px;">
-                                                <source src="{{ artifacts.artifacts.video }}" type="video/webm">
-                                                Your browser does not support the video tag.
-                                            </video>
-                                        </div>
-                                        <div class="card-footer">
-                                            <a href="{{ artifacts.artifacts.video }}" class="btn btn-primary" target="_blank">
-                                                <i class="bi bi-download"></i> Download Video
-                                            </a>
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h5>Video Recording</h5>
+                                            </div>
+                                            <div class="card-body text-center">
+                                                <video controls class="img-fluid border" style="max-height: 400px;">
+                                                    <source src="{{ artifacts.artifacts.video }}" type="video/webm">
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            </div>
+                                            <div class="card-footer">
+                                                <a href="{{ artifacts.artifacts.video }}" class="btn btn-primary"
+                                                   target="_blank">
+                                                    <i class="bi bi-download"></i> Download Video
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
                                 {% endif %}
 
                                 {% if artifacts.artifacts.trace %}
-                                <div class="col-md-6 mb-4">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h5>Trace Recording</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <p>
-                                                Playwright trace files can be viewed using the Playwright Trace Viewer.
-                                                Download the trace file and use the following command to view it:
-                                            </p>
-                                            <pre><code>npx playwright show-trace trace.zip</code></pre>
-                                        </div>
-                                        <div class="card-footer">
-                                            <a href="{{ artifacts.artifacts.trace }}" class="btn btn-primary">
-                                                <i class="bi bi-download"></i> Download Trace
-                                            </a>
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h5>Trace Recording</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <p>
+                                                    Playwright trace files can be viewed using the Playwright Trace
+                                                    Viewer.
+                                                    Download the trace file and use the following command to view it:
+                                                </p>
+                                                <pre><code>npx playwright show-trace trace.zip</code></pre>
+                                            </div>
+                                            <div class="card-footer">
+                                                <a href="{{ artifacts.artifacts.trace }}" class="btn btn-primary">
+                                                    <i class="bi bi-download"></i> Download Trace
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
                                 {% endif %}
                             </div>
                         </div>
