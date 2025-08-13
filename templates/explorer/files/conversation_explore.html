@@ -9,7 +9,7 @@
             </button>
             <button type="button" class="btn btn-secondary" id="kernel_status"> Loading...</button>
         </div>
-        
+
         <div class="gina-conversation flex-grow-1 mb-3"></div>
         <!-- the input -->
         <div class="gina-input-wrapper position-relative">
@@ -20,7 +20,7 @@
                 </button>
             </div>
         </div>
-        
+
         <!-- The output -->
         <div id="gina-output-container" class="gina-output-container" style="display: none;">
             <div class="gina-output-header">
@@ -36,9 +36,9 @@
 {% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
 
 <form>
-    
+
     {% for streamslist in streams %}
-    {% for stream, steps in streamslist.items() %}
+        {% for stream, steps in streamslist.items() %}
             <div class="gina-controls w-100 d-flex justify-content-start align-items-center px-3 mt-3">
                 <button type="button" class="gina-save" title="Save">
                     <i class="bi bi-floppy"></i>
