@@ -10,7 +10,8 @@
             {% for streamslist in streams %}
                 {% for stream, steps in streamslist.items() %}
                     {% if stream=='main' %}
-                        <div class="progress col p-0" style="height: 52px;border-bottom-left-radius: 0;border-top-left-radius: 0;">
+                        <div class="progress col p-0"
+                             style="height: 52px;border-bottom-left-radius: 0;border-top-left-radius: 0;">
                             <div id="task_progress_{{ stream }}"
                                  style="width: 0%; height:100%;"
                                  max="{{ steps | length }} "
@@ -90,7 +91,7 @@
     <div id="run_socket" class="clarama-websocket clarama-task"
          mode="explore"
          topic="{{ internal_topic }}"
-         task="{{ file_url }}" kill="True" refresh="True"></div>
+         task="{{ file_url }}" kill="True"></div>
 </div>
 
 
