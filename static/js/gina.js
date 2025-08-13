@@ -10,25 +10,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const splash          = document.getElementById('gina-splash');
   
     if (!ginaContainer || !historyHost || !latestHost) {
-      console.error('GINA: Missing required DOM nodes (#gina-chat-container / #gina-conversations / #gina-latest).');
-      return;
+        console.error('GINA: Missing required DOM nodes (#gina-chat-container / #gina-conversations / #gina-latest).');
+        return;
     }
   
     // --- Progressive height config -------------------------------------------
-    // Height grows from 20vh toward 80vh as history length increases (smooth easing).
-    const HEIGHT_VH_START = 20;  // initial viewport height
+    const HEIGHT_VH_START = 20;  // used only once there are messages
     const HEIGHT_VH_MAX   = 80;  // soft cap (hard cap still enforced by CSS max-height)
     const GROWTH_K        = 0.35; // higher = faster growth per message
+    const EMPTY_PX_HEIGHT = 250;  // fixed empty-state height in px
   
     function historyCount() {
         return historyHost.querySelectorAll('.gina-block').length;
     }
     function computeHeightVH(n) {
-        // Smooth approach to max: base + (max-base) * (1 - e^(-k*n))
         return HEIGHT_VH_START + (HEIGHT_VH_MAX - HEIGHT_VH_START) * (1 - Math.exp(-GROWTH_K * n));
     }
     function applyPanelHeight() {
         const n = historyCount();
+        if (n === 0) { // no messages yet
+            ginaContainer.style.height = `${EMPTY_PX_HEIGHT}px`;
+            return;
+        }
         const vh = computeHeightVH(n);
         ginaContainer.style.height = `${vh}vh`;
     }
@@ -88,22 +91,125 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAnswer = '';
     let activeBlock = null;
   
-    // --- Visibility toggle (optional; only if you have a toggle button) -------
+    // --- Voice input (Web Speech API) -----------------------------------------
+    let recognition = null;
+    let isListening = false;
+    let listeningBlock = null;   // the block whose input we are filling
+    let listeningBtn = null;     // the mic button being toggled
+    let listeningInput = null;   // textarea element
+    let baseInputValue = '';     // value at the start of recording
+  
+    function getRecognition() {
+        if (recognition) return recognition;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return null;
+        recognition = new SpeechRecognition();
+        recognition.lang = (document.documentElement.lang || 'en-UK');
+        recognition.continuous = false;
+        recognition.interimResults = true;
+    
+        recognition.onstart = () => {
+            isListening = true;
+            toggleMicUI(true);
+        };
+        recognition.onresult = (event) => {
+            if (!listeningInput) return;
+            // Aggregate interim + final transcript
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+            }
+            // Compose into the field; keep original + a separating space if needed
+            const joiner = baseInputValue && !/\s$/.test(baseInputValue) ? ' ' : '';
+            listeningInput.value = (baseInputValue + joiner + transcript).trimStart();
+            autoSize(listeningInput);
+            toggleSendButtonFor(listeningBlock);
+        };
+        recognition.onerror = (e) => {
+            toggleMicUI(false);
+            isListening = false;
+            if (e && e.error === 'no-speech') {
+            flash('No speech detected', 'warning');
+            } else if (e && e.error === 'not-allowed') {
+            flash('Microphone permission denied', 'danger');
+            } else {
+            flash('Voice input error', 'danger');
+            }
+        };
+        recognition.onend = () => {
+            toggleMicUI(false);
+            isListening = false;
+            listeningBlock = null;
+            listeningBtn = null;
+            listeningInput = null;
+            baseInputValue = '';
+        };
+    
+        return recognition;
+    }
+  
+    function toggleMicUI(active) {
+        if (!listeningBtn) return;
+        const icon = listeningBtn.querySelector('i');
+        listeningBtn.classList.toggle('recording', !!active);
+        listeningBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        if (icon) {
+            icon.className = active ? 'bi bi-stop-circle' : 'bi bi-mic';
+        }
+        if (listeningInput) {
+            if (active) {
+                listeningInput.placeholder = 'Listening… speak now';
+            } else {
+                listeningInput.placeholder = 'Type your question...';
+            }
+        }
+    }
+  
+    function startListening(block, btn) {
+        const rec = getRecognition();
+        if (!rec) {
+            flash('Voice input is not supported in this browser.', 'warning');
+            return;
+        }
+    
+        const input = block.querySelector('.gina-input');
+        if (!input) return;
+    
+        listeningBlock = block;
+        listeningBtn = btn;
+        listeningInput = input;
+        baseInputValue = input.value || '';
+    
+        try {
+            rec.start(); // must be triggered by user gesture
+        } catch (_) {
+            // If already started, ignore
+        }
+    }
+  
+    function stopListening() {
+        if (!recognition || !isListening) return;
+        try { 
+            recognition.stop(); 
+        } catch (_) {}
+    }
+  
+    // --- Visibility toggle ----------------------------------------------------
     if (ginaButton) {
         ginaButton.addEventListener('click', () => {
             const open = ginaContainer.classList.contains('active');
             if (!open) {
-            mainContent?.classList.add('hidden');
-            ginaContainer.classList.add('active');
-            ginaButtonGroup?.classList.add('gina-active');
-            const firstInput = ginaContainer.querySelector('.gina-input');
-            setTimeout(() => {
-                if (firstInput) { firstInput.focus(); autoSize(firstInput); }
-            }, 200);
+                mainContent?.classList.add('hidden');
+                ginaContainer.classList.add('active');
+                ginaButtonGroup?.classList.add('gina-active');
+                const firstInput = ginaContainer.querySelector('.gina-input');
+                setTimeout(() => {
+                    if (firstInput) { firstInput.focus(); autoSize(firstInput); }
+                }, 200);
             } else {
-            ginaContainer.classList.remove('active');
-            ginaButtonGroup?.classList.remove('gina-active');
-            setTimeout(() => mainContent?.classList.remove('hidden'), 250);
+                ginaContainer.classList.remove('active');
+                ginaButtonGroup?.classList.remove('gina-active');
+                setTimeout(() => mainContent?.classList.remove('hidden'), 250);
             }
         });
     }
@@ -124,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (btn) btn.disabled = v;
         }
+        if (v && isListening) stopListening();
     }
   
     function toggleSendButtonFor(block) {
@@ -159,16 +266,16 @@ document.addEventListener('DOMContentLoaded', () => {
             function tryFind() {
                 const block = ginaContainer.querySelector(`#gina-block-${blockId}.gina-block`);
                 const ready = block &&
-                                block.querySelector('.gina-input') &&
-                                block.querySelector('.gina-send-btn') &&
-                                block.querySelector('.gina-output') &&
-                                block.querySelector('.gina-output-container');
+                    block.querySelector('.gina-input') &&
+                    block.querySelector('.gina-send-btn') &&
+                    block.querySelector('.gina-output') &&
+                    block.querySelector('.gina-output-container') &&
+                    block.querySelector('.gina-mic-btn');
                 if (ready) { 
                     resolve(block); return true; 
                 }
                 return false;
             }
-
             if (tryFind()) return;
     
             const mo = new MutationObserver(() => {
@@ -188,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   
     function nextBlockId() {
-        const last = [...ginaContainer.querySelectorAll('.gina-block')].pop()?.id; // e.g. "gina-block-3"
+        const last = [...ginaContainer.querySelectorAll('.gina-block')].pop()?.id;
         if (!last) return 1;
         const m = String(last).match(/(\d+)$/);
         return m ? (parseInt(m[1], 10) + 1) : 1;
@@ -258,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 flash("Couldn't process question: " + err, "danger");
                 const out = forBlock?.querySelector('.gina-output');
                 if (out) { 
-                    out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: ${safeText(err)}</span>`; 
+                out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: ${safeText(err)}</span>`; 
                 }
                 setProcessingState(false);
                 spawnNextConversationTemplate();
@@ -267,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 flash("Couldn't process question, network or access issue", "danger");
                 const out = forBlock?.querySelector('.gina-output');
                 if (out) { 
-                    out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: network or access issue</span>`; 
+                out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: network or access issue</span>`; 
                 }
                 setProcessingState(false);
                 spawnNextConversationTemplate();
@@ -337,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             return;
                         }
                     }
-    
+        
                     if (window.originalWebSocketOnMessage) window.originalWebSocketOnMessage.call(this, event);
                 };
             } else {
@@ -365,8 +472,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
   
-    // Click send => convert textarea to right-aligned bubble, start processing
+    // Clicks (mic + send)
     ginaContainer.addEventListener('click', (e) => {
+        // Mic toggle
+        const micBtn = e.target.closest('.gina-mic-btn');
+        if (micBtn && !isProcessing) {
+            const block = micBtn.closest('.gina-block');
+            // Toggle start/stop on same block
+            if (isListening && block === listeningBlock) {
+            stopListening();
+            } else {
+            startListening(block, micBtn);
+            }
+            return; // do not fall-through to send
+        }
+    
+        // Send
         const btn = e.target.closest('.gina-send-btn');
         if (!btn || isProcessing) return;
     
@@ -380,6 +501,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!msg) return;
     
         hideSplash(true);
+    
+        // If we were listening, stop it before sending
+        if (isListening) stopListening();
     
         // Expand fully so the full message height is captured, then render bubble
         autoSize(input, { expandFully: true });
@@ -433,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const input = latestHost.querySelector('.gina-input');
             if (input) { 
-                autoSize(input); toggleSendButtonFor(input.closest('.gina-block')); 
+            autoSize(input); toggleSendButtonFor(input.closest('.gina-block')); 
             }
         }
         stickHistoryToBottom();

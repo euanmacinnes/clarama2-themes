@@ -11,7 +11,7 @@
     display: flex;
     flex-direction: column;
 
-    height: 20vh;
+    height: var(--gina-empty-height, 250px);
     max-height: 90vh;
 
     width: 75vw;
@@ -91,7 +91,7 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-right: 6px;
+    padding-right: 10px;
     scrollbar-gutter: stable both-edges;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -106,11 +106,53 @@
 }
 
 /* Spacing */
-.gina-conversations .gina-block + .gina-block { margin-top: 18px; }
-.gina-latest .gina-block { margin-top: 8px; }
+.gina-conversations .gina-block + .gina-block { 
+    margin-top: 18px; 
+}
+.gina-latest .gina-block { 
+    margin-top: 8px; 
+}
 
-/* === Input + Send === */
+/* === Input + Mic + Send === */
 .gina-input-wrapper { position: relative; }
+
+/* Mic (left) */
+.gina-mic-container {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+.gina-mic-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+    backdrop-filter: blur(6px);
+}
+.gina-mic-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+.gina-mic-btn:active { transform: translateY(0); }
+.gina-mic-btn:disabled { opacity: .6; cursor: not-allowed; }
+.gina-mic-btn i { font-size: 1.05rem; }
+.gina-mic-btn.recording {
+    background: rgba(255, 40, 40, 0.4);
+    box-shadow: 0 0 0 6px rgba(255, 40, 40, 0.15);
+    animation: gina-pulse 1.6s ease-in-out infinite;
+}
+@keyframes gina-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 40, 40, 0.25); }
+    70% { box-shadow: 0 0 0 12px rgba(255, 40, 40, 0.05); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 40, 40, 0); }
+}
+
 .gina-input {
     width: 100%;
     min-height: var(--gina-input-min, 80px);
@@ -119,7 +161,9 @@
     overflow-y: hidden;
     resize: none;
 
-    padding: 14px 60px 14px 18px;
+    /* extra left padding to make room for mic */
+    padding: 14px 60px 14px 48px;
+
     font-size: 1rem;
     font-family: inherit;
     border: none;
@@ -165,8 +209,13 @@
 @keyframes spin { to { transform: rotate(360deg);} }
 
 /* === Bubbles & alignment === */
-.gina-block.chat-mode .gina-input-wrapper.finalized { display:flex; justify-content:flex-end; padding:0 2px; }
-.gina-msg { display:inline-block; width:fit-content; max-width:70%; padding:12px 14px; line-height:1.5; font-size:1rem; border-radius:14px; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; }
+.gina-block.chat-mode .gina-input-wrapper.finalized { 
+    display:flex; 
+    justify-content:flex-end; 
+    padding:0 10px; 
+    min-width: 0;
+}
+.gina-msg { box-sizing: border-box; display:inline-block; width:fit-content; max-width:70%; padding:12px 14px; line-height:1.5; font-size:1rem; border-radius:14px; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; }
 .gina-msg.user { margin-left:auto; background: linear-gradient(135deg, rgba(0,183,255,0.35), rgba(0,152,247,0.38)); color:#fff; border-top-right-radius:6px; }
 .gina-block.chat-mode .gina-output-container { background:transparent; padding:0; border-radius:0; margin-top:8px; display:flex; justify-content:flex-start; }
 .gina-block.chat-mode .gina-output { display:inline-block; width:fit-content; max-width:70%; background: rgba(255,255,255,0.12); color:#fff; border-radius:14px; border-top-left-radius:6px; padding:12px 14px; margin-right:auto; white-space:pre-wrap; }
