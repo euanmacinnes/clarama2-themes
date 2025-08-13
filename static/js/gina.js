@@ -1,360 +1,389 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const ginaButton = document.getElementById('gina-button');
-    const mainContent = document.getElementById('main-content');
-    const ginaContainer = document.getElementById('gina-chat-container');
-    const ginaTitle = document.getElementById('gina-title');
-    const ginaInput = ginaContainer?.querySelector('.gina-input');
-    const ginaButtonGroup = document.querySelector('.gina-button-group');
-    const ginaSendBtn = document.getElementById('gina-send-btn');
-    const ginaSendContainer = document.querySelector('.gina-send-container');
-    const ginaOutputContainer = document.getElementById('gina-output-container');
-    const ginaOutput = document.getElementById('gina-output');
-    const ginaSaveBtn = document.querySelector('.gina-save-btn');
-
-    if (!ginaButton || !mainContent || !ginaContainer || !ginaInput || !ginaButtonGroup || !ginaTitle) {
-        console.error('One or more GINA elements are missing from the DOM.');
-        return;
+    const ginaButton        = document.getElementById('gina-button');
+    const mainContent       = document.getElementById('main-content');
+    const ginaContainer     = document.getElementById('gina-chat-container');
+    const ginaButtonGroup   = document.querySelector('.gina-button-group');
+    const ginaSaveBtn       = document.querySelector('.gina-save-btn');
+    const conversationsHost = document.getElementById('gina-conversations');
+  
+    if (!ginaButton || !mainContent || !ginaContainer || !conversationsHost) {
+      console.error('GINA: Missing required DOM nodes.');
+      return;
     }
-
+  
+    // Global state for the in-flight request and active block
+    let isProcessing    = false;
     let currentQuestion = '';
-    let currentAnswer = '';
-    let isProcessing = false;
-    let ginaStepId = 'gina_step_' + Date.now(); // Unique step ID for GINA
-
-    // Toggle GINA interface
+    let currentAnswer   = '';
+    let activeBlock     = null; // the block currently being processed
+  
+    // ===== UI toggle
     ginaButton.addEventListener('click', () => {
-        const isActive = ginaContainer.classList.contains('active');
-
-        if (!isActive) {
-            // Show GINA
+        const open = ginaContainer.classList.contains('active');
+        if (!open) {
             mainContent.classList.add('hidden');
             ginaContainer.classList.add('active');
-            ginaTitle.classList.add('active');
-            ginaButtonGroup.classList.add('gina-active');
-            setTimeout(() => ginaInput.focus(), 400);
+            ginaButtonGroup?.classList.add('gina-active');
+            // focus first available input
+            const firstInput = conversationsHost.querySelector('.gina-input');
+            setTimeout(() => firstInput?.focus(), 300);
         } else {
-            // Hide GINA
             ginaContainer.classList.remove('active');
-            ginaTitle.classList.remove('active'); 
-            ginaButtonGroup.classList.remove('gina-active');
-            setTimeout(() => mainContent.classList.remove('hidden'), 400);
+            ginaButtonGroup?.classList.remove('gina-active');
+            setTimeout(() => mainContent.classList.remove('hidden'), 300);
         }
     });
-
-    // Show/hide send button based on input content
-    function toggleSendButton() {
-        const hasContent = ginaInput.value.trim().length > 0;
-        if (hasContent && !isProcessing) {
-            ginaSendContainer.classList.add('show');
-        } else {
-            ginaSendContainer.classList.remove('show');
+  
+    // ===== Helpers
+  
+    function setProcessingState(v) {
+        isProcessing = v;
+        // Also reflect on the active block’s input/button if present
+        if (activeBlock) {
+            const input = activeBlock.querySelector('.gina-input');
+            const btn   = activeBlock.querySelector('.gina-send-btn');
+            if (input) {
+            if (v) {
+                input.classList.add('locked');
+                input.setAttribute('readonly', 'readonly');
+            } else {
+                input.classList.remove('locked');
+                input.removeAttribute('readonly');
+            }
+            }
+            if (btn) btn.disabled = v;
         }
     }
-
-    // Lock/unlock input and send button during processing
-    function setProcessingState(processing) {
-        isProcessing = processing;
-        ginaSendBtn.disabled = processing;
-        
-        if (processing) {
-            ginaInput.classList.add('locked');
-            ginaInput.setAttribute('readonly', 'readonly');
-            ginaSendContainer.classList.remove('show');
-        } else {
-            ginaInput.classList.remove('locked');
-            ginaInput.removeAttribute('readonly');
-            toggleSendButton();
+  
+    function toggleSendButtonFor(block) {
+        if (!block) return;
+        const input         = block.querySelector('.gina-input');
+        const sendContainer = block.querySelector('.gina-send-container');
+        if (!input || !sendContainer) return;
+        const hasText = input.value.trim().length > 0;
+        if (hasText && !isProcessing) sendContainer.classList.add('show');
+        else sendContainer.classList.remove('show');
+    }
+  
+    function findKernelId() {
+        const candidates = [
+            document.querySelector('.clarama-websocket[task_kernel_id]'),
+            document.querySelector('[task_kernel_id]'),
+            document.getElementById('edit_socket') // fallback
+        ].filter(Boolean);
+    
+        for (const el of candidates) {
+            const kid = el.getAttribute && el.getAttribute('task_kernel_id');
+            if (kid) return kid;
+        }
+        if (window.task_active_socket && window.task_active_socket.kernel_id) {
+            return window.task_active_socket.kernel_id;
+        }
+        return null;
+    }
+  
+    function safeText(s) {
+        return (s == null) ? '' : String(s);
+    }
+  
+    // Wait until the placeholder div (clarama-replaceable) has been replaced and
+    // a .gina-block with the expected id is present and hydrated.
+    function waitForRenderedBlock(blockId, timeoutMs = 5000) {
+        return new Promise((resolve, reject) => {
+            const endAt = Date.now() + timeoutMs;
+    
+            function tryFind() {
+            const block = conversationsHost.querySelector(`#gina-block-${blockId}.gina-block`);
+            const ready = block &&
+                block.querySelector('.gina-input') &&
+                block.querySelector('.gina-send-btn') &&
+                block.querySelector('.gina-output') &&
+                block.querySelector('.gina-output-container');
+            if (ready) {
+                resolve(block);
+                return true;
+            }
+            return false;
+            }
+    
+            if (tryFind()) return;
+    
+            const mo = new MutationObserver(() => {
+            if (tryFind()) {
+                mo.disconnect();
+            } else if (Date.now() > endAt) {
+                mo.disconnect();
+                reject(new Error('Timeout waiting for block to render'));
+            }
+            });
+            mo.observe(conversationsHost, { childList: true, subtree: true });
+    
+            // Failsafe timeout
+            setTimeout(() => {
+            mo.disconnect();
+            if (!tryFind()) reject(new Error('Timeout waiting for block to render'));
+            }, timeoutMs);
+        });
+    }
+  
+    function nextBlockId() {
+        // Scan the last rendered .gina-block id suffix; fallback to 1
+        const last = $(".gina-block").last().attr("id"); // e.g. "gina-block-3"
+        if (!last) return 1;
+        const m = String(last).match(/(\d+)$/);
+        return m ? (parseInt(m[1], 10) + 1) : 1;
+    }
+  
+    function buildPlaceholder(blockId) {
+        // Placeholder to be replaced by enable_interactions via its URL
+        const ph = document.createElement('div');
+        ph.className = 'clarama-post-embedded clarama-replaceable';
+        ph.setAttribute('url', `/template/render/explorer/files/conversation_block?block_id=${blockId}`);
+        return ph;
+    }
+  
+    async function spawnNextConversationTemplate() {
+        // Append placeholder
+        const blockId = nextBlockId();
+        const placeholder = buildPlaceholder(blockId);
+        conversationsHost.appendChild(placeholder);
+    
+        // IMPORTANT: Call enable_interactions on the PARENT container (like chart_options.js)
+        enable_interactions($(conversationsHost));
+    
+        try {
+            const block = await waitForRenderedBlock(blockId, 6000);
+            // Focus & init button visibility
+            const input = block.querySelector('.gina-input');
+            input?.focus();
+            toggleSendButtonFor(block);
+    
+            // Scroll to bottom
+            try {
+            conversationsHost.scrollTo({ top: conversationsHost.scrollHeight, behavior: 'smooth' });
+            } catch {}
+        } catch (err) {
+            console.error('GINA: failed to render next conversation block:', err);
+            try { flash('Failed to load the next conversation block. Please try again.', 'danger'); } catch {}
         }
     }
-
-    // Create a question cell similar to cell_item_run but for GINA
-    function createQuestionCell() {
-        return {
-            type: 'question',
-            content: currentQuestion,
-            timestamp: new Date().toISOString()
-        };
-    }
-
-    // Process question using similar logic to cell_item_run
-    function processQuestion(question) {
-        console.log("GINA: Processing question:", question);
-        
-        // Set processing state
-        setProcessingState(true);
-        currentQuestion = question;
-        
-        // Show output container
-        ginaOutputContainer.style.display = 'block';
-        ginaOutput.innerHTML = 'Processing your question...';
-        ginaOutput.classList.add('loading');
-        
-        // Set up callback to handle the response
-        setupGinaResponseCallback();
-
-        // Get field values (similar to cell_item_run)
+  
+    // ===== Kernel run + WS interception
+  
+    function runQuestionThroughKernel(questionText, forBlock) {
         get_field_values({}, true, function (field_registry) {
-            // Create task registry with streams structure that matches backend expectation
-            var task_registry = {
-                streams: [{
-                    main: [{
-                        source: question,
-                        type: 'question'
-                    }]
-                }],
-                parameters: field_registry
-            };
-
-            const socket_div = $("#edit_socket");
-
             field_registry['clarama_task_kill'] = false;
-
-            const task_kernel_id = socket_div.attr("task_kernel_id");
+    
+            const task_kernel_id = findKernelId();
+            if (!task_kernel_id) {
+            console.error('GINA: No kernel id found on the page.');
+            const msg = 'Unable to find a running kernel. Please open any task/session first.';
+            try { flash(msg, "danger"); } catch {}
+            // write error into this block
+            const out = forBlock?.querySelector('.gina-output');
+            if (out) {
+                out.classList.remove('loading');
+                out.innerHTML = `<span style="color:#ff6b6b;">Error: ${msg}</span>`;
+            }
+            setProcessingState(false);
+            spawnNextConversationTemplate();
+            return;
+            }
+    
             const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-
-            console.log("GINA: Running Task " + url);
-            console.log("GINA: Task registry:", task_registry);
-
+            const task_registry = {
+            streams: [{ main: [{ source: questionText, type: 'question' }] }],
+            parameters: field_registry
+            };
+    
             $.ajax({
-                type: 'POST',
-                url: url,
-                datatype: "html",
-                contentType: 'application/json',
-                data: JSON.stringify(task_registry),
-                success: function (data) {
-                    console.log('GINA: AJAX Success response:', data);
-                    
-                    if (data['data'] !== 'ok') {
-                        // Handle error case
-                        ginaOutput.classList.remove('loading');
-                        console.log('GINA: Question processing was not successful.');
-                        console.log(data);
-                        
-                        currentAnswer = data['error'] || 'An error occurred while processing your question.';
-                        ginaOutput.innerHTML = `<span style="color: #ff6b6b;">Error: ${currentAnswer}</span>`;
-                        
-                        flash("Couldn't process question: " + data['error'], "danger");
-                        setProcessingState(false);
-                    }
-                    // If successful, WebSocket will handle the response
-                },
-                error: function (data) {
-                    console.log('GINA: An error occurred.');
-                    console.log(data);
-                    
-                    ginaOutput.classList.remove('loading');
-                    currentAnswer = 'Failed to process question: access denied or network error';
-                    ginaOutput.innerHTML = `<span style="color: #ff6b6b;">Error: ${currentAnswer}</span>`;
-                    
-                    flash("Couldn't process question, access denied", "danger");
-                    setProcessingState(false);
+            type: 'POST',
+            url,
+            datatype: 'html',
+            contentType: 'application/json',
+            data: JSON.stringify(task_registry),
+            success: function (data) {
+                if (data && data['data'] === 'ok') {
+                // Happy path; websocket will bring the response and our interceptor will render it.
+                return;
                 }
+                const err = (data && data['error']) ? data['error'] : 'An error occurred while processing your question.';
+                console.warn('GINA kernel run error:', data);
+                try { flash("Couldn't process question: " + err, "danger"); } catch {}
+                const out = forBlock?.querySelector('.gina-output');
+                if (out) {
+                out.classList.remove('loading');
+                out.innerHTML = `<span style="color:#ff6b6b;">Error: ${safeText(err)}</span>`;
+                }
+                setProcessingState(false);
+                spawnNextConversationTemplate();
+            },
+            error: function (xhr) {
+                console.error('GINA kernel run network/access error:', xhr);
+                try { flash("Couldn't process question, network or access issue", "danger"); } catch {}
+                const out = forBlock?.querySelector('.gina-output');
+                if (out) {
+                out.classList.remove('loading');
+                out.innerHTML = `<span style="color:#ff6b6b;">Error: network or access issue</span>`;
+                }
+                setProcessingState(false);
+                spawnNextConversationTemplate();
+            }
             });
         });
     }
-
-    function setupGinaResponseCallback() {
-        if (typeof window.originalWebSocketOnMessage === 'undefined') {
-            function waitForSocket() {
-                if (typeof task_active_socket !== 'undefined' && task_active_socket !== null && task_active_socket.onmessage) {
-                    window.originalWebSocketOnMessage = task_active_socket.onmessage;
-                    console.log("GINA: Stored original WebSocket onMessage handler");
-                    enhanceWebSocketHandler();
-                } else {
-                    setTimeout(waitForSocket, 100);
-                }
-            }
-            waitForSocket();
-        } else {
-            enhanceWebSocketHandler();
-        }
-    }
-
-    function enhanceWebSocketHandler() {
-        if (typeof task_active_socket !== 'undefined' && task_active_socket !== null) {
-            task_active_socket.onmessage = function(event) {
-                let dict = JSON.parse(event.data);
-                
-                console.log("GINA: WebSocket message received:", dict);
-                
-                // Check if this is a template message while GINA is processing
-                if (isProcessing && dict['class'] === 'template' && dict['type'] === 'print_response') {
-                    console.log("GINA: Intercepted template message for processing");
-                    
-                    ginaOutput.classList.remove('loading');
-                    
-                    // Extract the actual response content
-                    let output_text = dict['values']['output'];
-                    console.log("GINA: Raw output_text:", output_text, "Type:", typeof output_text);
-                    
-                    // Handle different output formats
-                    let responseText = '';
-                    if (Array.isArray(output_text)) {
-                        // Join array elements or take first element
-                        if (output_text.length > 0) {
-                            responseText = output_text.join('\n');
-                        } else {
-                            responseText = 'Empty response';
-                        }
-                    } else if (typeof output_text === 'string') {
-                        responseText = output_text;
-                    } else if (output_text !== undefined && output_text !== null) {
-                        responseText = String(output_text);
-                    } else {
-                        responseText = 'No response content';
+  
+    function installWSInterceptor() {
+        if (window.__ginaWSInstalled) return;
+        window.__ginaWSInstalled = true;
+    
+        function wait() {
+            if (typeof task_active_socket !== 'undefined' && task_active_socket && task_active_socket.onmessage) {
+            if (!window.originalWebSocketOnMessage) window.originalWebSocketOnMessage = task_active_socket.onmessage;
+    
+            task_active_socket.onmessage = function (event) {
+                let dict;
+                try { dict = JSON.parse(event.data); } catch { /* not JSON; pass-through */ }
+    
+                // If we are waiting for a response and the payload contains template output,
+                // render into the currently active block.
+                if (isProcessing && activeBlock && dict && dict.class === 'template') {
+                const html  = dict.template || dict.values?.template || '';
+                const outArr = dict.Output || dict.output || dict.values?.output;
+    
+                const isPrintResponseHTML = typeof html === 'string' && html.indexOf('class="print_response"') !== -1;
+                const hasOutputArray      = Array.isArray(outArr) && outArr.length > 0;
+    
+                if (isPrintResponseHTML || hasOutputArray) {
+                    let text = '';
+                    if (hasOutputArray) {
+                    text = outArr.join('\n');
+                    } else if (isPrintResponseHTML) {
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = html;
+                    const pre = tmp.querySelector('.print_response');
+                    text = (pre?.textContent || pre?.innerText || '').trim();
                     }
-                    
-                    console.log("GINA: Processed response text:", responseText);
-                    currentAnswer = responseText;
-                    
-                    // Display the response with proper formatting
-                    if (responseText.trim()) {
-                        ginaOutput.innerHTML = `<div class="gina-response-content">${responseText}</div>`;
-                    } else {
-                        ginaOutput.innerHTML = `<div class="gina-response-content">Response received but was empty</div>`;
+    
+                    currentAnswer = safeText(text).trim();
+                    const out = activeBlock.querySelector('.gina-output');
+                    if (out) {
+                    out.classList.remove('loading');
+                    out.classList.add('locked');
+                    out.style.whiteSpace = 'pre-wrap';
+                    out.textContent = currentAnswer || 'Response received but was empty';
                     }
-                    
-                    // Add some basic styling to the response
-                    const responseElement = ginaOutput.querySelector('.gina-response-content');
-                    if (responseElement) {
-                        responseElement.style.cssText = `
-                            color: #fff;
-                            padding: 12px;
-                            background: rgba(255, 255, 255, 0.1);
-                            border-radius: 8px;
-                            border-left: 3px solid #00b7ff;
-                            margin-top: 8px;
-                            white-space: pre-wrap;
-                            word-wrap: break-word;
-                            font-family: inherit;
-                            line-height: 1.4;
-                        `;
-                    }
-                    
-                    flash("Question processed successfully", "success");
+    
+                    // Mark this block as complete
+                    activeBlock.classList.remove('processing');
+                    activeBlock = null;
+    
                     setProcessingState(false);
-                    
-                    // Don't call original handler for GINA responses
+                    try { flash("Question processed successfully", "success"); } catch {}
+    
+                    // Append a fresh block
+                    spawnNextConversationTemplate();
+    
+                    // Let platform continue its default handling
+                    if (window.originalWebSocketOnMessage) {
+                    window.originalWebSocketOnMessage.call(this, event);
+                    }
                     return;
                 }
-                
-                // Call original handler for all other messages
+                }
+    
                 if (window.originalWebSocketOnMessage) {
-                    window.originalWebSocketOnMessage.call(this, event);
+                window.originalWebSocketOnMessage.call(this, event);
                 }
             };
-            
-            console.log("GINA: Enhanced WebSocket message handler installed");
-        } else {
-            console.error("GINA: task_active_socket is not available for enhancement");
+            } else {
+            setTimeout(wait, 120);
+            }
         }
+        wait();
     }
-
-    // Save conversation to file
-    function saveConversation() {
+  
+    installWSInterceptor();
+  
+    // ===== Delegated events for dynamic blocks (like chart_options.js)
+  
+    // Typing -> show/hide send button for that block
+    conversationsHost.addEventListener('input', (e) => {
+        if (!e.target.matches('.gina-input')) return;
+        const block = e.target.closest('.gina-block');
+        toggleSendButtonFor(block);
+    });
+  
+    // Enter => send; Shift+Enter => newline
+    conversationsHost.addEventListener('keydown', (e) => {
+        if (!e.target.matches('.gina-input') || e.isComposing) return;
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const block = e.target.closest('.gina-block');
+            const btn   = block.querySelector('.gina-send-btn');
+            btn?.click();
+        }
+    });
+  
+    // Click send
+    conversationsHost.addEventListener('click', (e) => {
+        const btn = e.target.closest('.gina-send-btn');
+        if (!btn) return;
+        if (isProcessing) return;
+    
+        const block        = btn.closest('.gina-block');
+        const input        = block.querySelector('.gina-input');
+        const outContainer = block.querySelector('.gina-output-container');
+        const out          = block.querySelector('.gina-output');
+    
+        const msg = safeText(input?.value).trim();
+        if (!msg) return;
+    
+        // Lock this block’s input & button; show output area
+        currentQuestion = msg;
+        block.classList.add('processing');
+        activeBlock = block;
+    
+        btn.disabled = true;
+        input.classList.add('locked');
+        input.setAttribute('readonly', 'readonly');
+    
+        outContainer.style.display = 'block';
+        out.classList.add('loading');
+        out.textContent = 'Processing your question...';
+    
+        // Hide the send bubble
+        const sendContainer = block.querySelector('.gina-send-container');
+        sendContainer?.classList.remove('show');
+    
+        setProcessingState(true);
+        runQuestionThroughKernel(msg, block);
+    });
+  
+    // Optional: Save current Q/A
+    ginaSaveBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
         if (!currentQuestion || !currentAnswer) {
-            flash("No conversation to save", "warning");
+            try { flash('No conversation to save', 'warning'); } catch {}
             return;
         }
-
-        console.log("GINA: Saving conversation");
-        
-        // Create conversation data
-        const conversationData = {
-            timestamp: new Date().toISOString(),
-            question: currentQuestion,
-            answer: currentAnswer
-        };
-
-        console.log("GINA: Conversation data to save:", conversationData);
-        
-        /*
-        $.ajax({
-            type: 'POST',
-            url: '/save_conversation',
-            contentType: 'application/json',
-            data: JSON.stringify(conversationData),
-            success: function(response) {
-                flash("Conversation saved successfully", "success");
-                resetConversation();
-            },
-            error: function(error) {
-                flash("Failed to save conversation", "danger");
-            }
-        });
-        */
-        
-        flash("Conversation saved successfully", "success");
-        resetConversation();
-    }
-
-    // Reset conversation state
-    function resetConversation() {
-        currentQuestion = '';
-        currentAnswer = '';
-        ginaInput.value = '';
-        ginaOutputContainer.style.display = 'none';
-        ginaOutput.innerHTML = '';
-        toggleSendButton();
-        ginaInput.focus();
-    }
-
-    // Listen for input changes
-    ginaInput.addEventListener('input', toggleSendButton);
-    ginaInput.addEventListener('paste', () => {
-        setTimeout(toggleSendButton, 10);
+        try { flash('Conversation saved successfully', 'success'); } catch {}
     });
-
-    // Handle send button click
-    ginaSendBtn.addEventListener('click', () => {
-        const message = ginaInput.value.trim();
-        if (message && !isProcessing) {
-            processQuestion(message);
+  
+    // ===== Bootstrapping: ensure there is at least one block and that it’s wired
+    (function ensureInitialBlock() {
+        const hasBlock = conversationsHost.querySelector('.gina-block');
+        if (!hasBlock) {
+            // Create first block from template
+            const blockId = 1;
+            conversationsHost.appendChild(buildPlaceholder(blockId));
+            enable_interactions($(conversationsHost));
+            // no need to wait here; delegated handlers will work once loaded
+        } else {
+            // If server rendered the first block, just normalize its UI state
+            const firstInput = conversationsHost.querySelector('.gina-input');
+            firstInput && toggleSendButtonFor(firstInput.closest('.gina-block'));
         }
-    });
-
-    // Handle save button click
-    ginaSaveBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        saveConversation();
-    });
-
-    // Handle Enter key (Ctrl+Enter or Cmd+Enter to send)
-    ginaInput.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            e.preventDefault();
-            if (ginaInput.value.trim() && !isProcessing) {
-                ginaSendBtn.click();
-            }
-        }
-    });
-
-    // Handle recent conversation clicks
-    document.addEventListener('click', (e) => {
-        const convoItem = e.target.closest('.recent-convo-item');
-        if (convoItem && convoItem.dataset.convoId) {
-            const convoId = convoItem.dataset.convoId;
-            const convoTitle = convoItem.querySelector('.convo-title').textContent;
-            
-            console.log(`Loading conversation ${convoId}: ${convoTitle}`);
-            
-            ginaInput.value = `Continue our conversation about: ${convoTitle}`;
-            toggleSendButton();
-            ginaInput.focus();
-        }
-    });
-
-    // Auto-close dropdown when GINA is closed
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'class') {
-                const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('gina-recent-btn'));
-                if (dropdown && !ginaContainer.classList.contains('active')) {
-                    dropdown.hide();
-                }
-            }
-        });
-    });
-
-    observer.observe(ginaContainer, { attributes: true });
+    })();
 });
+  
