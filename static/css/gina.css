@@ -1,135 +1,81 @@
-/* Main Content Transitions */
-#main-content.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-}
-
-#main-content {
-    opacity: 1;
-    transition: opacity 0.4s ease;
-}
-
-/* GINA Chat Container */
 #gina-chat-container {
     --gina-input-min: 80px;
     --gina-input-max: 240px;
+    --splash-shift: -20%;
 
-    display: flex;
-    flex-direction: column;
     position: fixed;
     top: 51%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
+
+    display: flex;
+    flex-direction: column;
+
+    height: 20vh;
+    max-height: 90vh;
+
+    width: 75vw;
+    max-width: 1000px;
+
+    /* look & feel */
     padding: 18px;
     border-radius: 16px;
     background: rgba(6, 5, 5, 0.257);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    transition: all 0.4s ease;
+    border: 1px solid rgba(255,255,255,0.2);
+
+    /* behavior */
+    overflow: hidden;
+    transition: height 0.3s ease, transform 0.4s ease, opacity 0.4s ease;
     opacity: 0;
     pointer-events: none;
     z-index: 800;
-    width: 75vw;
-    max-width: 1000px;
-    max-height: 90vh;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    overflow: hidden;
 }
 
-/* Show container when active */
 #gina-chat-container.active {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
     pointer-events: auto;
 }
 
-.gina-controls {
-    margin-top: 5px;
-    margin-bottom: 5px;
+/* Splash overlay */
+.gina-splash {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    user-select: none;
+
+    font-size: 180%;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: rgba(255,255,255,0.92);
+    text-shadow: 0 2px 18px rgba(0,0,0,0.45);
+
+    opacity: 0.92;
+    transition: opacity .35s ease, transform .35s ease;
+    transform: translateY(var(--splash-shift, 0));
+    z-index: 3;
+}
+.gina-splash.hide {
+    opacity: 0;
+    transform: translateY(calc(var(--splash-shift, 0) - 6px));
 }
 
-/* Input Container */
+/* The column holding controls + history + latest must fill container */
 .gina-input-container {
     position: relative;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
-.gina-input-wrapper {
-    position: relative;
-}
+/* Controls */
+.gina-controls { margin: 10px 0; }
 
-#gina-conversations > div {
-    margin-top: 25px;
-}
-
-.gina-conversations {
-    flex: 1 1 auto;
-    min-height: 0;            /* important for flex children */
-    max-height: calc(90vh - 120px); /* subtract padding/controls height */
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 6px;
-    scrollbar-gutter: stable;
-}
-
-/* Input Field */
-.gina-input {
-    width: 100%;
-    /* changed from fixed min-height + manual resize to tightly-controlled autosizing */
-    min-height: var(--gina-input-min, 80px);
-    height: auto;
-    max-height: var(--gina-input-max, 240px);
-    overflow-y: hidden; /* JS toggles to auto only when content exceeds max */
-    resize: none;
-
-    padding: 14px 60px 14px 18px;
-    font-size: 1rem;
-    font-family: inherit;
-    border: none;
-    border-radius: 12px;
-    background-color: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    outline: none;
-    backdrop-filter: blur(4px);
-    transition: background-color 0.3s, box-shadow 0.3s, max-height 0.2s ease;
-    box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
-    line-height: 1.5;
-}
-
-/* When we expand fully on send */
-.gina-input.expanded {
-    max-height: none !important;
-    overflow-y: hidden !important;
-}
-
-.gina-input.locked {
-    background-color: rgba(255, 255, 255, 0.1);
-    cursor: not-allowed;
-    opacity: 0.7;
-}
-
-.gina-input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.gina-input:focus:not(.locked) {
-    background-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
-}
-
-/* GINA Header */
-#gina-chat-container h2 {
-    color: #fff;
-    font-size: 1.4rem;
-    text-align: center;
-    margin-bottom: 20px;
-    letter-spacing: 0.5px;
-}
-
-/* Save Button */
 .gina-save-btn {
     background-color: transparent;
     border: none;
@@ -139,191 +85,96 @@
     transition: color 0.3s ease, transform 0.2s ease;
 }
 
-.gina-save-btn:hover {
-    color: white;
-    transform: scale(1.1);
-}
-
-/* Send Button Container */
-.gina-send-container {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    opacity: 0;
-    transform: translateX(20px);
-    pointer-events: none;
-    transition: all 0.3s ease;
-}
-
-.gina-send-container.show {
-    opacity: 1;
-    transform: translateX(0);
-    pointer-events: auto;
-}
-
-/* Send Button */
-.gina-send-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: rgba(150, 150, 150, 0.308);
-    color: white;
-    border: none;
-    border-radius: 25px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 153, 247, 0.3);
-    backdrop-filter: blur(10px);
-}
-
-.gina-send-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 153, 247, 0.4);
-    background: linear-gradient(135deg, #00b7ff76, #0098f782);
-}
-
-.gina-send-btn:active {
-    transform: translateY(0);
-}
-
-.gina-send-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-.gina-send-btn i {
-    font-size: 1.1rem;
-}
-
-/* Locked input/output style */
-.gina-input.locked,
-.gina-output.locked {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-/* Output Container */
-.gina-output-container,
-#gina-output-container {
-    margin-top: 6px;
-    padding: 12px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-}
-
-.gina-output {
-    padding: 14px 18px;
-    color: #fff;
-    min-height: 60px;
-    font-family: inherit;
-    font-size: 1rem;
-    line-height: 1.5;
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-.gina-output.loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.gina-output.loading::after {
-    content: '';
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: rgba(255, 255, 255, 0.8);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-left: 10px;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* GINA Button Group Styles */
-.gina-button-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-}
-
-.gina-recent-btn {
-    background-color: #303030;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    opacity: 0;
-    transform: translateX(20px);
-    pointer-events: none;
-    transition: all 0.3s ease;
-}
-
-.gina-button-group.gina-active .gina-recent-btn {
-    opacity: 1;
-    transform: translateX(0);
-    pointer-events: auto;
-}
-
-.gina-recent-btn:hover {
-    background-color: #404040;
-    border-color: rgba(255, 255, 255, 0.4);
-}
-
-/* Recent Conversations Dropdown */
-.recent-convo-dropdown {
-    background-color: #303030 !important;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    max-height: 300px;
+/* === Scrollable history === */
+.gina-conversations {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
-    z-index: 1050 !important; 
+    overflow-x: hidden;
+    padding-right: 6px;
+    scrollbar-gutter: stable both-edges;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
-.gina-button-group.gina-active .dropdown {
-    z-index: 1050;
+/* Anchored latest (excluded from scroll) */
+.gina-latest {
+    flex: 0 0 auto;
+    padding-top: 8px;
+    margin-top: 8px;
+    border-top: 1px dashed rgba(255,255,255,0.18);
 }
 
-.navbar .dropdown-menu {
-    z-index: 1050 !important;
-}
+/* Spacing */
+.gina-conversations .gina-block + .gina-block { margin-top: 18px; }
+.gina-latest .gina-block { margin-top: 8px; }
 
-.recent-convo-item {
-    color: rgba(255, 255, 255, 0.8);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.2s ease;
-}
+/* === Input + Send === */
+.gina-input-wrapper { position: relative; }
+.gina-input {
+    width: 100%;
+    min-height: var(--gina-input-min, 80px);
+    height: auto;
+    max-height: var(--gina-input-max, 240px);
+    overflow-y: hidden;
+    resize: none;
 
-.recent-convo-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
+    padding: 14px 60px 14px 18px;
+    font-size: 1rem;
+    font-family: inherit;
+    border: none;
+    border-radius: 12px;
+    background-color: rgba(255,255,255,0.15);
+    color: #fff;
+    outline: none;
+    backdrop-filter: blur(4px);
+    transition: background-color 0.3s, box-shadow 0.3s, max-height 0.2s ease;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
+    line-height: 1.5;
 }
+.gina-input.expanded { max-height: none !important; overflow-y: hidden !important; }
+.gina-input.locked   { background-color: rgba(255,255,255,0.1); cursor: not-allowed; opacity: 0.7; }
+.gina-input::placeholder { color: rgba(255,255,255,0.6); }
+.gina-input:focus:not(.locked) { background-color: rgba(255,255,255,0.25); box-shadow: 0 0 8px rgba(0,255,255,0.6); }
 
-.recent-convo-item:last-child {
-    border-bottom: none;
+.gina-send-container {
+    position: absolute; bottom: 12px; right: 12px;
+    opacity: 0; transform: translateX(20px);
+    pointer-events: none; transition: all 0.3s ease;
 }
+.gina-send-container.show { opacity: 1; transform: translateX(0); pointer-events: auto; }
+.gina-send-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 24px;
+    background: rgba(150,150,150,0.308); color: white;
+    border: none; border-radius: 25px;
+    font-size: .8rem; font-weight: 500; cursor: pointer;
+    transition: all .3s ease; box-shadow: 0 4px 15px rgba(0,153,247,0.3);
+    backdrop-filter: blur(10px);
+}
+.gina-send-btn:hover   { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,153,247,0.4); background: linear-gradient(135deg,#00b7ff76,#0098f782); }
+.gina-send-btn:active  { transform: translateY(0); }
+.gina-send-btn:disabled{ opacity: .5; cursor: not-allowed; transform: none!important; }
+.gina-send-btn i { font-size: 1.1rem; }
 
-.convo-title {
-    font-weight: 500;
-    font-size: 0.9rem;
-}
+/* === Output area === */
+.gina-output-container { margin-top: 6px; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.08); color:#fff; }
+.gina-output           { padding: 14px 18px; color:#fff; min-height: 60px; font-family: inherit; font-size: 1rem; line-height: 1.5; background: rgba(255,255,255,0.05); }
+.gina-output.loading   { display:flex; align-items:center; justify-content:center; color: rgba(255,255,255,0.6); }
+.gina-output.loading::after { content:''; width:20px; height:20px; border:2px solid rgba(255,255,255,0.3); border-top-color: rgba(255,255,255,0.8); border-radius:50%; animation: spin 1s linear infinite; margin-left:10px; }
+@keyframes spin { to { transform: rotate(360deg);} }
 
-.convo-preview {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
-    margin-top: 2px;
-}
+/* === Bubbles & alignment === */
+.gina-block.chat-mode .gina-input-wrapper.finalized { display:flex; justify-content:flex-end; padding:0 2px; }
+.gina-msg { display:inline-block; width:fit-content; max-width:70%; padding:12px 14px; line-height:1.5; font-size:1rem; border-radius:14px; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; }
+.gina-msg.user { margin-left:auto; background: linear-gradient(135deg, rgba(0,183,255,0.35), rgba(0,152,247,0.38)); color:#fff; border-top-right-radius:6px; }
+.gina-block.chat-mode .gina-output-container { background:transparent; padding:0; border-radius:0; margin-top:8px; display:flex; justify-content:flex-start; }
+.gina-block.chat-mode .gina-output { display:inline-block; width:fit-content; max-width:70%; background: rgba(255,255,255,0.12); color:#fff; border-radius:14px; border-top-left-radius:6px; padding:12px 14px; margin-right:auto; white-space:pre-wrap; }
+.gina-input-wrapper.finalized .gina-msg.user { margin-top:2px; }
+.gina-block.chat-mode .gina-output { margin-top:6px; }
 
-.convo-time {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.5);
-}
+/* Main content fade */
+#main-content.hidden { opacity:0; pointer-events:none; transition:opacity .4s ease; }
+#main-content        { opacity:1; transition:opacity .4s ease; }
+.gina-button-group { display:flex; align-items:center; gap:8px; transition:all .3s ease; }
+.gina-button-group.gina-active .gina-recent-btn { opacity:1; transform:translateX(0); pointer-events:auto; }
