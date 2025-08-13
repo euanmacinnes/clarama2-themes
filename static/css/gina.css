@@ -12,13 +12,16 @@
 
 /* GINA Chat Container */
 #gina-chat-container {
+    --gina-input-min: 80px;
+    --gina-input-max: 240px;
+
     display: flex;
     flex-direction: column;
     position: fixed;
-    top: 50%;
+    top: 51%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
-    padding: 32px;
+    padding: 18px;
     border-radius: 16px;
     background: rgba(6, 5, 5, 0.257);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -43,13 +46,15 @@
 }
 
 .gina-controls {
-    margin-top: 16px;
-    margin-bottom: 20px;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 /* Input Container */
 .gina-input-container {
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .gina-input-wrapper {
@@ -62,18 +67,24 @@
 
 .gina-conversations {
     flex: 1 1 auto;
-    min-height: 0;       
-    overflow-y: auto; 
-    overflow-x: hidden; 
+    min-height: 0;            /* important for flex children */
+    max-height: calc(90vh - 120px); /* subtract padding/controls height */
+    overflow-y: auto;
+    overflow-x: hidden;
     padding-right: 6px;
     scrollbar-gutter: stable;
 }
-  
+
 /* Input Field */
 .gina-input {
     width: 100%;
-    min-height: 120px;       
-    resize: vertical;
+    /* changed from fixed min-height + manual resize to tightly-controlled autosizing */
+    min-height: var(--gina-input-min, 80px);
+    height: auto;
+    max-height: var(--gina-input-max, 240px);
+    overflow-y: hidden; /* JS toggles to auto only when content exceeds max */
+    resize: none;
+
     padding: 14px 60px 14px 18px;
     font-size: 1rem;
     font-family: inherit;
@@ -83,10 +94,15 @@
     color: #fff;
     outline: none;
     backdrop-filter: blur(4px);
-    transition: background-color 0.3s, box-shadow 0.3s;
+    transition: background-color 0.3s, box-shadow 0.3s, max-height 0.2s ease;
     box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
     line-height: 1.5;
-    overflow-y: auto;
+}
+
+/* When we expand fully on send */
+.gina-input.expanded {
+    max-height: none !important;
+    overflow-y: hidden !important;
 }
 
 .gina-input.locked {
