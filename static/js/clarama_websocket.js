@@ -250,6 +250,8 @@ function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
     let socket_id = embedded.attr("id");
     let refresh = embedded.attr("refresh");
     let environment = embedded.attr("environment");
+    let task_new = embedded.attr("task_new");
+    let task_type = embedded.attr("task_type");
     let env_url = '';
     if (environment !== undefined) {
         env_url = '&environment=' + environment;
@@ -265,7 +267,13 @@ function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
     playbutton.addClass("btn-secondary")
     playbutton.removeClass("btn-primary")
 
-    let task_url = $CLARAMA_ROOT + $CLARAMA_ENVIRONMENTS_TASK_OPEN + task + '?topic=' + topic + '&mode=' + mode + '&refresh=' + refresh + '&reset-environment=' + reset_environment + env_url;
+    let task_url = $CLARAMA_ROOT + $CLARAMA_ENVIRONMENTS_TASK_OPEN + task 
+        + '?topic=' + topic 
+        + '&mode=' + mode 
+        + '&refresh=' + refresh 
+        + '&reset-environment=' + reset_environment + env_url 
+        + '&task_new=' + task_new 
+        + '&task_type=' + task_type;
 
     enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun);
 }

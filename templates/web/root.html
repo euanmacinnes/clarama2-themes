@@ -126,6 +126,15 @@
                 {% endif %}
             </div>
             <div class="d-flex flex-column flex-md-row align-items-center justify-content-lg-center">
+                <!-- GINA Kernel -->
+                <div id="conversation_socket" environment="native_individual.environment.yaml" class="clarama-websocket clarama-task"
+                        mode="explore"
+                        topic="{{ username }}_gina_new"
+                        task="" 
+                        task_new="True"
+                        task_type=".conversation.yaml"
+                        task_kill="False">
+                </div>
                 <!-- GINA Button Group -->
                 <div class="gina-button-group">
                     <div class="dropdown">
@@ -198,7 +207,7 @@
     {% block content %}{% endblock %}
 </div>
 
-{% include theme("explorer/files/conversation_explore.html") %}
+{% include theme("explorer/files/gina.html") %}
 
 <div id="toast_container" class="toast-container" style="position: fixed; right: 12px; top: 84px;">
     {% with messages = get_flashed_messages(with_categories=true) %}

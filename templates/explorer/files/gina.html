@@ -1,0 +1,31 @@
+<div id="gina-chat-container" class="gina-container d-flex flex-column">
+    <!-- Splash (fades away on first send) -->
+    <div class="gina-splash" id="gina-splash">Hello! I am GINA!</div>
+
+    <div class="gina-input-container w-100">
+        <!-- Top controls -->
+        <div class="gina-controls w-100 d-flex justify-content-between align-items-center px-3 mt-3">
+            <button class="gina-save-btn" title="Save">
+                <i class="bi bi-floppy"></i>
+            </button>
+            <button type="button" class="btn btn-secondary" id="kernel_status">Loading...</button>
+        </div>
+
+        <!-- Scrollable history -->
+        <div class="gina-conversations flex-grow-1" id="gina-conversations">
+            <!-- Older conversation blocks will be moved/added here -->
+        </div>
+
+        <!-- Anchored latest composer (excluded from scrolling) -->
+        <div class="gina-latest" id="gina-latest">
+            <!-- the active conversation block template will be injected here -->
+        </div>
+    </div>
+</div>
+
+<div class="clarama-task">
+    <div id="edit_socket" environment="{{ environment }}" class="clarama-websocket clarama-task"
+         mode="edit"
+         topic="{{ internal_topic }}"
+         task="{{ file_url }}" task_kill="False"></div>
+</div>
