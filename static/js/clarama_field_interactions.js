@@ -26,12 +26,15 @@ function debounce(func, timeout = 500) {
 }
 
 function perform_interact(field, args = {}) {
-    // console.log("field", field);
+    // console.log("perform_interact field", field);
     // console.log("Interacting from " + field.attr("id"));
     // console.log("args", args);
 
+    var closestGrid = $(field).closest(".clarama-grid");
+    // console.log("perform_interact closestGrid", closestGrid);
+
     var element = field.parents(".clarama-element").attr('id');
-    var grid = field.parents(".grid-stack");
+    var grid = closestGrid.find(".grid-stack");
     var grid_id = field.parents(".clarama-element").attr('grid-id');
     // console.log("grid_id", grid_id)
 
@@ -41,7 +44,9 @@ function perform_interact(field, args = {}) {
         // console.log("eobj", eobj, " for ", grid_id + "elements", " element ", element);
 
         if ('links' in eobj) {
+            // console.log("checking where get_field_values is called: perform_interact")
             get_field_values({}, true, function (field_registry) {
+                // console.log("field_registry", field_registry)
                 field_values = merge_dicts(field_registry, args);
                 // console.log("perform_interact field_values", field_values);
                 links = eobj["links"]; // array of file names to refresh
@@ -87,9 +92,9 @@ function perform_interact(field, args = {}) {
                                 break;
 
                             case "changed":
-                                linked_element[0].innerHTML = "";
-                                linked_element[0].append(showInteractionContent(field, 'run', link.url + "?" + link.params));
-                                enable_interactions($(`#${link.element}`));
+                                linked_element.empty();
+                                linked_element.append(showInteractionContent(field, 'run', link.url + "?" + link.params));
+                                enable_interactions(linked_element);
                                 break;
 
                             default:
@@ -125,7 +130,7 @@ function perform_interact(field, args = {}) {
                         }
                     }
                 }
-            });
+            }, closestGrid);
         }
     }
 }
