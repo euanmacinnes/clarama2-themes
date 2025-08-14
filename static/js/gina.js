@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ginaSaveBtn     = document.querySelector('.gina-save-btn');
     const historyHost     = document.getElementById('gina-conversations');      
     const latestHost      = document.getElementById('gina-latest');
-    const splash          = document.getElementById('gina-splash');
+    const splash          = getSplash();
   
     if (!ginaContainer || !historyHost || !latestHost) {
         console.error('GINA: Missing required DOM nodes (#gina-chat-container / #gina-conversations / #gina-latest).');
@@ -16,16 +16,22 @@ document.addEventListener('DOMContentLoaded', () => {
   
     // --- Progressive height config -------------------------------------------
     const HEIGHT_VH_START = 20;  // used only once there are messages
-    const HEIGHT_VH_MAX   = 80;  // soft cap (hard cap still enforced by CSS max-height)
+    const HEIGHT_VH_MAX   = 80;  // soft cap
     const GROWTH_K        = 0.35; // higher = faster growth per message
     const EMPTY_PX_HEIGHT = 250;  // fixed empty-state height in px
   
+    function getSplash() { 
+        return document.getElementById('gina-splash'); 
+    }      
+
     function historyCount() {
         return historyHost.querySelectorAll('.gina-block').length;
     }
+
     function computeHeightVH(n) {
         return HEIGHT_VH_START + (HEIGHT_VH_MAX - HEIGHT_VH_START) * (1 - Math.exp(-GROWTH_K * n));
     }
+
     function applyPanelHeight() {
         const n = historyCount();
         if (n === 0) { // no messages yet
@@ -42,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
     // --- Splash control -------------------------------------------------------
     function hideSplash(animated = true) {
+        const splash = getSplash();
         if (!splash) return;
         if (splash.dataset.hidden === '1') return;
         splash.dataset.hidden = '1';
@@ -60,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const num = parseInt(v, 10);
         return Number.isFinite(num) ? num : fallback;
     }
+
     function autoSize(el, { expandFully = false } = {}) {
         if (!el) return;
         const scope = el.closest('#gina-chat-container') || document.documentElement;
@@ -114,12 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         recognition.onresult = (event) => {
             if (!listeningInput) return;
-            // Aggregate interim + final transcript
             let transcript = '';
             for (let i = event.resultIndex; i < event.results.length; i++) {
             transcript += event.results[i][0].transcript;
             }
-            // Compose into the field; keep original + a separating space if needed
             const joiner = baseInputValue && !/\s$/.test(baseInputValue) ? ' ' : '';
             listeningInput.value = (baseInputValue + joiner + transcript).trimStart();
             autoSize(listeningInput);
@@ -193,12 +199,53 @@ document.addEventListener('DOMContentLoaded', () => {
             recognition.stop(); 
         } catch (_) {}
     }
-  
+
+    // --- Reset to a fresh conversation ---------------------------------------
+    async function resetConversation() {
+        // Stop any voice capture
+        if (typeof stopListening === 'function') { try { stopListening(); } catch(_){} }
+    
+        historyHost.innerHTML = '';
+        latestHost.innerHTML  = '';
+        ginaContainer.style.height = `${EMPTY_PX_HEIGHT}px`;
+    
+        // Restore splash
+        let splashNode = document.getElementById('gina-splash');
+        if (!splashNode) {
+            splashNode = document.createElement('div');
+            splashNode.id = 'gina-splash';
+            splashNode.className = 'gina-splash';
+            splashNode.textContent = 'Hello! I am GINA!';
+            ginaContainer.prepend(splashNode);
+        } else {
+            splashNode.classList.remove('hide');
+            splashNode.dataset.hidden = '0';
+        }
+    
+        // Reset transient state
+        isProcessing = false;
+        currentQuestion = '';
+        currentAnswer = '';
+        activeBlock = null;
+    
+        // Inject fresh composer
+        const firstId = 1;
+        latestHost.appendChild(buildPlaceholder(firstId));
+        enable_interactions($(latestHost));
+    
+        const block = await waitForRenderedBlock(firstId, 8000);
+        const firstInput = block.querySelector('.gina-input');
+        if (firstInput) { firstInput.focus(); autoSize(firstInput); }
+
+        applyPanelHeight();
+    }
+   
     // --- Visibility toggle ----------------------------------------------------
     if (ginaButton) {
         ginaButton.addEventListener('click', () => {
             const open = ginaContainer.classList.contains('active');
             if (!open) {
+                resetConversation();
                 mainContent?.classList.add('hidden');
                 ginaContainer.classList.add('active');
                 ginaButtonGroup?.classList.add('gina-active');
@@ -247,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const candidates = [
             document.querySelector('.clarama-websocket[task_kernel_id]'),
             document.querySelector('[task_kernel_id]'),
-            document.getElementById('edit_socket')
+            document.getElementById('conversation_socket')
         ].filter(Boolean);
         for (const el of candidates) {
             const kid = el.getAttribute && el.getAttribute('task_kernel_id');
@@ -304,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildPlaceholder(blockId) {
         const ph = document.createElement('div');
         ph.className = 'clarama-post-embedded clarama-replaceable';
-        ph.setAttribute('url', `/template/render/explorer/files/conversation_block?block_id=${blockId}`);
+        ph.setAttribute('url', `/template/render/explorer/files/gina_conversation_block?block_id=${blockId}`);
         return ph;
     }
   
@@ -327,21 +374,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
   
-    // --- Kernel call (AJAX) ---------------------------------------------------
+    // --- Kernel call ---------------------------------------------------
     function runQuestionThroughKernel(questionText, forBlock) {
         get_field_values({}, true, function (field_registry) {
             field_registry['clarama_task_kill'] = false;
     
             const task_kernel_id = findKernelId();
             if (!task_kernel_id) {
-            const msg = 'Unable to find a running kernel. Please open any task/session first.';
-            console.error('GINA:', msg);
-            flash(msg, "danger");
-            const out = forBlock?.querySelector('.gina-output');
-            if (out) { out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: ${msg}</span>`; }
-            setProcessingState(false);
-            spawnNextConversationTemplate();
-            return;
+                const msg = 'Unable to find a running kernel.';
+                console.error('GINA:', msg);
+                flash(msg, "danger");
+                const out = forBlock?.querySelector('.gina-output');
+                if (out) { out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: ${msg}</span>`; }
+                setProcessingState(false);
+                spawnNextConversationTemplate();
+                return;
             }
     
             const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
@@ -351,34 +398,34 @@ document.addEventListener('DOMContentLoaded', () => {
             };
     
             $.ajax({
-            type: 'POST',
-            url,
-            datatype: 'html',
-            contentType: 'application/json',
-            data: JSON.stringify(task_registry),
-            success: function (data) {
-                if (data && data['data'] === 'ok') {
-                // WebSocket will deliver the response
-                return;
+                type: 'POST',
+                url,
+                datatype: 'html',
+                contentType: 'application/json',
+                data: JSON.stringify(task_registry),
+                success: function (data) {
+                    if (data && data['data'] === 'ok') {
+                        // WebSocket will deliver the response
+                        return;
+                    }
+                    const err = (data && data['error']) ? data['error'] : 'An error occurred while processing your question.';
+                    flash("Couldn't process question: " + err, "danger");
+                    const out = forBlock?.querySelector('.gina-output');
+                    if (out) { 
+                        out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: ${safeText(err)}</span>`; 
+                    }
+                    setProcessingState(false);
+                    spawnNextConversationTemplate();
+                },
+                error: function () {
+                    flash("Couldn't process question, network or access issue", "danger");
+                    const out = forBlock?.querySelector('.gina-output');
+                    if (out) { 
+                        out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: network or access issue</span>`; 
+                    }
+                    setProcessingState(false);
+                    spawnNextConversationTemplate();
                 }
-                const err = (data && data['error']) ? data['error'] : 'An error occurred while processing your question.';
-                flash("Couldn't process question: " + err, "danger");
-                const out = forBlock?.querySelector('.gina-output');
-                if (out) { 
-                out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: ${safeText(err)}</span>`; 
-                }
-                setProcessingState(false);
-                spawnNextConversationTemplate();
-            },
-            error: function () {
-                flash("Couldn't process question, network or access issue", "danger");
-                const out = forBlock?.querySelector('.gina-output');
-                if (out) { 
-                out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: network or access issue</span>`; 
-                }
-                setProcessingState(false);
-                spawnNextConversationTemplate();
-            }
             });
         });
     }
@@ -395,6 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 task_active_socket.onmessage = function (event) {
                     let dict;
                     dict = JSON.parse(event.data);
+                    console.log('dict: ', dict);
         
                     if (isProcessing && activeBlock && dict && dict.class === 'template') {
                         const html   = dict.template || dict.values?.template || '';
@@ -422,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 out.textContent = currentAnswer || 'Response received but was empty';
                             }
             
-                            // Move the finished block from latest → history (so latest stays a composer)
+                            // Move the finished block from latest → history 
                             if (activeBlock.parentElement === latestHost) {
                                 historyHost.appendChild(activeBlock);
                                 stickHistoryToBottom();
