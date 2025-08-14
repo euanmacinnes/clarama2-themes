@@ -179,7 +179,9 @@
                         </p>
                     </td>
                     <td style="vertical-align: top;padding-top: 5px;">
-                        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#browseFileModal" filters="*.table.yaml|*.task.yaml|*.source.yaml|*.csv" style="font-size: 13px;line-height: 14px;" inputId="field_data_source">
+                        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                                filters="*.table.yaml|*.task.yaml|*.source.yaml|*.csv"
+                                style="font-size: 13px;line-height: 14px;" inputId="field_data_source">
                             Pick source
                         </button>
                     </td>
@@ -257,6 +259,7 @@
         </td>
         <td width="50%" style="vertical-align: top; padding:30px;">
             <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
+            <pre><code id="clarama-query-result"></code></pre>
         </td>
     </tr>
 
