@@ -165,7 +165,7 @@
                                                        style="font-size: 1.6rem;">
                                                         <!--<div class="clarama-embedded rounded-pill badge-notification position-absolute translate-middle"
                                               style="font-size: 0.6em; left: 80%!important;top: 20%!important;"
-                                              url="{{ url_for("clarama_webgit.git_versioning",mode='explore',filetype='folder',filename=local_url + folder) }}">
+                                              url="{{ url_for("clarama_web_git.git_versioning",mode='explore',filetype='folder',filename=local_url + folder) }}">
                                         </div>--></i>
                                                     <div id="folder_{{ loop.index }}"
                                                          class="col d-flex align-items-center listing_div">{{ folder }}</div>
@@ -196,7 +196,7 @@
                                                     />
                                                     <i class="bi {{ get(filetypes, file | fileextension, 'bi-clipboard2-data') }} position-relative col pe-0"
                                                        style="font-size: 1.6rem;">
-                                                        <!--<div class="clarama-embedded rounded-pill badge-notification position-absolute translate-middle" style="font-size: 0.6em; left: 80%!important;top: 20%!important;" url="{{ url_for("clarama_webgit.git_versioning",mode='explore',filetype='file',filename=local_url + file) }}">
+                                                        <!--<div class="clarama-embedded rounded-pill badge-notification position-absolute translate-middle" style="font-size: 0.6em; left: 80%!important;top: 20%!important;" url="{{ url_for("clarama_web_git.git_versioning",mode='explore',filetype='file',filename=local_url + file) }}">
                                             </div>-->
                                                     </i>
                                                     <div id="file_{{ loop.index }}"
@@ -331,7 +331,7 @@
                 if (excludeElement && this === excludeElement) {
                     return; // Continue to next iteration
                 }
-                
+
                 const name = $(this).text().trim();
                 if (name) existingNames.add(name);
             });
