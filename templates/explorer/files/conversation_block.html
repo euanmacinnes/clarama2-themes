@@ -1,0 +1,23 @@
+<!-- conversation block -->
+<div class="gina-block" id="gina-block-{{ block_id }}" data-block-id="{{ block_id }}">
+  <div class="gina-input-wrapper position-relative">
+
+    <div class="gina-mic-container">
+      <button class="gina-mic-btn" type="button" title="Voice input" aria-label="Voice input" aria-pressed="false">
+        <i class="bi bi-mic"></i>
+      </button>
+    </div>
+
+    <textarea class="gina-input" placeholder="Type your question..."></textarea>
+
+    <div class="gina-send-container">
+      <button class="gina-send-btn" title="Send Message">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="gina-output-container" style="display:none;">
+    <div class="gina-output"></div>
+  </div>
+</div>
