@@ -127,18 +127,19 @@
             </div>
             <div class="d-flex flex-column flex-md-row align-items-center justify-content-lg-center">
                 <!-- GINA Kernel -->
-                <div id="conversation_socket" environment="native_individual.environment.yaml" class="clarama-websocket clarama-task"
-                        mode="explore"
-                        topic="{{ username }}_gina_new"
-                        task="" 
-                        task_new="True"
-                        task_type=".conversation.yaml"
-                        task_kill="False">
+                <div id="conversation_socket" class="clarama-websocket clarama-task"
+                     mode="explore"
+                     topic="{{ username }}_gina_new"
+                     task=""
+                     task_new="True"
+                     task_type=".conversation.yaml"
+                     task_kill="False">
                 </div>
                 <!-- GINA Button Group -->
                 <div class="gina-button-group">
                     <div class="dropdown">
-                        <button id="gina-recent-btn" class="btn gina-recent-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button id="gina-recent-btn" class="btn gina-recent-btn dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-clock-history"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-start recent-convo-dropdown">
@@ -161,7 +162,9 @@
                             </a></li> -->
                         </ul>
                     </div>
-                    <button id="gina-button" class="btn nav-search-btn" type="button" style="background-color: #303030; color: #fff;">GINA</button>
+                    <button id="gina-button" class="btn nav-search-btn" type="button"
+                            style="background-color: #303030; color: #fff;">GINA
+                    </button>
                 </div>
                 <!-- <form id="search" class="d-flex nav-search-wrapper">
                     <input class="form-control bg-secondary text-white p-0" type="search" aria-label="Search" required>
