@@ -1,5 +1,5 @@
 #gina-chat-container {
-    --gina-input-min: 80px;
+    --gina-input-min: 51px;
     --gina-input-max: 240px;
     --splash-shift: -20%;
 
@@ -120,10 +120,12 @@
 .gina-mic-container {
     position: absolute;
     left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
+    bottom: 12px;
+    top: auto;
+    transform: none;
     z-index: 1;
 }
+
 .gina-mic-btn {
     display: inline-flex;
     align-items: center;
@@ -155,17 +157,18 @@
 
 .gina-input {
     width: 100%;
-    min-height: var(--gina-input-min, 80px);
-    height: auto;
+    min-height: var(--gina-input-min, 51px);
+    height: var(--gina-input-min, 51px);
     max-height: var(--gina-input-max, 240px);
-    overflow-y: hidden;
+    overflow-y: visible !important;
     resize: none;
 
-    /* extra left padding to make room for mic */
-    padding: 14px 60px 14px 48px;
+    padding: 12px 72px 12px 57px;
 
     font-size: 1rem;
     font-family: inherit;
+    line-height: 1.4;
+
     border: none;
     border-radius: 12px;
     background-color: rgba(255,255,255,0.15);
@@ -174,26 +177,38 @@
     backdrop-filter: blur(4px);
     transition: background-color 0.3s, box-shadow 0.3s, max-height 0.2s ease;
     box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
-    line-height: 1.5;
 }
+
+.gina-input::placeholder { 
+    line-height: inherit;
+    color: rgba(255,255,255,0.6); 
+}
+
 .gina-input.expanded { max-height: none !important; overflow-y: hidden !important; }
 .gina-input.locked   { background-color: rgba(255,255,255,0.1); cursor: not-allowed; opacity: 0.7; }
-.gina-input::placeholder { color: rgba(255,255,255,0.6); }
 .gina-input:focus:not(.locked) { background-color: rgba(255,255,255,0.25); box-shadow: 0 0 8px rgba(0,255,255,0.6); }
 
 .gina-send-container {
-    position: absolute; bottom: 12px; right: 12px;
+    position: absolute; bottom: 12px; right: 23px;
     opacity: 0; transform: translateX(20px);
     pointer-events: none; transition: all 0.3s ease;
 }
 .gina-send-container.show { opacity: 1; transform: translateX(0); pointer-events: auto; }
 .gina-send-btn {
-    display: flex; align-items: center; gap: 8px;
-    padding: 12px 24px;
-    background: rgba(150,150,150,0.308); color: white;
-    border: none; border-radius: 25px;
-    font-size: .8rem; font-weight: 500; cursor: pointer;
-    transition: all .3s ease; box-shadow: 0 4px 15px rgba(0,153,247,0.3);
+    scale: 0.9;
+    display: flex; 
+    align-items: center; 
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(150,150,150,0.308); 
+    color: white;
+    border: none; 
+    border-radius: 25px;
+    font-size: .6rem; 
+    font-weight: 500; 
+    cursor: pointer;
+    transition: all .3s ease; 
+    box-shadow: 0 4px 15px rgba(0,153,247,0.3);
     backdrop-filter: blur(10px);
 }
 .gina-send-btn:hover   { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,153,247,0.4); background: linear-gradient(135deg,#00b7ff76,#0098f782); }
@@ -203,16 +218,16 @@
 
 /* === Output area === */
 .gina-output-container { margin-top: 6px; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.08); color:#fff; }
-.gina-output           { padding: 14px 18px; color:#fff; min-height: 60px; font-family: inherit; font-size: 1rem; line-height: 1.5; background: rgba(255,255,255,0.05); }
-.gina-output.loading   { display:flex; align-items:center; justify-content:center; color: rgba(255,255,255,0.6); }
-.gina-output.loading::after { content:''; width:20px; height:20px; border:2px solid rgba(255,255,255,0.3); border-top-color: rgba(255,255,255,0.8); border-radius:50%; animation: spin 1s linear infinite; margin-left:10px; }
+.gina-output           { padding: 14px 18px; color:#fff; min-height: 40px; font-family: inherit; font-size: 1rem; line-height: 1.5; background: rgba(255,255,255,0.05); }
+.gina-output.loading   { display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); }
+.gina-output.loading::after { content: ''; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: rgba(255,255,255,0.8); border-radius: 50%; animation: spin 1s linear infinite; margin-left: 10px; }
 @keyframes spin { to { transform: rotate(360deg);} }
 
 /* === Bubbles & alignment === */
 .gina-block.chat-mode .gina-input-wrapper.finalized { 
-    display:flex; 
-    justify-content:flex-end; 
-    padding:0 10px; 
+    display: flex; 
+    justify-content: flex-end; 
+    padding: 0 10px; 
     min-width: 0;
 }
 .gina-msg { box-sizing: border-box; display:inline-block; width:fit-content; max-width:70%; padding:12px 14px; line-height:1.5; font-size:1rem; border-radius:14px; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; }
@@ -225,5 +240,46 @@
 /* Main content fade */
 #main-content.hidden { opacity:0; pointer-events:none; transition:opacity .4s ease; }
 #main-content        { opacity:1; transition:opacity .4s ease; }
-.gina-button-group { display:flex; align-items:center; gap:8px; transition:all .3s ease; }
-.gina-button-group.gina-active .gina-recent-btn { opacity:1; transform:translateX(0); pointer-events:auto; }
+.gina-button-group { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    transition: all .3s ease; 
+}
+.gina-button-group.gina-active .gina-recent-btn {
+    color: white;
+    opacity: 1; 
+    transform: translateX(0); 
+    pointer-events: auto; 
+}
+.gina-recent-btn {
+    color: white;
+    opacity: 0;
+    transform: translateX(-8px);
+    pointer-events: none;
+    transition: all .3s ease;
+}
+.gina-recent-btn:hover {
+    color: #ccc; /* grey icon on hover */
+}
+.recent-convo-dropdown {
+    background-color: #2a2a2a !important; 
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0;
+}
+.recent-convo-dropdown .dropdown-item {
+    color: white;
+    padding: 10px 16px;
+}
+.recent-convo-dropdown .dropdown-item:hover {
+    background-color: #494949;
+}
+.recent-convo-dropdown .dropdown-header {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #aaa;
+    padding: 8px 16px;
+}
+  
