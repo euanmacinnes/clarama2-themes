@@ -721,14 +721,15 @@ document.addEventListener('DOMContentLoaded', () => {
         runQuestionThroughKernel(msg, block);
     });
   
-    // --- Save current Q/A (optional) ------------------------------------------
+    // --- Save current Q/A ------------------------------------------
     ginaSaveBtn?.addEventListener('click', (e) => {
         e.preventDefault();
         if (!currentQuestion || !currentAnswer) {
             flash('No conversation to save', 'warning'); 
             return;
         }
-        flash('Conversation saved successfully', 'success');
+        // flash('Conversation saved successfully', 'success');
+        flash('Save not implemented yet', 'danger');
     });
   
     // --- Bootstrapping: ensure there's an active block in latest --------------
