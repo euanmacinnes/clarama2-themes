@@ -2,39 +2,29 @@
   ~ Copyright (c) 2024. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
   -->
 
-  {% extends theme("web/root.html") %}
+{% extends theme("web/root.html") %}
 
 {% block content %}
     <div class="row flex-column flex-lg-row p-0 m-0 flex-grow-1 w-100">
-        <div class="container col-lg-9 order-2 order-lg-1 my-2 py-4">
-            <div class="row justify-content-center flex-wrap">
+        <div class="container col-12 my-2 py-4">
+            <div class="row justify-content-center flex-wrap" id="roles-grid">
                 {% for role in role_info %}
                     {% if 'title' in role['card'] %}
                         <a href="{{ role['default_folder'] }}"
-                           class="d-flex role-wrapper m-3 text-decoration-none "
-                           style="width: 21rem;">
-                            <div class="card align-items-center shadow-lg p-4 flex-grow-1 {{ role['card']['card-css-classes'] }}">
-                                <i class="bi {{ role['card']['icon'] | d('bi-folder',True) }} fs-2 p-0"
-                                ></i>
-                                <div class="card-body text-center w-100 d-flex flex-column py-2">
-                                    <h5 class="card-title">{{ role['card']['title'] }}</h5>
-                                    <p class="card-text">{{ role['card']['description'] }}</p>
-                                    <!-- <a href="{{role['default_folder']}}" class="btn btn-primary stretched-link">Go</a> -->
-                                </div>
+                            class="d-flex role-wrapper m-3 text-decoration-none"
+                            style="width: 21rem;">
+                        <div class="card align-items-center shadow-lg p-4 flex-grow-1 {{ role['card']['card-css-classes'] }}">
+                            <i class="bi {{ role['card']['icon'] | d('bi-folder',True) }} fs-2 p-0"></i>
+                            <div class="card-body text-center w-100 d-flex flex-column py-2">
+                                <h5 class="card-title">{{ role['card']['title'] }}</h5>
+                                <p class="card-text">{{ role['card']['description'] }}</p>
                             </div>
+                        </div>
                         </a>
                     {% endif %}
                 {% endfor %}
             </div>
         </div>
-
-        <div class="col-lg-3 order-1 order-lg-2 bg-white" id="my-favorites-container" style="display: none;">
-            <div class="p-3 pb-0">
-                <p class="fs-4 fw-semibold m-1">My Favorites</p>
-            </div>
-            <div id="my-favorites-listing" class="list-group">
-            </div>
-        </div>
     </div>
-
 {% endblock %}
+  

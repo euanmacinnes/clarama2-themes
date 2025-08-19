@@ -9,7 +9,7 @@
     transition: all 0.3s ease-out;
 }
 
-.role-wrapper:hover .card, .role-wrapper:hover i {
+.role-wrapper:hover .card, .role-wrapper:hover i:not(.fav-toggle) {
     color: #289bd1 !important;
     transition: all 0.2s ease-out;
 }
