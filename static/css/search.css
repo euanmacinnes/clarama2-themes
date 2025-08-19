@@ -10,8 +10,35 @@
 }
 
 .role-wrapper:hover .card, .role-wrapper:hover i:not(.fav-toggle) {
-    color: #289bd1 !important;
     transition: all 0.2s ease-out;
+}
+
+.fav-toggle:hover {
+    scale: 1.1;
+}
+
+.card {
+    border-radius: 30px;
+}
+
+.fav-card {
+    background-color:rgba(0, 0, 0, 0.204);
+    color: white;
+}
+
+.__administrator {
+    background-color: #01120d90;
+    color: white;
+}
+
+._user {
+    background-color: #00ffe130;
+    color: white;
+}
+
+.card:not(.fav-card):not(.__administrator):not(._user) {
+    background-color: #9b9b9b37; 
+    color: white;
 }
 
 .nav-search-wrapper input,
