@@ -7,12 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const ginaSaveBtn     = document.querySelector('.gina-save-btn');
     const historyHost     = document.getElementById('gina-conversations');      
     const latestHost      = document.getElementById('gina-latest');
-    const splash          = getSplash();
-  
-    if (!ginaContainer || !historyHost || !latestHost) {
-        console.error('GINA: Missing required DOM nodes (#gina-chat-container / #gina-conversations / #gina-latest).');
-        return;
+
+    function getSplash() { 
+        return document.getElementById('gina-splash'); 
     }
+    const splash = getSplash();
   
     // --- Progressive height config -------------------------------------------
     const HEIGHT_VH_START = 20;  // used only once there are messages
@@ -20,10 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const GROWTH_K        = 0.35; // higher = faster growth per message
     const EMPTY_PX_HEIGHT = 250;  // fixed empty-state height in px
   
-    function getSplash() { 
-        return document.getElementById('gina-splash'); 
-    }      
-
     function historyCount() {
         return historyHost.querySelectorAll('.gina-block').length;
     }
@@ -68,38 +63,85 @@ document.addEventListener('DOMContentLoaded', () => {
         return Number.isFinite(num) ? num : fallback;
     }
 
+    function measureOneLineHeight(el) {
+        const cached = el.dataset.oneLineH;
+        if (cached) return parseFloat(cached);
+
+        const cs = window.getComputedStyle(el);
+        const clone = document.createElement('textarea');
+        clone.value = 'X'; // single line
+        [
+            'font-size','font-family','font-weight','font-style','line-height',
+            'padding-top','padding-bottom','padding-left','padding-right',
+            'border-top-width','border-bottom-width','box-sizing',
+            'letter-spacing','text-transform','word-spacing','white-space',
+            'text-indent','tab-size'
+        ].forEach(p => clone.style[p] = cs.getPropertyValue(p));
+
+        clone.style.position = 'absolute';
+        clone.style.visibility = 'hidden';
+        clone.style.height = 'auto';
+        clone.style.minHeight = '0';
+        clone.style.maxHeight = 'none';
+        clone.style.overflow = 'hidden';
+        clone.style.width = el.clientWidth + 'px'; // match current width
+
+        document.body.appendChild(clone);
+        const oneLineH = Math.ceil(clone.scrollHeight);
+        document.body.removeChild(clone);
+
+        el.dataset.oneLineH = String(oneLineH);
+        return oneLineH;
+    }
+
     function autoSize(el, { expandFully = false } = {}) {
         if (!el) return;
+
         const scope = el.closest('#gina-chat-container') || document.documentElement;
-        const minH  = readPxVar(scope, '--gina-input-min', 80);
+        const minH  = readPxVar(scope, '--gina-input-min', 51);
         const maxH  = readPxVar(scope, '--gina-input-max', 240);
-    
+
+        // measure content
         el.style.height = 'auto';
-        const full = el.scrollHeight;
-    
+        const full = Math.ceil(el.scrollHeight);
+
+        const isEmpty     = (el.value || '').trim() === '';
+        const oneLineH    = measureOneLineHeight(el);
+        const isOneLine   = full <= (oneLineH + 1); // tolerance for sub-pixel
+
+        if (!expandFully && (isEmpty || isOneLine)) {
+            el.classList.add('is-singleline');
+            el.style.height    = minH + 'px';
+            el.style.maxHeight = maxH + 'px';
+            el.style.overflowY = 'hidden';
+            return;
+        } else {
+            el.classList.remove('is-singleline');
+        }
+
+        // Show full text when sending
         if (expandFully) {
             el.classList.add('expanded');
             el.style.maxHeight = 'none';
             el.style.overflowY = 'hidden';
-            el.style.height = full + 'px';
-            el.scrollTop = 0;
+            el.style.height    = full + 'px';
+            el.scrollTop       = 0;
             return;
         }
-    
-        el.classList.remove('expanded');
+
         const next = Math.max(minH, Math.min(full, maxH));
         el.style.maxHeight = maxH + 'px';
         el.style.overflowY = (full > maxH) ? 'auto' : 'hidden';
-        el.style.height = next + 'px';
+        el.style.height    = next + 'px';
     }
-  
+
     // --- State ----------------------------------------------------------------
     let isProcessing = false;
     let currentQuestion = '';
     let currentAnswer = '';
     let activeBlock = null;
   
-    // --- Voice input (Web Speech API) -----------------------------------------
+    // --- Voice input (Web Speech API) ----------------------------------------
     let recognition = null;
     let isListening = false;
     let listeningBlock = null;   // the block whose input we are filling
@@ -111,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (recognition) return recognition;
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) return null;
+
         recognition = new SpeechRecognition();
         recognition.lang = (document.documentElement.lang || 'en-UK');
         recognition.continuous = false;
@@ -120,28 +163,31 @@ document.addEventListener('DOMContentLoaded', () => {
             isListening = true;
             toggleMicUI(true);
         };
+
         recognition.onresult = (event) => {
             if (!listeningInput) return;
             let transcript = '';
             for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
+                transcript += event.results[i][0].transcript;
             }
             const joiner = baseInputValue && !/\s$/.test(baseInputValue) ? ' ' : '';
             listeningInput.value = (baseInputValue + joiner + transcript).trimStart();
             autoSize(listeningInput);
             toggleSendButtonFor(listeningBlock);
         };
+
         recognition.onerror = (e) => {
             toggleMicUI(false);
             isListening = false;
             if (e && e.error === 'no-speech') {
-            flash('No speech detected', 'warning');
+                flash('No speech detected', 'warning');
             } else if (e && e.error === 'not-allowed') {
-            flash('Microphone permission denied', 'danger');
+                flash('Microphone permission denied', 'danger');
             } else {
-            flash('Voice input error', 'danger');
+                flash('Voice input error', 'danger');
             }
         };
+
         recognition.onend = () => {
             toggleMicUI(false);
             isListening = false;
@@ -269,10 +315,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn   = activeBlock.querySelector('.gina-send-btn');
             if (input) {
                 if (v) { 
-                    input.classList.add('locked'); input.setAttribute('readonly','readonly'); 
-                }
-                else { 
-                    input.classList.remove('locked'); input.removeAttribute('readonly'); 
+                    input.classList.add('locked'); 
+                    input.setAttribute('readonly','readonly'); 
+                } else { 
+                    input.classList.remove('locked'); 
+                    input.removeAttribute('readonly'); 
                 }
             }
             if (btn) btn.disabled = v;
@@ -289,22 +336,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hasText && !isProcessing) sendContainer.classList.add('show');
         else sendContainer.classList.remove('show');
     }
-  
+
+    // *** IMPORTANT: only use #conversation_socket for the kernel ***
     function findKernelId() {
-        const candidates = [
-            document.querySelector('.clarama-websocket[task_kernel_id]'),
-            document.querySelector('[task_kernel_id]'),
-            document.getElementById('conversation_socket')
-        ].filter(Boolean);
-        for (const el of candidates) {
-            const kid = el.getAttribute && el.getAttribute('task_kernel_id');
-            if (kid) return kid;
-        }
-        if (window.task_active_socket && window.task_active_socket.kernel_id) return window.task_active_socket.kernel_id;
-        return null;
+        const el = document.getElementById('conversation_socket');
+        const kid = el && el.getAttribute('task_kernel_id');
+        return kid || null;
     }
-  
-    const safeText = (s) => (s == null ? '' : String(s));
   
     function waitForRenderedBlock(blockId, timeoutMs = 8000) {
         return new Promise((resolve, reject) => {
@@ -373,30 +411,54 @@ document.addEventListener('DOMContentLoaded', () => {
             flash('Failed to load the next conversation block. Please try again.', 'danger');
         }
     }
+
+    function moveBlockToHistory(block) {
+        if (!block) return;
+        if (block.parentElement === latestHost) {
+            historyHost.appendChild(block);
+        }
+    }
+    
+    function finalizeBlockAfterError(forBlock, message) {
+        // Ensure output is visible and styled
+        const outContainer = forBlock?.querySelector('.gina-output-container');
+        const out = forBlock?.querySelector('.gina-output');
+        if (outContainer) outContainer.style.display = 'block';
+        if (out) {
+            out.classList.remove('loading');
+            out.style.whiteSpace = 'pre-wrap';
+            out.innerHTML = `<span style="color:#ff6b6b;">${message}</span>`;
+        }
+    
+        // Treat error like a completed turn
+        moveBlockToHistory(forBlock);
+        stickHistoryToBottom?.();        
+        setProcessingState?.(false);     
+        applyPanelHeight?.();            
+    
+        spawnNextConversationTemplate();
+    }
   
-    // --- Kernel call ---------------------------------------------------
+    // --- Kernel call ----------------------------------------------------------
     function runQuestionThroughKernel(questionText, forBlock) {
         get_field_values({}, true, function (field_registry) {
             field_registry['clarama_task_kill'] = false;
-    
+
             const task_kernel_id = findKernelId();
             if (!task_kernel_id) {
-                const msg = 'Unable to find a running kernel.';
+                const msg = 'Unable to find a running kernel. Please open any task/session first.';
                 console.error('GINA:', msg);
                 flash(msg, "danger");
-                const out = forBlock?.querySelector('.gina-output');
-                if (out) { out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: ${msg}</span>`; }
-                setProcessingState(false);
-                spawnNextConversationTemplate();
+                finalizeBlockAfterError(forBlock, `Error: ${msg}`);
                 return;
             }
-    
+
             const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
             const task_registry = {
             streams: [{ main: [{ source: questionText, type: 'question' }] }],
             parameters: field_registry
             };
-    
+
             $.ajax({
                 type: 'POST',
                 url,
@@ -410,21 +472,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     const err = (data && data['error']) ? data['error'] : 'An error occurred while processing your question.';
                     flash("Couldn't process question: " + err, "danger");
-                    const out = forBlock?.querySelector('.gina-output');
-                    if (out) { 
-                        out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: ${safeText(err)}</span>`; 
-                    }
-                    setProcessingState(false);
-                    spawnNextConversationTemplate();
+                    finalizeBlockAfterError(forBlock, `Error: ${safeText(err)}`);
                 },
                 error: function () {
                     flash("Couldn't process question, network or access issue", "danger");
-                    const out = forBlock?.querySelector('.gina-output');
-                    if (out) { 
-                        out.classList.remove('loading'); out.innerHTML = `<span style="color:#ff6b6b;">Error: network or access issue</span>`; 
-                    }
-                    setProcessingState(false);
-                    spawnNextConversationTemplate();
+                    finalizeBlockAfterError(forBlock, 'Error: network or access issue');
                 }
             });
         });
@@ -434,73 +486,161 @@ document.addEventListener('DOMContentLoaded', () => {
     function installWSInterceptor() {
         if (window.__ginaWSInstalled) return;
         window.__ginaWSInstalled = true;
-    
-        function wait() {
-            if (typeof task_active_socket !== 'undefined' && task_active_socket && task_active_socket.onmessage) {
-                if (!window.originalWebSocketOnMessage) window.originalWebSocketOnMessage = task_active_socket.onmessage;
-        
-                task_active_socket.onmessage = function (event) {
-                    let dict;
-                    dict = JSON.parse(event.data);
-                    console.log('dict: ', dict);
-        
-                    if (isProcessing && activeBlock && dict && dict.class === 'template') {
-                        const html   = dict.template || dict.values?.template || '';
-                        const outArr = dict.Output || dict.output || dict.values?.output;
-                        const isPrintResponseHTML = typeof html === 'string' && html.indexOf('class="print_response"') !== -1;
-                        const hasOutputArray = Array.isArray(outArr) && outArr.length > 0;
-            
-                        if (isPrintResponseHTML || hasOutputArray) {
-                            let text = '';
-                            if (hasOutputArray) {
-                                text = outArr.join('\n');
-                            } else {
-                                const tmp = document.createElement('div');
-                                tmp.innerHTML = html;
-                                const pre = tmp.querySelector('.print_response');
-                                text = (pre?.textContent || pre?.innerText || '').trim();
-                            }
-            
-                            currentAnswer = (text || '').trim();
-                            const out = activeBlock.querySelector('.gina-output');
-                            if (out) {
-                                out.classList.remove('loading');
-                                out.classList.add('locked');
-                                out.style.whiteSpace = 'pre-wrap';
-                                out.textContent = currentAnswer || 'Response received but was empty';
-                            }
-            
-                            // Move the finished block from latest → history 
-                            if (activeBlock.parentElement === latestHost) {
-                                historyHost.appendChild(activeBlock);
-                                stickHistoryToBottom();
-                            }
-            
-                            // Clear state & spawn a fresh composer
-                            activeBlock.classList.remove('processing');
-                            activeBlock = null;
-                            setProcessingState(false);
-                            flash("Question processed successfully", "success");
-            
-                            // Height grows smoothly as history grows
-                            applyPanelHeight();
-            
-                            // Spawn a fresh input block
-                            spawnNextConversationTemplate();
-            
-                            if (window.originalWebSocketOnMessage) window.originalWebSocketOnMessage.call(this, event);
-                            return;
-                        }
-                    }
-        
-                    if (window.originalWebSocketOnMessage) window.originalWebSocketOnMessage.call(this, event);
-                };
-            } else {
-                setTimeout(wait, 120);
+
+        const REATTACH_MS = 1500;
+
+        function attachIfReady() {
+            if (typeof task_active_socket === 'undefined' || !task_active_socket) {
+                // Socket not created yet
+                return false;
             }
+            if (!('onmessage' in task_active_socket)) {
+                // Not a real WebSocket or not open yet
+                return false;
+            }
+
+            if (task_active_socket.onmessage === window.__ginaPatchedOnMsg) {
+                return true;
+            }
+
+            const original = task_active_socket.onmessage;
+            window.originalWebSocketOnMessage = original;
+
+            console.log('GINA: hooking onmessage of task_active_socket =', task_active_socket.url || task_active_socket);
+
+            window.__ginaPatchedOnMsg = function (event) {
+                let msg;
+                try { msg = JSON.parse(event.data); }
+                catch (_) { return original?.call(this, event); }
+
+
+                // If not currently awaiting a response, forward to original and bail.
+                if (!isProcessing || !activeBlock) {
+                    return original?.call(this, event);
+                }
+
+                const out          = activeBlock.querySelector('.gina-output');
+                const outContainer = activeBlock.querySelector('.gina-output-container');
+
+                // Ensure output area is visible once any message arrives
+                if (outContainer && outContainer.style.display !== 'block') {
+                    outContainer.style.display = 'block';
+                }
+
+                if (typeof msg.token === 'string' || typeof msg.delta === 'string') {
+                    const piece = (msg.token ?? msg.delta);
+                    if (out) {
+                        out.classList.remove('loading');
+                        out.style.whiteSpace = 'pre-wrap';
+                        out.textContent += piece;
+                    }
+                    // Keep listening for completion
+                    return;
+                }
+
+                if (typeof msg.stdout === 'string' || typeof msg.text === 'string' || typeof msg.result === 'string') {
+                    const text = (msg.stdout || msg.text || msg.result || '').trim();
+                    if (text && out) {
+                        out.classList.remove('loading');
+                        out.style.whiteSpace = 'pre-wrap';
+                        out.textContent += (out.textContent ? '\n' : '') + text;
+                    }
+                    if (msg.done === true || msg.status === 'completed') {
+                        return finishRun();
+                    }
+                    return original?.call(this, event);
+                }
+
+                // ========== 3) Template/Output ==========
+                if (msg && msg.class === 'template' && (msg.type === 'task_step_result')) {
+                    const html   = msg.template || msg.values?.template || '';
+                    const outArr = msg.Output || msg.output || msg.values?.output;
+
+                    const isPrintResponseHTML = typeof html === 'string' && html.indexOf('class="print_response"') !== -1;
+                    const hasOutputArray      = Array.isArray(outArr) && outArr.length > 0;
+
+                    if (isPrintResponseHTML || hasOutputArray) {
+                        let text = '';
+                        if (hasOutputArray) {
+                            text = outArr.join('\n');
+                        } else {
+                            const tmp = document.createElement('div');
+                            tmp.innerHTML = html;
+                            const pre = tmp.querySelector('.print_response');
+                            text = (pre?.textContent || pre?.innerText || '').trim();
+                        }
+
+                        currentAnswer = (text || '').trim();
+                        if (out) {
+                            out.classList.remove('loading');
+                            out.classList.add('locked');
+                            out.style.whiteSpace = 'pre-wrap';
+                            out.textContent = currentAnswer || 'Response received but was empty';
+                        }
+                        return finishRun();
+                    }
+                }
+
+                // ========== 4) Exceptions from the kernel ==========
+                if (msg && msg.class === 'template' && msg.type === 'task_step_exception') {
+                    let human = 'An error occurred while processing your question.';
+                    const html = msg.template || msg.values?.template || '';
+                    if (html) {
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = html;
+                        const pre = tmp.querySelector('.pre_response, .print_response, pre, code');
+                        const txt = (pre?.textContent || pre?.innerText || '').trim();
+                        if (txt) human = txt;
+                    } else if (msg.error) {
+                        human = String(msg.error);
+                    }
+
+                    if (out) {
+                        out.classList.remove('loading');
+                        out.style.whiteSpace = 'pre-wrap';
+                        out.textContent = human;
+                    }
+
+                    flash('Kernel returned an exception', 'danger');
+                    console.log("msg: ", msg);
+                    return finishRun();
+                }
+
+                // ========== 5) Completion flags with no payload ==========
+                if (msg && (msg.done === true || msg.status === 'completed')) {
+                    return finishRun();
+                }
+
+                // No match? forward to the original handler
+                return original?.call(this, event);
+
+                // ----- helper: wrap up the UI and spawn fresh input -----
+                function finishRun() {
+                    if (activeBlock?.parentElement === latestHost) {
+                        historyHost.appendChild(activeBlock);
+                        stickHistoryToBottom();
+                    }
+                    activeBlock?.classList.remove('processing');
+                    activeBlock = null;
+                    setProcessingState(false);
+                    applyPanelHeight();
+                    spawnNextConversationTemplate();
+                    flash('Question processed successfully', 'success');
+                }
+            };
+
+            task_active_socket.onmessage = window.__ginaPatchedOnMsg;
+            return true;
         }
-        wait();
+
+        attachIfReady();
+        window.__ginaWSWatchdog = setInterval(() => {
+            const uiOpen = document.getElementById('gina-chat-container')?.classList.contains('active');
+            if (!uiOpen) return;
+            attachIfReady();
+        }, REATTACH_MS);
     }
+
     installWSInterceptor();
   
     // --- Delegated events (latest + history) ----------------------------------
@@ -528,9 +668,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const block = micBtn.closest('.gina-block');
             // Toggle start/stop on same block
             if (isListening && block === listeningBlock) {
-            stopListening();
+                stopListening();
             } else {
-            startListening(block, micBtn);
+                startListening(block, micBtn);
             }
             return; // do not fall-through to send
         }
@@ -605,7 +745,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const input = latestHost.querySelector('.gina-input');
             if (input) { 
-            autoSize(input); toggleSendButtonFor(input.closest('.gina-block')); 
+                autoSize(input); 
+                toggleSendButtonFor(input.closest('.gina-block')); 
             }
         }
         stickHistoryToBottom();
@@ -617,4 +758,3 @@ document.addEventListener('DOMContentLoaded', () => {
         if (historyCount() > 0) stickHistoryToBottom();
     });
 });
-  
