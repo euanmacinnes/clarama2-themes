@@ -615,7 +615,7 @@ function onMessage(event, socket_url, webSocket) {
             }
 
             if (dict['class'] === 'task_memory') {
-                $("#kernel_memory_free").text(dict['values']['free']);
+                $("#kernel_memory_free").text(dict['values']['free'] + '%');
             }
 
             if (dict['type'] === 'task_step_started') {

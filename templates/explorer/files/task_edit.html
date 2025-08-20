@@ -32,8 +32,14 @@
                     <button id="editrun" type="button" class="btn btn-secondary kernel-play-button clarama-task-editrun"
                             socket="edit_socket" kill="False" title="play"><i
                             class="bi bi-play-fill h3"></i></button>
-                    <button type="button" class="btn btn-info" id="kernel_status"> Loading...</button>
-                    <button type="button" class="btn btn-info" id="kernel_memory_free">..</button>
+                    <button type="button" class="btn btn-info" id="kernel_status" data-bs-toggle="tooltip"
+                            data-bs-placement="bottom"
+                            title="Unique Kernel ID within the Environment"> Loading...
+                    </button>
+                    <button type="button" class="btn btn-info" id="kernel_memory_free" data-bs-toggle="tooltip"
+                            data-bs-placement="bottom"
+                            title="% of RAM free in the environment. Includes ALL tasks running here">..
+                    </button>
                     <button id="environment" aria-haspopup="true" aria-expanded="false"
                             type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
                             class="btn btn-info environment dropdown-toggle">..
