@@ -8,7 +8,7 @@
     transition: transform 0.3s ease-out;
 }
 
-.role-wrapper.anim-in .card {
+.role-wrapper.anim-in .clickable-card {
     animation: cardFadeIn 0.36s ease-out both;
     animation-delay: calc(0.06s * var(--stagger-index, 0));
     will-change: opacity, transform;
@@ -18,12 +18,12 @@
     transform: scale(1.07);
 }
 
-.role-wrapper:hover .card,
+.role-wrapper:hover .clickable-card,
 .role-wrapper:hover i:not(.fav-toggle) {
     transition: all 0.2s ease-out;
 }
 
-.role-wrapper:hover .card, .role-wrapper:hover i:not(.fav-toggle) {
+.role-wrapper:hover .clickable-card, .role-wrapper:hover i:not(.fav-toggle) {
     transition: all 0.2s ease-out;
 }
 
@@ -32,6 +32,10 @@
 }
 
 .card {
+    border-radius: 6px;
+}
+
+.clickable-card {
     border-radius: 30px;
 }
 
@@ -50,7 +54,7 @@
     color: white;
 }
 
-.card:not(.fav-card):not(.__administrator):not(._user) {
+.clickable-card:not(.fav-card):not(.__administrator):not(._user) {
     background-color: #9b9b9b42; 
     color: white;
 }
