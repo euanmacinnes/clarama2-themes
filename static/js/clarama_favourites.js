@@ -109,7 +109,7 @@ function render_home_favorites() {
         class="d-flex role-wrapper is-fav m-3 text-decoration-none anim-in"
         style="width: 21rem; --stagger-index:${idx};"
         title="${url}">
-            <div class="card align-items-center shadow-lg p-4 flex-grow-1 fav-card">
+            <div class="clickable-card card align-items-center shadow-lg p-4 flex-grow-1 fav-card">
                 <i class="bi ${icon} fs-2 p-0"></i>
                 <div class="card-body text-center w-100 d-flex flex-column py-2">
                     <h5 class="card-title d-flex align-items-center justify-content-center gap-2">
