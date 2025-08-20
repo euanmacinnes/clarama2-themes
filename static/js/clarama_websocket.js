@@ -96,7 +96,7 @@ function get_task(embedded, task_url, socket_id, autorun) {
     for (let prop in window) {
         if (prop.endsWith('elements') && typeof window[prop] === 'object' && window[prop] !== null) {
             if (!elementsObjects.find(item => item.name === prop)) {
-                elementsObjects.push({ name: prop, obj: window[prop] });
+                elementsObjects.push({name: prop, obj: window[prop]});
             }
         }
     }
@@ -104,16 +104,16 @@ function get_task(embedded, task_url, socket_id, autorun) {
     let waitInteractions = [];
     let currentElementData = null;
 
-    elementsObjects.forEach(elementsData => {    
+    elementsObjects.forEach(elementsData => {
         const targetId = `element_${element_id}`;
-    
+
         if (elementsData.obj.hasOwnProperty(targetId)) {
             const elementData = elementsData.obj[targetId];
             currentElementData = elementData;
-    
+
             if (elementData && Array.isArray(elementData.links)) {
                 waitInteractions = elementData.links.filter(link => link.wait === true || link.wait === 'true');
-    
+
                 if (waitInteractions.length > 0) {
                     console.log(`Element "${targetId}" has ${waitInteractions.length} wait interaction(s):`);
                     waitInteractions.forEach((interaction, index) => {
@@ -133,7 +133,7 @@ function get_task(embedded, task_url, socket_id, autorun) {
     // If there are wait interactions, set up waiting mechanism
     if (waitInteractions.length > 0) {
         console.log(`CLARAMA_WEBSOCKET.js: Element ${element_id} waiting for ${waitInteractions.length} interactions to resume`);
-        
+
         // Store the pending task execution details
         const pendingTaskKey = `pendingTask_${element_id}`;
         window[pendingTaskKey] = {
@@ -144,10 +144,10 @@ function get_task(embedded, task_url, socket_id, autorun) {
             waitingFor: waitInteractions.map(interaction => interaction.element),
             resumedFrom: new Set() // Track which elements have sent resume messages
         };
-        
-        console.log(`CLARAMA_WEBSOCKET.js: Task execution for element ${element_id} deferred until resume messages received from:`, 
-                   window[pendingTaskKey].waitingFor);
-        
+
+        console.log(`CLARAMA_WEBSOCKET.js: Task execution for element ${element_id} deferred until resume messages received from:`,
+            window[pendingTaskKey].waitingFor);
+
         // Don't proceed with task execution - wait for resume messages
         return;
     }
@@ -193,8 +193,8 @@ function executeTask(embedded, task_url, socket_id, autorun) {
 }
 
 function handleTaskInteractionResume(resumeMessage) {
-    const { step_id, instance } = resumeMessage;
-    
+    const {step_id, instance} = resumeMessage;
+
     let resumingElementId = null;
     if (step_id) {
         const match = step_id.match(/(?:step_|element_)(\d+)/);
@@ -202,38 +202,38 @@ function handleTaskInteractionResume(resumeMessage) {
             resumingElementId = `element_${match[1]}`;
         }
     }
-    
+
     if (!resumingElementId) {
         console.log("CLARAMA_WEBSOCKET.js: Could not extract element ID from step_id:", step_id);
         return;
     }
-    
+
     console.log(`CLARAMA_WEBSOCKET.js: Received task_interaction_resume from ${resumingElementId}`);
-    
+
     // Check all pending tasks to see which ones are waiting for this element
     for (let prop in window) {
         if (prop.startsWith('pendingTask_')) {
             const pendingTask = window[prop];
             const waitingElementId = prop.replace('pendingTask_', 'element_');
-            
+
             if (pendingTask && pendingTask.waitingFor && pendingTask.waitingFor.includes(resumingElementId)) {
                 console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} was waiting for ${resumingElementId}`);
-                
+
                 // Mark this element as resumed
                 pendingTask.resumedFrom.add(resumingElementId);
-                
-                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} has received resume from:`, 
-                           Array.from(pendingTask.resumedFrom));
-                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for:`, 
-                           pendingTask.waitingFor.filter(elem => !pendingTask.resumedFrom.has(elem)));
-                
+
+                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} has received resume from:`,
+                    Array.from(pendingTask.resumedFrom));
+                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for:`,
+                    pendingTask.waitingFor.filter(elem => !pendingTask.resumedFrom.has(elem)));
+
                 // Check if all required elements have sent resume messages
                 const allResumed = pendingTask.waitingFor.every(elem => pendingTask.resumedFrom.has(elem));
-                
+
                 if (allResumed) {
                     console.log(`CLARAMA_WEBSOCKET.js: All wait interactions complete for ${waitingElementId}, proceeding with task execution`);
                     executeTask(pendingTask.embedded, pendingTask.task_url, pendingTask.socket_id, pendingTask.autorun);
-                    
+
                     // Clean up the pending task
                     delete window[prop];
                 } else {
@@ -267,12 +267,12 @@ function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
     playbutton.addClass("btn-secondary")
     playbutton.removeClass("btn-primary")
 
-    let task_url = $CLARAMA_ROOT + $CLARAMA_ENVIRONMENTS_TASK_OPEN + task 
-        + '?topic=' + topic 
-        + '&mode=' + mode 
-        + '&refresh=' + refresh 
-        + '&reset-environment=' + reset_environment + env_url 
-        + '&task_new=' + task_new 
+    let task_url = $CLARAMA_ROOT + $CLARAMA_ENVIRONMENTS_TASK_OPEN + task
+        + '?topic=' + topic
+        + '&mode=' + mode
+        + '&refresh=' + refresh
+        + '&reset-environment=' + reset_environment + env_url
+        + '&task_new=' + task_new
         + '&task_type=' + task_type;
 
     enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun);
@@ -612,6 +612,10 @@ function onMessage(event, socket_url, webSocket) {
                 console.log($(resulter));
                 process_template(dict['type'], dict['values'], $(resulter));
                 bChart(dict['values']['chart_id'], dict['results']);
+            }
+
+            if (dict['class'] === 'task_memory') {
+                $("#kernel_memory_free").text(dict['values']['free']);
             }
 
             if (dict['type'] === 'task_step_started') {
