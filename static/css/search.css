@@ -4,9 +4,23 @@
     box-sizing: border-box;
 }
 
+.role-wrapper {
+    transition: transform 0.3s ease-out;
+}
+
+.role-wrapper.anim-in .card {
+    animation: cardFadeIn 0.36s ease-out both;
+    animation-delay: calc(0.06s * var(--stagger-index, 0));
+    will-change: opacity, transform;
+}
+
 .role-wrapper:hover {
     transform: scale(1.07);
-    transition: all 0.3s ease-out;
+}
+
+.role-wrapper:hover .card,
+.role-wrapper:hover i:not(.fav-toggle) {
+    transition: all 0.2s ease-out;
 }
 
 .role-wrapper:hover .card, .role-wrapper:hover i:not(.fav-toggle) {
@@ -278,5 +292,28 @@ input[type="search"]::-webkit-search-cancel-button {
     border: 0;
     border-top: 4px dashed var(--fav-sep-color, rgba(0,0,0,0.25));
     margin: 15px 0 15px;
+    opacity: 0.9;
+}
+
+@keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.role-wrapper.pre-wait { opacity: 0; pointer-events: none; }
+
+.role-wrapper.removing,
+.list-group-item.removing {
+    transition: opacity 0.22s ease, transform 0.22s ease, height 0.22s ease, margin 0.22s ease, padding 0.22s ease;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+}
+
+#roles-grid .fav-role-separator {
+    flex-basis: 100%;
+    grid-column: 1 / -1; 
+    height: 0;
+    border-top: 4px dashed rgba(0,0,0,0.25);
+    margin: 14px 0;
     opacity: 0.9;
 }
