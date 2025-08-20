@@ -277,6 +277,6 @@ input[type="search"]::-webkit-search-cancel-button {
     height: 0;
     border: 0;
     border-top: 4px dashed var(--fav-sep-color, rgba(0,0,0,0.25));
-    margin: 8px 0 4px;
+    margin: 15px 0 15px;
     opacity: 0.9;
 }
