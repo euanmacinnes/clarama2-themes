@@ -1,13 +1,26 @@
-document.addEventListener('DOMContentLoaded', function () {
+const FILETYPE_LABELS = (() => {
+    const mapEl = document.getElementById('clarama-filetype-map');
+    const out = {};
+    if (mapEl) {
+        mapEl.querySelectorAll(':scope > div[id]').forEach(div => {
+            const key = (div.id || '').trim().toLowerCase();
+            const val = (div.textContent || '').trim();
+            if (key && val) out[key] = val;
+        });
+    }
+    return out;
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
     load_favorites($CLARAMA_USER);
 
-    const dd = document.getElementById("fav-dropdown");
-    if (dd) dd.style.display = "block";
+    const dd = document.getElementById('fav-dropdown');
+    if (dd) dd.style.display = 'block';
 
     const grid = document.getElementById('roles-grid');
 
     const LAST_COUNT_KEY = `clarama:lastFavCount:${$CLARAMA_USER}`;
-    const lastCount = parseInt(localStorage.getItem(LAST_COUNT_KEY) || '1', 10); // assume some favs if unknown
+    const lastCount = parseInt(localStorage.getItem(LAST_COUNT_KEY) || '1', 10);
     const MAX_INITIAL_WAIT_MS = (lastCount === 0 ? 0 : 700);
     const START_TS = Date.now();
 
@@ -34,9 +47,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, 80);
 
-    setInterval(() => {
+    const watcher = setInterval(() => {
         if (typeof favoriteFileExists === 'undefined') return;
         handleFavsUpdate();
+        if (!document.body.contains(grid)) clearInterval(watcher);
     }, 250);
 
     if (grid) {
@@ -44,8 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
         mo.observe(grid, { childList: true, subtree: true });
     }
 
-    // --------------- Helpers ---------------
-
+    // --------------- Local helpers ---------------
     function revealRolesIfNeeded() {
         if (!grid || rolesRevealed) return;
         rolesRevealed = true;
@@ -59,21 +72,16 @@ document.addEventListener('DOMContentLoaded', function () {
         lastFavHash = newHash;
 
         if (grid) render_home_favorites();
-
         render_nav_favorites();
-
         if (grid) recalcStaggerDelays(grid);
+
         try { localStorage.setItem(LAST_COUNT_KEY, String((favoriteFiles || []).length)); } catch (_) {}
 
         const pageStar = document.getElementById('page-fav');
         if (pageStar) {
-            if ((favoriteFiles || []).some(row => row[1] === window.location.pathname)) {
-                pageStar.classList.remove('bi-star');
-                pageStar.classList.add('bi-star-fill');
-            } else {
-                pageStar.classList.remove('bi-star-fill');
-                pageStar.classList.add('bi-star');
-            }
+            const onThisPage = (favoriteFiles || []).some(row => row[1] === window.location.pathname);
+            pageStar.classList.toggle('bi-star-fill', onThisPage);
+            pageStar.classList.toggle('bi-star', !onThisPage);
         }
 
         revealRolesIfNeeded();
@@ -84,16 +92,62 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!Array.isArray(favoriteFiles)) return '';
             const urls = favoriteFiles.map(r => r[1]).filter(Boolean).sort();
             return urls.length ? JSON.stringify(urls) : '__NONE__';
-        } catch (e) {
+        } catch {
             return '';
         }
     }
 });
 
+/* --------------------- Shared helpers --------------------- */
+
+function basename(path = '') {
+    try {
+        const clean = decodeURIComponent(String(path));
+        const parts = clean.split(/[\\/]/);
+        return parts[parts.length - 1] || clean;
+    } catch {
+        return String(path);
+    }
+}
+
+function getFileTypeLabel(filenameOrPath) {
+    const name = basename(filenameOrPath).toLowerCase();
+
+    let best = null;
+    let bestLen = -1;
+    for (const key in FILETYPE_LABELS) {
+        if (name.endsWith(key) && key.length > bestLen) {
+            best = FILETYPE_LABELS[key];
+            bestLen = key.length;
+        }
+    }
+    return best || 'File';
+}
+
+function stripExtension(nameOrPath) {
+    const base = basename(nameOrPath);
+    const lower = base.toLowerCase();
+
+    let bestLen = -1;
+    for (const key in FILETYPE_LABELS) {
+        if (lower.endsWith(key) && key.length > bestLen) {
+            bestLen = key.length;
+        }
+    }
+    if (bestLen > -1) return base.slice(0, base.length - bestLen);
+
+    // Fallback: remove the last extension only (keeps ".env" as-is)
+    const dot = base.lastIndexOf('.');
+    return dot > 0 ? base.slice(0, dot) : base;
+}
+
+/* --------------------- UI renderers --------------------- */
+
 function render_home_favorites() {
     const grid = document.getElementById('roles-grid');
     if (!grid || !Array.isArray(favoriteFiles)) return;
 
+    // Clear existing fav cards + separator
     grid.querySelectorAll('a.role-wrapper.is-fav').forEach(n => n.remove());
     const oldSep = grid.querySelector('.fav-role-separator');
     if (oldSep) oldSep.remove();
@@ -106,20 +160,20 @@ function render_home_favorites() {
 
     const favTemplate = ({ name, url, icon, type, idx }) => `
         <a href="${url}"
-        class="d-flex role-wrapper is-fav m-3 text-decoration-none anim-in"
-        style="width: 21rem; --stagger-index:${idx};"
-        title="${url}">
+           class="d-flex role-wrapper is-fav m-3 text-decoration-none anim-in"
+           style="width: 21rem; --stagger-index:${idx};"
+           title="${url}">
             <div class="clickable-card card align-items-center shadow-lg p-4 flex-grow-1 fav-card">
                 <i class="bi ${icon} fs-2 p-0"></i>
                 <div class="card-body text-center w-100 d-flex flex-column py-2">
                     <h5 class="card-title d-flex align-items-center justify-content-center gap-2">
                         <i class="bi bi-star-fill text-warning fav-toggle"
-                        role="button" aria-label="Unfavourite"
-                        data-name="${name}"
-                        data-url="${url}"
-                        data-icon="${icon}"
-                        data-type="${type}"></i>
-                        <span>${name}</span>
+                           role="button" aria-label="Unfavourite"
+                           data-name="${name}"
+                           data-url="${url}"
+                           data-icon="${icon}"
+                           data-type="${type}"></i>
+                        <span>${stripExtension(name)}</span>
                     </h5>
                     <p class="card-text">${type}</p>
                 </div>
@@ -127,10 +181,10 @@ function render_home_favorites() {
         </a>`.trim();
 
     const html = favs.map((row, idx) => favTemplate({
-        name: row[0], 
-        url: row[1], 
-        icon: row[2], 
-        type: row[3], 
+        name: row[0],
+        url: row[1],
+        icon: row[2],
+        type: row[3] === 'file' ? getFileTypeLabel(row[1]) : row[3],
         idx
     })).join('');
 
@@ -138,7 +192,7 @@ function render_home_favorites() {
     ensureSeparator(grid, true);
 
     if (!grid.dataset.favDelegated) {
-        grid.addEventListener('click', function (e) {
+        grid.addEventListener('click', (e) => {
             const star = e.target.closest('.fav-toggle');
             if (!star) return;
 
@@ -163,7 +217,7 @@ function render_home_favorites() {
                 });
             }
 
-            render_nav_favorites(true);
+            render_nav_favorites();
         });
         grid.dataset.favDelegated = '1';
     }
@@ -215,17 +269,15 @@ function animateRemove(el, done) {
     };
     el.addEventListener('animationend', after, { once: true });
     el.addEventListener('transitionend', after, { once: true });
-    setTimeout(after, 320); // safety
+    setTimeout(after, 320);
 }
 
-function render_nav_favorites(clearFirst = false) {
+function render_nav_favorites() {
     const container = document.getElementById('favorites-listing');
     if (!container) return;
 
-    // Clear existing content
     container.innerHTML = '';
 
-    // Build hosts for each favourite
     const frag = document.createDocumentFragment();
     favoriteFiles.forEach(file => {
         const name = file[0];
@@ -233,12 +285,14 @@ function render_nav_favorites(clearFirst = false) {
         const icon = file[2];
         const type = file[3];
 
+        const displayName = stripExtension(name || url);
+
         const host = document.createElement('div');
         host.className = 'clarama-post-embedded clarama-replaceable nav-fav-host';
         host.setAttribute(
             'url',
             `/template/render/web/nav_favourites` +
-            `?name=${encodeURIComponent(name)}` +
+            `?name=${encodeURIComponent(displayName)}` +
             `&url=${encodeURIComponent(url)}` +
             `&icon=${encodeURIComponent(icon)}` +
             `&type=${encodeURIComponent(type)}`
@@ -247,11 +301,10 @@ function render_nav_favorites(clearFirst = false) {
     });
 
     container.appendChild(frag);
-
     enable_interactions($(container));
 
     if (!container.dataset.navFavDelegated) {
-        container.addEventListener('click', function (e) {
+        container.addEventListener('click', (e) => {
             const star = e.target.closest('.nav-fav-toggle');
             if (!star) return;
 
@@ -268,19 +321,17 @@ function render_nav_favorites(clearFirst = false) {
             const row = star.closest('.list-group-item');
             if (row) row.remove();
 
-            // Also toggle the page-level star if present
+            // Toggle the page-level star if present
             const pageStar = document.getElementById('page-fav');
             if (pageStar) {
-                if (favoriteFiles.some(r => r[1] === window.location.pathname)) {
-                    pageStar.classList.remove('bi-star');
-                    pageStar.classList.add('bi-star-fill');
-                } else {
-                    pageStar.classList.remove('bi-star-fill');
-                    pageStar.classList.add('bi-star');
-                }
+                const onThisPage = (favoriteFiles || []).some(r => r[1] === window.location.pathname);
+                pageStar.classList.toggle('bi-star-fill', onThisPage);
+                pageStar.classList.toggle('bi-star', !onThisPage);
             }
 
-            const gridCard = document.querySelector(`a.role-wrapper.is-fav [data-url="${CSS.escape(url)}"]`)?.closest('a.role-wrapper.is-fav');
+            // If a grid card exists, animate-remove it too
+            const cardSel = `a.role-wrapper.is-fav [data-url="${url}"]`;
+            const gridCard = document.querySelector(cardSel)?.closest('a.role-wrapper.is-fav');
             if (gridCard) {
                 animateRemove(gridCard, () => {
                     gridCard.remove();
@@ -296,27 +347,26 @@ function render_nav_favorites(clearFirst = false) {
     }
 }
 
+/* --------------------- Add/remove from page star --------------------- */
+
 function toggle_nav_favorite(breadcrumb) {
     const path = window.location.pathname;
     const parts = path.split('/');
     const fileName = parts.pop();
 
-    var icon = "";
-    var dir = "file";
+    let icon = '';
+    let dir = 'file';
 
     if (!fileName.includes('.')) {
-        icon = "bi-folder-fill";
-        dir = "folder";
+        icon = 'bi-folder-fill';
+        dir = 'folder';
     } else {
-        let matchedIcon = Object.entries(filetypeCSS)
-            .find(([ext, _]) => fileName.endsWith(ext));
-
+        let matchedIcon = Object.entries(filetypeCSS).find(([ext]) => fileName.endsWith(ext));
         if (!matchedIcon) {
             const simpleExt = `.${fileName.split('.').pop()}`;
             matchedIcon = filetypeCSS[simpleExt] ? [simpleExt, filetypeCSS[simpleExt]] : null;
         }
-
-        icon = matchedIcon ? matchedIcon[1] : "bi-file-earmark";
+        icon = matchedIcon ? matchedIcon[1] : 'bi-file-earmark';
     }
 
     toggle_favorite(breadcrumb, path, icon, $CLARAMA_USER, dir);

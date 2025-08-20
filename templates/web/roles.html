@@ -5,7 +5,15 @@
 {% extends theme("web/root.html") %}
 
 {% block content %}
-    <div class="row flex-column flex-lg-row p-0 m-0 flex-grow-1 w-100">
+
+<!-- Hidden filetype mappings -->
+<div id="clarama-filetype-map" class="d-none" aria-hidden="true">
+    {% for k, v in clarama['UI']['FiletypeNames'].items() %}
+        <div id="{{ k|lower }}">{{ v }}</div>
+    {% endfor %}
+</div>
+
+<div class="row flex-column flex-lg-row p-0 m-0 flex-grow-1 w-100">
         <div class="container col-12 my-2 py-4">
             <div class="row justify-content-center flex-wrap" id="roles-grid">
                 {% for role in role_info %}
