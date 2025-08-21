@@ -43,14 +43,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function enterDocked() {
         ginaContainer.classList.add('mode-docked');
         ginaContainer.classList.remove('mode-floating');
+        syncMainCollapse();
         // Once docked, the page is the only scroller
         try { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); } catch (e) {}
     }
     
     function checkDocking() {
         if (!ginaContainer.classList.contains('active')) return;
+        
         setNavbarOffsetVar();
-        if (!isFloating()) return; // already docked
+
+        if (!isFloating()) { // already docked
+            syncMainCollapse();
+            return;
+        }
 
         const maxH = floatingMaxHeight();
         const rect = ginaContainer.getBoundingClientRect();
@@ -63,6 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (h > maxH || bottomOver || spaceBelow < 12 || inputFull + 40 > maxH) {
             enterDocked();
+        } else {
+            syncMainCollapse();
         }
     }
   
@@ -358,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 ginaContainer.classList.remove('active','mode-floating','mode-docked');
                 ginaButtonGroup?.classList.remove('gina-active');
+                mainContent?.classList.remove('collapsed');
                 setTimeout(() => mainContent?.classList.remove('hidden'), 0);
             }
         });
@@ -382,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (v && isListening) stopListening();
     }
+
     // --- Processing guards to avoid stuck 'Processing...' ---
     let __processingGuardTimer = null;
     function clearProcessingGuard() {
@@ -418,6 +428,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hasText && !isProcessing) sendContainer.classList.add('show');
         else sendContainer.classList.remove('show');
     }
+
+    function syncMainCollapse() {
+        const docked = ginaContainer.classList.contains('mode-docked');
+        if (docked) {
+            mainContent?.classList.add('collapsed');
+        } else {
+            mainContent?.classList.remove('collapsed');
+        }
+    }      
 
     // *** IMPORTANT: only use #conversation_socket for the kernel ***
     function findKernelId() {

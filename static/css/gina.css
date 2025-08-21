@@ -245,16 +245,26 @@
 .gina-input-wrapper.finalized .gina-msg.user { margin-top:2px; }
 .gina-block.chat-mode .gina-output { margin-top:6px; }
 
-/* Main content fade */
-/* #main-content.hidden { display: none; } */
+#main-content { opacity:1; transition:opacity .4s ease; }
+
 #main-content.hidden { opacity:0; pointer-events:none; transition:opacity .4s ease; }
-#main-content        { opacity:1; transition:opacity .4s ease; }
+
+#main-content.hidden.collapsed {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 0 0 0 !important;
+}
+
 .gina-button-group { 
     display: flex; 
     align-items: center; 
     gap: 8px; 
     transition: all .3s ease; 
 }
+
 .gina-button-group.gina-active .gina-recent-btn {
     color: white;
     opacity: 1; 
