@@ -17,31 +17,85 @@ document.addEventListener('DOMContentLoaded', () => {
     const HEIGHT_VH_START = 20;  // used only once there are messages
     const HEIGHT_VH_MAX   = 80;  // soft cap
     const GROWTH_K        = 0.35; // higher = faster growth per message
-    const EMPTY_PX_HEIGHT = 250;  // fixed empty-state height in px
+
+    // --- Floating (centered) -> Docked (under navbar) helpers ----------------
+    const navbar = document.querySelector('nav.navbar');
+    function navbarOffsetPx() {
+        const h = (navbar && navbar.getBoundingClientRect && navbar.getBoundingClientRect().height) ? navbar.getBoundingClientRect().height : 64;
+        return Math.max(0, Math.round(h)) + 8; // breathing room
+    }
+
+    function setNavbarOffsetVar() {
+        try {
+            const px = navbarOffsetPx();
+            document.documentElement.style.setProperty('--navbar-offset', px + 'px');
+        } catch (e) {}
+    }
+
+    function floatingMaxHeight() {
+        return window.innerHeight - navbarOffsetPx() - 20;
+    }
+
+    function isFloating() {
+        return ginaContainer.classList.contains('mode-floating');
+    }
+
+    function enterDocked() {
+        ginaContainer.classList.add('mode-docked');
+        ginaContainer.classList.remove('mode-floating');
+        // Once docked, the page is the only scroller
+        try { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); } catch (e) {}
+    }
+    
+    function checkDocking() {
+        if (!ginaContainer.classList.contains('active')) return;
+        setNavbarOffsetVar();
+        if (!isFloating()) return; // already docked
+
+        const maxH = floatingMaxHeight();
+        const rect = ginaContainer.getBoundingClientRect();
+        const h = Math.max(ginaContainer.scrollHeight, rect.height);
+        const bottomOver = rect.bottom >= (window.innerHeight - 8); // within 8px of viewport bottom
+        const spaceBelow = window.innerHeight - rect.bottom;
+
+        const latestInput = ginaContainer.querySelector('#gina-latest .gina-input');
+        const inputFull = latestInput ? latestInput.scrollHeight : 0;
+
+        if (h > maxH || bottomOver || spaceBelow < 12 || inputFull + 40 > maxH) {
+            enterDocked();
+        }
+    }
   
     function historyCount() {
         return historyHost.querySelectorAll('.gina-block').length;
     }
 
-    function computeHeightVH(n) {
-        return HEIGHT_VH_START + (HEIGHT_VH_MAX - HEIGHT_VH_START) * (1 - Math.exp(-GROWTH_K * n));
-    }
-
-    function applyPanelHeight() {
-        const n = historyCount();
-        if (n === 0) { // no messages yet
-            ginaContainer.style.height = `${EMPTY_PX_HEIGHT}px`;
-            return;
-        }
-        const vh = computeHeightVH(n);
-        ginaContainer.style.height = `${vh}vh`;
-    }
-  
     function stickHistoryToBottom() {
-        historyHost.scrollTop = historyHost.scrollHeight;
+        if (ginaContainer.classList.contains('mode-docked')) {
+            try { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); } catch (e) {}
+        } else {
+            // when floating, keep as-is; no inner scrolling needed
+        }
     }
   
     // --- Splash control -------------------------------------------------------
+    function getSplashHost() {
+        const controls = ginaContainer.querySelector('.gina-controls');
+        if (!controls) return ginaContainer;
+        let holder = controls.querySelector('.gina-splash-holder');
+        if (!holder) {
+            holder = document.createElement('div');
+            holder.className = 'gina-splash-holder flex-grow-1 d-flex justify-content-center align-items-center';
+            // Try to place between first and second child
+            if (controls.children.length >= 2) {
+                controls.insertBefore(holder, controls.children[1]);
+            } else {
+                controls.appendChild(holder);
+            }
+        }
+        return holder;
+    }
+
     function hideSplash(animated = true) {
         const splash = getSplash();
         if (!splash) return;
@@ -129,9 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const next = Math.max(minH, Math.min(full, maxH));
-        el.style.maxHeight = maxH + 'px';
-        el.style.overflowY = (full > maxH) ? 'auto' : 'hidden';
+        const next = Math.max(minH, full);
+        el.style.maxHeight = 'none';
+        el.style.overflowY = 'hidden';
         el.style.height    = next + 'px';
     }
 
@@ -253,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
         historyHost.innerHTML = '';
         latestHost.innerHTML  = '';
-        ginaContainer.style.height = `${EMPTY_PX_HEIGHT}px`;
+        // height is natural now; no fixed height here
     
         // Restore splash
         let splashNode = document.getElementById('gina-splash');
@@ -262,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
             splashNode.id = 'gina-splash';
             splashNode.className = 'gina-splash';
             splashNode.textContent = 'Hello! I am GINA!';
-            ginaContainer.prepend(splashNode);
+            getSplashHost().appendChild(splashNode);
         } else {
             splashNode.classList.remove('hide');
             splashNode.dataset.hidden = '0';
@@ -283,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const firstInput = block.querySelector('.gina-input');
         if (firstInput) { firstInput.focus(); autoSize(firstInput); }
 
-        applyPanelHeight();
+        checkDocking();
     }
    
     // --- Visibility toggle ----------------------------------------------------
@@ -293,16 +347,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!open) {
                 resetConversation();
                 mainContent?.classList.add('hidden');
-                ginaContainer.classList.add('active');
+                ginaContainer.classList.add('active','mode-floating');
                 ginaButtonGroup?.classList.add('gina-active');
+                setNavbarOffsetVar();
+                requestAnimationFrame(checkDocking);
                 const firstInput = ginaContainer.querySelector('.gina-input');
                 setTimeout(() => {
                     if (firstInput) { firstInput.focus(); autoSize(firstInput); }
                 }, 200);
             } else {
-                ginaContainer.classList.remove('active');
+                ginaContainer.classList.remove('active','mode-floating','mode-docked');
                 ginaButtonGroup?.classList.remove('gina-active');
-                setTimeout(() => mainContent?.classList.remove('hidden'), 250);
+                setTimeout(() => mainContent?.classList.remove('hidden'), 0);
             }
         });
     }
@@ -325,6 +381,32 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btn) btn.disabled = v;
         }
         if (v && isListening) stopListening();
+    }
+    // --- Processing guards to avoid stuck 'Processing...' ---
+    let __processingGuardTimer = null;
+    function clearProcessingGuard() {
+        if (__processingGuardTimer) { 
+            clearTimeout(__processingGuardTimer);
+            __processingGuardTimer = null; 
+        }
+    }
+
+    function startProcessingGuard() {
+        clearProcessingGuard();
+        __processingGuardTimer = setTimeout(() => {
+            try {
+                console.warn('GINA: unlocking input after timeout safeguard.');
+                clearProcessingGuard();
+                setProcessingState(false);
+                    clearProcessingGuard()
+                    checkDocking()
+                const locked = document.querySelector('.gina-input.locked') || document.querySelector('#gina-latest .gina-input[readonly]');
+                if (locked) {
+                    locked.removeAttribute('readonly');
+                    locked.classList.remove('locked');
+                }
+            } catch (err) { console.warn('GINA: processing guard error:', err); }
+        }, 30000);
     }
   
     function toggleSendButtonFor(block) {
@@ -405,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const input = block.querySelector('.gina-input');
             if (input) { input.focus(); autoSize(input); }
             toggleSendButtonFor(block);
-            applyPanelHeight();
+            checkDocking();
         } catch (err) {
             console.error('GINA: failed to render next conversation block:', err);
             flash('Failed to load the next conversation block. Please try again.', 'danger');
@@ -434,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
         moveBlockToHistory(forBlock);
         stickHistoryToBottom?.();        
         setProcessingState?.(false);     
-        applyPanelHeight?.();            
+        checkDocking?.();            
     
         spawnNextConversationTemplate();
     }
@@ -544,6 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         out.classList.remove('loading');
                         out.style.whiteSpace = 'pre-wrap';
                         out.textContent += (out.textContent ? '\n' : '') + text;
+                        checkDocking()
                     }
                     if (msg.done === true || msg.status === 'completed') {
                         return finishRun();
@@ -623,7 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeBlock?.classList.remove('processing');
                     activeBlock = null;
                     setProcessingState(false);
-                    applyPanelHeight();
+                    try { clearProcessingGuard(); } catch (e) {}
+                    try { checkDocking(); } catch (e) {}
+                    checkDocking();
                     spawnNextConversationTemplate();
                     flash('Question processed successfully', 'success');
                 }
@@ -642,11 +727,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     installWSInterceptor();
+
+    try {
+        const __ginaObserver = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                for (const n of m.addedNodes) {
+                    if (n && n.nodeType === 1 && n.classList && n.classList.contains('assistant')) {
+                        try { clearProcessingGuard(); } catch(_) {}
+                        try { setProcessingState(false);
+                    try { clearProcessingGuard(); } catch (e) {}
+                    try { checkDocking(); } catch (e) {} } catch(_) {}
+                    }
+                }
+            }
+        });
+        __ginaObserver.observe(historyHost, { childList: true, subtree: true });
+    } catch (e) {}
+
   
     // --- Delegated events (latest + history) ----------------------------------
     ginaContainer.addEventListener('input', (e) => {
         if (!e.target.matches('.gina-input')) return;
         autoSize(e.target);
+        try { checkDocking(); } catch (e) {}
         toggleSendButtonFor(e.target.closest('.gina-block'));
     });
   
@@ -718,6 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
         block.querySelector('.gina-send-container')?.classList.remove('show');
     
         setProcessingState(true);
+        startProcessingGuard();
         runQuestionThroughKernel(msg, block);
     });
   
@@ -735,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Bootstrapping: ensure there's an active block in latest --------------
     (function ensureInitialBlock() {
         // Set initial height and splash visibility
-        applyPanelHeight();
+        checkDocking();
         if (historyCount() > 0) hideSplash(false);
     
         const hasActive = latestHost.querySelector('.gina-block');
@@ -755,7 +859,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
     // Keep scroller/height feeling right on viewport changes
     window.addEventListener('resize', () => {
-        applyPanelHeight();
+        checkDocking();
         if (historyCount() > 0) stickHistoryToBottom();
     });
 });
