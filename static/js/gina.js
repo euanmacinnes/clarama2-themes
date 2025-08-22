@@ -13,11 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const splash = getSplash();
   
-    // --- Progressive height config -------------------------------------------
-    const HEIGHT_VH_START = 20;  // used only once there are messages
-    const HEIGHT_VH_MAX   = 80;  // soft cap
-    const GROWTH_K        = 0.35; // higher = faster growth per message
-
     // --- Floating (centered) -> Docked (under navbar) helpers ----------------
     const navbar = document.querySelector('nav.navbar');
     function navbarOffsetPx() {
@@ -26,10 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setNavbarOffsetVar() {
-        try {
-            const px = navbarOffsetPx();
-            document.documentElement.style.setProperty('--navbar-offset', px + 'px');
-        } catch (e) {}
+        const px = navbarOffsetPx();
+        document.documentElement.style.setProperty('--navbar-offset', px + 'px');
     }
 
     function floatingMaxHeight() {
@@ -45,12 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ginaContainer.classList.remove('mode-floating');
         syncMainCollapse();
         // Once docked, the page is the only scroller
-        try { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); } catch (e) {}
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
     
     function checkDocking() {
         if (!ginaContainer.classList.contains('active')) return;
-        
+
         setNavbarOffsetVar();
 
         if (!isFloating()) { // already docked
@@ -60,14 +53,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const maxH = floatingMaxHeight();
         const rect = ginaContainer.getBoundingClientRect();
-        const h = Math.max(ginaContainer.scrollHeight, rect.height);
-        const bottomOver = rect.bottom >= (window.innerHeight - 8); // within 8px of viewport bottom
+
+        // Measure untransformed content height (not affected by the 0.9 scale)
+        const inputCol  = ginaContainer.querySelector('.gina-input-container');
+        const controls  = ginaContainer.querySelector('.gina-controls');
+        const contentH  =
+            (controls?.scrollHeight || 0) +
+            (historyHost?.scrollHeight || 0) +
+            (latestHost?.scrollHeight || 0) + 24;
+
+        // Take the largest of all available measurements
+        const h = Math.max(
+            ginaContainer.scrollHeight || 0,
+            inputCol?.scrollHeight || 0,
+            rect.height || 0,
+            contentH
+        );
+
+        // Visual cues while floating
+        const bottomOver = rect.bottom >= (window.innerHeight - 8);
         const spaceBelow = window.innerHeight - rect.bottom;
 
         const latestInput = ginaContainer.querySelector('#gina-latest .gina-input');
         const inputFull = latestInput ? latestInput.scrollHeight : 0;
 
-        if (h > maxH || bottomOver || spaceBelow < 12 || inputFull + 40 > maxH) {
+        if ((h > maxH + 4) || bottomOver || spaceBelow < 12 || (inputFull + 40 > maxH)) {
             enterDocked();
         } else {
             syncMainCollapse();
@@ -80,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function stickHistoryToBottom() {
         if (ginaContainer.classList.contains('mode-docked')) {
-            try { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); } catch (e) {}
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         } else {
             // when floating, keep as-is; no inner scrolling needed
         }
@@ -311,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Reset to a fresh conversation ---------------------------------------
     async function resetConversation() {
         // Stop any voice capture
-        if (typeof stopListening === 'function') { try { stopListening(); } catch(_){} }
+        stopListening();
     
         historyHost.innerHTML = '';
         latestHost.innerHTML  = '';
@@ -610,10 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('GINA: hooking onmessage of task_active_socket =', task_active_socket.url || task_active_socket);
 
             window.__ginaPatchedOnMsg = function (event) {
-                let msg;
-                try { msg = JSON.parse(event.data); }
-                catch (_) { return original?.call(this, event); }
-
+                let msg = JSON.parse(event.data);
 
                 // If not currently awaiting a response, forward to original and bail.
                 if (!isProcessing || !activeBlock) {
@@ -635,6 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         out.style.whiteSpace = 'pre-wrap';
                         out.textContent += piece;
                     }
+                    scheduleDockingCheck();
                     // Keep listening for completion
                     return;
                 }
@@ -725,8 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeBlock?.classList.remove('processing');
                     activeBlock = null;
                     setProcessingState(false);
-                    try { clearProcessingGuard(); } catch (e) {}
-                    try { checkDocking(); } catch (e) {}
+                    clearProcessingGuard();
                     checkDocking();
                     spawnNextConversationTemplate();
                     flash('Question processed successfully', 'success');
@@ -747,28 +754,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     installWSInterceptor();
 
-    try {
-        const __ginaObserver = new MutationObserver((mutations) => {
-            for (const m of mutations) {
-                for (const n of m.addedNodes) {
-                    if (n && n.nodeType === 1 && n.classList && n.classList.contains('assistant')) {
-                        try { clearProcessingGuard(); } catch(_) {}
-                        try { setProcessingState(false);
-                    try { clearProcessingGuard(); } catch (e) {}
-                    try { checkDocking(); } catch (e) {} } catch(_) {}
-                    }
+    // React to any size/DOM changes while floating
+    const inputCol = ginaContainer.querySelector('.gina-input-container');
+    if (window.ResizeObserver && inputCol) {
+        const __ginaRO = new ResizeObserver(() => scheduleDockingCheck());
+        __ginaRO.observe(inputCol);
+        if (latestHost) __ginaRO.observe(latestHost);
+        if (historyHost) __ginaRO.observe(historyHost);
+    }
+    // Fallback: DOM mutations (token streaming may only change text)
+    const __ginaMO2 = new MutationObserver(() => scheduleDockingCheck());
+    if (historyHost) __ginaMO2.observe(historyHost, { childList: true, subtree: true, characterData: true });
+    if (latestHost)  __ginaMO2.observe(latestHost,  { childList: true, subtree: true, characterData: true });
+
+
+    const __ginaObserver = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+            for (const n of m.addedNodes) {
+                if (n && n.nodeType === 1 && n.classList && n.classList.contains('assistant')) {
+                    clearProcessingGuard();
+                    setProcessingState();
+                    checkDocking();
                 }
             }
-        });
-        __ginaObserver.observe(historyHost, { childList: true, subtree: true });
-    } catch (e) {}
-
+        }
+    });
+    __ginaObserver.observe(historyHost, { childList: true, subtree: true });
   
     // --- Delegated events (latest + history) ----------------------------------
     ginaContainer.addEventListener('input', (e) => {
         if (!e.target.matches('.gina-input')) return;
         autoSize(e.target);
-        try { checkDocking(); } catch (e) {}
+        checkDocking();
         toggleSendButtonFor(e.target.closest('.gina-block'));
     });
   
