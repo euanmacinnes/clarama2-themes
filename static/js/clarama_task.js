@@ -30,7 +30,7 @@ function html_decode(input) {
     return input;
 }
 
-function _task_run(socket_div, hidden = false, closestGrid=$()) {
+function _task_run(socket_div, hidden = false, closestGrid = $()) {
     json_div = socket_div + '_args';
 
     // console.log("checking where get_field_values is called: _task_run", closestGrid)
@@ -132,7 +132,7 @@ function cell_item_run(cell_button) {
                     console.log('CLARAMA_TASK.js: Submission was successful.');
                     console.log(data);
                     var taskIndex = cell_button.attr('step');
-                    flash(`Cell ${taskIndex} ran successfully`, "success");
+                    flash(`Cell ${taskIndex} executing..`, "success");
                     // flash("CLARAMA_TASK.js: Executing!");
 
                     moveToNextCell(cell_button);
