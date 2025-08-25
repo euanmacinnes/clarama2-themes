@@ -617,8 +617,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const original = task_active_socket.onmessage;
             window.originalWebSocketOnMessage = original;
 
-            console.log('GINA: hooking onmessage of task_active_socket =', task_active_socket.url || task_active_socket);
-
             window.__ginaPatchedOnMsg = function (event) {
                 let msg = JSON.parse(event.data);
 
@@ -642,8 +640,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         out.style.whiteSpace = 'pre-wrap';
                         out.textContent += piece;
                     }
-                    scheduleDockingCheck();
-                    // Keep listening for completion
                     return;
                 }
 
@@ -753,20 +749,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     installWSInterceptor();
-
-    // React to any size/DOM changes while floating
-    const inputCol = ginaContainer.querySelector('.gina-input-container');
-    if (window.ResizeObserver && inputCol) {
-        const __ginaRO = new ResizeObserver(() => scheduleDockingCheck());
-        __ginaRO.observe(inputCol);
-        if (latestHost) __ginaRO.observe(latestHost);
-        if (historyHost) __ginaRO.observe(historyHost);
-    }
-    // Fallback: DOM mutations (token streaming may only change text)
-    const __ginaMO2 = new MutationObserver(() => scheduleDockingCheck());
-    if (historyHost) __ginaMO2.observe(historyHost, { childList: true, subtree: true, characterData: true });
-    if (latestHost)  __ginaMO2.observe(latestHost,  { childList: true, subtree: true, characterData: true });
-
 
     const __ginaObserver = new MutationObserver((mutations) => {
         for (const m of mutations) {
