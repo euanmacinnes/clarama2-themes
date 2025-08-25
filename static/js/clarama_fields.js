@@ -23,9 +23,10 @@ function _arrayBufferToBase64(buffer) {
  * This is used by the task & slate to just get a dict of current field values needed before submitting a task
  *
  */
-function get_field_values(registry, raw, field_submit) {
+function get_field_values(registry, raw, field_submit, closestGrid=$()) {
     // Raw is used to run the fields. raw is false, when saving the fields (so we don't want to save the field values of e.g. a selected file in this case
 
+    // console.log("get_field_values closestGrid", closestGrid)
     var files_done = true;
     var result = {}
 
@@ -35,7 +36,28 @@ function get_field_values(registry, raw, field_submit) {
         result['original_url'] = original_url;
     }
 
-    $('.clarama-field').each(
+    if (closestGrid.length) {
+        let encoded_record_info = closestGrid.closest('.clarama-slate-record').attr('encoded_json');
+        // console.log("encoded_record_info", encoded_record_info)
+
+        if (encoded_record_info) {
+            try {
+                let decoded_str = atob(encoded_record_info); // decode
+                let json_record_info = JSON.parse(decoded_str); // string to obj
+
+                // console.log("json_record_info", json_record_info);
+
+                result['record'] = json_record_info.record;
+
+            } catch (err) {
+                console.error("invalid base64 or json", err)
+            }
+        }
+    }
+
+    let fields_to_loop = closestGrid.length ? closestGrid.find('.clarama-field') : $('.clarama-field');
+    // console.log("fields_to_loop", fields_to_loop);
+    fields_to_loop.each(
         function (index) {
             var input = $(this);
             // var panel = $("#panel_" + input.attr('name'));
@@ -68,8 +90,8 @@ function get_field_values(registry, raw, field_submit) {
         }
     );
 
-    if (raw && field_submit !== undefined)
-        $('.clarama-field').each(
+    if (raw && field_submit !== undefined) {
+        fields_to_loop.each(
             function (index) {
                 var input = $(this);
                 // var panel = $("#panel_" + input.attr('name'));
@@ -111,7 +133,7 @@ function get_field_values(registry, raw, field_submit) {
                 }
             }
         );
-
+    }
 
     if (files_done) {
         if (raw)
@@ -134,10 +156,11 @@ function get_field_values(registry, raw, field_submit) {
     }
 }
 
-function check_fields_valid() {
+function check_fields_valid(closestGrid) {
     var valid = true;
     console.log("CLARAMA_FIELDS.js: Input Validity Check");
-    $('.clarama-field').each(
+    let fields_to_loop = closestGrid.length ? closestGrid.find('.clarama-field') : $('.clarama-field');
+    fields_to_loop.each(
         function (index) {
             var input = $(this);
             // var panel = $("#panel_" + input.attr('name'));
@@ -202,6 +225,8 @@ function get_fields(fields, cell, field_submit) {
         });
 
     if (fields) {
+        // console.log("get_fields fields", fields)
+        // console.log("checking where get_field_values is called: get_fields")
         get_field_values(registry, false, field_submit);
         // Get the field grid
 
