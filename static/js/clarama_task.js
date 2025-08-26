@@ -30,9 +30,10 @@ function html_decode(input) {
     return input;
 }
 
-function _task_run(socket_div, hidden = false) {
+function _task_run(socket_div, hidden = false, closestGrid = $()) {
     json_div = socket_div + '_args';
 
+    // console.log("checking where get_field_values is called: _task_run", closestGrid)
     get_field_values({}, true, function (field_registry) {
         var field_merged = field_registry;
 
@@ -94,11 +95,14 @@ function _task_run(socket_div, hidden = false) {
                 console.log("TASK RUN RESPONSE " + task);
                 console.log(response);
             });*/
-    });
+
+        // console.log("_task_run field_registry", field_registry)
+    }, closestGrid);
 }
 
 function cell_item_run(cell_button) {
     console.log("CLARAMA_TASK.js: RUNNING");
+    // console.log("checking where get_field_values is called: cell_item_run")
     get_field_values({}, true, function (field_registry) { // Get only the field values, not the full field definitions, text or code
         var task_registry = get_cell_fields(cell_button);
         task_registry['parameters'] = field_registry
@@ -128,7 +132,7 @@ function cell_item_run(cell_button) {
                     console.log('CLARAMA_TASK.js: Submission was successful.');
                     console.log(data);
                     var taskIndex = cell_button.attr('step');
-                    flash(`Cell ${taskIndex} ran successfully`, "success");
+                    flash(`Cell ${taskIndex} executing..`, "success");
                     // flash("CLARAMA_TASK.js: Executing!");
 
                     moveToNextCell(cell_button);

@@ -27,8 +27,6 @@ $(document).on('contextmenu', function (event) {
     if (!target) return;
     if (!grid) return;
 
-    event.preventDefault();
-
     const elementId = $(target).attr('gs-id');
     const gridId = $(grid).attr('grid_id');
     console.log("elementId", elementId);
@@ -50,6 +48,9 @@ $(document).on('contextmenu', function (event) {
     // console.log("menuInteractions", menuInteractions);
     // console.log("menuInteractions length", menuInteractions.length);
     if (menuInteractions.length === 0) return;
+
+    // only hide original context menu if thrs context menu interactions
+    event.preventDefault();
 
     // if it is a table, the context menu shld do it like onClickRow in bTable() 
     let table_selection = null;
@@ -87,7 +88,10 @@ $(document).on('contextmenu', function (event) {
 
     $contextMenu.find('button').on('click', function (e) {
         const $button = $(this);
+        var closestGrid = $button.closest(".clarama-grid");
+        // console.log("contextMenu closestGrid", closestGrid);
 
+        // console.log("checking where get_field_values is called: contextmenu")
         get_field_values({}, true, function (field_registry) {
             const rawTableSelection = $contextMenu.data('tableSelection') || '';
             const table_selection = rawTableSelection ? JSON.parse(rawTableSelection) : {};
@@ -128,7 +132,7 @@ $(document).on('contextmenu', function (event) {
                 triggerTabInteraction(fileU, url, field_values, true);
             }
             $contextMenu.addClass('d-none');
-        });
+        }, closestGrid);
     });
 
     $contextMenu.css({
@@ -153,6 +157,24 @@ document.addEventListener('mousemove', function (e) {
     lastMouseEvent = e;
 });
 
+// initially, each record has an interaction modal, 
+// but itll somehow make some of the interaction modal not load
+// so i put the interaction Modal and popup html in root.html so thrs only 1 of it instead of multiple
+// and that solved the loading prob 
+// function showModalWithContent(closestGrid, field, url, field_values = "", contextM = false) {
+//     console.log("showModalWithContent closestGrid ", closestGrid)
+//     console.log("showModalWithContent closestGrid find", closestGrid.closest('.clarama-slate-record').find('.interactionModal'))
+//     closestGrid.closest('.clarama-slate-record').find('.interactionModal').modal('show');
+//     const $iModalBody = closestGrid.closest('.clarama-slate-record').find('.interactionModalBody');
+//     console.log("showModalWithContent iModalBody", $iModalBody)
+//     $iModalBody.empty();
+//     $iModalBody.append(showInteractionContent(field, 'modal', url, field_values, contextM));
+//     enable_interactions($iModalBody, true, true);
+// }
+
+// BUT somehow the record json disappeared from the task params after i put the interaction modal n popup html in root.html, 
+// but shldnt be a big prob for now since thrs hidden fields
+// tbh idk why itll disappear, but the record did pass to the interaction tho but im guessing because when the task runs, itll get the field values agn which will override
 function showModalWithContent(field, url, field_values = "", contextM = false) {
     $('#interactionModal').modal('show');
     const iModal = document.getElementById("interactionModalBody");

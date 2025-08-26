@@ -23,17 +23,17 @@
 
         $('.resize-handle').each(function() {
             const handle = this;
-            console.log("handle", handle)
+            // console.log("handle", handle)
             const resizableCol = document.getElementById(handle.getAttribute('data-target'));
-            console.log("resizableCol", resizableCol)
+            // console.log("resizableCol", resizableCol)
             const gridItem = resizableCol.closest('.grid-stack-item'); 
-            console.log("gridItem", gridItem)
+            // console.log("gridItem", gridItem)
             const gridItemElement = gridItem.getAttribute('gs-id');
-            console.log("gridItemElement", gridItemElement)
+            // console.log("gridItemElement", gridItemElement)
 
             function disableGridStackDrag() {
                 if (gridItem) {
-                    console.log("disableGridStackDrag")
+                    // console.log("disableGridStackDrag")
                     gridItem.gridstackNode?.el?.classList.remove('ui-draggable-dragging');
                     gridItem.style.pointerEvents = 'none';
                 }
@@ -41,7 +41,7 @@
             
             function enableGridStackDrag() {
                 if (gridItem) {
-                    console.log("enableGridStackDrag")
+                    // console.log("enableGridStackDrag")
                     gridItem.style.pointerEvents = '';
                 }
             }
@@ -56,7 +56,7 @@
                 const startWidth = resizableCol.offsetWidth;
                 
                 function doDrag(e) {
-                    console.log("dodrag")
+                    // console.log("dodrag")
 
                     // defined how far it can be dragged, else if all the way it'll hv layout issues
                     const rowWidth = resizableCol.parentElement.offsetWidth;
@@ -83,7 +83,7 @@
                 }
                 
                 function stopDrag() {
-                    console.log("stopdrag")
+                    // console.log("stopdrag")
                     document.removeEventListener('mousemove', doDrag);
                     document.removeEventListener('mouseup', stopDrag);
                     enableGridStackDrag();
@@ -94,7 +94,7 @@
             });
 
             if (window.GridStack) {
-                console.log("window.GridStack")
+                // console.log("window.GridStack")
                 GridStack.init({
                     draggable: {
                         handle: ':not(.resize-handle)',

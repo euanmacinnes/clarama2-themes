@@ -229,13 +229,12 @@
 
 
 <template id="slateRowTemplate">
-    <div class="row mx-0 clarama-slate-record" encoded_json="%ROW%">
-        <div class="col-1" style="padding-top: 8px;">
+    <div class="d-flex flex-row mx-0 p-3 clarama-slate-record" encoded_json="%ROW%">
+        <div class="me-3">
             %ROW_NUMBER%.
         </div>
-        <div class="col-11 mt-3 clarama-post-embedded clarama-record-header"
-             url="/render/embed/%SLATE%?slate_id=%ROW_NUMBER%"
-             encoded_record_class="clarama-slate-record">
+        <div class="w-100 clarama-post-embedded clarama-record-header"
+             url='/render/embed/%SLATE%?slate_id=%ROW_NUMBER%'>
         </div>
     </div>
 </template>
