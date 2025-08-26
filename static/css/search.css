@@ -27,13 +27,16 @@
     transition: all 0.2s ease-out;
 }
 
-.role-wrapper.hover-from-children { 
+.folder-link.is-open,
+.folder-link.is-ancestor {
     transform: scale(1.07);
-  }
+}
 
-.role-wrapper.hover-from-children .clickable-card,
-.role-wrapper.hover-from-children i:not(.fav-toggle) {
-    transition: all 0.2s ease-out;
+.folder-link.is-open .clickable-card,
+.folder-link.is-ancestor .clickable-card {
+    outline: 3px solid rgba(255, 255, 255, 0.412);
+    box-shadow: 0 0 0 2px rgba(0,171,119,0.65) inset;
+    transition: box-shadow .2s ease-out, outline .2s ease-out;
 }
 
 .fav-toggle:hover {

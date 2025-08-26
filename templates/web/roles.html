@@ -1,6 +1,6 @@
 <!--
-  ~ Copyright (c) 2024. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
-  -->
+    ~ Copyright (c) 2024. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
+-->
 
 {% extends theme("web/root.html") %}
 
@@ -94,9 +94,9 @@
             const parts = path.split('/').filter(Boolean);
             let curMap = rootMap, node = null;
             for (const name of parts) {
-            node = curMap?.[name];
-            if (!node) return null;
-            curMap = node.role_children || {};
+                node = curMap?.[name];
+                if (!node) return null;
+                curMap = node.role_children || {};
             }
             return node;
         }
@@ -224,14 +224,15 @@
 
             const onEnd = (e) => {
                 if (e.propertyName === 'height') {
-                block.classList.remove('animating', 'collapsing');
-                if (removeAfter) {
-                    block.remove();
-                } else {
-                    block.style.height = '';
-                    block.style.opacity = '';
-                }
-                block.removeEventListener('transitionend', onEnd);
+                    block.classList.remove('animating', 'collapsing');
+                    if (removeAfter) {
+                        block.remove();
+                    } else {
+                        block.style.height = '';
+                        block.style.opacity = '';
+                    }
+                    block.removeEventListener('transitionend', onEnd);
+                    updateOpenFolderHighlights();
                 }
             };
             block.addEventListener('transitionend', onEnd);
@@ -257,6 +258,16 @@
                 .replace(/^-|-$/g, '');     // trim edges
         }
 
+        function closeOpenBlocksAtLevel(level, exceptPath = null) {
+            document
+                .querySelectorAll(`.folder-children-block[data-level="${level}"]`)
+                .forEach(block => {
+                    if (!exceptPath || block.dataset.path !== exceptPath) {
+                        collapseChildrenBlock(block, true);
+                    }
+                });
+        }
+
         function toggleFolder(linkEl) {
             const hostGrid   = linkEl.closest('.folder-children-grid') || ROOT_GRID;
             const level      = parseInt(linkEl.dataset.level || '0', 10);
@@ -275,11 +286,14 @@
                 return;
             }
 
+            closeOpenBlocksAtLevel(level);
+
             // Build, insert after the last card in the same row, then animate open
             const rowEnd = lastInRow(linkEl.closest('.role-wrapper'), hostGrid);
             const block  = buildChildrenBlock(childrenMap, level, folderPath);
             rowEnd.insertAdjacentElement('afterend', block);
             expandChildrenBlock(block);
+            updateOpenFolderHighlights();
         }
 
         function getParentFolderLinkByPath(path) {
@@ -289,28 +303,29 @@
                 || document.querySelector(`.folder-link[data-folder="${esc(path)}"]`);
         }
 
-        // Add/remove the proxy-hover class on the parent card
-        function setParentHoverFromChildren(block, on) {
-            if (!block) return;
-            const path = block.dataset.path || '';
-            const link = getParentFolderLinkByPath(path);
-            const wrapper = link && link.closest('.role-wrapper');
-            if (wrapper) wrapper.classList.toggle('hover-from-children', !!on);
+        function updateOpenFolderHighlights() {
+            document.querySelectorAll('.folder-link')
+                .forEach(a => a.classList.remove('is-open', 'is-ancestor'));
+
+            const openBlocks = Array.from(document.querySelectorAll('.folder-children-block'));
+
+            openBlocks
+                .map(b => b.dataset.path)
+                .filter(Boolean)
+                .forEach(path => {
+                    const current = getParentFolderLinkByPath(path);
+                    if (current) current.classList.add('is-open');
+
+                    const parts = path.split('/').filter(Boolean);
+                    for (let i = 1; i < parts.length; i++) {
+                        const parentPath = parts.slice(0, i).join('/');
+                        const parentLink = getParentFolderLinkByPath(parentPath);
+                        if (parentLink) {
+                            parentLink.classList.add('is-ancestor');
+                        }
+                    }
+                });
         }
-
-        // Event delegation: when pointer is inside the children block, light up the parent
-        document.addEventListener('mouseover', (e) => {
-            const block = e.target.closest('.folder-children-block');
-            if (!block) return;
-            setParentHoverFromChildren(block, true);
-        });
-
-        document.addEventListener('mouseout', (e) => {
-            const block = e.target.closest('.folder-children-block');
-            if (!block) return;
-            // Only clear when the pointer truly leaves this block
-            if (!block.contains(e.relatedTarget)) setParentHoverFromChildren(block, false);
-        });
 
         // Event delegation for opening folders 
         document.addEventListener('click', (e) => {
@@ -332,3 +347,4 @@
 </script>
 
 {% endblock %}
+
