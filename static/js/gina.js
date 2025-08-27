@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function getSplash() { 
         return document.getElementById('gina-splash'); 
     }
-    const splash = getSplash();
   
     // --- Floating (centered) -> Docked (under navbar) helpers ----------------
     const navbar = document.querySelector('nav.navbar');
@@ -605,8 +604,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Socket not created yet
                 return false;
             }
+
             if (!('onmessage' in task_active_socket)) {
-                // Not a real WebSocket or not open yet
                 return false;
             }
 
@@ -842,21 +841,85 @@ document.addEventListener('DOMContentLoaded', () => {
         startProcessingGuard();
         runQuestionThroughKernel(msg, block);
     });
-  
-    // --- Save current Q/A ------------------------------------------
-    ginaSaveBtn?.addEventListener('click', (e) => {
+
+    // --- Helpers for saving --------------------------------------------------
+    let savedConversationPath = null;
+    let savedConversationTitle = null;
+
+    // Collect finished turns from the UI
+    function collectConversationTurns() {
+        const turns = [];
+
+        // 1) All completed blocks in history
+        const blocks = [...historyHost.querySelectorAll('.gina-block')];
+        for (const b of blocks) {
+            const q = b.querySelector('.gina-msg.user')?.textContent?.trim();
+            const a = b.querySelector('.gina-output')?.textContent?.trim();
+            if (q) turns.push({ role: 'user', content: q });
+            if (a) turns.push({ role: 'assistant', content: a });
+        }
+
+        // 2) Also include the latest block if it's in chat mode
+        const latest = latestHost.querySelector('.gina-block.chat-mode');
+        if (latest) {
+            const q = latest.querySelector('.gina-msg.user')?.textContent?.trim();
+            const a = latest.querySelector('.gina-output')?.textContent?.trim();
+            if (q) {
+                turns.push({ role: 'user', content: q });
+                if (a) turns.push({ role: 'assistant', content: a });
+            }
+        }
+        return turns;
+    }
+
+    // Slug from first message (used only on first save)
+    function slugify(s, fallback='conversation') {
+        const slug = (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return slug || fallback;
+    }
+
+    // var conversationsFolderExists = false;
+
+    async function ensureConversationsFolder(username) {
+        const url =
+            `/render/new/Users/${encodeURIComponent(username)}/?` +
+            `new_content=${encodeURIComponent('conversations')}&` +
+            `new_content_type=${encodeURIComponent('folder')}`;
+        execute_json_url(url, false);
+    }
+
+    // --- Save current chat as a conversation file  ----
+    ginaSaveBtn?.addEventListener('click', async (e) => {
         e.preventDefault();
-        if (!currentQuestion || !currentAnswer) {
-            flash('No conversation to save', 'warning'); 
+
+        const turns = collectConversationTurns();
+        if (turns.length === 0) {
+            flash('No conversation to save', 'warning');
             return;
         }
-        // flash('Conversation saved successfully', 'success');
-        flash('Save not implemented yet', 'danger');
+
+        const username = $('#currentUser').attr('username');
+        await ensureConversationsFolder(username);
+
+        if (!savedConversationPath) {
+            const firstUserTurn = turns.find(t => t.role === 'user')?.content || 'Conversation';
+            savedConversationTitle  = slugify(firstUserTurn.slice(0, 60));
+            const createUrl =
+                `/render/new/Users/${encodeURIComponent(username)}/conversations/` +
+                `?new_content=${encodeURIComponent(savedConversationTitle)}&` +
+                `new_content_type=${encodeURIComponent('conversation')}`;
+            
+            try {
+                execute_json_url(createUrl, false);
+                flash('Coversation file saved', 'success');
+            } catch (_) {
+                flash('Could not save conversation', 'danger');
+            }
+        }
     });
   
     // --- Bootstrapping: ensure there's an active block in latest --------------
     (function ensureInitialBlock() {
-        // Set initial height and splash visibility
         checkDocking();
         if (historyCount() > 0) hideSplash(false);
     
