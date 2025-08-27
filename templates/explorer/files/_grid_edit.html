@@ -1,962 +1,977 @@
 <form id="interactionForm" class="no-prompt">
-  <div class="modal fade" id="interactionSettingsModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="interaction-title">Interaction Settings</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" id="interaction-element">
-          <input type="hidden" id="interaction-target">
-          <input type="hidden" id="interaction-index">
+    <div class="modal fade" id="interactionSettingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="interaction-title">Interaction Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="interaction-element">
+                    <input type="hidden" id="interaction-target">
+                    <input type="hidden" id="interaction-index">
 
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" value="" id="cMenu">
-            <label class="form-check-label" for="cMenu" id="contextLabel">
-              Show this in Context Menu
-            </label>
-            <input type="text" id="menu-item" class="form-control mt-2 d-none" name="checkMenuItemName" placeholder="Menu Item Name">
-          </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="" id="cMenu">
+                        <label class="form-check-label" for="cMenu" id="contextLabel">
+                            Show this in Context Menu
+                        </label>
+                        <input type="text" id="menu-item" class="form-control mt-2 d-none" name="checkMenuItemName" placeholder="Menu Item Name">
+                    </div>
 
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" {% if do_wait == 'true' %}checked{% endif %} value="" id="wait">
-            <label class="form-check-label" for="wait">
-              Wait for previous interaction's resume command before executing
-            </label>
-          </div>
-          <!-- <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" value="" id="checkMenu">
-            <label class="form-check-label" for="checkMenu">
-              Context Menu
-            </label>
-          </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" {% if do_wait == 'true' %}checked{% endif %} value="" id="wait">
+                        <label class="form-check-label" for="wait">
+                            Wait for previous interaction's resume command before executing
+                        </label>
+                    </div>
+                    <!-- <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" value="" id="checkMenu">
+                      <label class="form-check-label" for="checkMenu">
+                        Context Menu
+                      </label>
+                    </div>
 
-          <input type="text" id="menu-item" class="form-control mb-3 d-none" name="contentMenuItemName" placeholder="Menu Item Name" value="">  -->
+                    <input type="text" id="menu-item" class="form-control mb-3 d-none" name="contentMenuItemName" placeholder="Menu Item Name" value="">  -->
 
-          <div class="mb-3">
-            <label class="form-label d-block p-0">Interaction Type</label>
-            <div class="btn-group" role="group" aria-label="Interaction Type">
-              <input type="radio" class="btn-check" name="interactionType" id="elementType" autocomplete="off" value="element" required>
-              <label class="btn btn-outline-primary" for="elementType">Element</label>
+                    <div class="mb-3">
+                        <label class="form-label d-block p-0">Interaction Type</label>
+                        <div class="btn-group" role="group" aria-label="Interaction Type">
+                            <input type="radio" class="btn-check" name="interactionType" id="elementType" autocomplete="off" value="element" required>
+                            <label class="btn btn-outline-primary" for="elementType">Element</label>
 
-              <input type="radio" class="btn-check" name="interactionType" id="popupType" autocomplete="off" value="popup" required>
-              <label class="btn btn-outline-primary" for="popupType">Popup</label>
-              
-              <input type="radio" class="btn-check" name="interactionType" id="modalType" autocomplete="off" value="modal" required>
-              <label class="btn btn-outline-primary" for="modalType">Modal</label>
+                            <input type="radio" class="btn-check" name="interactionType" id="popupType" autocomplete="off" value="popup" required>
+                            <label class="btn btn-outline-primary" for="popupType">Popup</label>
+                            
+                            <input type="radio" class="btn-check" name="interactionType" id="modalType" autocomplete="off" value="modal" required>
+                            <label class="btn btn-outline-primary" for="modalType">Modal</label>
 
-              <!-- <input type="radio" class="btn-check" name="interactionType" id="menuType" autocomplete="off" value="menu" required>
-              <label class="btn btn-outline-primary" for="menuType">Context Menu</label> -->
+                            <!-- <input type="radio" class="btn-check" name="interactionType" id="menuType" autocomplete="off" value="menu" required>
+                            <label class="btn btn-outline-primary" for="menuType">Context Menu</label> -->
 
-              <input type="radio" class="btn-check" name="interactionType" id="tabType" autocomplete="off" value="tab" required>
-              <label class="btn btn-outline-primary" for="tabType">Tab</label>
+                            <input type="radio" class="btn-check" name="interactionType" id="tabType" autocomplete="off" value="tab" required>
+                            <label class="btn btn-outline-primary" for="tabType">Tab</label>
 
-              <input type="radio" class="btn-check" name="interactionType" id="hiddenType" autocomplete="off" value="hidden" required>
-              <label class="btn btn-outline-primary" for="hiddenType">Hidden</label>
+                            <input type="radio" class="btn-check" name="interactionType" id="hiddenType" autocomplete="off" value="hidden" required>
+                            <label class="btn btn-outline-primary" for="hiddenType">Hidden</label>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="selected-elem" name="selectedElementUrl" value=""> 
+                    <div class="mb-3 dropdown-container d-none" id="elementDropdownContainer"></div>
+
+                    <div class="input-group mb-3">
+                        <button type="button" class="btn btn-outline-primary input-group-text" data-bs-toggle="modal" id="browseFileBtn"
+                            data-bs-target="#browseFileModal"
+                            inputId="grid-elem"
+                            filters="*.task.yaml">
+                            <i class="bi bi-folder2-open"></i>
+                        </button>
+                      
+                        <input id="grid-elem" type="text"
+                            class="form-control removeInputFocus"
+                            placeholder="Data Source Filename"
+                            value="{{ source }}"/>
+
+                        <button type="button" class="btn btn-outline-secondary border-end-0 p-1" onclick="clearInput('grid-elem', 'url')" style="font-size: 1rem;border-color: #dee2e6;">
+                            <i class="bi bi-x"></i>
+                        </button>
+                        
+                        <span class="input-group-text">?</span>
+                        <input type="text" class="form-control removeInputFocus" id="interaction-params" name="interactionParams" placeholder="my_param=something">
+                        
+                        <button type="button" class="btn btn-outline-secondary p-1" onclick="clearInput('interaction-params', 'params')" style="font-size: 1rem;border-color: #dee2e6;">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeInteractionsModal()">Close</button>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
             </div>
-          </div>
-
-          <input type="hidden" id="selected-elem" name="selectedElementUrl" value=""> 
-          <div class="mb-3 dropdown-container d-none" id="elementDropdownContainer"></div>
-
-          <div class="input-group mb-3">
-            <button type="button" class="btn btn-outline-primary input-group-text" data-bs-toggle="modal" id="browseFileBtn"
-              data-bs-target="#browseFileModal"
-              inputId="grid-elem"
-              filters="*.task.yaml">
-              <i class="bi bi-folder2-open"></i>
-            </button>
-             
-            <input id="grid-elem" type="text"
-              class="form-control removeInputFocus"
-              placeholder="Data Source Filename"
-              value="{{ source }}"/>
-
-            <button type="button" class="btn btn-outline-secondary border-end-0 p-1" onclick="clearInput('grid-elem', 'url')" style="font-size: 1rem;border-color: #dee2e6;">
-              <i class="bi bi-x"></i>
-            </button>
-             
-            <span class="input-group-text">?</span>
-            <input type="text" class="form-control removeInputFocus" id="interaction-params" name="interactionParams" placeholder="my_param=something">
-            
-            <button type="button" class="btn btn-outline-secondary p-1" onclick="clearInput('interaction-params', 'params')" style="font-size: 1rem;border-color: #dee2e6;">
-              <i class="bi bi-x"></i>
-            </button>
-          </div>
         </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeInteractionsModal()">Close</button>
-          <button type="submit" class="btn btn-primary">Apply</button>
-        </div>
-      </div>
     </div>
-  </div>
 </form>
 
 <script type="text/javascript">
-  function isDict(v) {
-    return typeof v==='object' && v!==null && !(v instanceof Array) && !(v instanceof Date);
-  }
+    function isDict(v) {
+        return typeof v==='object' && v!==null && !(v instanceof Array) && !(v instanceof Date);
+    }
   
-  var {{ grid_id }}elements = {{ element_json | to_json | safe }};
-  console.log("{{ grid_id }}elements", {{ grid_id }}elements);
+    var {{ grid_id }}elements = {{ element_json | to_json | safe }};
+    console.log("{{ grid_id }}elements", {{ grid_id }}elements);
 
-  var {{ grid_id }}settings = {};
-  console.log("{{ grid_id }}settings", {{ grid_id }}settings);
+    var {{ grid_id }}settings = {};
+    console.log("{{ grid_id }}settings", {{ grid_id }}settings);
 
-  let currentTarget = null;
+    let currentTarget = null;
 
-  function openInteractionSettings(button) {
-    document.getElementById('interactionSettingsModal').classList.add('modal-open');
-    const browseBtn = document.getElementById('browseFileBtn');
-    const dropdownContainer = document.getElementById('elementDropdownContainer');
-    const cmItem_field = document.getElementById('menu-item');
-    const inputId_field = document.getElementById('grid-elem');
-    const cMenu = document.getElementById('cMenu');
-    const wait_cb = document.getElementById('wait');
-    const label = document.getElementById('contextLabel');
+    function openInteractionSettings(button) {
+        document.getElementById('interactionSettingsModal').classList.add('modal-open');
+        const browseBtn = document.getElementById('browseFileBtn');
+        const dropdownContainer = document.getElementById('elementDropdownContainer');
+        const cmItem_field = document.getElementById('menu-item');
+        const inputId_field = document.getElementById('grid-elem');
+        const cMenu = document.getElementById('cMenu');
+        const wait_cb = document.getElementById('wait');
+        const label = document.getElementById('contextLabel');
 
-    document.getElementById('interaction-target').value = button;
-    browseBtn.setAttribute('gridElem', button);
+        document.getElementById('interaction-target').value = button;
+        browseBtn.setAttribute('gridElem', button);
 
-    cMenu.checked = false;
-    wait_cb.checked = false;
-    label.classList.remove('d-none');
-    updateContextMenuUI(false);
-
-    document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
-      radio.checked = false;
-    });
-
-    inputId_field.value = "";
-    dropdownContainer.classList.add('d-none');
-    dropdownContainer.innerHTML = '';
-
-    cmItem_field.classList.add('d-none');
-    cmItem_field.value = '';
-
-    if (typeof(button) === "object") {
-      var type = button.getAttribute('data-element');
-      var initialType = type;
-      const allowedTypes = ['popup', 'modal', 'menu', 'tab', 'hidden'];
-      if (!allowedTypes.includes(type)) type = 'element';
-
-      const target = button.getAttribute('data-target');
-      const url = button.getAttribute('data-url');
-      const index = button.getAttribute('data-index');
-      const params = button.getAttribute('data-params');
-      const doWait = button.getAttribute('data-wait');
-      const menuItem = button.getAttribute('data-menuName');
-
-      currentTarget = target;
-      document.getElementById('interaction-target').value = target;
-      document.getElementById('interaction-index').value = index;
-      document.getElementById('interaction-params').value = params;
-
-      if (type == "element") showElementOptions(url, initialType);
-      if (doWait === 'True') {
-        wait_cb.checked = true;
-      } else {
+        cMenu.checked = false;
         wait_cb.checked = false;
-      }
-      if (menuItem) {
-        cmItem_field.classList.remove('d-none');
-        cMenu.checked = true;
-        label.classList.add('d-none');
-        updateContextMenuUI(true);
-      }
+        label.classList.remove('d-none');
+        updateContextMenuUI(false);
 
-      inputId_field.value = url;
-      cmItem_field.value = menuItem;
-      
-      browseBtn.setAttribute('gridElem', target);
+        document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
+            radio.checked = false;
+        });
 
-      $('input[name="interactionType"]').prop('checked', false);
-      if (type) {
-        $(`input[name="interactionType"][value="${type}"]`).prop('checked', true);
-      }
-    } else {
-      document.getElementById('interaction-title').innerHTML = "Add Interaction";
-      currentTarget = button;
-
-      // default to be element
-      $(`input[name="interactionType"][value="element"]`).prop('checked', true);
-      showElementOptions();
-    }
-  }
-
-  function closeInteractionsModal() {
-    document.getElementById('interactionSettingsModal').classList.remove('modal-open');
-  }
-
-  function showElementOptions(url = "", elemType = "") {
-    const inputId_field = document.getElementById('grid-elem');
-    inputId_field.value = url;
-  
-    const dropdownContainer = document.getElementById('elementDropdownContainer');
-    dropdownContainer.classList.remove('d-none');
-    dropdownContainer.innerHTML = "";
-  
-    const dropdownWrapper = document.createElement('div');
-    dropdownWrapper.className = 'custom-dropdown-wrapper';
-  
-    const selectedDiv = document.createElement('div');
-    selectedDiv.className = 'custom-selected';
-    selectedDiv.id = `add_content_interactions-${currentTarget}`;
-    selectedDiv.textContent = elemType || "Select an element";
-    dropdownWrapper.appendChild(selectedDiv);
-
-    document.getElementById('selected-elem').value = elemType;
-  
-    const optionsContainer = document.createElement('div');
-    optionsContainer.className = 'custom-options hidden';
-  
-    const elements = {{ grid_id }}elements;
-    // const currentElemLinks = (elements[currentTarget]?.links || []).map(link =>
-    //   typeof link === "string" ? link : link.element
-    // );
-
-    console.log("elements", elements)
-    // console.log("currentTarget", currentTarget)
-    // console.log("currentElemLinks", currentElemLinks)
-  
-    let hasOptions = false;
-  
-    for (const [elem, value] of Object.entries(elements)) {
-      // if (currentElemLinks.includes(elem)) continue;  // Skip already linked elements
-  
-      const optionDiv = document.createElement('div');
-      optionDiv.className = 'custom-option';
-      optionDiv.setAttribute('elem-id', currentTarget);
-      optionDiv.setAttribute('elem-url', value['url']);
-      optionDiv.textContent = elem;
-  
-      optionDiv.addEventListener('mouseover', () => {
-        const targetDiv = document.querySelector(`div[id='${elem}']`);
-        if (targetDiv) targetDiv.classList.add('highlight');
-      });
-  
-      optionDiv.addEventListener('mouseout', () => {
-        const targetDiv = document.querySelector(`div[id='${elem}']`);
-        if (targetDiv) targetDiv.classList.remove('highlight');
-      });
-  
-      optionDiv.addEventListener('click', () => {
-        selectedDiv.textContent = elem;
-        document.getElementById('selected-elem').value = elem;
         inputId_field.value = "";
-        optionsContainer.classList.add('hidden');
-      });
-  
-      optionsContainer.appendChild(optionDiv);
-      hasOptions = true;
-    }
-  
-    selectedDiv.addEventListener('click', () => {
-      optionsContainer.classList.toggle('hidden');
-    });
-  
-    dropdownWrapper.appendChild(optionsContainer);
-  
-    // console.log("hasOptions", hasOptions)
-    // const elementRadio = document.querySelector(`input[name="interactionType"][value="element"]`);
-    // if (elementRadio) elementRadio.disabled = !hasOptions;
-  
-    if (hasOptions) {
-      dropdownContainer.appendChild(dropdownWrapper);
-      dropdownContainer.style.display = 'block';
-    } else {
-      dropdownContainer.style.display = 'none';
-    }
-  }
-
-  const cMenu = document.getElementById('cMenu');
-  cMenu.addEventListener('change', () => {
-    updateContextMenuUI(cMenu.checked);
-  });
-
-  function updateContextMenuUI(isChecked) {
-    const input = document.getElementById('menu-item');
-    const label = document.getElementById('contextLabel');
-    label.classList.toggle('d-none', isChecked);
-    input.classList.toggle('d-none', !isChecked);
-    if (isChecked) input.focus();
-    
-    ['popupType'].forEach(id => {
-      const radio = document.getElementById(id);
-      const label = document.querySelector(`label[for="${id}"]`);
-      radio.classList.toggle('d-none', isChecked);
-      label.classList.toggle('d-none', isChecked);
-    });
-  }
-
-  document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      const dropdownContainer = document.getElementById('elementDropdownContainer');
-      const isContextMenu = cMenu.checked;
-
-      if (radio.checked && radio.value === 'element') {
-        showElementOptions();
-        input.classList.toggle('d-none', !isContextMenu);
-      } else {
         dropdownContainer.classList.add('d-none');
         dropdownContainer.innerHTML = '';
-        input.classList.toggle('d-none', !isContextMenu);
-      }
-    });
-  });
 
-  function clearInput(id, field, target = null, event = null) {
-    if (event) event.stopPropagation();
-    
-    if (id) {
-      const el = document.getElementById(id);
-      if (el.tagName === 'A') {
-        el.textContent = '';
-        el.removeAttribute('href');
-      } else {
-        el.value = '';
-      }
+        cmItem_field.classList.add('d-none');
+        cmItem_field.value = '';
 
-      if (field == "url") {
-        const targetInput = document.getElementById(id);
+        if (typeof(button) === "object") {
+            var type = button.getAttribute('data-element');
+            var initialType = type;
+            const allowedTypes = ['popup', 'modal', 'menu', 'tab', 'hidden'];
+            if (!allowedTypes.includes(type)) type = 'element';
 
-        targetInput.href = "/content/element/{{ file_url }}";
-        targetInput.textContent = "";
+            const target = button.getAttribute('data-target');
+            const url = button.getAttribute('data-url');
+            const index = button.getAttribute('data-index');
+            const params = button.getAttribute('data-params');
+            const doWait = button.getAttribute('data-wait');
+            const menuItem = button.getAttribute('data-menuName');
 
-        if (target in {{ grid_id }}elements) {{ grid_id }}elements[target]['url'] = "";
+            currentTarget = target;
+            document.getElementById('interaction-target').value = target;
+            document.getElementById('interaction-index').value = index;
+            document.getElementById('interaction-params').value = params;
 
-        let parentDiv = document.getElementById(target);
-        const currentUrl = parentDiv.getAttribute('url');
-        parentDiv.setAttribute('url', "/render/embed/{{ file_url }}" + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
-        
-        console.log("new url", document.getElementById(target).getAttribute('url'))
-        enable_interactions($(`#${target}`).parent(), true);
-      }
-    }
-  }
+            if (type == "element") showElementOptions(url, initialType);
+            if (doWait === 'True') {
+                wait_cb.checked = true;
+            } else {
+                wait_cb.checked = false;
+            }
 
-  function initializeGridInteractionsDragDrop() {
-    $('[id^="grid_element_target-"]').each(function() {
-        const container = $(this);
-        const targetId = container.attr('id').replace('grid_element_target-', '');
-        
-        if (!container.hasClass('ui-sortable')) {
-            container.sortable({
-                items: '.slate-elem-dropdown-item',
-                handle: '.draggable-heading',
-                start: function(event, ui) {
-                    ui.placeholder.height(ui.item.height());
-                    ui.placeholder.addClass('bg-light border border-dashed');
-                },
-                stop: function(event, ui) {
-                    updateGridInteractionsOrder(targetId);
-                }
-            });
+            if (menuItem) {
+                cmItem_field.classList.remove('d-none');
+                cMenu.checked = true;
+                label.classList.add('d-none');
+                updateContextMenuUI(true);
+            }
+
+            inputId_field.value = url;
+            cmItem_field.value = menuItem;
+            
+            browseBtn.setAttribute('gridElem', target);
+
+            $('input[name="interactionType"]').prop('checked', false);
+            if (type) {
+                $(`input[name="interactionType"][value="${type}"]`).prop('checked', true);
+            }
+        } else {
+            document.getElementById('interaction-title').innerHTML = "Add Interaction";
+            currentTarget = button;
+
+            // default to be element
+            $(`input[name="interactionType"][value="element"]`).prop('checked', true);
+            showElementOptions();
         }
+    }
+
+    function closeInteractionsModal() {
+        document.getElementById('interactionSettingsModal').classList.remove('modal-open');
+    }
+
+    function showElementOptions(url = "", elemType = "") {
+        const inputId_field = document.getElementById('grid-elem');
+        inputId_field.value = url;
+      
+        const dropdownContainer = document.getElementById('elementDropdownContainer');
+        dropdownContainer.classList.remove('d-none');
+        dropdownContainer.innerHTML = "";
+      
+        const dropdownWrapper = document.createElement('div');
+        dropdownWrapper.className = 'custom-dropdown-wrapper';
+      
+        const selectedDiv = document.createElement('div');
+        selectedDiv.className = 'custom-selected';
+        selectedDiv.id = `add_content_interactions-${currentTarget}`;
+        selectedDiv.textContent = elemType || "Select an element";
+        dropdownWrapper.appendChild(selectedDiv);
+
+        document.getElementById('selected-elem').value = elemType;
+      
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'custom-options hidden';
+      
+        const elements = {{ grid_id }}elements;
+        // const currentElemLinks = (elements[currentTarget]?.links || []).map(link =>
+        //     typeof link === "string" ? link : link.element
+        // );
+
+        console.log("elements", elements)
+        // console.log("currentTarget", currentTarget)
+        // console.log("currentElemLinks", currentElemLinks)
+      
+        let hasOptions = false;
+      
+        for (const [elem, value] of Object.entries(elements)) {
+            // if (currentElemLinks.includes(elem)) continue;  // Skip already linked elements
+        
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'custom-option';
+            optionDiv.setAttribute('elem-id', currentTarget);
+            optionDiv.setAttribute('elem-url', value['url']);
+            optionDiv.textContent = elem;
+        
+            optionDiv.addEventListener('mouseover', () => {
+                const targetDiv = document.querySelector(`div[id='${elem}']`);
+                if (targetDiv) targetDiv.classList.add('highlight');
+            });
+        
+            optionDiv.addEventListener('mouseout', () => {
+                const targetDiv = document.querySelector(`div[id='${elem}']`);
+                if (targetDiv) targetDiv.classList.remove('highlight');
+            });
+        
+            optionDiv.addEventListener('click', () => {
+                selectedDiv.textContent = elem;
+                document.getElementById('selected-elem').value = elem;
+                inputId_field.value = "";
+                optionsContainer.classList.add('hidden');
+            });
+        
+            optionsContainer.appendChild(optionDiv);
+            hasOptions = true;
+        }
+    
+        selectedDiv.addEventListener('click', () => {
+            optionsContainer.classList.toggle('hidden');
+        });
+    
+        dropdownWrapper.appendChild(optionsContainer);
+    
+        // console.log("hasOptions", hasOptions)
+        // const elementRadio = document.querySelector(`input[name="interactionType"][value="element"]`);
+        // if (elementRadio) elementRadio.disabled = !hasOptions;
+      
+        if (hasOptions) {
+            dropdownContainer.appendChild(dropdownWrapper);
+            dropdownContainer.style.display = 'block';
+        } else {
+            dropdownContainer.style.display = 'none';
+        }
+    }
+
+    const cMenu = document.getElementById('cMenu');
+    cMenu.addEventListener('change', () => {
+        updateContextMenuUI(cMenu.checked);
     });
+
+    function updateContextMenuUI(isChecked) {
+        const input = document.getElementById('menu-item');
+        const label = document.getElementById('contextLabel');
+        label.classList.toggle('d-none', isChecked);
+        input.classList.toggle('d-none', !isChecked);
+        if (isChecked) input.focus();
+        
+        ['popupType'].forEach(id => {
+            const radio = document.getElementById(id);
+            const label = document.querySelector(`label[for="${id}"]`);
+            radio.classList.toggle('d-none', isChecked);
+            label.classList.toggle('d-none', isChecked);
+        });
+    }
+
+    document.querySelectorAll('input[name="interactionType"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const dropdownContainer = document.getElementById('elementDropdownContainer');
+            const isContextMenu = cMenu.checked;
+
+            if (radio.checked && radio.value === 'element') {
+                showElementOptions();
+                input.classList.toggle('d-none', !isContextMenu);
+            } else {
+                dropdownContainer.classList.add('d-none');
+                dropdownContainer.innerHTML = '';
+                input.classList.toggle('d-none', !isContextMenu);
+            }
+        });
+    });
+
+    function clearInput(id, field, target = null, event = null) {
+        if (event) event.stopPropagation();
+        
+        if (id) {
+            const el = document.getElementById(id);
+            if (el.tagName === 'A') {
+                el.textContent = '';
+                el.removeAttribute('href');
+            } else {
+                el.value = '';
+            }
+
+            if (field == "url") {
+                const targetInput = document.getElementById(id);
+
+                targetInput.href = "/content/element/{{ file_url }}";
+                targetInput.textContent = "";
+
+                if (target in {{ grid_id }}elements) {{ grid_id }}elements[target]['url'] = "";
+
+                let parentDiv = document.getElementById(target);
+                const currentUrl = parentDiv.getAttribute('url');
+                parentDiv.setAttribute('url', "/render/embed/{{ file_url }}" + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
+                
+                console.log("new url", document.getElementById(target).getAttribute('url'))
+                enable_interactions($(`#${target}`).parent(), true);
+            }
+        }
+    }
+
+    function initializeGridInteractionsDragDrop() {
+        $('[id^="grid_element_target-"]').each(function() {
+              const container = $(this);
+              const targetId = container.attr('id').replace('grid_element_target-', '');
+              
+              if (!container.hasClass('ui-sortable')) {
+                  container.sortable({
+                      items: '.slate-elem-dropdown-item',
+                      handle: '.draggable-heading',
+                      start: function(event, ui) {
+                          ui.placeholder.height(ui.item.height());
+                          ui.placeholder.addClass('bg-light border border-dashed');
+                      },
+                      stop: function(event, ui) {
+                          updateGridInteractionsOrder(targetId);
+                      }
+                  });
+              }
+        });
+    }
+
+    function updateGridInteractionsOrder(targetId) {
+        const container = $(`#grid_element_target-${targetId}`);
+        
+        if (!{{ grid_id }}elements[targetId] || !{{ grid_id }}elements[targetId].links) {
+            return;
+        }
+        
+        const newOrderedLinks = [];
+        
+        container.find('.slate-elem-dropdown-item').each(function(newIndex) {
+            const $item = $(this);
+            const currentLoopIndex = parseInt($item.attr('loop-index'));
+            
+            const linkData = {{ grid_id }}elements[targetId].links[currentLoopIndex];
+            
+            if (linkData) {
+                const newLink = {
+                    ...linkData,
+                    uid: newIndex.toString()
+                };
+                newOrderedLinks.push(newLink);
+            }
+        });
+      
+        {{ grid_id }}elements[targetId].links = newOrderedLinks;
+        
+        container.find('.slate-elem-dropdown-item').each(function(newIndex) {
+            const $item = $(this);
+            
+            $item.attr('loop-index', newIndex);
+            
+            const deleteBtn = $item.find('.delete-grid-interaction');
+            const onclickAttr = deleteBtn.attr('onClick');
+            if (onclickAttr) {
+                const updatedOnclick = onclickAttr.replace(/delete_interaction\([^,]+,\s*'?\d+'?\)/, `delete_interaction('${targetId}', '${newIndex}')`);
+                deleteBtn.attr('onClick', updatedOnclick);
+            }
+            
+            const gearIcon = $item.find('.bi-gear');
+            gearIcon.attr('data-index', newIndex);
+        });
+        
+        console.log('Updated order for', targetId, {{ grid_id }}elements[targetId].links);
+    }
+
+    function updateTextElement(target, gridId) {
+        const textareaId = gridId + target;
+        const textarea = document.getElementById(textareaId);
+        const newText = textarea.value;
+        
+        const gridElement = document.getElementById(target);
+        if (gridElement) {
+            gridElement.innerHTML = newText;
+        }
+        
+        const elementsVar = gridId + 'elements';
+        if (window[elementsVar] && window[elementsVar][target]) {
+            window[elementsVar][target].text = newText;
+        }
+        
+        const dropdown = document.getElementById('grid-elem-dropdown-' + target);
+        if (dropdown) {
+            const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+            if (dropdownMenu) {
+                dropdownMenu.classList.remove('show');
+            }
+            
+            const dropdownToggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+            if (dropdownToggle) {
+                dropdownToggle.setAttribute('aria-expanded', 'false');
+            }
+        }
+    }
+
+    $( document ).ready(() => {
+
+        initializeGridInteractionsDragDrop();
+
+        $("#addfieldModal .toggle_show").off("click.addfield").on("click.addfield", function () {
+            new_class = $(this).attr("new_file_class");
+            new_type = $(this).attr("new_file_type");
+            const $modal = $(this).closest("#addfieldModal");
+            $modal.find(".new_content_type").val(new_type);
+            $modal.find(".new_item")
+                .removeClass("bi-folder bi-journal-arrow-down bi-file-earmark-spreadsheet bi-blockquote-left bi-table bi-database bi-menu-app bi-eye bi-sliders")
+                .addClass(new_class);
+            $modal.find(".toggle_target").show("fast");
+        });
+
+        $("#addfieldModal .toggle_hide").off("click.addfield").on("click.addfield", function () {
+            $(this).closest("#addfieldModal").find(".toggle_target").hide("fast");
+        });
+
+        $('#addfieldModal #new_content_form')
+           .off('submit.addfield')
+           .on('submit.addfield', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            content_new(e);
+        });
+
+        async function content_new(e) {
+            var new_content = $("#new_content").val();
+            var new_content_type = $("#new_content_type").val();
+            let base = (currentModalAddContentPath || "").replace(/\/+$/, "");
+            const lastSeg = base.split("/").pop() || "";
+            if (/\.[A-Za-z0-9]+$/.test(lastSeg)) {
+                // looks like a file (has an extension) → drop the filename
+                base = base.replace(/\/[^/]+$/, "");
+            }
+
+            var file = "/render/new/" + base +
+                    "/?new_content=" + encodeURIComponent(new_content) +
+                    "&new_content_type=" + encodeURIComponent(new_content_type);
+
+            await execute_json_url_async(file);
+            filters = $(".gridaddcontent").attr('filters');
+
+            if (encodeURIComponent(new_content_type) == "folder") {
+                const option = document.createElement('option');
+                option.value = encodeURIComponent(new_content);
+                option.className = "bi bi-folder-fill";
+                option.innerHTML = `&nbsp; ${encodeURIComponent(new_content)}`;
+                option.addEventListener('dblclick', () => navigateToPath(`/content/json/${currentModalAddContentPath}/${encodeURIComponent(new_content)}/` + "?subfolders=True&extensions=" + filters, 'breadcrumb_addfield', 'add_content_addfield', filters));
+                document.getElementById('add_content_addfield').appendChild(option);
+            } else {
+                path = ($CLARAMA_ROOT + '/content/json/' + currentModalAddContentPath + '?subfolders=True&extensions=' + filters);
+                navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield', filters);
+            }
+
+            document.getElementById('new_content').value = '';
+        }
+
+        let interactionSettingsWasOpen = false;
+        $('#addfieldModal').on('shown.bs.modal', function () {
+            const fileUrl = "{{ file_url | path }}";
+            const basePath = fileUrl.endsWith('/') ? fileUrl : fileUrl.replace(/\/[^/]*$/, '/');
+            currentModalAddContentPath = basePath.replace(/\/+$/, '');
+        });
+
+        $('#browseFileModal').on('shown.bs.modal', function (event) {
+            interactionSettingsWasOpen = $('#interactionSettingsModal').hasClass('modal-open');
+        });
+
+        $('#browseFileModal').on('hidden.bs.modal', function () {
+            console.log("interactionSettingsWasOpen", interactionSettingsWasOpen)
+            if (interactionSettingsWasOpen) {
+                $('#interactionSettingsModal').modal('show');
+            }
+
+            if (activeDropdownId) {
+                const dropdownMenu = document.querySelector(`#${activeDropdownId} .dropdown-menu`);
+                const gridMenu = document.querySelector(`#${activeDropdownId} .grid-elem-menu`);
+                dropdownMenu.classList.add('show');
+                gridMenu.classList.add('show');
+            }
+        });
+
+        $('#interactionSettingsModal').on('hidden.bs.modal', function () {
+            if (activeDropdownId) {
+                console.log("activeDropdownId", activeDropdownId)
+                const dropdownMenu = document.querySelector(`#${activeDropdownId} .dropdown-menu`);
+                const gridMenu = document.querySelector(`#${activeDropdownId} .grid-elem-menu`);
+                dropdownMenu.classList.add('show');
+                gridMenu.classList.add('show');
+            }
+        });
+
+        //console.log("GRID");
+        //console.log({{ grid_id }}elements);
+        //console.log({{ grid_json | safe }});
+        if ({{ grid_id }}settings["table"]) document.getElementById("settings_table_source").value = {{ grid_id }}settings["table"];
+    });
+
+    let {{ grid_id }}subOptions = {
+        cellHeight: 55, // should be 50 - top/bottom
+        acceptWidgets: true, // will accept .grid-stack-item by default
+        margin: 2,
+        sizeToContent: true,
+        subGridDynamic: false, // make it recursive for all future sub-grids
+    };
+
+    let {{ grid_id }}options = { // main grid options
+        cellHeight: 55,
+        margin: 2,
+        float: true,
+        minRow: 1, // don't collapse when empty
+        acceptWidgets: true,
+        subGridOpts: {{ grid_id }}subOptions,
+        removable: '.trash',
+        draggable: {cancel: '.no-drag, .dropdown-menu *:not(.draggable-heading)'},
+        subGridDynamic: false, // v7 api to create sub-grids on the fly
+        children: {{ grid_json | safe }}, 
+    };
+
+    GridStack.renderCB = function(el, w) {
+        el.innerHTML = w.content;
+    };
+
+    // document.querySelector('#saved').value = JSON.stringify(options);
+    var {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#{{ grid_id }}-containment-wrapper'), {{ grid_id }}options);
+
+    const savedColCount = {{ grid_id }}settings["column"];
+    console.log("savedColCount", savedColCount)
+    if (savedColCount != undefined) {
+        generateGridStackColCSS(savedColCount);
+        updateColumnLabel(savedColCount);
+    }
+
+    {{ grid_id }}grid.on('removed', function(event, items) {
+        items.forEach(item => {
+            console.log("item", item);
+            const target = item.el.getAttribute('gs-id'); 
+            if (target) {
+                console.log("Removed:", target);
+                delete {{ grid_id }}elements[target];
+                deleteLinkedInteractions(target);
+                removeLinkElementsFromUI(target);
+            }
+        });
+    });
+
+    function addNested() {
+        {{ grid_id }}grid.addWidget({
+            x: 0, y: 20, w: 4, h: 4,
+            cellHeight: 75,
+            margin: 2,
+            minRow: 1, // don't collapse when empty
+            acceptWidgets: true,
+            removable: '.trash',
+            subGridOpts: {
+                children: [],
+                ...{{ grid_id }}subOptions
+            }
+        });
+    }
+
+    function addContent(element, data, html) {
+        if (isDict({{ grid_id }}elements)) {
+            {{ grid_id }}elements[element] = data;
+        } else {
+            var elem = {};
+            elem[element] = data;
+            {{ grid_id }}elements = elem;
+        }
+
+        //{{ grid_id }}elements[element] = data;
+
+        {{ grid_id }}grid.addWidget({
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 1,
+            id: element,
+            content: html,
+            cellHeight: 65,
+            margin: 5,
+            minRow: 1, // don't collapse when empty
+            acceptWidgets: true,
+            removable: '.trash'
+        })
+
+        enable_interactions($("#" + element).parent());
+    }
+
+    function resetSlate(grid) {
+        if (confirm("Are you sure? This will clear all the elements on the slate.")) {
+            {{ grid_id }}elements = {};
+            {{ grid_id }}grid['engine']['nodes'] = [];
+            document.querySelector(`#${grid}-containment-wrapper .grid-stack`).innerHTML = "";
+            document.getElementById('settings_table_source').value = "";
+            flash("Slate has been reset.", "success");
+        }
+    }
+ 
+  function updateColumnLabel(val) {
+      document.getElementById('gs_columnRange').value = val;
+      document.getElementById('colValue').innerText = val;
+    
+      console.log("grid_id grid", {{ grid_id }}grid)
+      if ({{ grid_id }}grid) {
+          const cols = parseInt(val);
+          generateGridStackColCSS(cols);
+          {{ grid_id }}grid.column(cols);
+          {{ grid_id }}grid.compact();
+
+          // {{ grid_id }}elements["column"] = val;
+          {{ grid_id }}settings["column"] = val;
+          console.log(`Updated to ${cols} columns`);
+          console.log("updateColumnLabel", slate_data);
+      }
   }
 
-  function updateGridInteractionsOrder(targetId) {
-    const container = $(`#grid_element_target-${targetId}`);
-    
-    if (!{{ grid_id }}elements[targetId] || !{{ grid_id }}elements[targetId].links) {
-      return;
-    }
-    
-    const newOrderedLinks = [];
-    
-    container.find('.slate-elem-dropdown-item').each(function(newIndex) {
-      const $item = $(this);
-      const currentLoopIndex = parseInt($item.attr('loop-index'));
-      
-      const linkData = {{ grid_id }}elements[targetId].links[currentLoopIndex];
-      
-      if (linkData) {
-        const newLink = {
-          ...linkData,
-          uid: newIndex.toString()
-        };
-        newOrderedLinks.push(newLink);
-      }
-    });
-    
-    {{ grid_id }}elements[targetId].links = newOrderedLinks;
-    
-    container.find('.slate-elem-dropdown-item').each(function(newIndex) {
-      const $item = $(this);
-      
-      $item.attr('loop-index', newIndex);
-      
-      const deleteBtn = $item.find('.delete-grid-interaction');
-      const onclickAttr = deleteBtn.attr('onClick');
-      if (onclickAttr) {
-        const updatedOnclick = onclickAttr.replace(/delete_interaction\([^,]+,\s*'?\d+'?\)/, `delete_interaction('${targetId}', '${newIndex}')`);
-        deleteBtn.attr('onClick', updatedOnclick);
-      }
-      
-      const gearIcon = $item.find('.bi-gear');
-      gearIcon.attr('data-index', newIndex);
-    });
-    
-    console.log('Updated order for', targetId, {{ grid_id }}elements[targetId].links);
-  }
-
-  function updateTextElement(target, gridId) {
-    const textareaId = gridId + target;
-    const textarea = document.getElementById(textareaId);
-    const newText = textarea.value;
-    
-    const gridElement = document.getElementById(target);
-    if (gridElement) {
-      gridElement.innerHTML = newText;
-    }
-    
-    const elementsVar = gridId + 'elements';
-    if (window[elementsVar] && window[elementsVar][target]) {
-      window[elementsVar][target].text = newText;
-    }
-    
-    const dropdown = document.getElementById('grid-elem-dropdown-' + target);
-    if (dropdown) {
-      const dropdownMenu = dropdown.querySelector('.dropdown-menu');
-      if (dropdownMenu) {
-        dropdownMenu.classList.remove('show');
-      }
-      
-      const dropdownToggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
-      if (dropdownToggle) {
-        dropdownToggle.setAttribute('aria-expanded', 'false');
-      }
-    }
-  }
-
-  $( document ).ready(() => {
-
-    initializeGridInteractionsDragDrop();
-
-    $(".toggle_show").click(function () {
-      new_class = $(this).attr("new_file_class");
-      new_type = $(this).attr("new_file_type");
-      $(".new_content_type").val(new_type);
-      $(".new_item").removeClass("bi-folder bi-journal-arrow-down bi-file-earmark-spreadsheet bi-blockquote-left bi-table bi-database bi-menu-app bi-eye bi-sliders");
-      $(".new_item").addClass(new_class);
-      $(".toggle_target").show('fast', function () {
-      });
-    });
-
-    $(".toggle_hide").click(function () {
-      $(".toggle_target").hide('fast', function () {
-      });
-    });
-
-    $('#new_content_form').on('submit', function (e) {
-      content_new(e);
-      e.preventDefault();
-    });
-
-    async function content_new(e) {
-      var new_content = $("#new_content").val();
-      var new_content_type = $("#new_content_type").val();
-      var file = "/render/new/" + currentModalAddContentPath + "/?new_content=" + encodeURIComponent(new_content) + "&new_content_type=" + encodeURIComponent(new_content_type);
-
-      await execute_json_url_async(file);
-      filters = $(".gridaddcontent").attr('filters');
-
-      if (encodeURIComponent(new_content_type) == "folder") {
-        const option = document.createElement('option');
-        option.value = encodeURIComponent(new_content);
-        option.className = "bi bi-folder-fill";
-        option.innerHTML = `&nbsp; ${encodeURIComponent(new_content)}`;
-        option.addEventListener('dblclick', () => navigateToPath(`/content/json/${currentModalAddContentPath}/${encodeURIComponent(new_content)}/` + "?subfolders=True&extensions=" + filters, 'breadcrumb_addfield', 'add_content_addfield', filters));
-        document.getElementById('add_content_addfield').appendChild(option);
-      } else {
-        path = ($CLARAMA_ROOT + '/content/json/' + currentModalAddContentPath + '?subfolders=True&extensions=' + filters);
-        navigateToPath(path, 'breadcrumb_addfield', 'add_content_addfield', filters);
-      }
-
-      document.getElementById('new_content').value = '';
+    function generateGridStackColCSS(maxCols) {
+        let style = document.createElement('style');
+        let css = '';
+        for (let c = 1; c <= maxCols; c++) {
+            css += `.grid-stack-item[gs-w="${c}"] { width: ${(100 / maxCols) * c}%; }\n`;
+            css += `.grid-stack-item[gs-x="${c}"] { left: ${(100 / maxCols) * c}%; }\n`;
+        }
+        console.log("css", css)
+        style.innerHTML = css;
+        document.head.appendChild(style);
     }
 
-    let interactionSettingsWasOpen = false;
-    $('#addfieldModal').on('shown.bs.modal', function () {
-      currentModalAddContentPath = "{{ file_url | path }}";
-    });
+    function deleteLinkedInteractions(target) {
+        for (const [id, data] of Object.entries({{ grid_id }}elements)) {
+            if (Array.isArray(data.links)) {
+                data.links = data.links.filter(link => link.element !== target);
+            }
+        }
+    }
 
-    $('#browseFileModal').on('shown.bs.modal', function (event) {
-      interactionSettingsWasOpen = $('#interactionSettingsModal').hasClass('modal-open');
-    });
+    function removeLinkElementsFromUI(target) {
+        const links = document.querySelectorAll(`.slate-elem-dropdown-item[elem-id="${target}"]`);
+        links.forEach(linkEl => linkEl.remove());
+    }
 
-    $('#browseFileModal').on('hidden.bs.modal', function () {
-      console.log("interactionSettingsWasOpen", interactionSettingsWasOpen)
-      if (interactionSettingsWasOpen) {
-        $('#interactionSettingsModal').modal('show');
-      }
+    function delete_element(target) {
+        gs_element = $('.grid-stack-item');
+        let remove = undefined;
 
-      if (activeDropdownId) {
-        const dropdownMenu = document.querySelector(`#${activeDropdownId} .dropdown-menu`);
-        const gridMenu = document.querySelector(`#${activeDropdownId} .grid-elem-menu`);
-        dropdownMenu.classList.add('show');
-        gridMenu.classList.add('show');
-      }
-    });
+        gs_element.each(function() {
+            if ($(this).attr("gs-id") === target)
+                remove = $(this);
+        })
 
-    $('#interactionSettingsModal').on('hidden.bs.modal', function () {
-      if (activeDropdownId) {
-        console.log("activeDropdownId", activeDropdownId)
-        const dropdownMenu = document.querySelector(`#${activeDropdownId} .dropdown-menu`);
-        const gridMenu = document.querySelector(`#${activeDropdownId} .grid-elem-menu`);
-        dropdownMenu.classList.add('show');
-        gridMenu.classList.add('show');
-      }
-    });
+        remove.remove();
 
-    //console.log("GRID");
-    //console.log({{ grid_id }}elements);
-    //console.log({{ grid_json | safe }});
-    if ({{ grid_id }}settings["table"]) document.getElementById("settings_table_source").value = {{ grid_id }}settings["table"];
-  });
-
-  let {{ grid_id }}subOptions = {
-    cellHeight: 55, // should be 50 - top/bottom
-    acceptWidgets: true, // will accept .grid-stack-item by default
-    margin: 2,
-    sizeToContent: true,
-    subGridDynamic: false, // make it recursive for all future sub-grids
-  };
-
-  let {{ grid_id }}options = { // main grid options
-    cellHeight: 55,
-    margin: 2,
-    float: true,
-    minRow: 1, // don't collapse when empty
-    acceptWidgets: true,
-    subGridOpts: {{ grid_id }}subOptions,
-    removable: '.trash',
-    draggable: {cancel: '.no-drag, .dropdown-menu *:not(.draggable-heading)'},
-    subGridDynamic: false, // v7 api to create sub-grids on the fly
-    children: {{ grid_json | safe }}, 
-  };
-
-  GridStack.renderCB = function(el, w) {
-    el.innerHTML = w.content;
-  };
-
-  // document.querySelector('#saved').value = JSON.stringify(options);
-  var {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#{{ grid_id }}-containment-wrapper'), {{ grid_id }}options);
-
-  const savedColCount = {{ grid_id }}settings["column"];
-  console.log("savedColCount", savedColCount)
-  if (savedColCount != undefined) {
-    generateGridStackColCSS(savedColCount);
-    updateColumnLabel(savedColCount);
-  }
-
-  {{ grid_id }}grid.on('removed', function(event, items) {
-    items.forEach(item => {
-      console.log("item", item);
-      const target = item.el.getAttribute('gs-id'); 
-      if (target) {
-        console.log("Removed:", target);
         delete {{ grid_id }}elements[target];
         deleteLinkedInteractions(target);
         removeLinkElementsFromUI(target);
-      }
-    });
-  });
+        let children = {{ grid_id }}grid['engine']['nodes'];
+        let child = children.findIndex(children => children.id == target);
+        if (child !== -1) {
+            children.splice(child, 1);
+        }
 
-  function addNested() {
-    {{ grid_id }}grid.addWidget({
-      x: 0, y: 20, w: 4, h: 4,
-      cellHeight: 75,
-      margin: 2,
-      minRow: 1, // don't collapse when empty
-      acceptWidgets: true,
-      removable: '.trash',
-      subGridOpts: {
-        children: [],
-        ...{{ grid_id }}subOptions
-      }
-    });
-  }
-
-  function addContent(element, data, html) {
-    if (isDict({{ grid_id }}elements)) {
-      {{ grid_id }}elements[element] = data;
-    } else {
-      var elem = {};
-      elem[element] = data;
-      {{ grid_id }}elements = elem;
+        console.log("delete_element", {{ grid_id }}elements);
+        console.log("children", children)
     }
 
-    //{{ grid_id }}elements[element] = data;
+    function saveGrid() {
+        savedgrid = {{ grid_id }}grid.save(false, true);
+        const currentColCount = {{ grid_id }}grid.getColumn();
+        console.log("currentColCount", currentColCount);
 
-    {{ grid_id }}grid.addWidget({
-      x: 0,
-      y: 0,
-      w: 4,
-      h: 1,
-      id: element,
-      content: html,
-      cellHeight: 65,
-      margin: 5,
-      minRow: 1, // don't collapse when empty
-      acceptWidgets: true,
-      removable: '.trash'
-    })
+        serializedData = {
+            'grid': savedgrid,
+            'elements': {{ grid_id }}elements,
+            'settings': {{ grid_id }}settings
+        };
 
-    enable_interactions($("#" + element).parent());
-  }
-
-  function resetSlate(grid) {
-    if (confirm("Are you sure? This will clear all the elements on the slate.")) {
-      {{ grid_id }}elements = {};
-      {{ grid_id }}grid['engine']['nodes'] = [];
-      document.querySelector(`#${grid}-containment-wrapper .grid-stack`).innerHTML = "";
-      document.getElementById('settings_table_source').value = "";
-      flash("Slate has been reset.", "success");
+        return serializedData;
     }
-  }
- 
-  function updateColumnLabel(val) {
-    document.getElementById('gs_columnRange').value = val;
-    document.getElementById('colValue').innerText = val;
-  
-    console.log("grid_id grid", {{ grid_id }}grid)
-    if ({{ grid_id }}grid) {
-      const cols = parseInt(val);
-      generateGridStackColCSS(cols);
-      {{ grid_id }}grid.column(cols);
-      {{ grid_id }}grid.compact();
-
-      // {{ grid_id }}elements["column"] = val;
-      {{ grid_id }}settings["column"] = val;
-      console.log(`Updated to ${cols} columns`);
-      console.log("updateColumnLabel", slate_data);
-    }
-  }
-
-  function generateGridStackColCSS(maxCols) {
-    let style = document.createElement('style');
-    let css = '';
-    for (let c = 1; c <= maxCols; c++) {
-      css += `.grid-stack-item[gs-w="${c}"] { width: ${(100 / maxCols) * c}%; }\n`;
-      css += `.grid-stack-item[gs-x="${c}"] { left: ${(100 / maxCols) * c}%; }\n`;
-    }
-    console.log("css", css)
-    style.innerHTML = css;
-    document.head.appendChild(style);
-  }
-
-  function deleteLinkedInteractions(target) {
-    for (const [id, data] of Object.entries({{ grid_id }}elements)) {
-      if (Array.isArray(data.links)) {
-        data.links = data.links.filter(link => link.element !== target);
-      }
-    }
-  }
-
-  function removeLinkElementsFromUI(target) {
-    const links = document.querySelectorAll(`.slate-elem-dropdown-item[elem-id="${target}"]`);
-    links.forEach(linkEl => linkEl.remove());
-  }
-
-  function delete_element(target) {
-    gs_element = $('.grid-stack-item');
-    let remove = undefined;
-
-    gs_element.each(function() {
-      if ($(this).attr("gs-id") === target)
-        remove = $(this);
-    })
-
-    remove.remove();
-
-    delete {{ grid_id }}elements[target];
-    deleteLinkedInteractions(target);
-    removeLinkElementsFromUI(target);
-    let children = {{ grid_id }}grid['engine']['nodes'];
-    let child = children.findIndex(children => children.id == target);
-    if (child !== -1) {
-      children.splice(child, 1);
+    
+    function addColToGridElem(elem, colSize) {
+        {{ grid_id }}elements[elem].spacing = colSize.toString();
+        console.log("addColtogridelem", {{ grid_id }}elements);
     }
 
-    console.log("delete_element", {{ grid_id }}elements);
-    console.log("children", children)
-  }
+    function add_text() {
+        // Find a unique element id
+        var element_id = 0;
+        var element_found = false;
+        var element = "";
 
-  function saveGrid() {
-    savedgrid = {{ grid_id }}grid.save(false, true);
-    const currentColCount = {{ grid_id }}grid.getColumn();
-    console.log("currentColCount", currentColCount);
+        do {
+            element = "element_" + element_id;
 
-    serializedData = {
-      'grid': savedgrid,
-      'elements': {{ grid_id }}elements,
-      'settings': {{ grid_id }}settings
-    };
+            if (element in {{ grid_id }}elements)
+                element_id = element_id + 1;
+            else
+                element_found = true;
+        }
+        while (!element_found);
 
-    return serializedData;
-  }
-  
-  function addColToGridElem(elem, colSize) {
-    {{ grid_id }}elements[elem].spacing = colSize.toString();
-    console.log("addColtogridelem", {{ grid_id }}elements);
-  }
+        console.log(element);
 
-  function add_text() {
-      // Find a unique element id
-      var element_id = 0;
-      var element_found = false;
-      var element = "";
+        // Now add the element
+        new_element_data = {"text": "new text"};
 
-      do {
-        element = "element_" + element_id;
-
-        if (element in {{ grid_id }}elements)
-          element_id = element_id + 1;
-        else
-          element_found = true;
-      }
-      while (!element_found);
-
-      console.log(element);
-
-      // Now add the element
-      new_element_data = {"text": "new text"};
-
-      // this render_data is the jinja values needed to render the text template.
-      // evl is the "bracketed eval" version of "text", but since we're defaulting here, we don't need to bother.
-      render_data = {text: "new text",
-                     target: element,
-                     grid_id: "{{ grid_id }}",
-                     evl: "new text"      };
+        // this render_data is the jinja values needed to render the text template.
+        // evl is the "bracketed eval" version of "text", but since we're defaulting here, we don't need to bother.
+        render_data = {text: "new text",
+                      target: element,
+                      grid_id: "{{ grid_id }}",
+                      evl: "new text"      };
 
         $.ajax({
-          type: 'POST',
-          url: "/template/render/explorer/files/_grid_element_edit_text",
-          datatype: "html",
-          contentType: 'application/json',
-          data: JSON.stringify(render_data),
-          success: function (data) {
-              let html = data;
-              console.log(html)
-              addContent(element, new_element_data, html);
-          },
-          error: function (data) {
-            console.log('An error occurred.');
-            console.log(data);
-            flash("Couldn't render element content, access denied", "danger");
-          }
+            type: 'POST',
+            url: "/template/render/explorer/files/_grid_element_edit_text",
+            datatype: "html",
+            contentType: 'application/json',
+            data: JSON.stringify(render_data),
+            success: function (data) {
+                let html = data;
+                console.log(html)
+                addContent(element, new_element_data, html);
+            },
+            error: function (data) {
+                console.log('An error occurred.');
+                console.log(data);
+                flash("Couldn't render element content, access denied", "danger");
+            }
         })
-  }
-
-  function getElementKeyByUrl(obj, currentFileUrl) {
-    for (const [key, value] of Object.entries(obj)) {
-      if (value.url === currentFileUrl) {
-        return key;
-      }
-    }
-    
-    return Object.keys(obj)[0];
-  }
-
-  document.getElementById('interactionForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    handle_interaction_settings();
-  });
-
-  function saveElementParams(target) {
-    const params = $("#" + target + "_paramsInput").val();
-    const refresh = $("#" + target + "_refresh").is(":checked");    
-    const fit = $("#" + target + "_fit").is(":checked");   
-    const layout = $("#" + target + "_layout option:selected").attr('id');
-    
-    if (params !== undefined) {{ grid_id }}elements[target]['params'] = params;
-    if (refresh !== undefined) {{ grid_id }}elements[target]['refresh'] = refresh;
-    if (fit !== undefined) {{ grid_id }}elements[target]['autofill'] = fit;
-    if (layout !== undefined) {{ grid_id }}elements[target]['layout'] = layout;
-
-    console.log("updated element " + target, {{ grid_id }}elements[target]);
-    enable_interactions($(`#${target}`).parent(), true);
-  }
-
-  function handle_interaction_settings() {
-    const file_url = document.getElementById("grid-elem").value.trim();
-    const gridElem = document.getElementById("interaction-target").value;
-    const uid = document.getElementById('interaction-index').value;
-    const urlParams = document.getElementById('interaction-params').value;
-    const menuItem = document.getElementById("menu-item").value.trim();
-    
-    var checkedType = $('input[name="interactionType"]:checked').val();
-    const isContextMenu = $('#cMenu').is(':checked');
-    const doWait = $('#wait').is(':checked');
-    // console.log("isContextMenu", isContextMenu);
-    // console.log("doWait", doWait);
-    const allowedTypes = ['popup', 'modal', 'tab', 'hidden'];
-    if (!checkedType) {
-      alert("Please select an interaction type");
-      return;
     }
 
-    if (isContextMenu && menuItem == "") {
-      alert("Please input the menu item name");
-      return;
-    }
-    
-    if (checkedType == "element") {
-      checkedType = document.getElementById('selected-elem').value;
-
-      if (checkedType == "") {
-        alert("Please select an element")
-        return;
-      }
-    } else {
-      if (file_url == "") {
-        alert("Please select a Data Source Filename")
-        return;
-      }
-    }
-
-    var elementToAddInteraction = {{ grid_id }}elements[gridElem];
-    if (!elementToAddInteraction.links || elementToAddInteraction.links.length === 0) { 
-      elementToAddInteraction.links = [];
-      nextUid = '0';
-    } else {
-      const lastLink = elementToAddInteraction.links[elementToAddInteraction.links.length - 1];
-      lastUid = lastLink.uid;
-      nextUid = (parseInt(lastUid) + 1).toString();
-    }
-    
-    let grid_element_target = document.getElementById('grid_element_target-'+gridElem);
-    if (!grid_element_target) return;
-
-    console.log("uid", uid)
-    if (uid == "") {
-      if (isContextMenu) {
-        // console.log("uid empty, is ContextMenu")
-        elementToAddInteraction.links.push({ uid: nextUid, contextMenu: isContextMenu, wait: doWait, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
-        grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams, doWait, menuItem));
-      } else {
-        // console.log("uid empty, is not ContextMenu")
-        elementToAddInteraction.links.push({ uid: nextUid, wait: doWait, element: checkedType, url: file_url, params: urlParams });
-        grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, doWait, urlParams));
-      }
-      enable_interactions($("#grid_element_target-" + gridElem));
-    } else {
-      let linkIdx = elementToAddInteraction.links.findIndex(link => link.uid == uid);
-
-      if (isContextMenu) {
-        // console.log("uid, is ContextMenu")
-        elementToAddInteraction.links[linkIdx] = { uid: uid, contextMenu: isContextMenu, wait: doWait, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
-      } else {
-        // console.log("uid, is not ContextMenu")
-        elementToAddInteraction.links[linkIdx] = { uid: uid, wait: doWait, element: checkedType, url: file_url, params: urlParams };
-      }
-
-      const li = grid_element_target.querySelector(`li[loop-index="${uid}"]`);
-      if (!li) return;
-      li.setAttribute('elem-id', checkedType);
-
-      const innerTextDiv = li.querySelector('div.cElem');
-      if (innerTextDiv) {
-        if (isContextMenu) {
-          innerTextDiv.textContent = checkedType + " - " + menuItem;
-        } else {
-          innerTextDiv.textContent = checkedType;
+    function getElementKeyByUrl(obj, currentFileUrl) {
+        for (const [key, value] of Object.entries(obj)) {
+            if (value.url === currentFileUrl) {
+                return key;
+            }
         }
-      }
-
-      const gearIcon = li.querySelector('.bi-gear');
-      if (gearIcon) {
-        gearIcon.setAttribute('data-element', checkedType);
-        gearIcon.setAttribute('data-url', file_url);
-        gearIcon.setAttribute('data-params', urlParams);
-        gearIcon.setAttribute('data-wait', doWait);
-        if (isContextMenu) {
-          gearIcon.setAttribute('data-menuName', menuItem);
-        } else {
-          gearIcon.removeAttribute('data-menuName');
-        }
-      }
+        
+        return Object.keys(obj)[0];
     }
 
-    console.log("updated element", elementToAddInteraction);
-    $("#interactionSettingsModal").modal('hide');
-    closeInteractionsModal();
-  }
+    document.getElementById('interactionForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        handle_interaction_settings();
+    });
 
-  function save(url) {
-    slate_data = saveGrid();
-    console.log("slate_data", slate_data)
-    $.ajax({
-      type: 'POST',
-      url: url,
-      datatype: "html",
-      contentType: 'application/json',
-      data: JSON.stringify(slate_data),
-      success: function (data) {
-        if (data['data'] == 'ok') {
-          console.log('Submission was successful.');
-          console.log(data);
-          flash("Saved!", "success");
-        } else {
-          console.log('Submission was not successful.');
-          console.log(data);
-          flash("Couldn't save content: " + data['error'], "danger");
-        }
-      },
-      error: function (data) {
-        console.log('An error occurred.');
-        console.log(data);
-        flash("Couldn't save content, access denied", "danger");
-      }
-    })
-  }
+    function saveElementParams(target) {
+        const params = $("#" + target + "_paramsInput").val();
+        const refresh = $("#" + target + "_refresh").is(":checked");    
+        const fit = $("#" + target + "_fit").is(":checked");   
+        const layout = $("#" + target + "_layout option:selected").attr('id');
+        
+        if (params !== undefined) {{ grid_id }}elements[target]['params'] = params;
+        if (refresh !== undefined) {{ grid_id }}elements[target]['refresh'] = refresh;
+        if (fit !== undefined) {{ grid_id }}elements[target]['autofill'] = fit;
+        if (layout !== undefined) {{ grid_id }}elements[target]['layout'] = layout;
 
-  function link_elements(target, linked) {
-    if (linked in {{ grid_id }}elements) {
-      if (target in {{ grid_id }}elements) {
-        var element = {{ grid_id }}elements[target];
-        if (!element.hasOwnProperty("links")) {
-          element['links'] = [];
+        console.log("updated element " + target, {{ grid_id }}elements[target]);
+        enable_interactions($(`#${target}`).parent(), true);
+    }
+
+    function handle_interaction_settings() {
+        const file_url = document.getElementById("grid-elem").value.trim();
+        const gridElem = document.getElementById("interaction-target").value;
+        const uid = document.getElementById('interaction-index').value;
+        const urlParams = document.getElementById('interaction-params').value;
+        const menuItem = document.getElementById("menu-item").value.trim();
+        
+        var checkedType = $('input[name="interactionType"]:checked').val();
+        const isContextMenu = $('#cMenu').is(':checked');
+        const doWait = $('#wait').is(':checked');
+        // console.log("isContextMenu", isContextMenu);
+        // console.log("doWait", doWait);
+        const allowedTypes = ['popup', 'modal', 'tab', 'hidden'];
+        if (!checkedType) {
+            alert("Please select an interaction type");
+            return;
         }
 
-        if (!element['links'].includes(linked)) {
-          element['links'].push({ element: linked, url: {{ grid_id }}elements[linked]['url'] });
+        if (isContextMenu && menuItem == "") {
+            alert("Please input the menu item name");
+            return;
         }
-
-        flash("linking " + target + " to [" + element['links'] + "]");
-      }
-    }
-  }
-
-  function delete_interaction(target, link_index) {
-    if (target in {{ grid_id }}elements) {
-      var element_links = {{ grid_id }}elements[target]['links'];
-      console.log("element_links", element_links);
-
-      let linkIdx = element_links.findIndex(link => link.uid == link_index);
-      if (linkIdx === -1) {
-        linkIdx = parseInt(link_index);
-      }
       
-      if (linkIdx !== -1 && linkIdx < element_links.length) {
-        element_links.splice(linkIdx, 1);
-        
-        const container = $(`#grid_element_target-${target}`);
-        const itemToRemove = container.find(`.slate-elem-dropdown-item[loop-index="${link_index}"]`);
-        itemToRemove.remove();
-        
-        updateGridInteractionsOrder(target);
-      }
+        if (checkedType == "element") {
+            checkedType = document.getElementById('selected-elem').value;
 
-      flash("interaction in " + target + " deleted");
-      console.log("updated element", {{ grid_id }}elements);
+            if (checkedType == "") {
+                alert("Please select an element")
+                return;
+            }
+        } else {
+            if (file_url == "") {
+                alert("Please select a Data Source Filename")
+                return;
+            }
+        }
+
+        var elementToAddInteraction = {{ grid_id }}elements[gridElem];
+        if (!elementToAddInteraction.links || elementToAddInteraction.links.length === 0) { 
+            elementToAddInteraction.links = [];
+            nextUid = '0';
+        } else {
+          const lastLink = elementToAddInteraction.links[elementToAddInteraction.links.length - 1];
+            lastUid = lastLink.uid;
+            nextUid = (parseInt(lastUid) + 1).toString();
+        }
+      
+        let grid_element_target = document.getElementById('grid_element_target-'+gridElem);
+        if (!grid_element_target) return;
+
+        console.log("uid", uid)
+        if (uid == "") {
+            if (isContextMenu) {
+                // console.log("uid empty, is ContextMenu")
+                elementToAddInteraction.links.push({ uid: nextUid, contextMenu: isContextMenu, wait: doWait, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem });
+                grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, urlParams, doWait, menuItem));
+            } else {
+                // console.log("uid empty, is not ContextMenu")
+                elementToAddInteraction.links.push({ uid: nextUid, wait: doWait, element: checkedType, url: file_url, params: urlParams });
+                grid_element_target.appendChild(addGridInteraction(nextUid, gridElem, checkedType, file_url, doWait, urlParams));
+            }
+            enable_interactions($("#grid_element_target-" + gridElem));
+        } else {
+            let linkIdx = elementToAddInteraction.links.findIndex(link => link.uid == uid);
+
+            if (isContextMenu) {
+                // console.log("uid, is ContextMenu")
+                elementToAddInteraction.links[linkIdx] = { uid: uid, contextMenu: isContextMenu, wait: doWait, element: checkedType, url: file_url, params: urlParams, menu_item_name: menuItem };
+            } else {
+                // console.log("uid, is not ContextMenu")
+                elementToAddInteraction.links[linkIdx] = { uid: uid, wait: doWait, element: checkedType, url: file_url, params: urlParams };
+            }
+
+            const li = grid_element_target.querySelector(`li[loop-index="${uid}"]`);
+            if (!li) return;
+            li.setAttribute('elem-id', checkedType);
+    
+            const innerTextDiv = li.querySelector('div.cElem');
+            if (innerTextDiv) {
+                if (isContextMenu) {
+                    innerTextDiv.textContent = checkedType + " - " + menuItem;
+                } else {
+                    innerTextDiv.textContent = checkedType;
+                }
+            }
+
+            const gearIcon = li.querySelector('.bi-gear');
+            if (gearIcon) {
+                gearIcon.setAttribute('data-element', checkedType);
+                gearIcon.setAttribute('data-url', file_url);
+                gearIcon.setAttribute('data-params', urlParams);
+                gearIcon.setAttribute('data-wait', doWait);
+                if (isContextMenu) {
+                    gearIcon.setAttribute('data-menuName', menuItem);
+                } else {
+                    gearIcon.removeAttribute('data-menuName');
+                }
+            }
+        }
+
+        console.log("updated element", elementToAddInteraction);
+        $("#interactionSettingsModal").modal('hide');
+        closeInteractionsModal();
     }
-  }
+
+    function save(url) {
+        slate_data = saveGrid();
+        console.log("slate_data", slate_data)
+        $.ajax({
+            type: 'POST',
+            url: url,
+            datatype: "html",
+            contentType: 'application/json',
+            data: JSON.stringify(slate_data),
+            success: function (data) {
+                if (data['data'] == 'ok') {
+                    console.log('Submission was successful.');
+                    console.log(data);
+                    flash("Saved!", "success");
+                } else {
+                    console.log('Submission was not successful.');
+                    console.log(data);
+                    flash("Couldn't save content: " + data['error'], "danger");
+                }
+            },
+            error: function (data) {
+                console.log('An error occurred.');
+                console.log(data);
+                flash("Couldn't save content, access denied", "danger");
+            }
+        })
+    }
+
+    function link_elements(target, linked) {
+        if (linked in {{ grid_id }}elements) {
+            if (target in {{ grid_id }}elements) {
+                var element = {{ grid_id }}elements[target];
+                if (!element.hasOwnProperty("links")) {
+                    element['links'] = [];
+                }
+
+                if (!element['links'].includes(linked)) {
+                    element['links'].push({ element: linked, url: {{ grid_id }}elements[linked]['url'] });
+                }
+
+                flash("linking " + target + " to [" + element['links'] + "]");
+            }
+        }
+    }
+
+    function delete_interaction(target, link_index) {
+        if (target in {{ grid_id }}elements) {
+            var element_links = {{ grid_id }}elements[target]['links'];
+            console.log("element_links", element_links);
+
+            let linkIdx = element_links.findIndex(link => link.uid == link_index);
+            if (linkIdx === -1) {
+                linkIdx = parseInt(link_index);
+            }
+            
+            if (linkIdx !== -1 && linkIdx < element_links.length) {
+                element_links.splice(linkIdx, 1);
+                
+                const container = $(`#grid_element_target-${target}`);
+                const itemToRemove = container.find(`.slate-elem-dropdown-item[loop-index="${link_index}"]`);
+                itemToRemove.remove();
+                
+                updateGridInteractionsOrder(target);
+            }
+
+            flash("interaction in " + target + " deleted");
+            console.log("updated element", {{ grid_id }}elements);
+        }
+    }
 </script>
 
 {% include theme("explorer/files/browse_file_modal.html") %}
