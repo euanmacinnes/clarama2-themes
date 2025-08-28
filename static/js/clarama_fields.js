@@ -26,7 +26,7 @@ function _arrayBufferToBase64(buffer) {
 function get_field_values(registry, raw, field_submit, closestGrid = $()) {
     // Raw is used to run the fields. raw is false, when saving the fields (so we don't want to save the field values of e.g. a selected file in this case
 
-    // console.log("get_field_values closestGrid", closestGrid)
+    console.log("get_field_values closestGrid", closestGrid)
     var files_done = true;
     var result = {}
 
@@ -36,22 +36,24 @@ function get_field_values(registry, raw, field_submit, closestGrid = $()) {
         result['original_url'] = original_url;
     }
 
-    if (closestGrid.length) {
-        let encoded_record_info = closestGrid.closest('.clarama-slate-record').attr('encoded_json');
-        // console.log("encoded_record_info", encoded_record_info)
+    if (closestGrid !== undefined) {
+        if (closestGrid.length) {
+            let encoded_record_info = closestGrid.closest('.clarama-slate-record').attr('encoded_json');
+            // console.log("encoded_record_info", encoded_record_info)
 
-        if (encoded_record_info) {
-            try {
-                let decoded_str = atob(encoded_record_info); // decode
-                let json_record_info = JSON.parse(decoded_str); // string to obj
+            if (encoded_record_info) {
+                try {
+                    let decoded_str = atob(encoded_record_info); // decode
+                    let json_record_info = JSON.parse(decoded_str); // string to obj
 
-                // console.log("json_record_info", json_record_info);
+                    // console.log("json_record_info", json_record_info);
 
-                result['record'] = json_record_info.record;
-                result['original_url'] = json_record_info.original_url;
+                    result['record'] = json_record_info.record;
+                    result['original_url'] = json_record_info.original_url;
 
-            } catch (err) {
-                console.error("invalid base64 or json", err)
+                } catch (err) {
+                    console.error("invalid base64 or json", err)
+                }
             }
         }
     }
@@ -160,6 +162,8 @@ function get_field_values(registry, raw, field_submit, closestGrid = $()) {
 function check_fields_valid(closestGrid) {
     var valid = true;
     console.log("CLARAMA_FIELDS.js: Input Validity Check");
+    if (closestGrid === undefined)
+        alert("Invalid closestGrid passed to check_fields_valid");
     let fields_to_loop = closestGrid.length ? closestGrid.find('.clarama-field') : $('.clarama-field');
     fields_to_loop.each(
         function (index) {
