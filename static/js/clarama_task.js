@@ -136,6 +136,15 @@ function cell_item_run(cell_button) {
                     // flash("CLARAMA_TASK.js: Executing!");
 
                     moveToNextCell(cell_button);
+
+                    const memText = $('#kernel_memory_free').text() || '';
+                    const match = memText.match(/(\d+(?:\.\d+)?)\s*%?/); // grab number part
+                    if (match) {
+                        const freePct = parseFloat(match[1]);
+                        if (!Number.isNaN(freePct) && freePct < 10) {
+                            flash('low memory', 'danger');
+                        }
+                    }
                 } else {
                     console.log('CLARAMA_TASK.js: Submission was not successful.');
                     console.log(data);
