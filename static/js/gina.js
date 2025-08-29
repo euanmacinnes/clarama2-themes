@@ -2,20 +2,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM refs -------------------------------------------------------------
     const ginaButton      = document.getElementById('gina-button');
     const mainContent     = document.getElementById('main-content');
-    const ginaContainer   = document.getElementById('gina-chat-container');    
+    const ginaContainer   = document.getElementById('gina-chat-container');
     const ginaButtonGroup = document.querySelector('.gina-button-group');
     const ginaSaveBtn     = document.querySelector('.gina-save-btn');
-    const historyHost     = document.getElementById('gina-conversations');      
+    const historyHost     = document.getElementById('gina-conversations');
     const latestHost      = document.getElementById('gina-latest');
 
-    function getSplash() { 
-        return document.getElementById('gina-splash'); 
+    function getSplash() {
+        return document.getElementById('gina-splash');
     }
-  
+
     // --- Floating (centered) -> Docked (under navbar) helpers ----------------
     const navbar = document.querySelector('nav.navbar');
     function navbarOffsetPx() {
-        const h = (navbar && navbar.getBoundingClientRect && navbar.getBoundingClientRect().height) ? navbar.getBoundingClientRect().height : 64;
+        const h = (navbar && navbar.getBoundingClientRect && navbar.getBoundingClientRect().height)
+            ? navbar.getBoundingClientRect().height : 64;
         return Math.max(0, Math.round(h)) + 8; // breathing room
     }
 
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Once docked, the page is the only scroller
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
-    
+
     function checkDocking() {
         if (!ginaContainer.classList.contains('active')) return;
 
@@ -82,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             syncMainCollapse();
         }
     }
-  
+
     function historyCount() {
         return historyHost.querySelectorAll('.gina-block').length;
     }
@@ -94,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // when floating, keep as-is; no inner scrolling needed
         }
     }
-  
+
     // --- Splash control -------------------------------------------------------
     function getSplashHost() {
         const controls = ginaContainer.querySelector('.gina-controls');
@@ -125,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             splash.remove();
         }
     }
-  
+
     // --- Utils: autosize textarea --------------------------------------------
     function readPxVar(el, varName, fallback) {
         const v = getComputedStyle(el).getPropertyValue(varName)?.trim();
@@ -211,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentQuestion = '';
     let currentAnswer = '';
     let activeBlock = null;
-  
+
     // --- Voice input (Web Speech API) ----------------------------------------
     let recognition = null;
     let isListening = false;
@@ -219,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let listeningBtn = null;     // the mic button being toggled
     let listeningInput = null;   // textarea element
     let baseInputValue = '';     // value at the start of recording
-  
+
     function getRecognition() {
         if (recognition) return recognition;
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -229,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         recognition.lang = (document.documentElement.lang || 'en-UK');
         recognition.continuous = false;
         recognition.interimResults = true;
-    
+
         recognition.onstart = () => {
             isListening = true;
             toggleMicUI(true);
@@ -239,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!listeningInput) return;
             let transcript = '';
             for (let i = event.resultIndex; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript;
+            transcript += event.results[i][0].transcript;
             }
             const joiner = baseInputValue && !/\s$/.test(baseInputValue) ? ' ' : '';
             listeningInput.value = (baseInputValue + joiner + transcript).trimStart();
@@ -267,10 +268,10 @@ document.addEventListener('DOMContentLoaded', () => {
             listeningInput = null;
             baseInputValue = '';
         };
-    
+
         return recognition;
     }
-  
+
     function toggleMicUI(active) {
         if (!listeningBtn) return;
         const icon = listeningBtn.querySelector('i');
@@ -287,33 +288,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-  
+
     function startListening(block, btn) {
         const rec = getRecognition();
         if (!rec) {
             flash('Voice input is not supported in this browser.', 'warning');
             return;
         }
-    
+
         const input = block.querySelector('.gina-input');
         if (!input) return;
-    
+
         listeningBlock = block;
         listeningBtn = btn;
         listeningInput = input;
         baseInputValue = input.value || '';
-    
+
         try {
-            rec.start(); // must be triggered by user gesture
+            rec.start();
         } catch (_) {
-            // If already started, ignore
+            /* already started */ 
         }
     }
-  
+
     function stopListening() {
         if (!recognition || !isListening) return;
-        try { 
-            recognition.stop(); 
+        try {
+            recognition.stop();
         } catch (_) {}
     }
 
@@ -321,11 +322,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function resetConversation() {
         // Stop any voice capture
         stopListening();
-    
+
         historyHost.innerHTML = '';
         latestHost.innerHTML  = '';
-        // height is natural now; no fixed height here
-    
+
         // Restore splash
         let splashNode = document.getElementById('gina-splash');
         if (!splashNode) {
@@ -338,25 +338,25 @@ document.addEventListener('DOMContentLoaded', () => {
             splashNode.classList.remove('hide');
             splashNode.dataset.hidden = '0';
         }
-    
+
         // Reset transient state
         isProcessing = false;
         currentQuestion = '';
         currentAnswer = '';
         activeBlock = null;
-    
+
         // Inject fresh composer
         const firstId = 1;
         latestHost.appendChild(buildPlaceholder(firstId));
         enable_interactions($(latestHost));
-    
+
         const block = await waitForRenderedBlock(firstId, 8000);
         const firstInput = block.querySelector('.gina-input');
         if (firstInput) { firstInput.focus(); autoSize(firstInput); }
 
         checkDocking();
     }
-   
+
     // --- Visibility toggle ----------------------------------------------------
     if (ginaButton) {
         ginaButton.addEventListener('click', () => {
@@ -369,18 +369,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 setNavbarOffsetVar();
                 requestAnimationFrame(checkDocking);
                 const firstInput = ginaContainer.querySelector('.gina-input');
-                setTimeout(() => {
-                    if (firstInput) { firstInput.focus(); autoSize(firstInput); }
-                }, 200);
+                setTimeout(() => { if (firstInput) { firstInput.focus(); autoSize(firstInput); } }, 200);
+
+                // Start handshake (blank probe + lock inputs until ai_user_input)
+                handshakeKernel();
             } else {
                 ginaContainer.classList.remove('active','mode-floating','mode-docked');
                 ginaButtonGroup?.classList.remove('gina-active');
                 mainContent?.classList.remove('collapsed');
                 setTimeout(() => mainContent?.classList.remove('hidden'), 0);
+
+                // cleanup handshake state
+                if (__probeTimeout) { clearTimeout(__probeTimeout); __probeTimeout = null; }
+                waitingForAiUserInput = false;
+                lockCurrentAndFutureInputs(false);
             }
         });
     }
-  
+
     // --- Helpers --------------------------------------------------------------
     function setProcessingState(v) {
         isProcessing = v;
@@ -388,12 +394,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const input = activeBlock.querySelector('.gina-input');
             const btn   = activeBlock.querySelector('.gina-send-btn');
             if (input) {
-                if (v) { 
-                    input.classList.add('locked'); 
-                    input.setAttribute('readonly','readonly'); 
-                } else { 
-                    input.classList.remove('locked'); 
-                    input.removeAttribute('readonly'); 
+                if (v) {
+                    input.classList.add('locked');
+                    input.setAttribute('readonly','readonly');
+                } else {
+                    input.classList.remove('locked');
+                    input.removeAttribute('readonly');
                 }
             }
             if (btn) btn.disabled = v;
@@ -404,9 +410,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Processing guards to avoid stuck 'Processing...' ---
     let __processingGuardTimer = null;
     function clearProcessingGuard() {
-        if (__processingGuardTimer) { 
+        if (__processingGuardTimer) {
             clearTimeout(__processingGuardTimer);
-            __processingGuardTimer = null; 
+            __processingGuardTimer = null;
         }
     }
 
@@ -417,8 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn('GINA: unlocking input after timeout safeguard.');
                 clearProcessingGuard();
                 setProcessingState(false);
-                    clearProcessingGuard()
-                    checkDocking()
+                checkDocking();
                 const locked = document.querySelector('.gina-input.locked') || document.querySelector('#gina-latest .gina-input[readonly]');
                 if (locked) {
                     locked.removeAttribute('readonly');
@@ -427,15 +432,18 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) { console.warn('GINA: processing guard error:', err); }
         }, 30000);
     }
-  
+
     function toggleSendButtonFor(block) {
         if (!block) return;
         const input = block.querySelector('.gina-input');
         const sendContainer = block.querySelector('.gina-send-container');
         if (!input || !sendContainer) return;
         const hasText = input.value.trim().length > 0;
-        if (hasText && !isProcessing) sendContainer.classList.add('show');
-        else sendContainer.classList.remove('show');
+        if (hasText && !isProcessing && !input.hasAttribute('readonly')) {
+            sendContainer.classList.add('show');
+        } else {
+            sendContainer.classList.remove('show');
+        }
     }
 
     function syncMainCollapse() {
@@ -445,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             mainContent?.classList.remove('collapsed');
         }
-    }      
+    }
 
     // *** IMPORTANT: only use #conversation_socket for the kernel ***
     function findKernelId() {
@@ -453,11 +461,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const kid = el && el.getAttribute('task_kernel_id');
         return kid || null;
     }
-  
+
     function waitForRenderedBlock(blockId, timeoutMs = 8000) {
         return new Promise((resolve, reject) => {
             const endAt = Date.now() + timeoutMs;
-    
             function tryFind() {
                 const block = ginaContainer.querySelector(`#gina-block-${blockId}.gina-block`);
                 const ready = block &&
@@ -466,50 +473,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     block.querySelector('.gina-output') &&
                     block.querySelector('.gina-output-container') &&
                     block.querySelector('.gina-mic-btn');
-                if (ready) { 
-                    resolve(block); return true; 
-                }
+                if (ready) { resolve(block); return true; }
                 return false;
             }
             if (tryFind()) return;
-    
             const mo = new MutationObserver(() => {
                 if (tryFind()) { 
                     mo.disconnect(); 
-                } else if (Date.now() > endAt) { 
-                    mo.disconnect(); reject(new Error('Timeout waiting for block to render')); 
+                } else if (Date.now() > endAt) {
+                    mo.disconnect(); reject(new Error('Timeout waiting for block to render'));
                 }
             });
             mo.observe(ginaContainer, { childList: true, subtree: true });
-    
-            setTimeout(() => { 
-                mo.disconnect(); 
-                if (!tryFind()) reject(new Error('Timeout waiting for block to render')); 
+            setTimeout(() => {
+                mo.disconnect();
+                if (!tryFind()) reject(new Error('Timeout waiting for block to render'));
             }, timeoutMs);
         });
     }
-  
+
     function nextBlockId() {
         const last = [...ginaContainer.querySelectorAll('.gina-block')].pop()?.id;
         if (!last) return 1;
         const m = String(last).match(/(\d+)$/);
         return m ? (parseInt(m[1], 10) + 1) : 1;
     }
-  
+
     function buildPlaceholder(blockId) {
         const ph = document.createElement('div');
         ph.className = 'clarama-post-embedded clarama-replaceable';
         ph.setAttribute('url', `/template/render/explorer/files/gina_conversation_block?block_id=${blockId}`);
         return ph;
     }
-  
+
     async function spawnNextConversationTemplate() {
         const blockId = nextBlockId();
         const placeholder = buildPlaceholder(blockId);
         latestHost.appendChild(placeholder);
-    
         enable_interactions($(latestHost));
-    
         try {
             const block = await waitForRenderedBlock(blockId, 8000);
             const input = block.querySelector('.gina-input');
@@ -528,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
             historyHost.appendChild(block);
         }
     }
-    
+
     function finalizeBlockAfterError(forBlock, message) {
         // Ensure output is visible and styled
         const outContainer = forBlock?.querySelector('.gina-output-container');
@@ -539,16 +540,16 @@ document.addEventListener('DOMContentLoaded', () => {
             out.style.whiteSpace = 'pre-wrap';
             out.innerHTML = `<span style="color:#ff6b6b;">${message}</span>`;
         }
-    
+
         // Treat error like a completed turn
         moveBlockToHistory(forBlock);
-        stickHistoryToBottom?.();        
-        setProcessingState?.(false);     
-        checkDocking?.();            
-    
+        stickHistoryToBottom?.();
+        setProcessingState?.(false);
+        checkDocking?.();
+
         spawnNextConversationTemplate();
     }
-  
+
     // --- Kernel call ----------------------------------------------------------
     function runQuestionThroughKernel(questionText, forBlock) {
         get_field_values({}, true, function (field_registry) {
@@ -558,8 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!task_kernel_id) {
                 const msg = 'Unable to find a running kernel. Please open any task/session first.';
                 console.error('GINA:', msg);
-                flash(msg, "danger");
-                finalizeBlockAfterError(forBlock, `Error: ${msg}`);
+                flash(msg, 'danger');
+                if (forBlock) finalizeBlockAfterError(forBlock, `Error: ${msg}`);
                 return;
             }
 
@@ -581,18 +582,185 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
                     const err = (data && data['error']) ? data['error'] : 'An error occurred while processing your question.';
-                    flash("Couldn't process question: " + err, "danger");
-                    finalizeBlockAfterError(forBlock, `Error: ${safeText(err)}`);
+                    flash("Couldn't process question: " + err, 'danger');
+                    if (forBlock) finalizeBlockAfterError(forBlock, `Error: ${err}`);
                 },
                 error: function () {
-                    flash("Couldn't process question, network or access issue", "danger");
-                    finalizeBlockAfterError(forBlock, 'Error: network or access issue');
+                    flash("Couldn't process question, network or access issue", 'danger');
+                    if (forBlock) finalizeBlockAfterError(forBlock, 'Error: network or access issue');
                 }
             });
         });
     }
+
+    // --- Global WS tap: always see server "message" events
+    (function installGlobalWSTap() {
+        if (window.__ginaGlobalWSTapInstalled) return;
+        window.__ginaGlobalWSTapInstalled = true;
+    
+        const seen = new Set();
+        function shouldLog(ws, msg) {
+            if (!msg || msg.class !== 'message') return false;
+        
+            // Only accept events from the active task socket
+            if (typeof task_active_socket !== 'undefined' && task_active_socket && ws !== task_active_socket) {
+                return false;
+            }
+        
+            const key = [msg.class, msg.type, msg.instance, msg.step_id, msg.loop_count || 0].join('|');
+            if (seen.has(key)) return false;
+            seen.add(key);
+            setTimeout(() => seen.delete(key), 3000);
+            return true;
+        }
+    
+        const desc = Object.getOwnPropertyDescriptor(WebSocket.prototype, 'onmessage');
+        if (desc && desc.set) {
+            const origSet = desc.set;
+            const origGet = desc.get;
+            Object.defineProperty(WebSocket.prototype, 'onmessage', {
+                configurable: true,
+                enumerable: true,
+                set: function (fn) {
+                    const socket = this;
+                    const wrapped = function (event) {
+                        let msg; try { msg = JSON.parse(event.data); } catch (_) {}
+                        if (shouldLog(socket, msg)) {
+                        console.log('GINA server event:', msg.type, msg);
+                        if (msg.type === 'ai_user_input') completeHandshakeIfWaiting('ai_user_input');
+                        }
+                        return fn && fn.call(socket, event);
+                    };
+                    return origSet.call(socket, wrapped);
+                },
+                get: function () { return origGet ? origGet.call(this) : null; }
+            });
+        }
+    })();
   
-    // --- WebSocket interceptor -------------------------------------------------
+
+    // --- Handshake / probe state ----------------------------------------------
+    let waitingForAiUserInput = false;
+    let __probeTimeout = null;
+    let __handshakeGen = 0;      // bump each handshake so old timers can't fire
+    let __lockObserver = null;
+
+    function setInputsEnabled(enabled, placeholderText = 'Type your question...') {
+        const inputs = ginaContainer.querySelectorAll('.gina-input');
+        inputs.forEach(inp => {
+            if (enabled) {
+                inp.removeAttribute('readonly');
+                inp.classList.remove('locked');
+                inp.placeholder = 'Type your question...';
+            } else {
+                inp.setAttribute('readonly', 'readonly');
+                inp.classList.add('locked');
+                inp.placeholder = placeholderText || 'GINA is getting ready...';
+            }
+            autoSize(inp);
+        });
+        const sendBtns = ginaContainer.querySelectorAll('.gina-send-btn');
+        sendBtns.forEach(btn => btn.disabled = !enabled);
+    }
+
+    /** Lock now, and keep locking future inputs that appear while we're waiting. */
+    function lockCurrentAndFutureInputs(lock, placeholderText) {
+        setInputsEnabled(!lock, placeholderText);
+        if (lock) {
+            if (__lockObserver) __lockObserver.disconnect();
+            __lockObserver = new MutationObserver(muts => {
+                muts.forEach(m => {
+                    m.addedNodes.forEach(n => {
+                        if (n.nodeType !== 1) return;
+                        const inputs = n.matches?.('.gina-input') ? [n] : n.querySelectorAll?.('.gina-input');
+                        if (!inputs || !inputs.length) return;
+                        inputs.forEach(inp => {
+                            inp.setAttribute('readonly', 'readonly');
+                            inp.classList.add('locked');
+                            inp.placeholder = placeholderText || 'GINA is getting ready...';
+                            autoSize(inp);
+                            const btn = inp.closest('.gina-block')?.querySelector('.gina-send-btn');
+                            if (btn) btn.disabled = true;
+                        });
+                    });
+                });
+            });
+            __lockObserver.observe(ginaContainer, { childList: true, subtree: true });
+        } else {
+            if (__lockObserver) { __lockObserver.disconnect(); __lockObserver = null; }
+        }
+    }
+
+    function waitForKernelReady(timeoutMs = 15000) {
+        return new Promise((resolve, reject) => {
+            const end = Date.now() + timeoutMs;
+            (function tick() {
+            const kid = findKernelId();
+            const ws  = (typeof task_active_socket !== 'undefined') ? task_active_socket : null;
+            const ready = kid && ws && ws.readyState === 1;
+            if (ready) return resolve({ kid, ws });
+            if (Date.now() > end) return reject(new Error('Kernel not ready'));
+            setTimeout(tick, 100);
+            })();
+        });
+    }
+
+    function sendBlankProbe() {
+        // whitespace is enough to trigger the pipeline and the ai_user_input turn
+        runQuestionThroughKernel(' ', null);
+        console.log('GINA: blank probe sent to kernel');
+    }
+
+    function completeHandshakeIfWaiting(reason = 'ai_user_input') {
+        if (!waitingForAiUserInput) return;
+        waitingForAiUserInput = false;
+        if (__probeTimeout) { clearTimeout(__probeTimeout); __probeTimeout = null; }
+        lockCurrentAndFutureInputs(false);
+        flash('GINA is ready', 'success');
+        const firstInput = ginaContainer.querySelector('#gina-latest .gina-input');
+        if (firstInput) { firstInput.focus(); autoSize(firstInput); }
+        console.log('GINA handshake completed via', reason);
+    }
+
+    async function handshakeKernel() {
+        const myGen = ++__handshakeGen;
+        waitingForAiUserInput = true;
+
+        // Lock now (covers any existing inputs) and keep future inputs locked too.
+        lockCurrentAndFutureInputs(true, 'GINA is getting ready...');
+
+        try {
+            // Ensure the first composer exists so the lock can't "miss" it.
+            try { await waitForRenderedBlock(1, 6000); } catch (_) {}
+            lockCurrentAndFutureInputs(true, 'GINA is getting ready...');
+
+            // Wait for kernel + socket, then send the probe.
+            await waitForKernelReady(15000);
+            sendBlankProbe();
+
+            // Fallback unlock if server never emits ai_user_input.
+            __probeTimeout = setTimeout(() => {
+                if (myGen !== __handshakeGen) return; // stale timer
+                if (!waitingForAiUserInput) return;   // already completed
+                waitingForAiUserInput = false;
+                lockCurrentAndFutureInputs(false);
+                flash('GINA is ready (fallback after waiting).', 'warning');
+                const firstInput = ginaContainer.querySelector('#gina-latest .gina-input');
+                if (firstInput) { 
+                    firstInput.focus(); autoSize(firstInput); 
+                }
+                console.warn('GINA handshake fell back (no ai_user_input observed)');
+            }, 15000);
+        } catch (err) {
+            if (myGen !== __handshakeGen) return; // superseded
+            waitingForAiUserInput = false;
+            lockCurrentAndFutureInputs(false);
+            flash('Kernel did not become ready. You can still try typing.', 'danger');
+            console.warn('GINA handshake: kernel not ready:', err);
+        }
+    }
+
+    // --- WebSocket interceptor (streaming to active block) --------------------
     function installWSInterceptor() {
         if (window.__ginaWSInstalled) return;
         window.__ginaWSInstalled = true;
@@ -600,26 +768,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const REATTACH_MS = 1500;
 
         function attachIfReady() {
-            if (typeof task_active_socket === 'undefined' || !task_active_socket) {
-                // Socket not created yet
-                return false;
-            }
-
-            if (!('onmessage' in task_active_socket)) {
-                return false;
-            }
-
-            if (task_active_socket.onmessage === window.__ginaPatchedOnMsg) {
-                return true;
-            }
+            if (typeof task_active_socket === 'undefined' || !task_active_socket) return false;
+            if (!('onmessage' in task_active_socket)) return false;
+            if (task_active_socket.onmessage === window.__ginaPatchedOnMsg) return true;
 
             const original = task_active_socket.onmessage;
             window.originalWebSocketOnMessage = original;
 
             window.__ginaPatchedOnMsg = function (event) {
-                let msg = JSON.parse(event.data);
+                let msg = {};
+                msg = JSON.parse(event.data);
 
-                // If not currently awaiting a response, forward to original and bail.
+                // NOTE: ai_user_input is handled by the global tap. We still forward.
                 if (!isProcessing || !activeBlock) {
                     return original?.call(this, event);
                 }
@@ -635,9 +795,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof msg.token === 'string' || typeof msg.delta === 'string') {
                     const piece = (msg.token ?? msg.delta);
                     if (out) {
-                        out.classList.remove('loading');
-                        out.style.whiteSpace = 'pre-wrap';
-                        out.textContent += piece;
+                    out.classList.remove('loading');
+                    out.style.whiteSpace = 'pre-wrap';
+                    out.textContent += piece;
                     }
                     return;
                 }
@@ -648,7 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         out.classList.remove('loading');
                         out.style.whiteSpace = 'pre-wrap';
                         out.textContent += (out.textContent ? '\n' : '') + text;
-                        checkDocking()
+                        checkDocking();
                     }
                     if (msg.done === true || msg.status === 'completed') {
                         return finishRun();
@@ -656,7 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return original?.call(this, event);
                 }
 
-                // ========== 3) Template/Output ==========
+                // Template result with text array or embedded print_response
                 if (msg && msg.class === 'template' && (msg.type === 'task_step_result')) {
                     const html   = msg.template || msg.values?.template || '';
                     const outArr = msg.Output || msg.output || msg.values?.output;
@@ -686,7 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // ========== 4) Exceptions from the kernel ==========
+                // Exceptions from the kernel
                 if (msg && msg.class === 'template' && msg.type === 'task_step_exception') {
                     let human = 'An error occurred while processing your question.';
                     const html = msg.template || msg.values?.template || '';
@@ -707,11 +867,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     flash('Kernel returned an exception', 'danger');
-                    console.log("msg: ", msg);
                     return finishRun();
                 }
 
-                // ========== 5) Completion flags with no payload ==========
+                // Completion flags with no payload
                 if (msg && (msg.done === true || msg.status === 'completed')) {
                     return finishRun();
                 }
@@ -754,14 +913,14 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const n of m.addedNodes) {
                 if (n && n.nodeType === 1 && n.classList && n.classList.contains('assistant')) {
                     clearProcessingGuard();
-                    setProcessingState();
+                    setProcessingState(false);
                     checkDocking();
                 }
             }
         }
     });
     __ginaObserver.observe(historyHost, { childList: true, subtree: true });
-  
+
     // --- Delegated events (latest + history) ----------------------------------
     ginaContainer.addEventListener('input', (e) => {
         if (!e.target.matches('.gina-input')) return;
@@ -769,24 +928,27 @@ document.addEventListener('DOMContentLoaded', () => {
         checkDocking();
         toggleSendButtonFor(e.target.closest('.gina-block'));
     });
-  
+
     // Enter => send; Shift+Enter => newline
     ginaContainer.addEventListener('keydown', (e) => {
         if (!e.target.matches('.gina-input') || e.isComposing) return;
+        // Do not send while locked/readonly or during handshake
+        if (e.target.hasAttribute('readonly') || waitingForAiUserInput) return;
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             const block = e.target.closest('.gina-block');
-            block?.querySelector('.gina-send-btn')?.click();
+            const btn = block?.querySelector('.gina-send-btn');
+            if (btn && !btn.disabled) btn.click();
         }
     });
-  
+
     // Clicks (mic + send)
     ginaContainer.addEventListener('click', (e) => {
         // Mic toggle
         const micBtn = e.target.closest('.gina-mic-btn');
         if (micBtn && !isProcessing) {
+            if (waitingForAiUserInput) return; // locked during handshake
             const block = micBtn.closest('.gina-block');
-            // Toggle start/stop on same block
             if (isListening && block === listeningBlock) {
                 stopListening();
             } else {
@@ -794,49 +956,51 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return; // do not fall-through to send
         }
-    
+
         // Send
         const btn = e.target.closest('.gina-send-btn');
-        if (!btn || isProcessing) return;
-    
+        if (!btn || isProcessing || btn.disabled) return;
+
         const block        = btn.closest('.gina-block');
         const inputWrapper = block.querySelector('.gina-input-wrapper');
         const input        = block.querySelector('.gina-input');
         const outContainer = block.querySelector('.gina-output-container');
         const out          = block.querySelector('.gina-output');
-    
+
+        if (waitingForAiUserInput || input?.hasAttribute('readonly')) return; // locked
+
         const msg = (input?.value ?? '').trim();
         if (!msg) return;
-    
+
         hideSplash(true);
-    
+
         // If we were listening, stop it before sending
         if (isListening) stopListening();
-    
+
         // Expand fully so the full message height is captured, then render bubble
         autoSize(input, { expandFully: true });
-    
+
         const userBubble = document.createElement('div');
         userBubble.className = 'gina-msg user';
         userBubble.textContent = msg;               // textContent guards against HTML injection
         inputWrapper.classList.add('finalized');    // flips wrapper to flex/right in CSS
         inputWrapper.innerHTML = '';
         inputWrapper.appendChild(userBubble);
-    
+
         block.classList.add('chat-mode');           // enable bubble layout for this block
-    
+
         // Lock + show output + begin processing
         currentQuestion = msg;
         block.classList.add('processing');
         activeBlock = block;
-    
+
         btn.disabled = true;
         outContainer.style.display = 'block';
         out.classList.add('loading');
         out.textContent = 'Processing your question...';
-    
+
         block.querySelector('.gina-send-container')?.classList.remove('show');
-    
+
         setProcessingState(true);
         startProcessingGuard();
         runQuestionThroughKernel(msg, block);
@@ -878,13 +1042,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return slug || fallback;
     }
 
-    // var conversationsFolderExists = false;
-
     async function ensureConversationsFolder(username) {
-        const url =
-            `/render/new/Users/${encodeURIComponent(username)}/?` +
-            `new_content=${encodeURIComponent('conversations')}&` +
-            `new_content_type=${encodeURIComponent('folder')}`;
+        const url = `/render/new/Users/${encodeURIComponent(username)}/?` +
+                    `new_content=${encodeURIComponent('conversations')}&` +
+                    `new_content_type=${encodeURIComponent('folder')}`;
         execute_json_url(url, false);
     }
 
@@ -904,11 +1065,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!savedConversationPath) {
             const firstUserTurn = turns.find(t => t.role === 'user')?.content || 'Conversation';
             savedConversationTitle  = slugify(firstUserTurn.slice(0, 60));
-            const createUrl =
-                `/render/new/Users/${encodeURIComponent(username)}/conversations/` +
-                `?new_content=${encodeURIComponent(savedConversationTitle)}&` +
-                `new_content_type=${encodeURIComponent('conversation')}`;
-            
+            const createUrl = `/render/new/Users/${encodeURIComponent(username)}/conversations/` +
+                            `?new_content=${encodeURIComponent(savedConversationTitle)}&` +
+                            `new_content_type=${encodeURIComponent('conversation')}`;
             try {
                 execute_json_url(createUrl, false);
                 flash('Coversation file saved', 'success');
@@ -917,12 +1076,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-  
+
     // --- Bootstrapping: ensure there's an active block in latest --------------
     (function ensureInitialBlock() {
         checkDocking();
         if (historyCount() > 0) hideSplash(false);
-    
+
         const hasActive = latestHost.querySelector('.gina-block');
         if (!hasActive) {
             const blockId = 1;
@@ -930,14 +1089,11 @@ document.addEventListener('DOMContentLoaded', () => {
             enable_interactions($(latestHost));
         } else {
             const input = latestHost.querySelector('.gina-input');
-            if (input) { 
-                autoSize(input); 
-                toggleSendButtonFor(input.closest('.gina-block')); 
-            }
+            if (input) { autoSize(input); toggleSendButtonFor(input.closest('.gina-block')); }
         }
         stickHistoryToBottom();
     })();
-  
+
     // Keep scroller/height feeling right on viewport changes
     window.addEventListener('resize', () => {
         checkDocking();
