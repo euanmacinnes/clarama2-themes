@@ -482,6 +482,10 @@ function onMessage(event, socket_url, webSocket) {
                 handleTaskInteractionResume(dict);
             }
 
+            // if (dict['class'] === 'message') {
+            //     console.log(`dict: `, dict);
+            // }  
+
             if (dict['class'] === "layout") {
                 var cols = dict['values']['width'];
                 var rows = dict['values']['height'];
@@ -613,6 +617,8 @@ function onMessage(event, socket_url, webSocket) {
                 process_template(dict['type'], dict['values'], $(resulter));
                 bChart(dict['values']['chart_id'], dict['results']);
             }
+
+            // if (dict['class'] === "template_chart_3d") {
 
             if (dict['class'] === 'task_memory') {
                 $("#kernel_memory_free").text(dict['values']['free'] + '%');
