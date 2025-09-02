@@ -6,7 +6,6 @@ function gina_kernel_registered(kernel_id) {
     // The kernel ID is automatically inserted as HTML into a DIV called "kernel_status" if it is present on screen.
     // Class the div accordingly
 
-    // So all we need to do here is a blank question
     
 }
 
