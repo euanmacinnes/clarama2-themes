@@ -1,3 +1,13 @@
+/**
+ * Set the active Clarama environment and (re)run the socket for the edit panel.
+ *
+ * Side effects:
+ * - Updates UI labels (#kernel_status, #environment)
+ * - Stores the selected environment on #edit_socket element
+ * - Restarts websocket workflow by calling run_socket
+ *
+ * @param {string} environment - Environment name or id to activate.
+ */
 function set_environment(environment) {
     flash("Changing environment to " + environment);
     $('#kernel_status').html('Loading');
@@ -9,6 +19,15 @@ function set_environment(environment) {
     run_socket(socket_element, true, false);
 }
 
+/**
+ * Reset the currently selected environment and restart the kernel.
+ *
+ * Side effects:
+ * - Shows a restarting message
+ * - Forces refresh flag and restarts websocket workflow
+ *
+ * @param {string} environment - Environment name or id to reset.
+ */
 function reset_environment(environment) {
     flash("Resetting environment to " + environment);
     $('#kernel_status').html('Restarting..');
@@ -30,12 +49,19 @@ let socket_taskQueue = [];
 
 let socket_topics = ['clarama-systemwide'];
 
+/**
+ * Send the current topic subscriptions to the active websocket.
+ * Requires an open task_active_socket.
+ */
 function topic_subscribe() {
     console.log("CLARAMA_WEBSOCKET.JS registering topics");
     console.log(socket_topics);
     task_active_socket.send(JSON.stringify({topics: socket_topics}));
 }
 
+/**
+ * Subscribe to topics and flush the queued task messages once the socket is open.
+ */
 function processTaskMessages() {
     topic_subscribe();
 
@@ -45,6 +71,15 @@ function processTaskMessages() {
     socket_taskQueue = [];
 }
 
+/**
+ * Queue or immediately execute a task message depending on socket state.
+ *
+ * @param {string} topic - Topic to subscribe for this task.
+ * @param {JQuery} embedded - jQuery-wrapped element holding attributes for the task.
+ * @param {string} task_url - Fully formed URL to obtain a kernel and task metadata.
+ * @param {string} socket_id - Id of the socket DOM element.
+ * @param {string|boolean} autorun - Whether to auto-run the task when ready.
+ */
 function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
     if (socket_topics.indexOf(topic) === -1) {
         socket_topics.push(topic);
@@ -77,6 +112,17 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
     socket_taskQueue.push(task_message);
 }
 
+/**
+ * Resolve task prerequisites and handle wait-interaction orchestration before executing a task.
+ *
+ * - Parses the topic for element id
+ * - Checks for links with wait=true to defer execution until a resume message arrives
+ *
+ * @param {JQuery} embedded
+ * @param {string} task_url
+ * @param {string} socket_id
+ * @param {string|boolean} autorun
+ */
 function get_task(embedded, task_url, socket_id, autorun) {
     console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " getting");
 
@@ -156,6 +202,15 @@ function get_task(embedded, task_url, socket_id, autorun) {
     executeTask(embedded, task_url, socket_id, autorun);
 }
 
+/**
+ * Execute a task by calling the task_url. On success, stores kernel id/environment and updates UI.
+ * Triggers _task_run if autorun === 'True'.
+ *
+ * @param {JQuery} embedded
+ * @param {string} task_url
+ * @param {string} socket_id
+ * @param {string|boolean} autorun
+ */
 function executeTask(embedded, task_url, socket_id, autorun) {
     fetch(task_url)
         .then((response) => {
@@ -178,6 +233,12 @@ function executeTask(embedded, task_url, socket_id, autorun) {
 
             let active_selector = ('#environment_' + environment_file).replaceAll('.', "_");
 
+            let kernel_ready = embedded.attr('onkernel');
+
+            if (kernel_ready !== undefined) {
+                window[kernel_ready](kernel_id, task_environment, environment_file);
+            }
+
             $("#kernel_status").html(kernel_id);
             $("#environment").html(task_environment);
             $(".environments").removeClass('active');
@@ -192,6 +253,11 @@ function executeTask(embedded, task_url, socket_id, autorun) {
         });
 }
 
+/**
+ * Handle task_interaction_resume messages to unblock pending tasks waiting on other elements.
+ *
+ * @param {{step_id: string, instance?: string}} resumeMessage - Message containing the originating element id.
+ */
 function handleTaskInteractionResume(resumeMessage) {
     const {step_id, instance} = resumeMessage;
 
@@ -244,6 +310,15 @@ function handleTaskInteractionResume(resumeMessage) {
     }
 }
 
+/**
+ * Build the task_url and enqueue it for execution, adding environment and kernel refresh flags.
+ *
+ * @param {JQuery} embedded
+ * @param {string} task
+ * @param {string} topic
+ * @param {boolean} refresh_kernel - Forces reusing a fresh kernel for the task.
+ * @param {boolean} reset_environment - Whether to reset environment (pod) before executing task.
+ */
 function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
     let mode = embedded.attr("mode"); // For passing internally to the kernel, so that the kernel knows it's original mode
     let autorun = embedded.attr("autorun");
@@ -278,6 +353,13 @@ function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
     enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun);
 }
 
+/**
+ * Open a websocket if none exists; attach event handlers and process queued tasks.
+ * If an existing socket is not OPEN, it will be closed and replaced.
+ *
+ * @param {boolean} [reconnect=false] - Whether this is a reconnect attempt.
+ * @param {JQuery} embedded - Element used by downstream run_socket on reconnects.
+ */
 function start_socket(reconnect = false, embedded) {
 
     if (task_active_socket !== undefined) {
@@ -295,11 +377,11 @@ function start_socket(reconnect = false, embedded) {
         console.log("CLARAMA_WEBSOCKET.JS start_socket " + task_active_socket);
 
         webSocket.onerror = function (event) {
-            onError(event, socket_address, webSocket)
+            onError(event, socket_address, webSocket, embedded)
         };
 
         webSocket.onopen = function (event) {
-            onOpen(event, socket_address, reconnect)
+            onOpen(event, socket_address, reconnect, embedded)
             processTaskMessages();
         };
 
@@ -308,7 +390,7 @@ function start_socket(reconnect = false, embedded) {
         };
 
         webSocket.onmessage = function (event) {
-            onMessage(event, socket_address, webSocket)
+            onMessage(event, socket_address, webSocket, embedded)
         };
     }
 }
@@ -318,7 +400,8 @@ function start_socket(reconnect = false, embedded) {
  * It sets up socket connection details, manages task and topic subscriptions, and initiates WebSocket communication.
  *
  * @param {Object} embedded - The embedded HTML element used as the source for WebSocket tasks and topics.
- * @param {boolean} reset_environment - Indicates whether the WebSocket environment should be reset before establishing a connection. This will cause the pod to restart
+ * @param {boolean} refresh_kernel - Indicates whether a kernel refresh is requested for the initial task.
+ * @param {boolean} reset_environment - Indicates whether the WebSocket environment should be reset before establishing a connection.
  * @return {void} This function does not return any value.
  */
 function run_socket(embedded, refresh_kernel, reset_environment) {
@@ -376,6 +459,10 @@ function run_socket(embedded, refresh_kernel, reset_environment) {
 // task: the task file to call the environments service with
 // topic: the task topic to call the environments service with
 // results_id the id of the div to paste the results back into
+/**
+ * jQuery plugin to initialize socket behavior on selected elements.
+ * Expects attributes: task, topic on the element.
+ */
 $.fn.enablesocket = function () {
     return this.each(function () {
         console.log("Enabling socket " + $(this).attr('id'))
@@ -385,6 +472,13 @@ $.fn.enablesocket = function () {
     });
 }
 
+/**
+ * Replace {key_content} tokens in a string using values in key_dict.
+ *
+ * @param {string} text - Template text containing tokens.
+ * @param {Object} key_dict - Replacement map.
+ * @returns {string} Processed text.
+ */
 function replace_keys(text, key_dict) {
     Object.entries(key_dict).forEach(([key, value]) => {
         if (key !== 'array') {
@@ -400,6 +494,14 @@ function replace_keys(text, key_dict) {
 
 // https://stackoverflow.com/questions/18673860/defining-a-html-template-to-append-using-jquery
 
+/**
+ * Render a <template> by id into the target_div, performing token substitutions.
+ * Supports array blocks delimited by <!--{array:start}--> ... <!--{array:end}-->.
+ *
+ * @param {string} template_id - The template element id.
+ * @param {Object} substitutions - Key/value pairs, plus optional 'array' key as an array of values.
+ * @param {JQuery} target_div - jQuery target element to append rendered content into.
+ */
 function process_template(template_id, substitutions, target_div) {
     if (target_div === undefined) {
         console.warn("Skipping template " + template_id + ", target_div is undefined");
@@ -465,8 +567,26 @@ function process_template(template_id, substitutions, target_div) {
 // to render that message
 // Fixed section of onMessage function in CLARAMA_WEBSOCKET.js
 
-function onMessage(event, socket_url, webSocket) {
+/**
+ * WebSocket onmessage handler. Routes messages by class/type and updates UI accordingly.
+ * Handles: ping, layout, alerts, template(s), charts/tables, task progress, and resume events.
+ *
+ * @param {MessageEvent} event
+ * @param {string} socket_url
+ * @param {WebSocket} webSocket
+ */
+function onMessage(event, socket_url, webSocket, socket_div) {
     let dict = JSON.parse(event.data);
+
+    let message_event = socket_div.attr('onmessage');
+
+    if (message_event !== undefined) {
+        console.log("Message event: " + message_event);
+        dict = window[message_event](dict, socket_url, webSocket, socket_div);
+
+        if (dict === undefined)
+            return;
+    }
 
     if ('class' in dict) {
         console.log("WEBSOCKET.js: Processing Socket Message " + dict['class']);
@@ -665,12 +785,26 @@ function onMessage(event, socket_url, webSocket) {
     console.log(task_active_socket);
 }
 
-function onOpen(event, socket_url, reconnect) {
+/**
+ * WebSocket onopen handler. Updates UI and announces reconnection.
+ *
+ * @param {Event} event
+ * @param {string} socket_url
+ * @param {boolean} reconnect
+ */
+function onOpen(event, socket_url, reconnect, socket_div) {
     console.log('CLARAMA_WEBSOCKET.js: WebSocket Connection established ' + Date.now() + ' on ' + socket_url);
     let kernel_status = $('#kernel_status');
     kernel_status.add("bi-check-circle")
     kernel_status.add("text-success")
     kernel_status.remove("bi-hourglass-split")
+
+    let opened_event = socket_div.attr('onopen');
+
+    if (opened_event !== undefined) {
+        console.log("Opening event: " + opened_event);
+        window[opened_event]();
+    }
 
     let playbutton = $('.kernel-play-button');
 
@@ -683,16 +817,31 @@ function onOpen(event, socket_url, reconnect) {
     }
 }
 
-function onClose(event, socket_url, webSocket, embedded) {
+/**
+ * WebSocket onclose handler. Schedules a quick reconnect via run_socket.
+ *
+ * @param {CloseEvent} event
+ * @param {string} socket_url
+ * @param {WebSocket} webSocket
+ * @param {JQuery} embedded
+ */
+function onClose(event, socket_url, webSocket, socket_div) {
     console.log('CLARAMA_WEBSOCKET.js: WebSocket Connection CLOSED ' + Date.now() + ' on ' + socket_url + " on socket " + webSocket);
     // flash("SOCKET lost", "danger");
     setTimeout(function () {
         socket_starting = false;
-        run_socket(embedded, false);
+        run_socket(socket_div, false);
     }, 100)
 }
 
-function onError(event, socket_url, webSocket) {
+/**
+ * WebSocket onerror handler. Logs the error.
+ *
+ * @param {Event} event
+ * @param {string} socket_url
+ * @param {WebSocket} webSocket
+ */
+function onError(event, socket_url, webSocket, socket_div) {
     console.log("CLARAMA_WEBSOCKET.js: WebSocket Error [" + event.data + "] from " + socket_url + " on socket " + webSocket);
     //alert("SOCKET error " + event.data, "danger");
 }
