@@ -7,13 +7,13 @@ function gina_kernel_registered(kernel_id) {
     // Class the div accordingly
 
     // So all we need to do here is a blank question
-    
+
 }
 
 // THIS WILL BE CALLED ON MESSAGE RECEIVED TO PROCESS CUSTOM MESSAGES
 function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
     // the main websocket decodes the event as a dict straight away, so we can process it here
-    alert("GINA!");
+    console.log("GINA: " + dict);
 }
 
 
@@ -480,9 +480,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // *** IMPORTANT: only use #conversation_socket for the kernel ***
     function findKernelId() {
-        const el = document.getElementById('conversation_socket');
+        const el = document.getElementById('gina_socket');
         const kid = el && el.getAttribute('task_kernel_id');
         return kid || null;
     }

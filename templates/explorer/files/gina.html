@@ -21,11 +21,15 @@
 </div>
 
 <div class="clarama-task">
+    <!-- GINA Kernel -->
     <div id="gina_socket" environment="{{ environment }}" class="clarama-websocket clarama-task"
          mode="run"
          topic="{{ internal_topic }}"
          task="{{ file_url }}"
          task_kill="False"
+         task=".conversation.yaml"
+         task_new="True"
+         task_type=".conversation.yaml"
          onkernel="gina_kernel_registered"
          onmessage="gina_kernel_message"
     >

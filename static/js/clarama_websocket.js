@@ -90,14 +90,14 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
     if (task_active_socket !== undefined)
         if (task_active_socket.readyState === WebSocket.OPEN) {
             task_active_socket.send(JSON.stringify({topics: socket_topics}));
-            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " executing");
+            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " executing");
             get_task(embedded, task_url, socket_id, autorun);
             return;
         } else {
-            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " socket was not open");
+            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket was not open");
         }
     else {
-        console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " socket undefined, pushing on queue");
+        console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket undefined, pushing on queue");
     }
 
 
@@ -124,7 +124,7 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
  * @param {string|boolean} autorun
  */
 function get_task(embedded, task_url, socket_id, autorun) {
-    console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " getting");
+    console.log("CLARAMA_WEBSOCKET.js: GET TASK " + task_url + " getting");
 
     const topic = new URLSearchParams(task_url.split('?')[1]).get('topic');
     let element_id = null;
@@ -191,7 +191,7 @@ function get_task(embedded, task_url, socket_id, autorun) {
             resumedFrom: new Set() // Track which elements have sent resume messages
         };
 
-        console.log(`CLARAMA_WEBSOCKET.js: Task execution for element ${element_id} deferred until resume messages received from:`,
+        console.log(`CLARAMA_WEBSOCKET.js: GET TASK Task execution for element ${element_id} deferred until resume messages received from:`,
             window[pendingTaskKey].waitingFor);
 
         // Don't proceed with task execution - wait for resume messages
@@ -229,7 +229,7 @@ function executeTask(embedded, task_url, socket_id, autorun) {
             let environment_file = task_response['results']['environment']
 
             embedded.attr('task_kernel_id', kernel_id);
-            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " connected to kernel " + kernel_id)
+            console.log("CLARAMA_WEBSOCKET.js: EXECUTE TASK " + task_url + " connected to kernel " + kernel_id)
 
             let active_selector = ('#environment_' + environment_file).replaceAll('.', "_");
 
@@ -411,7 +411,7 @@ function run_socket(embedded, refresh_kernel, reset_environment) {
     embedded.attr("socket_time", Date.now());
 
     if (task !== undefined && topic !== undefined) {
-        console.log("CLARAMA_WEBSOCKET.js: TASK " + task + " TOPIC " + topic + " RUNNING");
+        console.log("CLARAMA_WEBSOCKET.js: RUN SOCKET " + task + " TOPIC " + topic + " RUNNING");
         socket_task(embedded, task, topic, refresh_kernel, reset_environment);
     }
 
