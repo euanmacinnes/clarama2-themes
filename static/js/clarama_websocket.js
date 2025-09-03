@@ -224,12 +224,12 @@ function executeTask(embedded, task_url, socket_id, autorun) {
         .then((task_response) => {
 
             // console.log(JSON.stringify(task_response, null, 2));
-            let kernel_id = task_response['results']['kernel_id']
-            let task_environment = task_response['results']['environment_name']
-            let environment_file = task_response['results']['environment']
+            let kernel_id = task_response['results']['kernel_id'];
+            let task_environment = task_response['results']['environment_name'];
+            let environment_file = task_response['results']['environment'];
 
             embedded.attr('task_kernel_id', kernel_id);
-            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " connected to kernel " + kernel_id)
+            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " connected to kernel " + kernel_id);
 
             let active_selector = ('#environment_' + environment_file).replaceAll('.', "_");
 
@@ -239,13 +239,13 @@ function executeTask(embedded, task_url, socket_id, autorun) {
                 window[kernel_ready](kernel_id, task_environment, environment_file);
             }
 
-            $("#kernel_status").html(kernel_id);
+            $("#kernel_status:not([gina])").html(kernel_id);
             $("#environment").html(task_environment);
             $(".environments").removeClass('active');
             $(active_selector).addClass('active');
 
             if (autorun === 'True') {
-                _task_run(socket_id)
+                _task_run(socket_id);
             }
         })
         .catch((error) => {
@@ -390,7 +390,8 @@ function start_socket(reconnect = false, embedded) {
         };
 
         webSocket.onmessage = function (event) {
-            onMessage(event, socket_address, webSocket, embedded)
+            onMessage(event, socket_address, webSocket, $('#gina_socket'));
+            onMessage(event, socket_address, webSocket, embedded);
         };
     }
 }
@@ -602,6 +603,10 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 handleTaskInteractionResume(dict);
             }
 
+            // if (dict['class'] === 'message') {
+            //     console.log(`dict: `, dict);
+            // }
+
             if (dict['class'] === "layout") {
                 var cols = dict['values']['width'];
                 var rows = dict['values']['height'];
@@ -733,6 +738,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 process_template(dict['type'], dict['values'], $(resulter));
                 bChart(dict['values']['chart_id'], dict['results']);
             }
+
+            // if (dict['class'] === "template_chart_3d") {
 
             if (dict['class'] === 'task_memory') {
                 $("#kernel_memory_free").text(dict['values']['free'] + '%');
