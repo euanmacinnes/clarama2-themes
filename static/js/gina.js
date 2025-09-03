@@ -1,3 +1,9 @@
+// Handshake + welcome de-dupe flags
+window.__ginaHandshakeSent = false;
+window.__ginaHandshakeDone = false;
+window.__ginaWelcomeShown = false;
+window.waitingForAiUserInput = true; // locked until ai_user_input
+
 // THIS WILL BE CALLED AS SOON AS THE KERNEL IS REGISTERED. THIS EVENT IS SPECIFIED IN THE DIV
 // SEE gina.html for the DIV definition
 function gina_kernel_registered(kernel_id) {
@@ -7,32 +13,171 @@ function gina_kernel_registered(kernel_id) {
     // Class the div accordingly
 
     // So all we need to do here is a blank question
-    
+
+    // i guess it keeps sending the blank until it receives the 'ai_user_input' handshake
+    if (window.__ginaHandshakeDone || window.__ginaHandshakeSent) return;
+    window.__ginaHandshakeSent = true;
+    console.log("sending blank");
+    runQuestionThroughKernel("");
 }
 
 // THIS WILL BE CALLED ON MESSAGE RECEIVED TO PROCESS CUSTOM MESSAGES
 function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
     // the main websocket decodes the event as a dict straight away, so we can process it here
-    alert("GINA!");
+
+    // set the gina kernel id visibly from the conversation socket
+    $('#kernel_status[gina="true"]').html(findKernelId());
+
+    // 1) Handshake → unlock inputs
+    if (dict && dict.type === "ai_user_input") {
+        console.log("GINA handshake received.");
+        window.__ginaHandshakeDone = true;
+        window.waitingForAiUserInput = false;
+        window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+        return;
+    }
+
+    // 2) Answer (either a welcome/system message OR a reply to the user's turn)
+    if (dict && dict["class"] === "template" && dict["type"] === "task_step_result") {
+        const reply = html_decode(dict.values.output[0]);
+        console.log('reply: ', reply)
+        const container = document.getElementById("gina-chat-container");
+
+        // If there is NO block currently processing, this is a system/welcome reply.
+        // Show it once, then ignore duplicates.
+        const hasProcessing = !!container?.querySelector("#gina-latest .gina-block.processing");
+        if (!hasProcessing) {
+            if (window.__ginaWelcomeShown) return;
+            window.__ginaWelcomeShown = true;
+        }
+
+        let block =
+            (window.__ginaGetActiveBlock && window.__ginaGetActiveBlock()) ||
+            container?.querySelector("#gina-latest .gina-block.processing") ||
+            container?.querySelector("#gina-conversations .gina-block.processing") ||
+            container?.querySelector("#gina-latest .gina-block.chat-mode");
+
+        // If we still didn’t find a target, it’s likely a system/welcome message:
+        if (!block) {
+            block = container?.querySelector("#gina-latest .gina-block");
+        }
+
+        const out = block?.querySelector(".gina-output");
+        const outContainer = block?.querySelector(".gina-output-container");
+        if (outContainer) outContainer.style.display = "block";
+        if (out) {
+            out.classList.remove("loading");
+            out.style.whiteSpace = "pre-wrap";
+            out.textContent = reply || "";
+        }
+
+        // User turn is "finalized" only if the block is in chat mode (we replaced the textarea with a user bubble)
+        const isFinalizedUserTurn =
+            block?.classList.contains("chat-mode") ||
+            !!block?.querySelector(".gina-input-wrapper.finalized");
+
+        if (isFinalizedUserTurn) {
+            block.classList.remove("processing");
+            window.__ginaClearProcessingGuard && window.__ginaClearProcessingGuard();
+            window.__ginaSetProcessingState && window.__ginaSetProcessingState(false);
+
+            // Clear the active reference before moving it away
+            if (window.__ginaGetActiveBlock && block === window.__ginaGetActiveBlock()) {
+                window.__ginaSetActiveBlock && window.__ginaSetActiveBlock(null);
+                window.__ginaActiveTurnId = null;
+            }
+
+            window.__ginaMoveBlockToHistory && window.__ginaMoveBlockToHistory(block);
+            window.__ginaSpawnNext && window.__ginaSpawnNext();
+        } else {
+            // Welcome/system message — keep the composer in place
+            window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+        }
+
+        window.__ginaCheckDocking && window.__ginaCheckDocking();
+        return;
+    }
+
+    // 3) Error → show error bubble and continue flow
+    if (dict && dict["class"] === "message" && dict["type"] === "task_step_exception") {
+        const container = document.getElementById("gina-chat-container");
+        const block = (window.__ginaGetActiveBlock && window.__ginaGetActiveBlock()) ||
+            container?.querySelector("#gina-latest .gina-block.processing");
+        const msg = (dict.values && dict.values.error) ? String(dict.values.error) : "An error occurred.";
+        window.__ginaFinalizeBlockAfterError && window.__ginaFinalizeBlockAfterError(block, msg);
+        // Clear the active reference on error too
+        window.__ginaSetActiveBlock && window.__ginaSetActiveBlock(null);
+        window.__ginaActiveTurnId = null;
+        return;
+    }
+
+    return dict;
 }
 
+function findKernelId() {
+    return $('#conversation_socket').attr('task_kernel_id');
+}
+  
+// --- Kernel call ----------------------------------------------------------
+function runQuestionThroughKernel(questionText, forBlock) {
+    get_field_values({}, true, function (field_registry) {
+        field_registry["clarama_task_kill"] = false;
 
-document.addEventListener('DOMContentLoaded', () => {
+        const task_kernel_id = findKernelId();
+        if (!task_kernel_id) {
+            const msg = "Unable to find a running kernel. Please open any task/session first.";
+            console.error("GINA:", msg);
+            flash(msg, "danger");
+            if (forBlock) finalizeBlockAfterError(forBlock, `Error: ${msg}`);
+            return;
+        }
+
+        const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
+        const task_registry = {
+            streams: [{ main: [{ source: questionText, type: "question" }] }],
+            parameters: field_registry
+        };
+
+        $.ajax({
+            type: "POST",
+            url,
+            datatype: "html",
+            contentType: "application/json",
+            data: JSON.stringify(task_registry),
+            success: function (data) {
+                if (data && data["data"] === "ok") {
+                    // WebSocket will deliver the response
+                    return;
+                }
+                const err = (data && data["error"]) ? data["error"] : "An error occurred while processing your question.";
+                flash("Couldn't process question: " + err, "danger");
+                if (forBlock) finalizeBlockAfterError(forBlock, `Error: ${err}`);
+            },
+            error: function () {
+                flash("Couldn't process question, network or access issue", "danger");
+                if (forBlock) finalizeBlockAfterError(forBlock, "Error: network or access issue");
+            }
+        });
+    });
+}
+
+// Main UI bootstrap
+document.addEventListener("DOMContentLoaded", () => {
     // --- DOM refs -------------------------------------------------------------
-    const ginaButton = document.getElementById('gina-button');
-    const mainContent = document.getElementById('main-content');
-    const ginaContainer = document.getElementById('gina-chat-container');
-    const ginaButtonGroup = document.querySelector('.gina-button-group');
-    const ginaSaveBtn = document.querySelector('.gina-save-btn');
-    const historyHost = document.getElementById('gina-conversations');
-    const latestHost = document.getElementById('gina-latest');
+    const ginaButton = document.getElementById("gina-button");
+    const mainContent = document.getElementById("main-content");
+    const ginaContainer = document.getElementById("gina-chat-container");
+    const ginaButtonGroup = document.querySelector(".gina-button-group");
+    const ginaSaveBtn = document.querySelector(".gina-save-btn");
+    const historyHost = document.getElementById("gina-conversations");
+    const latestHost = document.getElementById("gina-latest");
 
     function getSplash() {
-        return document.getElementById('gina-splash');
+        return document.getElementById("gina-splash");
     }
 
     // --- Floating (centered) -> Docked (under navbar) helpers ----------------
-    const navbar = document.querySelector('nav.navbar');
+    const navbar = document.querySelector("nav.navbar");
 
     function navbarOffsetPx() {
         const h = (navbar && navbar.getBoundingClientRect && navbar.getBoundingClientRect().height)
@@ -42,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setNavbarOffsetVar() {
         const px = navbarOffsetPx();
-        document.documentElement.style.setProperty('--navbar-offset', px + 'px');
+        document.documentElement.style.setProperty("--navbar-offset", px + "px");
     }
 
     function floatingMaxHeight() {
@@ -50,19 +195,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function isFloating() {
-        return ginaContainer.classList.contains('mode-floating');
+        return ginaContainer.classList.contains("mode-floating");
     }
 
     function enterDocked() {
-        ginaContainer.classList.add('mode-docked');
-        ginaContainer.classList.remove('mode-floating');
+        ginaContainer.classList.add("mode-docked");
+        ginaContainer.classList.remove("mode-floating");
         syncMainCollapse();
         // Once docked, the page is the only scroller
-        window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
     }
 
     function checkDocking() {
-        if (!ginaContainer.classList.contains('active')) return;
+        if (!ginaContainer.classList.contains("active")) return;
 
         setNavbarOffsetVar();
 
@@ -75,8 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const rect = ginaContainer.getBoundingClientRect();
 
         // Measure untransformed content height (not affected by the 0.9 scale)
-        const inputCol = ginaContainer.querySelector('.gina-input-container');
-        const controls = ginaContainer.querySelector('.gina-controls');
+        const inputCol = ginaContainer.querySelector(".gina-input-container");
+        const controls = ginaContainer.querySelector(".gina-controls");
         const contentH =
             (controls?.scrollHeight || 0) +
             (historyHost?.scrollHeight || 0) +
@@ -94,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const bottomOver = rect.bottom >= (window.innerHeight - 8);
         const spaceBelow = window.innerHeight - rect.bottom;
 
-        const latestInput = ginaContainer.querySelector('#gina-latest .gina-input');
+        const latestInput = ginaContainer.querySelector("#gina-latest .gina-input");
         const inputFull = latestInput ? latestInput.scrollHeight : 0;
 
         if ((h > maxH + 4) || bottomOver || spaceBelow < 12 || (inputFull + 40 > maxH)) {
@@ -105,12 +250,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function historyCount() {
-        return historyHost.querySelectorAll('.gina-block').length;
+        return historyHost.querySelectorAll(".gina-block").length;
     }
 
     function stickHistoryToBottom() {
-        if (ginaContainer.classList.contains('mode-docked')) {
-            window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+        if (ginaContainer.classList.contains("mode-docked")) {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
         } else {
             // when floating, keep as-is; no inner scrolling needed
         }
@@ -118,12 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Splash control -------------------------------------------------------
     function getSplashHost() {
-        const controls = ginaContainer.querySelector('.gina-controls');
+        const controls = ginaContainer.querySelector(".gina-controls");
         if (!controls) return ginaContainer;
-        let holder = controls.querySelector('.gina-splash-holder');
+        let holder = controls.querySelector(".gina-splash-holder");
         if (!holder) {
-            holder = document.createElement('div');
-            holder.className = 'gina-splash-holder flex-grow-1 d-flex justify-content-center align-items-center';
+            holder = document.createElement("div");
+            holder.className = "gina-splash-holder flex-grow-1 d-flex justify-content-center align-items-center";
             // Try to place between first and second child
             if (controls.children.length >= 2) {
                 controls.insertBefore(holder, controls.children[1]);
@@ -137,10 +282,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function hideSplash(animated = true) {
         const splash = getSplash();
         if (!splash) return;
-        if (splash.dataset.hidden === '1') return;
-        splash.dataset.hidden = '1';
+        if (splash.dataset.hidden === "1") return;
+        splash.dataset.hidden = "1";
         if (animated) {
-            splash.classList.add('hide');
+            splash.classList.add("hide");
             setTimeout(() => splash.remove(), 400);
         } else {
             splash.remove();
@@ -160,23 +305,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cached) return parseFloat(cached);
 
         const cs = window.getComputedStyle(el);
-        const clone = document.createElement('textarea');
-        clone.value = 'X'; // single line
+        const clone = document.createElement("textarea");
+        clone.value = "X"; // single line
         [
-            'font-size', 'font-family', 'font-weight', 'font-style', 'line-height',
-            'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
-            'border-top-width', 'border-bottom-width', 'box-sizing',
-            'letter-spacing', 'text-transform', 'word-spacing', 'white-space',
-            'text-indent', 'tab-size'
+            "font-size", "font-family", "font-weight", "font-style", "line-height",
+            "padding-top", "padding-bottom", "padding-left", "padding-right",
+            "border-top-width", "border-bottom-width", "box-sizing",
+            "letter-spacing", "text-transform", "word-spacing", "white-space",
+            "text-indent", "tab-size"
         ].forEach(p => clone.style[p] = cs.getPropertyValue(p));
 
-        clone.style.position = 'absolute';
-        clone.style.visibility = 'hidden';
-        clone.style.height = 'auto';
-        clone.style.minHeight = '0';
-        clone.style.maxHeight = 'none';
-        clone.style.overflow = 'hidden';
-        clone.style.width = el.clientWidth + 'px'; // match current width
+        clone.style.position = "absolute";
+        clone.style.visibility = "hidden";
+        clone.style.height = "auto";
+        clone.style.minHeight = "0";
+        clone.style.maxHeight = "none";
+        clone.style.overflow = "hidden";
+        clone.style.width = el.clientWidth + "px"; // match current width
 
         document.body.appendChild(clone);
         const oneLineH = Math.ceil(clone.scrollHeight);
@@ -186,52 +331,52 @@ document.addEventListener('DOMContentLoaded', () => {
         return oneLineH;
     }
 
-    function autoSize(el, {expandFully = false} = {}) {
+    function autoSize(el, { expandFully = false } = {}) {
         if (!el) return;
 
-        const scope = el.closest('#gina-chat-container') || document.documentElement;
-        const minH = readPxVar(scope, '--gina-input-min', 51);
-        const maxH = readPxVar(scope, '--gina-input-max', 240);
+        const scope = el.closest("#gina-chat-container") || document.documentElement;
+        const minH = readPxVar(scope, "--gina-input-min", 51);
+        const maxH = readPxVar(scope, "--gina-input-max", 240);
 
         // measure content
-        el.style.height = 'auto';
+        el.style.height = "auto";
         const full = Math.ceil(el.scrollHeight);
 
-        const isEmpty = (el.value || '').trim() === '';
+        const isEmpty = (el.value || "").trim() === "";
         const oneLineH = measureOneLineHeight(el);
         const isOneLine = full <= (oneLineH + 1); // tolerance for sub-pixel
 
         if (!expandFully && (isEmpty || isOneLine)) {
-            el.classList.add('is-singleline');
-            el.style.height = minH + 'px';
-            el.style.maxHeight = maxH + 'px';
-            el.style.overflowY = 'hidden';
+            el.classList.add("is-singleline");
+            el.style.height = minH + "px";
+            el.style.maxHeight = maxH + "px";
+            el.style.overflowY = "hidden";
             return;
         } else {
-            el.classList.remove('is-singleline');
+            el.classList.remove("is-singleline");
         }
 
         // Show full text when sending
         if (expandFully) {
-            el.classList.add('expanded');
-            el.style.maxHeight = 'none';
-            el.style.overflowY = 'hidden';
-            el.style.height = full + 'px';
+            el.classList.add("expanded");
+            el.style.maxHeight = "none";
+            el.style.overflowY = "hidden";
+            el.style.height = full + "px";
             el.scrollTop = 0;
             return;
         }
 
         const next = Math.max(minH, full);
-        el.style.maxHeight = 'none';
-        el.style.overflowY = 'hidden';
-        el.style.height = next + 'px';
+        el.style.maxHeight = "none";
+        el.style.overflowY = "hidden";
+        el.style.height = next + "px";
     }
 
     // --- State ----------------------------------------------------------------
     let isProcessing = false;
-    let currentQuestion = '';
-    let currentAnswer = '';
     let activeBlock = null;
+    let currentQuestion = "";
+    let currentAnswer = "";
 
     // --- Voice input (Web Speech API) ----------------------------------------
     let recognition = null;
@@ -239,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let listeningBlock = null;   // the block whose input we are filling
     let listeningBtn = null;     // the mic button being toggled
     let listeningInput = null;   // textarea element
-    let baseInputValue = '';     // value at the start of recording
+    let baseInputValue = "";    // value at the start of recording
 
     function getRecognition() {
         if (recognition) return recognition;
@@ -247,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!SpeechRecognition) return null;
 
         recognition = new SpeechRecognition();
-        recognition.lang = (document.documentElement.lang || 'en-UK');
+        recognition.lang = (document.documentElement.lang || "en-UK");
         recognition.continuous = false;
         recognition.interimResults = true;
 
@@ -258,11 +403,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onresult = (event) => {
             if (!listeningInput) return;
-            let transcript = '';
+            let transcript = "";
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 transcript += event.results[i][0].transcript;
             }
-            const joiner = baseInputValue && !/\s$/.test(baseInputValue) ? ' ' : '';
+            const joiner = baseInputValue && !/\s$/.test(baseInputValue) ? " " : "";
             listeningInput.value = (baseInputValue + joiner + transcript).trimStart();
             autoSize(listeningInput);
             toggleSendButtonFor(listeningBlock);
@@ -271,12 +416,12 @@ document.addEventListener('DOMContentLoaded', () => {
         recognition.onerror = (e) => {
             toggleMicUI(false);
             isListening = false;
-            if (e && e.error === 'no-speech') {
-                flash('No speech detected', 'warning');
-            } else if (e && e.error === 'not-allowed') {
-                flash('Microphone permission denied', 'danger');
+            if (e && e.error === "no-speech") {
+                flash("No speech detected", "warning");
+            } else if (e && e.error === "not-allowed") {
+                flash("Microphone permission denied", "danger");
             } else {
-                flash('Voice input error', 'danger');
+                flash("Voice input error", "danger");
             }
         };
 
@@ -286,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
             listeningBlock = null;
             listeningBtn = null;
             listeningInput = null;
-            baseInputValue = '';
+            baseInputValue = "";
         };
 
         return recognition;
@@ -294,17 +439,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleMicUI(active) {
         if (!listeningBtn) return;
-        const icon = listeningBtn.querySelector('i');
-        listeningBtn.classList.toggle('recording', !!active);
-        listeningBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        const icon = listeningBtn.querySelector("i");
+        listeningBtn.classList.toggle("recording", !!active);
+        listeningBtn.setAttribute("aria-pressed", active ? "true" : "false");
         if (icon) {
-            icon.className = active ? 'bi bi-stop-circle' : 'bi bi-mic';
+            icon.className = active ? "bi bi-stop-circle" : "bi bi-mic";
         }
         if (listeningInput) {
             if (active) {
-                listeningInput.placeholder = 'Listening… speak now';
+                listeningInput.placeholder = "Listening… speak now";
             } else {
-                listeningInput.placeholder = 'Type your question...';
+                listeningInput.placeholder = "Type your question...";
             }
         }
     }
@@ -312,17 +457,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function startListening(block, btn) {
         const rec = getRecognition();
         if (!rec) {
-            flash('Voice input is not supported in this browser.', 'warning');
+            flash("Voice input is not supported in this browser.", "warning");
             return;
         }
 
-        const input = block.querySelector('.gina-input');
+        const input = block.querySelector(".gina-input");
         if (!input) return;
 
         listeningBlock = block;
         listeningBtn = btn;
         listeningInput = input;
-        baseInputValue = input.value || '';
+        baseInputValue = input.value || "";
 
         try {
             rec.start();
@@ -336,6 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             recognition.stop();
         } catch (_) {
+            // ignore
         }
     }
 
@@ -344,26 +490,26 @@ document.addEventListener('DOMContentLoaded', () => {
         // Stop any voice capture
         stopListening();
 
-        historyHost.innerHTML = '';
-        latestHost.innerHTML = '';
+        historyHost.innerHTML = "";
+        latestHost.innerHTML = "";
 
         // Restore splash
-        let splashNode = document.getElementById('gina-splash');
+        let splashNode = document.getElementById("gina-splash");
         if (!splashNode) {
-            splashNode = document.createElement('div');
-            splashNode.id = 'gina-splash';
-            splashNode.className = 'gina-splash';
-            splashNode.textContent = 'Hello! I am GINA!';
+            splashNode = document.createElement("div");
+            splashNode.id = "gina-splash";
+            splashNode.className = "gina-splash";
+            splashNode.textContent = "Hello! I am GINA!";
             getSplashHost().appendChild(splashNode);
         } else {
-            splashNode.classList.remove('hide');
-            splashNode.dataset.hidden = '0';
+            splashNode.classList.remove("hide");
+            splashNode.dataset.hidden = "0";
         }
 
         // Reset transient state
         isProcessing = false;
-        currentQuestion = '';
-        currentAnswer = '';
+        currentQuestion = "";
+        currentAnswer = "";
         activeBlock = null;
 
         // Inject fresh composer
@@ -372,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         enable_interactions($(latestHost));
 
         const block = await waitForRenderedBlock(firstId, 8000);
-        const firstInput = block.querySelector('.gina-input');
+        const firstInput = block.querySelector(".gina-input");
         if (firstInput) {
             firstInput.focus();
             autoSize(firstInput);
@@ -383,28 +529,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Visibility toggle ----------------------------------------------------
     if (ginaButton) {
-        ginaButton.addEventListener('click', () => {
-            const open = ginaContainer.classList.contains('active');
+        ginaButton.addEventListener("click", () => {
+            const open = ginaContainer.classList.contains("active");
             if (!open) {
                 resetConversation();
-                mainContent?.classList.add('hidden');
-                ginaContainer.classList.add('active', 'mode-floating');
-                ginaButtonGroup?.classList.add('gina-active');
+                mainContent?.classList.add("hidden");
+                ginaContainer.classList.add("active", "mode-floating");
+                ginaButtonGroup?.classList.add("gina-active");
                 setNavbarOffsetVar();
                 requestAnimationFrame(checkDocking);
-                const firstInput = ginaContainer.querySelector('.gina-input');
+                const firstInput = ginaContainer.querySelector(".gina-input");
                 setTimeout(() => {
                     if (firstInput) {
                         firstInput.focus();
                         autoSize(firstInput);
                     }
                 }, 200);
-
             } else {
-                ginaContainer.classList.remove('active', 'mode-floating', 'mode-docked');
-                ginaButtonGroup?.classList.remove('gina-active');
-                mainContent?.classList.remove('collapsed');
-                setTimeout(() => mainContent?.classList.remove('hidden'), 0);
+                ginaContainer.classList.remove("active", "mode-floating", "mode-docked");
+                ginaButtonGroup?.classList.remove("gina-active");
+                mainContent?.classList.remove("collapsed");
+                setTimeout(() => mainContent?.classList.remove("hidden"), 0);
             }
         });
     }
@@ -413,15 +558,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function setProcessingState(v) {
         isProcessing = v;
         if (activeBlock) {
-            const input = activeBlock.querySelector('.gina-input');
-            const btn = activeBlock.querySelector('.gina-send-btn');
+            const input = activeBlock.querySelector(".gina-input");
+            const btn = activeBlock.querySelector(".gina-send-btn");
             if (input) {
                 if (v) {
-                    input.classList.add('locked');
-                    input.setAttribute('readonly', 'readonly');
+                    input.classList.add("locked");
+                    input.setAttribute("readonly", "readonly");
                 } else {
-                    input.classList.remove('locked');
-                    input.removeAttribute('readonly');
+                    input.classList.remove("locked");
+                    input.removeAttribute("readonly");
                 }
             }
             if (btn) btn.disabled = v;
@@ -443,48 +588,41 @@ document.addEventListener('DOMContentLoaded', () => {
         clearProcessingGuard();
         __processingGuardTimer = setTimeout(() => {
             try {
-                console.warn('GINA: unlocking input after timeout safeguard.');
+                console.warn("GINA: unlocking input after timeout safeguard.");
                 clearProcessingGuard();
                 setProcessingState(false);
                 checkDocking();
-                const locked = document.querySelector('.gina-input.locked') || document.querySelector('#gina-latest .gina-input[readonly]');
+                const locked = document.querySelector(".gina-input.locked") || document.querySelector("#gina-latest .gina-input[readonly]");
                 if (locked) {
-                    locked.removeAttribute('readonly');
-                    locked.classList.remove('locked');
+                    locked.removeAttribute("readonly");
+                    locked.classList.remove("locked");
                 }
             } catch (err) {
-                console.warn('GINA: processing guard error:', err);
+                console.warn("GINA: processing guard error:", err);
             }
         }, 30000);
     }
 
     function toggleSendButtonFor(block) {
         if (!block) return;
-        const input = block.querySelector('.gina-input');
-        const sendContainer = block.querySelector('.gina-send-container');
+        const input = block.querySelector(".gina-input");
+        const sendContainer = block.querySelector(".gina-send-container");
         if (!input || !sendContainer) return;
         const hasText = input.value.trim().length > 0;
-        if (hasText && !isProcessing && !input.hasAttribute('readonly')) {
-            sendContainer.classList.add('show');
+        if (hasText && !isProcessing && !input.hasAttribute("readonly")) {
+            sendContainer.classList.add("show");
         } else {
-            sendContainer.classList.remove('show');
+            sendContainer.classList.remove("show");
         }
     }
 
     function syncMainCollapse() {
-        const docked = ginaContainer.classList.contains('mode-docked');
+        const docked = ginaContainer.classList.contains("mode-docked");
         if (docked) {
-            mainContent?.classList.add('collapsed');
+            mainContent?.classList.add("collapsed");
         } else {
-            mainContent?.classList.remove('collapsed');
+            mainContent?.classList.remove("collapsed");
         }
-    }
-
-    // *** IMPORTANT: only use #conversation_socket for the kernel ***
-    function findKernelId() {
-        const el = document.getElementById('conversation_socket');
-        const kid = el && el.getAttribute('task_kernel_id');
-        return kid || null;
     }
 
     function waitForRenderedBlock(blockId, timeoutMs = 8000) {
@@ -494,11 +632,11 @@ document.addEventListener('DOMContentLoaded', () => {
             function tryFind() {
                 const block = ginaContainer.querySelector(`#gina-block-${blockId}.gina-block`);
                 const ready = block &&
-                    block.querySelector('.gina-input') &&
-                    block.querySelector('.gina-send-btn') &&
-                    block.querySelector('.gina-output') &&
-                    block.querySelector('.gina-output-container') &&
-                    block.querySelector('.gina-mic-btn');
+                    block.querySelector(".gina-input") &&
+                    block.querySelector(".gina-send-btn") &&
+                    block.querySelector(".gina-output") &&
+                    block.querySelector(".gina-output-container") &&
+                    block.querySelector(".gina-mic-btn");
                 if (ready) {
                     resolve(block);
                     return true;
@@ -512,28 +650,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     mo.disconnect();
                 } else if (Date.now() > endAt) {
                     mo.disconnect();
-                    reject(new Error('Timeout waiting for block to render'));
+                    reject(new Error("Timeout waiting for block to render"));
                 }
             });
-            mo.observe(ginaContainer, {childList: true, subtree: true});
+            mo.observe(ginaContainer, { childList: true, subtree: true });
             setTimeout(() => {
                 mo.disconnect();
-                if (!tryFind()) reject(new Error('Timeout waiting for block to render'));
+                if (!tryFind()) reject(new Error("Timeout waiting for block to render"));
             }, timeoutMs);
         });
     }
 
     function nextBlockId() {
-        const last = [...ginaContainer.querySelectorAll('.gina-block')].pop()?.id;
+        const last = [...ginaContainer.querySelectorAll(".gina-block")].pop()?.id;
         if (!last) return 1;
         const m = String(last).match(/(\d+)$/);
         return m ? (parseInt(m[1], 10) + 1) : 1;
     }
 
     function buildPlaceholder(blockId) {
-        const ph = document.createElement('div');
-        ph.className = 'clarama-post-embedded clarama-replaceable';
-        ph.setAttribute('url', `/template/render/explorer/files/gina_conversation_block?block_id=${blockId}`);
+        const ph = document.createElement("div");
+        ph.className = "clarama-post-embedded clarama-replaceable";
+        ph.setAttribute("url", `/template/render/explorer/files/gina_conversation_block?block_id=${blockId}`);
         return ph;
     }
 
@@ -544,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
         enable_interactions($(latestHost));
         try {
             const block = await waitForRenderedBlock(blockId, 8000);
-            const input = block.querySelector('.gina-input');
+            const input = block.querySelector(".gina-input");
             if (input) {
                 input.focus();
                 autoSize(input);
@@ -552,8 +690,8 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleSendButtonFor(block);
             checkDocking();
         } catch (err) {
-            console.error('GINA: failed to render next conversation block:', err);
-            flash('Failed to load the next conversation block. Please try again.', 'danger');
+            console.error("GINA: failed to render next conversation block:", err);
+            flash("Failed to load the next conversation block. Please try again.", "danger");
         }
     }
 
@@ -566,12 +704,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function finalizeBlockAfterError(forBlock, message) {
         // Ensure output is visible and styled
-        const outContainer = forBlock?.querySelector('.gina-output-container');
-        const out = forBlock?.querySelector('.gina-output');
-        if (outContainer) outContainer.style.display = 'block';
+        const outContainer = forBlock?.querySelector(".gina-output-container");
+        const out = forBlock?.querySelector(".gina-output");
+        if (outContainer) outContainer.style.display = "block";
         if (out) {
-            out.classList.remove('loading');
-            out.style.whiteSpace = 'pre-wrap';
+            out.classList.remove("loading");
+            out.style.whiteSpace = "pre-wrap";
             out.innerHTML = `<span style="color:#ff6b6b;">${message}</span>`;
         }
 
@@ -584,104 +722,28 @@ document.addEventListener('DOMContentLoaded', () => {
         spawnNextConversationTemplate();
     }
 
-    // --- Kernel call ----------------------------------------------------------
-    function runQuestionThroughKernel(questionText, forBlock) {
-        get_field_values({}, true, function (field_registry) {
-            field_registry['clarama_task_kill'] = false;
-
-            const task_kernel_id = findKernelId();
-            if (!task_kernel_id) {
-                const msg = 'Unable to find a running kernel. Please open any task/session first.';
-                console.error('GINA:', msg);
-                flash(msg, 'danger');
-                if (forBlock) finalizeBlockAfterError(forBlock, `Error: ${msg}`);
-                return;
-            }
-
-            const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-            const task_registry = {
-                streams: [{main: [{source: questionText, type: 'question'}]}],
-                parameters: field_registry
-            };
-
-            $.ajax({
-                type: 'POST',
-                url,
-                datatype: 'html',
-                contentType: 'application/json',
-                data: JSON.stringify(task_registry),
-                success: function (data) {
-                    if (data && data['data'] === 'ok') {
-                        // WebSocket will deliver the response
-                        return;
-                    }
-                    const err = (data && data['error']) ? data['error'] : 'An error occurred while processing your question.';
-                    flash("Couldn't process question: " + err, 'danger');
-                    if (forBlock) finalizeBlockAfterError(forBlock, `Error: ${err}`);
-                },
-                error: function () {
-                    flash("Couldn't process question, network or access issue", 'danger');
-                    if (forBlock) finalizeBlockAfterError(forBlock, 'Error: network or access issue');
-                }
-            });
-        });
-    }
-
-
-    function setInputsEnabled(enabled, placeholderText = 'Type your question...') {
-        const inputs = ginaContainer.querySelectorAll('.gina-input');
-        inputs.forEach(inp => {
+    function setInputsEnabled(enabled, placeholderText = "Type your question...") {
+        const inputs = ginaContainer.querySelectorAll(".gina-input");
+        inputs.forEach((inp) => {
             if (enabled) {
-                inp.removeAttribute('readonly');
-                inp.classList.remove('locked');
-                inp.placeholder = 'Type your question...';
+                inp.removeAttribute("readonly");
+                inp.classList.remove("locked");
+                inp.placeholder = "Type your question...";
             } else {
-                inp.setAttribute('readonly', 'readonly');
-                inp.classList.add('locked');
-                inp.placeholder = placeholderText || 'GINA is getting ready...';
+                inp.setAttribute("readonly", "readonly");
+                inp.classList.add("locked");
+                inp.placeholder = placeholderText || "GINA is getting ready...";
             }
             autoSize(inp);
         });
-        const sendBtns = ginaContainer.querySelectorAll('.gina-send-btn');
-        sendBtns.forEach(btn => btn.disabled = !enabled);
+        const sendBtns = ginaContainer.querySelectorAll(".gina-send-btn");
+        sendBtns.forEach((btn) => btn.disabled = !enabled);
     }
-
-    /** Lock now, and keep locking future inputs that appear while we're waiting. */
-    function lockCurrentAndFutureInputs(lock, placeholderText) {
-        setInputsEnabled(!lock, placeholderText);
-        if (lock) {
-            if (__lockObserver) __lockObserver.disconnect();
-            __lockObserver = new MutationObserver(muts => {
-                muts.forEach(m => {
-                    m.addedNodes.forEach(n => {
-                        if (n.nodeType !== 1) return;
-                        const inputs = n.matches?.('.gina-input') ? [n] : n.querySelectorAll?.('.gina-input');
-                        if (!inputs || !inputs.length) return;
-                        inputs.forEach(inp => {
-                            inp.setAttribute('readonly', 'readonly');
-                            inp.classList.add('locked');
-                            inp.placeholder = placeholderText || 'GINA is getting ready...';
-                            autoSize(inp);
-                            const btn = inp.closest('.gina-block')?.querySelector('.gina-send-btn');
-                            if (btn) btn.disabled = true;
-                        });
-                    });
-                });
-            });
-            __lockObserver.observe(ginaContainer, {childList: true, subtree: true});
-        } else {
-            if (__lockObserver) {
-                __lockObserver.disconnect();
-                __lockObserver = null;
-            }
-        }
-    }
-
 
     const __ginaObserver = new MutationObserver((mutations) => {
         for (const m of mutations) {
             for (const n of m.addedNodes) {
-                if (n && n.nodeType === 1 && n.classList && n.classList.contains('assistant')) {
+                if (n && n.nodeType === 1 && n.classList && n.classList.contains("assistant")) {
                     clearProcessingGuard();
                     setProcessingState(false);
                     checkDocking();
@@ -689,24 +751,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    __ginaObserver.observe(historyHost, {childList: true, subtree: true});
+    __ginaObserver.observe(historyHost, { childList: true, subtree: true });
 
-    // --- Delegated events (latest + history) ----------------------------------
-    ginaContainer.addEventListener('input', (e) => {
-        if (!e.target.matches('.gina-input')) return;
+    // --- Delegated events (latest + history) ---------------------------------
+    ginaContainer.addEventListener("input", (e) => {
+        if (!e.target.matches(".gina-input")) return;
         autoSize(e.target);
         checkDocking();
-        toggleSendButtonFor(e.target.closest('.gina-block'));
+        toggleSendButtonFor(e.target.closest(".gina-block"));
     });
 
-
     // Clicks (mic + send)
-    ginaContainer.addEventListener('click', (e) => {
+    ginaContainer.addEventListener("click", (e) => {
         // Mic toggle
-        const micBtn = e.target.closest('.gina-mic-btn');
+        const micBtn = e.target.closest(".gina-mic-btn");
         if (micBtn && !isProcessing) {
-            if (waitingForAiUserInput) return; // locked during handshake
-            const block = micBtn.closest('.gina-block');
+            if (window.waitingForAiUserInput) return; // locked during handshake
+            const block = micBtn.closest(".gina-block");
             if (isListening && block === listeningBlock) {
                 stopListening();
             } else {
@@ -716,18 +777,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Send
-        const btn = e.target.closest('.gina-send-btn');
+        const btn = e.target.closest(".gina-send-btn");
         if (!btn || isProcessing || btn.disabled) return;
 
-        const block = btn.closest('.gina-block');
-        const inputWrapper = block.querySelector('.gina-input-wrapper');
-        const input = block.querySelector('.gina-input');
-        const outContainer = block.querySelector('.gina-output-container');
-        const out = block.querySelector('.gina-output');
+        const block = btn.closest(".gina-block");
+        const inputWrapper = block.querySelector(".gina-input-wrapper");
+        const input = block.querySelector(".gina-input");
+        const outContainer = block.querySelector(".gina-output-container");
+        const out = block.querySelector(".gina-output");
 
-        if (waitingForAiUserInput || input?.hasAttribute('readonly')) return; // locked
+        if (input?.hasAttribute("readonly")) return; // locked
 
-        const msg = (input?.value ?? '').trim();
+        const msg = (input?.value ?? "").trim();
         if (!msg) return;
 
         hideSplash(true);
@@ -736,35 +797,46 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isListening) stopListening();
 
         // Expand fully so the full message height is captured, then render bubble
-        autoSize(input, {expandFully: true});
+        autoSize(input, { expandFully: true });
 
-        const userBubble = document.createElement('div');
-        userBubble.className = 'gina-msg user';
+        const userBubble = document.createElement("div");
+        userBubble.className = "gina-msg user";
         userBubble.textContent = msg;               // textContent guards against HTML injection
-        inputWrapper.classList.add('finalized');    // flips wrapper to flex/right in CSS
-        inputWrapper.innerHTML = '';
+        inputWrapper.classList.add("finalized");    // flips wrapper to flex/right in CSS
+        inputWrapper.innerHTML = "";
         inputWrapper.appendChild(userBubble);
 
-        block.classList.add('chat-mode');           // enable bubble layout for this block
+        block.classList.add("chat-mode");           // enable bubble layout for this block
 
         // Lock + show output + begin processing
         currentQuestion = msg;
-        block.classList.add('processing');
+        block.classList.add("processing");
         activeBlock = block;
 
         btn.disabled = true;
-        outContainer.style.display = 'block';
-        out.classList.add('loading');
-        out.textContent = 'Processing your question...';
+        outContainer.style.display = "block";
+        out.classList.add("loading");
+        out.textContent = "Processing your question...";
 
-        block.querySelector('.gina-send-container')?.classList.remove('show');
+        block.querySelector(".gina-send-container")?.classList.remove("show");
 
         setProcessingState(true);
         startProcessingGuard();
         runQuestionThroughKernel(msg, block);
     });
 
-    // --- Helpers for saving --------------------------------------------------
+    ginaContainer.addEventListener("keydown", (e) => {
+        if (!e.target.matches(".gina-input")) return;
+        // Send on Enter, but allow Shift+Enter for new lines
+        if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            e.preventDefault();
+            const block = e.target.closest(".gina-block");
+            const btn = block?.querySelector(".gina-send-btn");
+            if (btn && !btn.disabled) btn.click();
+        }
+    });
+
+    // --- Helpers for saving ---------------------------------------------------
     let savedConversationPath = null;
     let savedConversationTitle = null;
 
@@ -773,64 +845,64 @@ document.addEventListener('DOMContentLoaded', () => {
         const turns = [];
 
         // 1) All completed blocks in history
-        const blocks = [...historyHost.querySelectorAll('.gina-block')];
+        const blocks = [...historyHost.querySelectorAll(".gina-block")];
         for (const b of blocks) {
-            const q = b.querySelector('.gina-msg.user')?.textContent?.trim();
-            const a = b.querySelector('.gina-output')?.textContent?.trim();
-            if (q) turns.push({role: 'user', content: q});
-            if (a) turns.push({role: 'assistant', content: a});
+            const q = b.querySelector(".gina-msg.user")?.textContent?.trim();
+            const a = b.querySelector(".gina-output")?.textContent?.trim();
+            if (q) turns.push({ role: "user", content: q });
+            if (a) turns.push({ role: "assistant", content: a });
         }
 
         // 2) Also include the latest block if it's in chat mode
-        const latest = latestHost.querySelector('.gina-block.chat-mode');
+        const latest = latestHost.querySelector(".gina-block.chat-mode");
         if (latest) {
-            const q = latest.querySelector('.gina-msg.user')?.textContent?.trim();
-            const a = latest.querySelector('.gina-output')?.textContent?.trim();
+            const q = latest.querySelector(".gina-msg.user")?.textContent?.trim();
+            const a = latest.querySelector(".gina-output")?.textContent?.trim();
             if (q) {
-                turns.push({role: 'user', content: q});
-                if (a) turns.push({role: 'assistant', content: a});
+                turns.push({ role: "user", content: q });
+                if (a) turns.push({ role: "assistant", content: a });
             }
         }
         return turns;
     }
 
     // Slug from first message (used only on first save)
-    function slugify(s, fallback = 'conversation') {
-        const slug = (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    function slugify(s, fallback = "conversation") {
+        const slug = (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
         return slug || fallback;
     }
 
     async function ensureConversationsFolder(username) {
         const url = `/render/new/Users/${encodeURIComponent(username)}/?` +
-            `new_content=${encodeURIComponent('conversations')}&` +
-            `new_content_type=${encodeURIComponent('folder')}`;
+            `new_content=${encodeURIComponent("conversations")}&` +
+            `new_content_type=${encodeURIComponent("folder")}`;
         execute_json_url(url, false);
     }
 
     // --- Save current chat as a conversation file  ----
-    ginaSaveBtn?.addEventListener('click', async (e) => {
+    ginaSaveBtn?.addEventListener("click", async (e) => {
         e.preventDefault();
 
         const turns = collectConversationTurns();
         if (turns.length === 0) {
-            flash('No conversation to save', 'warning');
+            flash("No conversation to save", "warning");
             return;
         }
 
-        const username = $('#currentUser').attr('username');
+        const username = $("#currentUser").attr("username");
         await ensureConversationsFolder(username);
 
         if (!savedConversationPath) {
-            const firstUserTurn = turns.find(t => t.role === 'user')?.content || 'Conversation';
+            const firstUserTurn = turns.find((t) => t.role === "user")?.content || "Conversation";
             savedConversationTitle = slugify(firstUserTurn.slice(0, 60));
             const createUrl = `/render/new/Users/${encodeURIComponent(username)}/conversations/` +
                 `?new_content=${encodeURIComponent(savedConversationTitle)}&` +
-                `new_content_type=${encodeURIComponent('conversation')}`;
+                `new_content_type=${encodeURIComponent("conversation")}`;
             try {
                 execute_json_url(createUrl, false);
-                flash('Coversation file saved', 'success');
+                flash("Conversation file saved", "success");
             } catch (_) {
-                flash('Could not save conversation', 'danger');
+                flash("Could not save conversation", "danger");
             }
         }
     });
@@ -840,24 +912,33 @@ document.addEventListener('DOMContentLoaded', () => {
         checkDocking();
         if (historyCount() > 0) hideSplash(false);
 
-        const hasActive = latestHost.querySelector('.gina-block');
+        const hasActive = latestHost.querySelector(".gina-block");
         if (!hasActive) {
             const blockId = 1;
             latestHost.appendChild(buildPlaceholder(blockId));
             enable_interactions($(latestHost));
         } else {
-            const input = latestHost.querySelector('.gina-input');
+            const input = latestHost.querySelector(".gina-input");
             if (input) {
                 autoSize(input);
-                toggleSendButtonFor(input.closest('.gina-block'));
+                toggleSendButtonFor(input.closest(".gina-block"));
             }
         }
         stickHistoryToBottom();
     })();
 
     // Keep scroller/height feeling right on viewport changes
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
         checkDocking();
         if (historyCount() > 0) stickHistoryToBottom();
     });
+
+    // Expose helpers for websocket callbacks
+    window.__ginaSetInputsEnabled = setInputsEnabled;
+    window.__ginaClearProcessingGuard = clearProcessingGuard;
+    window.__ginaSetProcessingState = setProcessingState;
+    window.__ginaMoveBlockToHistory = moveBlockToHistory;
+    window.__ginaSpawnNext = spawnNextConversationTemplate;
+    window.__ginaFinalizeBlockAfterError = finalizeBlockAfterError;
+    window.__ginaCheckDocking = checkDocking;
 });

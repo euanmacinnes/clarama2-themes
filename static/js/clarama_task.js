@@ -24,9 +24,10 @@ function get_url(url, field_registry) {
 
 function html_decode(input) {
     input = input.replaceAll('&quot;', '"');
-    input = input.replaceAll('&amp;', '&');
     input = input.replaceAll('&lt;', '<');
     input = input.replaceAll('&gt;', '>');
+    input = input.replaceAll('&#x27;', "'");
+    input = input.replaceAll('&amp;', '&');
     return input;
 }
 
