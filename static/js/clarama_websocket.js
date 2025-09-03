@@ -224,9 +224,9 @@ function executeTask(embedded, task_url, socket_id, autorun) {
         .then((task_response) => {
 
             // console.log(JSON.stringify(task_response, null, 2));
-            let kernel_id = task_response['results']['kernel_id']
-            let task_environment = task_response['results']['environment_name']
-            let environment_file = task_response['results']['environment']
+            let kernel_id = task_response['results']['kernel_id'];
+            let task_environment = task_response['results']['environment_name'];
+            let environment_file = task_response['results']['environment'];
 
             embedded.attr('task_kernel_id', kernel_id);
             console.log("CLARAMA_WEBSOCKET.js: EXECUTE TASK " + task_url + " connected to kernel " + kernel_id)
@@ -239,13 +239,13 @@ function executeTask(embedded, task_url, socket_id, autorun) {
                 window[kernel_ready](kernel_id, task_environment, environment_file);
             }
 
-            $("#kernel_status").html(kernel_id);
+            $("#kernel_status:not([gina])").html(kernel_id);
             $("#environment").html(task_environment);
             $(".environments").removeClass('active');
             $(active_selector).addClass('active');
 
             if (autorun === 'True') {
-                _task_run(socket_id)
+                _task_run(socket_id);
             }
         })
         .catch((error) => {
