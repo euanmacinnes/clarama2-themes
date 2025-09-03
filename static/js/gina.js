@@ -12,10 +12,13 @@ function gina_kernel_registered(kernel_id) {
     // The kernel ID is automatically inserted as HTML into a DIV called "kernel_status" if it is present on screen.
     // Class the div accordingly
 
-    // So all we need to do here is a blank question
-
     // i guess it keeps sending the blank until it receives the 'ai_user_input' handshake
     if (window.__ginaHandshakeDone || window.__ginaHandshakeSent) return;
+    const container = document.getElementById("gina-chat-container");
+    if (!container || !container.classList.contains("active")) {
+        // Defer: will be triggered on first open click
+        return;
+    }
     window.__ginaHandshakeSent = true;
     console.log("sending blank");
     runQuestionThroughKernel("");
@@ -44,11 +47,12 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         const container = document.getElementById("gina-chat-container");
 
         // If there is NO block currently processing, this is a system/welcome reply.
-        // Show it once, then ignore duplicates.
         const hasProcessing = !!container?.querySelector("#gina-latest .gina-block.processing");
         if (!hasProcessing) {
             if (window.__ginaWelcomeShown) return;
             window.__ginaWelcomeShown = true;
+            window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+            return;
         }
 
         let block =
@@ -57,7 +61,6 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
             container?.querySelector("#gina-conversations .gina-block.processing") ||
             container?.querySelector("#gina-latest .gina-block.chat-mode");
 
-        // If we still didn’t find a target, it’s likely a system/welcome message:
         if (!block) {
             block = container?.querySelector("#gina-latest .gina-block");
         }
@@ -169,6 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ginaContainer = document.getElementById("gina-chat-container");
     const ginaButtonGroup = document.querySelector(".gina-button-group");
     const ginaSaveBtn = document.querySelector(".gina-save-btn");
+    const ginaNewChatBtn = document.querySelector(".gina-new-chat-btn");
     const historyHost = document.getElementById("gina-conversations");
     const latestHost = document.getElementById("gina-latest");
 
@@ -530,9 +534,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Visibility toggle ----------------------------------------------------
     if (ginaButton) {
         ginaButton.addEventListener("click", () => {
+            if (!window.__ginaHandshakeDone && !window.__ginaHandshakeSent) {
+                window.__ginaHandshakeSent = true;
+                window.waitingForAiUserInput = true;
+                window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(false, "GINA is getting ready...");
+                runQuestionThroughKernel("");
+            }
             const open = ginaContainer.classList.contains("active");
             if (!open) {
-                resetConversation();
                 mainContent?.classList.add("hidden");
                 ginaContainer.classList.add("active", "mode-floating");
                 ginaButtonGroup?.classList.add("gina-active");
@@ -879,6 +888,25 @@ document.addEventListener("DOMContentLoaded", () => {
         execute_json_url(url, false);
     }
 
+    ginaNewChatBtn?.addEventListener("click", async (e) => {
+        e.preventDefault();
+      
+        // Force floating mode
+        ginaContainer.classList.add("active", "mode-floating");
+        ginaContainer.classList.remove("mode-docked");
+      
+        // Hide & collapse the page content while floating
+        mainContent?.classList.add("hidden", "collapsed");
+      
+        // Ensure CSS vars and layout are up to date
+        setNavbarOffsetVar();
+        requestAnimationFrame(checkDocking);
+      
+        await resetConversation();
+        const firstInput = document.querySelector("#gina-latest .gina-input");
+        if (firstInput) firstInput.focus();
+    });
+
     // --- Save current chat as a conversation file  ----
     ginaSaveBtn?.addEventListener("click", async (e) => {
         e.preventDefault();
@@ -925,6 +953,26 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         stickHistoryToBottom();
+    })();
+
+    // --- Ensure splash is visible on first load ------------------------------
+    (function ensureSplashOnFirstLoad() {
+        try {
+            const hasHistory = (typeof historyCount === 'function') ? (historyCount() > 0) : false;
+            const existing = document.getElementById("gina-splash");
+            if (!hasHistory && !existing) {
+                const node = document.createElement("div");
+                node.id = "gina-splash";
+                node.className = "gina-splash";
+                node.textContent = "Hello! I am GINA!";
+                const host = (typeof getSplashHost === 'function')
+                    ? getSplashHost()
+                    : document.querySelector("#gina-chat-container .gina-controls") || document.getElementById("gina-chat-container");
+                host && host.appendChild(node);
+            }
+        } catch (e) {
+            console.warn("GINA: could not ensure splash on first load:", e);
+        }
     })();
 
     // Keep scroller/height feeling right on viewport changes
