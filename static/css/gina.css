@@ -82,7 +82,8 @@
 /* Controls */
 .gina-controls { margin: 10px 0; }
 
-.gina-save-btn {
+.gina-button {
+    padding-right: inherit;
     background-color: transparent;
     border: none;
     font-size: 1.2rem;
@@ -387,3 +388,4 @@
     transform: none !important;
     transition: opacity .25s ease;
 }
+
