@@ -243,7 +243,9 @@ function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
 
             if (kernel_status !== undefined) {
                 $("#" + kernel_status).html(kernel_id);
-                $("#environment").html(task_environment);
+
+                if (!kernel_status.includes('gina'))
+                    $("#environment").html(task_environment);
             }
             $(".environments").removeClass('active');
             $(active_selector).addClass('active');
