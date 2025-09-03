@@ -92,6 +92,11 @@
     transition: color 0.3s ease, transform 0.2s ease;
 }
 
+.gina-button:hover {
+    scale: 1.05;
+    transform: translateY(-1px);
+}
+
 .gina-conversations {
     flex: 0 1 auto;
     min-height: 0;
