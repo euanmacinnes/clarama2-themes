@@ -19,6 +19,11 @@
 {% if not chart['series-formats'] is defined %}
     {% do chart.update({'series-formats': [{}]}) %}
 {% endif %}
+
+<!-- chart3d -->
+{% if not chart3d is defined %}
+    {% set chart3d={'title': '', 'subtitle': '', 'legend': 'Off', 'xaxis-type': 'category'} %}
+{% endif %}
 {% if not chart3d['series-objects'] is defined %}
     {% do chart3d.update({'series-objects': [{}]}) %}
 {% endif %}
