@@ -367,6 +367,8 @@ function datacell_setOutput(id_template, value, Options) {
 
         $('#' + id_template + '_chart').removeClass('btn-primary');
         $('#' + id_template + '_chart').addClass('btn-secondary');
+        $('#' + id_template + '_chart3d').removeClass('btn-primary');
+        $('#' + id_template + '_chart3d').addClass('btn-secondary');
         $('#' + id_template + '_code').removeClass('btn-primary');
         $('#' + id_template + '_code').addClass('btn-secondary');
     } else if (value == 'chart') {
@@ -374,10 +376,21 @@ function datacell_setOutput(id_template, value, Options) {
         $('#' + id_template + '_code').removeClass('btn-primary');
         $('#' + id_template + '_table').addClass('btn-secondary');
         $('#' + id_template + '_table').removeClass('btn-primary');
-
+        $('#' + id_template + '_chart3d').addClass('btn-secondary');
+        $('#' + id_template + '_chart3d').removeClass('btn-primary');
 
         $('#' + id_template + '_chart').addClass('btn-primary');
         $('#' + id_template + '_chart').removeClass('btn-secondary');
+    } else if (value == 'chart3d') {
+        $('#' + id_template + '_code').addClass('btn-secondary');
+        $('#' + id_template + '_code').removeClass('btn-primary');
+        $('#' + id_template + '_table').addClass('btn-secondary');
+        $('#' + id_template + '_table').removeClass('btn-primary');
+        $('#' + id_template + '_chart').addClass('btn-secondary');
+        $('#' + id_template + '_chart').removeClass('btn-primary');
+
+        $('#' + id_template + '_chart3d').addClass('btn-primary');
+        $('#' + id_template + '_chart3d').removeClass('btn-secondary');
     } else {
         $('#' + id_template + '_code').addClass('btn-primary');
         $('#' + id_template + '_code').removeClass('btn-secondary');
@@ -386,19 +399,26 @@ function datacell_setOutput(id_template, value, Options) {
         $('#' + id_template + '_table').removeClass('btn-primary');
         $('#' + id_template + '_chart').addClass('btn-secondary');
         $('#' + id_template + '_chart').removeClass('btn-primary');
+        $('#' + id_template + '_chart3d').addClass('btn-secondary');
+        $('#' + id_template + '_chart3d').removeClass('btn-primary');
     }
 
-    if (value === 'table' || value === 'code') {
-        // Close the accordion if 'table' or 'code' button is clicked
-        let accordion = document.getElementById('collapseOptions_' + Options);
+    if (value === 'chart3d' || value === 'table' || value === 'chart' || value === 'code') {
+        // Close the accordion if one of the buttons is clicked
+
+        // close the 3d chart options
+        let accordion = document.getElementById('collapseChart3dOptions_' + Options);
         let bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
         bsCollapse.hide();
-    }
-
-    if (value === 'chart' || value === 'code') {
-        // Close the accordion if 'table' or 'code' button is clicked
-        let accordion = document.getElementById('collapseTableOptions_' + Options);
-        let bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        
+        // close the chart options
+        accordion = document.getElementById('collapseChartOptions_' + Options);
+        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        bsCollapse.hide();
+        
+        // close the table options
+        accordion = document.getElementById('collapseTableOptions_' + Options);
+        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
         bsCollapse.hide();
     }
 }

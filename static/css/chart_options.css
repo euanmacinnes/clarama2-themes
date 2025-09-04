@@ -1,3 +1,8 @@
+.chart3d-col option {
+    background-color: #fff;
+    color: #000;
+}
+
 .chart-col option {
     background-color: #fff;
     color: #000;
@@ -34,6 +39,16 @@
     /* width: 120px; */
 }
 
+.color-picker-container .chart3d-col-picker {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 100%;
+    width: 14px;
+    padding: 0;
+    opacity: 0;
+}
+
 .color-picker-container .chart-col-picker {
     position: absolute;
     bottom: 0;
@@ -52,6 +67,11 @@
     width: 14px;
     padding: 0;
     opacity: 0;
+}
+
+.grid5-col-1 { /* Series Objects */
+    flex: 0 0 auto;
+    width: 19.6%; /* this is derived from (100-2)/5 because the last col (bin icon) i set width: 2% */
 }
 
 .grid9-col-1 { /* Series Formats */

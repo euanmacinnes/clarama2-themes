@@ -19,10 +19,14 @@
 {% if not chart['series-formats'] is defined %}
     {% do chart.update({'series-formats': [{}]}) %}
 {% endif %}
+{% if not chart3d['series-objects'] is defined %}
+    {% do chart3d.update({'series-objects': [{}]}) %}
+{% endif %}
 
 {% set seriesannos = chart.get('series-annos', [{}]) %}
 {% set seriesgroups = chart.get('series-groups', [{}]) %}
 {% set seriesformats = chart.get('series-formats', [{}]) %}
+{% set seriesobjects = chart3d.get('series-objects', [{}]) %}
 
 {% if not seriesannos %}
     {% set seriesannos = [{}] %}
@@ -32,6 +36,9 @@
 {% endif %}
 {% if not seriesformats %}
     {% set seriesformats = [{}] %}
+{% endif %}
+{% if not seriesobjects %}
+    {% set seriesobjects = [{}] %}
 {% endif %}
 
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
@@ -52,12 +59,20 @@
                                 <i class="bi bi-table"></i>
                             </button>
                             <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse" title="table configuration"
-                                    data-bs-target="#collapseOptions_{{ loop_index }}"
+                                    data-bs-target="#collapseChartOptions_{{ loop_index }}"
                                     aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
-                                    aria-controls="collapseOptions_{{ loop_index }}"
+                                    aria-controls="collapseChartOptions_{{ loop_index }}"
                                     class="btn rounded-0 {% if output=='chart' %}btn-primary{% else %}btn-secondary{% endif %}"
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
                                 <i class="bi bi-graph-up-arrow"></i>
+                            </button>
+                            <button id="task_step_{{ loop_index }}" type="button" data-bs-toggle="collapse" title="3D chart configuration"
+                                    data-bs-target="#collapseChart3dOptions_{{ loop_index }}"
+                                    aria-expanded="{% if output=='chart3d' %}true{% else %}false{% endif %}"
+                                    aria-controls="collapseChart3dOptions_{{ loop_index }}"
+                                    class="btn rounded-0 {% if output=='chart3d' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart3d', '{{ loop_index }}');">
+                                <i class="bi bi-box"></i>
                             </button>
                             <button id="task_step_{{ loop_index }}_code" type="button" title="data query"
                                     class="btn {% if output=='code' %}btn-primary{% else %}btn-secondary{% endif %}"
@@ -207,7 +222,7 @@
         </div>
     </div>
     <input id="task_step_{{ loop_index }}_output" type="hidden" value="{{ output or 'table' }}">
-    <div id="collapseOptions_{{ loop_index }}"
+    <div id="collapseChartOptions_{{ loop_index }}"
          class="accordion-collapse collapse bg-dark text-light {% if output=='chart' %}show{% endif %}">
         <div class="accordion-body" aria-labelledby="chart" style="padding: 8px;">
             <div class="container-fluid">
@@ -360,6 +375,31 @@
 
         </div>
     </div>
+    <!-- 3D CHART -->
+    <div id="collapseChart3dOptions_{{ loop_index }}"
+         class="accordion-collapse collapse bg-dark text-light {% if output=='chart3d' %}show{% endif %}">
+        <div class="accordion-body" aria-labelledby="chart3d" style="padding: 8px;">
+            <ul id="seriesObj{{ loop_index }}" class="list-group">
+                <label for="so{{ loop_index }}" class="form-label mb-2">
+                    Series Objects
+                    <i id="addSO{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                </label>
+                <div class="list-group-item d-flex row gx-2 align-items-center">
+                    <div class="grid5-col-1">Vertices</div>
+                    <div class="grid5-col-1">Indexes</div>
+                    <div class="grid5-col-1">UV</div>
+                    <div class="grid5-col-1">Colour</div>
+                    <div class="grid5-col-1">Primitive</div>
+                    <div style="width: 2%;"></div>
+                </div>
+                {% for sobject in seriesobjects %}
+                    {% with loop_index=loop_index, series_index=loop.index0 %}
+                        {% include theme("explorer/steps/data_edit_chart3d_series_object.html") %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
     <div id="content_chart_{{ loop_index }}">
 
     </div>
@@ -371,6 +411,7 @@
         console.log("data_edit.html Document Ready. JS loopIndex:", loopIndex);
 
         chart_options_initialize(loopIndex);
+        chart3d_options_initialize(loopIndex);
 
         $('[data-toggle="tooltip"]').tooltip('dispose');
 
@@ -459,8 +500,44 @@
                 });
             });
             
-            // Update series annotations tab dropdowns (including newly added ones)
+            // Update series annotations tab dropdowns
             $(`#seriesAnno${loopIndex} .anno-tab`).each(function() {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                $dropdown.empty();
+                
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+            
+            // Update series objects vertices dropdowns
+            $(`#seriesObj${loopIndex} .obj-vertices`).each(function() {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                $dropdown.empty();
+                
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+
+            // Update series objects indexes dropdowns
+            $(`#seriesObj${loopIndex} .obj-indexes`).each(function() {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                $dropdown.empty();
+                
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+
+            // Update series objects uv dropdowns
+            $(`#seriesObj${loopIndex} .obj-uv`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
                 $dropdown.empty();
@@ -487,6 +564,12 @@
         });
 
         $(document).on('click', `#addAN${loopIndex}`, function() {
+            setTimeout(() => {
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
+        });
+
+        $(document).on('click', `#addOS${loopIndex}`, function() {
             setTimeout(() => {
                 updateAllTabDropdowns(loopIndex);
             }, 200);
