@@ -11,25 +11,11 @@ function gina_kernel_registered(kernel_id) {
     // Trigger the blank question when Gina is opened, otherwise we are warming up the LLM on every single web page
     // The kernel ID is automatically inserted as HTML into a DIV called "kernel_status" if it is present on screen.
     // Class the div accordingly
-
-    // i guess it keeps sending the blank until it receives the 'ai_user_input' handshake
-    if (window.__ginaHandshakeDone || window.__ginaHandshakeSent) return;
-    const container = document.getElementById("gina-chat-container");
-    if (!container || !container.classList.contains("active")) {
-        // Defer: will be triggered on first open click
-        return;
-    }
-    window.__ginaHandshakeSent = true;
-    console.log("sending blank");
-    runQuestionThroughKernel("");
 }
 
 // THIS WILL BE CALLED ON MESSAGE RECEIVED TO PROCESS CUSTOM MESSAGES
 function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
     // the main websocket decodes the event as a dict straight away, so we can process it here
-
-    // set the gina kernel id visibly from the conversation socket
-    $('#kernel_status[gina="true"]').html(findKernelId());
 
     // 1) Handshake → unlock inputs
     if (dict && dict.type === "ai_user_input") {
@@ -118,7 +104,7 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
 }
 
 function findKernelId() {
-    return $('#conversation_socket').attr('task_kernel_id');
+    return $('#gina_socket').attr('task_kernel_id');
 }
 
 // --- Kernel call ----------------------------------------------------------
