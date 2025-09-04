@@ -22,7 +22,7 @@
 
 <!-- chart3d -->
 {% if not chart3d is defined %}
-    {% set chart3d={'title': '', 'subtitle': '', 'legend': 'Off', 'xaxis-type': 'category'} %}
+    {% set chart3d={'title': '', 'subtitle': '', 'legend': 'Off'} %}
 {% endif %}
 {% if not chart3d['series-objects'] is defined %}
     {% do chart3d.update({'series-objects': [{}]}) %}
@@ -384,6 +384,42 @@
     <div id="collapseChart3dOptions_{{ loop_index }}"
          class="accordion-collapse collapse bg-dark text-light {% if output=='chart3d' %}show{% endif %}">
         <div class="accordion-body" aria-labelledby="chart3d" style="padding: 8px;">
+            <div class="container-fluid">
+                <div class="d-flex align-items-center my-3">
+                    <label for="c3d{{ loop_index }}" class="form-label ps-0">Chart3D Title</label>
+                    <div class="col">
+                        <input type="string" class="form-control chart3d-title" id="c3d{{ loop_index }}" name="title"
+                               value="{% if chart3d is defined %}{{ chart3d['title'] }}{% endif %}">
+                    </div>
+
+                    <label for="lg3d{{ loop_index }}" class="form-label">Legend</label>
+                    <div class="col">
+                        {% set legend = 'Off' %}
+                        {% if chart3d is defined %}
+                            {% set legend = chart3d['legend'] %}
+                        {% endif %}
+                        <select id="lg3d{{ loop_index }}" class="form-control chart3d-legend">
+                            <option {{ selected("Off",legend) }}>Off</option>
+                            <option {{ selected("Left",legend) }}>Left</option>
+                            <option {{ selected("Right",legend) }}>Right</option>
+                            <option {{ selected("Top",legend) }}>Top</option>
+                            <option {{ selected("Bottom",legend) }}>Bottom</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chart3dYamlEditor"
+                            role="button" aria-expanded="false" aria-controls="chart3dYamlEditor">Advanced
+                    </button>
+                </div>
+            </div>
+
+            <div class="container-fluid mb-2 collapse" id="chart3dYamlEditor">
+                <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}"
+                     name="task_step_field_yaml_{{ loop_index }}"
+                     editor="yaml"
+                     class="source-editor form-control clarama-field-editor chart3d-advanced"
+                     celltype="code"
+                     style="min-height: 100px">{{  chart3d['advanced'] }}</div>
+            </div>
             <ul id="seriesObj{{ loop_index }}" class="list-group">
                 <label for="so{{ loop_index }}" class="form-label mb-2">
                     Series Objects
@@ -574,7 +610,7 @@
             }, 200);
         });
 
-        $(document).on('click', `#addOS${loopIndex}`, function() {
+        $(document).on('click', `#addSO${loopIndex}`, function() {
             setTimeout(() => {
                 updateAllTabDropdowns(loopIndex);
             }, 200);

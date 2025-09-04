@@ -134,11 +134,22 @@ function get_data_cell(cell) {
     // Chart advanced YAML
     var chart_advanced = cell.find('.chart-advanced');
     var editor = ace.edit(chart_advanced.attr('id'));
-    var advanced_yaml = editor.getValue();
+    var chart_advanced_yaml = editor.getValue();
 
     var chart_series_groups = [];
     var chart_series_formats = [];
     var chart_series_annos = [];
+
+    // Extract chart3d configuration
+    var chart3d_title = cell.find('.chart3d-title').val();
+    var chart3d_legend = cell.find('.chart3d-legend').val();
+
+    // Chart advanced YAML
+    var chart3d_advanced = cell.find('.chart3d-advanced');
+    var editor = ace.edit(chart3d_advanced.attr('id'));
+    var chart3d_advanced_yaml = editor.getValue();
+
+    var chart3d_series_objs = [];
 
     // Extract series groups
     var series_groups = cell.find('.chart-series-groups');
@@ -206,16 +217,39 @@ function get_data_cell(cell) {
         chart_series_annos.push(srs);
     });
 
+    // Extract series objects
+    var series_objs = cell.find('.chart3d-series-objects');
+    series_objs.each(function () {
+        console.log(this);
+        var $this = $(this);
+        var srs = {
+            'obj-vertices': $(this).find('.obj-vertices').val(),                                    // Input Vertices
+            'obj-indexes': $(this).find('.obj-indexes').val(),                                      // Input Indexes
+            'obj-uv': $(this).find('.obj-uv').val(),                                                // Input UV mapping
+            'obj-col': $(this).find('.chart3d-col').val(),                                          // colour
+            'obj-primitive': $(this).find('.obj-primitive').find('option:selected').attr('id'),     // primitive
+        };
+        console.log(srs);
+        chart3d_series_objs.push(srs);
+    });
+
     var chart = {
         'title': chart_title,
         'subtitle': chart_subtitle,
         'legend': chart_legend,
-        'advanced': advanced_yaml,
+        'advanced': chart_advanced_yaml,
         'xaxis-type': chart_xaxis_type,
         'series-groups': chart_series_groups,
         'series-formats': chart_series_formats,
         'series-annos': chart_series_annos
     };
+
+    var chart3d = {
+        'title': chart3d_title,
+        'legend': chart3d_legend,
+        'advanced': chart3d_advanced_yaml,
+        'series-objects': chart3d_series_objs
+    }
 
     var table = {
         'title': table_title,
@@ -247,6 +281,17 @@ function get_data_cell(cell) {
                 series_group["series-tab"] = tabCounter;
             }
         });
+        chart3d["series-objects"].forEach(function (series_object) {
+            if (series_object["series-vertices"] == currTabId) {
+                series_object["series-vertices"] = tabCounter;
+            }
+            if (series_object["series-indexes"] == currTabId) {
+                series_object["series-indexes"] = tabCounter;
+            }
+            if (series_object["series-uv"] == currTabId) {
+                series_object["series-uv"] = tabCounter;
+            }
+        });
 
         tab_data.tab_id = tabCounter;
         tabCounter++;
@@ -261,7 +306,8 @@ function get_data_cell(cell) {
         "output": output,
         "tabs": tabs_data,
         "table": table,
-        "chart": chart
+        "chart": chart,
+        "chart3d": chart3d
     };
 }
 
