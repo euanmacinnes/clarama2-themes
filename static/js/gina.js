@@ -12,16 +12,6 @@ function gina_kernel_registered(kernel_id) {
     // The kernel ID is automatically inserted as HTML into a DIV called "kernel_status" if it is present on screen.
     // Class the div accordingly
 
-    // i guess it keeps sending the blank until it receives the 'ai_user_input' handshake
-    if (window.__ginaHandshakeDone || window.__ginaHandshakeSent) return;
-    const container = document.getElementById("gina-chat-container");
-    if (!container || !container.classList.contains("active")) {
-        // Defer: will be triggered on first open click
-        return;
-    }
-    window.__ginaHandshakeSent = true;
-    console.log("sending blank");
-    runQuestionThroughKernel("");
 }
 
 // THIS WILL BE CALLED ON MESSAGE RECEIVED TO PROCESS CUSTOM MESSAGES
@@ -120,7 +110,7 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
 function findKernelId() {
     return $('#conversation_socket').attr('task_kernel_id');
 }
-  
+
 // --- Kernel call ----------------------------------------------------------
 function runQuestionThroughKernel(questionText, forBlock) {
     get_field_values({}, true, function (field_registry) {
