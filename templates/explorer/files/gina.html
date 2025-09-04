@@ -8,7 +8,7 @@
                 <i class="bi bi-plus-circle"></i>
             </button>              
             <div class="gina-splash-holder flex-grow-1 d-flex justify-content-center align-items-center"></div>
-            <button type="button" class="btn btn-secondary" id="kernel_status" gina="true"
+            <button type="button" class="btn btn-secondary" id="gina_kernel_status" gina="true"
                     style="background-color: rgba(159, 159, 159, 0.648);">Loading...
             </button>
         </div>
@@ -27,12 +27,13 @@
     <!-- GINA Kernel -->
     <div id="gina_socket" environment="{{ environment }}" class="clarama-websocket clarama-task"
          mode="run"
-         topic="{{ internal_topic }}"
+         topic="gina_new_{{ file_url }}"
          task="{{ file_url }}"
          task_kill="False"
          task=".conversation.yaml"
          task_new="True"
          task_type=".conversation.yaml"
+         kernel-status="gina_kernel_status"
          onkernel="gina_kernel_registered"
          onmessage="gina_kernel_message"
     >
