@@ -219,16 +219,23 @@ function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
             if (response.ok) {
                 console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " response " + response.status);
                 return response.json();
-            }
-            console.log(response);
+	    };
+            
+            console.error("ERROR calling", task_url, response);
             return Promise.reject(response);
         })
         .then((task_response) => {
+	    if (task_response['data'] == 'error')	
+                alert(task_response['error'] + ' on ' + task_url);
 
             // console.log(JSON.stringify(task_response, null, 2));
             let kernel_id = task_response['results']['kernel_id'];
             let task_environment = task_response['results']['environment_name'];
             let environment_file = task_response['results']['environment'];
+
+	    if (kernel_id === undefined)
+	       console.error('undefined kernel for ' + task_url, task_response); 
+
 
             embedded.attr('task_kernel_id', kernel_id);
             console.log("CLARAMA_WEBSOCKET.js: EXECUTE TASK " + task_url + " connected to kernel " + kernel_id)
