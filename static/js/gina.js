@@ -667,7 +667,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function buildPlaceholder(blockId) {
         const ph = document.createElement("div");
         ph.className = "clarama-post-embedded clarama-replaceable";
-        ph.setAttribute("url", `/template/render/explorer/files/gina_conversation_block?block_id=${blockId}`);
+        ph.setAttribute("url", `/template/render/web/gina_conversation_block?block_id=${blockId}`);
         return ph;
     }
 
