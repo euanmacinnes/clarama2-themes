@@ -32,7 +32,7 @@
                     <button id="editrun" type="button" class="btn btn-secondary kernel-play-button clarama-task-editrun"
                             socket="edit_socket" kill="False" title="play"><i
                             class="bi bi-play-fill h3"></i></button>
-                    <button type="button" class="btn btn-info" id="kernel_status" data-bs-toggle="tooltip"
+                    <button type="button" class="btn btn-info" id="edit-kernel-status" data-bs-toggle="tooltip"
                             data-bs-placement="bottom"
                             title="Unique Kernel ID within the Environment"> Loading...
                     </button>
@@ -143,6 +143,7 @@
 
 <div class="clarama-task">
     <div id="edit_socket" environment="{{ environment }}" class="clarama-websocket clarama-task"
+         kernel-status="edit-kernel-status"
          mode="edit"
          topic="{{ internal_topic }}"
          task="{{ file_url }}" task_kill="False"></div>

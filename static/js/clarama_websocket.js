@@ -10,7 +10,7 @@
  */
 function set_environment(environment) {
     flash("Changing environment to " + environment);
-    $('#kernel_status').html('Loading');
+    $('#edit-kernel-status').html('Loading');
     $('#environment').html('...');
 
     let socket_element = $("#edit_socket");
@@ -30,7 +30,7 @@ function set_environment(environment) {
  */
 function reset_environment(environment) {
     flash("Resetting environment to " + environment);
-    $('#kernel_status').html('Restarting..');
+    $('#edit-kernel-status').html('Restarting..');
     $('#environment').html('...');
     let socket_element = $("#edit_socket");
     socket_element.attr("environment", environment);
@@ -54,7 +54,7 @@ let socket_topics = ['clarama-systemwide'];
  * Requires an open task_active_socket.
  */
 function topic_subscribe() {
-    console.log("CLARAMA_WEBSOCKET.JS registering topics");
+    console.log("CLARAMA_WEBSOCKET.JS registering topics. This is universal for ALL socket divs, as there is only ONE actual websocket on the page");
     console.log(socket_topics);
     task_active_socket.send(JSON.stringify({topics: socket_topics}));
 }
@@ -66,7 +66,7 @@ function processTaskMessages() {
     topic_subscribe();
 
     socket_taskQueue.forEach(message => {
-        get_task(message.embedded, message.task_url, message.socket_id, message.autorun);
+        get_task(message.embedded, message.task_url, message.socket_id, message.autorun, message.kernel_status);
     });
     socket_taskQueue = [];
 }
@@ -80,7 +80,7 @@ function processTaskMessages() {
  * @param {string} socket_id - Id of the socket DOM element.
  * @param {string|boolean} autorun - Whether to auto-run the task when ready.
  */
-function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
+function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kernel_status) {
     if (socket_topics.indexOf(topic) === -1) {
         socket_topics.push(topic);
         console.log("CLARAMA_WEBSOCKET.js: TOPICS");
@@ -90,14 +90,14 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
     if (task_active_socket !== undefined)
         if (task_active_socket.readyState === WebSocket.OPEN) {
             task_active_socket.send(JSON.stringify({topics: socket_topics}));
-            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " executing");
-            get_task(embedded, task_url, socket_id, autorun);
+            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " executing");
+            get_task(embedded, task_url, socket_id, autorun, kernel_status);
             return;
         } else {
-            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " socket was not open");
+            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket was not open");
         }
     else {
-        console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " socket undefined, pushing on queue");
+        console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket undefined, pushing on queue");
     }
 
 
@@ -106,7 +106,8 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
         'embedded': embedded,
         'task_url': task_url,
         'socket_id': socket_id,
-        'autorun': autorun
+        'autorun': autorun,
+        'kernel_status': kernel_status,
     };
 
     socket_taskQueue.push(task_message);
@@ -123,8 +124,8 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun) {
  * @param {string} socket_id
  * @param {string|boolean} autorun
  */
-function get_task(embedded, task_url, socket_id, autorun) {
-    console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " getting");
+function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
+    console.log("CLARAMA_WEBSOCKET.js: GET TASK " + task_url + " getting, with kernel_status " + kernel_status);
 
     const topic = new URLSearchParams(task_url.split('?')[1]).get('topic');
     let element_id = null;
@@ -187,11 +188,12 @@ function get_task(embedded, task_url, socket_id, autorun) {
             task_url: task_url,
             socket_id: socket_id,
             autorun: autorun,
+            kernel_status: kernel_status,
             waitingFor: waitInteractions.map(interaction => interaction.element),
             resumedFrom: new Set() // Track which elements have sent resume messages
         };
 
-        console.log(`CLARAMA_WEBSOCKET.js: Task execution for element ${element_id} deferred until resume messages received from:`,
+        console.log(`CLARAMA_WEBSOCKET.js: GET TASK Task execution for element ${element_id} deferred until resume messages received from:`,
             window[pendingTaskKey].waitingFor);
 
         // Don't proceed with task execution - wait for resume messages
@@ -199,7 +201,7 @@ function get_task(embedded, task_url, socket_id, autorun) {
     }
 
     // No wait interactions - proceed with normal task execution
-    executeTask(embedded, task_url, socket_id, autorun);
+    executeTask(embedded, task_url, socket_id, autorun, kernel_status);
 }
 
 /**
@@ -211,7 +213,7 @@ function get_task(embedded, task_url, socket_id, autorun) {
  * @param {string} socket_id
  * @param {string|boolean} autorun
  */
-function executeTask(embedded, task_url, socket_id, autorun) {
+function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
     fetch(task_url)
         .then((response) => {
             if (response.ok) {
@@ -229,7 +231,7 @@ function executeTask(embedded, task_url, socket_id, autorun) {
             let environment_file = task_response['results']['environment'];
 
             embedded.attr('task_kernel_id', kernel_id);
-            console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " connected to kernel " + kernel_id);
+            console.log("CLARAMA_WEBSOCKET.js: EXECUTE TASK " + task_url + " connected to kernel " + kernel_id)
 
             let active_selector = ('#environment_' + environment_file).replaceAll('.', "_");
 
@@ -239,8 +241,12 @@ function executeTask(embedded, task_url, socket_id, autorun) {
                 window[kernel_ready](kernel_id, task_environment, environment_file);
             }
 
-            $("#kernel_status:not([gina])").html(kernel_id);
-            $("#environment").html(task_environment);
+            if (kernel_status !== undefined) {
+                $("#" + kernel_status).html(kernel_id);
+
+                if (!kernel_status.includes('gina'))
+                    $("#environment").html(task_environment);
+            }
             $(".environments").removeClass('active');
             $(active_selector).addClass('active');
 
@@ -298,7 +304,7 @@ function handleTaskInteractionResume(resumeMessage) {
 
                 if (allResumed) {
                     console.log(`CLARAMA_WEBSOCKET.js: All wait interactions complete for ${waitingElementId}, proceeding with task execution`);
-                    executeTask(pendingTask.embedded, pendingTask.task_url, pendingTask.socket_id, pendingTask.autorun);
+                    executeTask(pendingTask.embedded, pendingTask.task_url, pendingTask.socket_id, pendingTask.autorun, pendingTask.kernel_status);
 
                     // Clean up the pending task
                     delete window[prop];
@@ -327,6 +333,7 @@ function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
     let environment = embedded.attr("environment");
     let task_new = embedded.attr("task_new");
     let task_type = embedded.attr("task_type");
+    let task_kernel_status = embedded.attr("kernel-status");
     let env_url = '';
     if (environment !== undefined) {
         env_url = '&environment=' + environment;
@@ -350,7 +357,7 @@ function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
         + '&task_new=' + task_new
         + '&task_type=' + task_type;
 
-    enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun);
+    enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, task_kernel_status);
 }
 
 /**
@@ -390,8 +397,7 @@ function start_socket(reconnect = false, embedded) {
         };
 
         webSocket.onmessage = function (event) {
-            onMessage(event, socket_address, webSocket, $('#gina_socket'));
-            onMessage(event, socket_address, webSocket, embedded);
+            onMessage(event, socket_address, webSocket, embedded)
         };
     }
 }
@@ -412,7 +418,7 @@ function run_socket(embedded, refresh_kernel, reset_environment) {
     embedded.attr("socket_time", Date.now());
 
     if (task !== undefined && topic !== undefined) {
-        console.log("CLARAMA_WEBSOCKET.js: TASK " + task + " TOPIC " + topic + " RUNNING");
+        console.log("CLARAMA_WEBSOCKET.js: RUN SOCKET " + task + " TOPIC " + topic + " RUNNING");
         socket_task(embedded, task, topic, refresh_kernel, reset_environment);
     }
 
@@ -449,7 +455,7 @@ function run_socket(embedded, refresh_kernel, reset_environment) {
                 console.log("CLARAMA_WEBSOCKET.js: Creating " + socket_url + " Websocket on " + websocket_address + " for " + uuid);
 
                 socket_address = websocket_address;
-                start_socket(false, embedded)
+                start_socket(false, embedded);
             });
     }
 }
@@ -603,10 +609,6 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 handleTaskInteractionResume(dict);
             }
 
-            // if (dict['class'] === 'message') {
-            //     console.log(`dict: `, dict);
-            // }
-
             if (dict['class'] === "layout") {
                 var cols = dict['values']['width'];
                 var rows = dict['values']['height'];
@@ -738,8 +740,6 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 process_template(dict['type'], dict['values'], $(resulter));
                 bChart(dict['values']['chart_id'], dict['results']);
             }
-
-            // if (dict['class'] === "template_chart_3d") {
 
             if (dict['class'] === 'task_memory') {
                 $("#kernel_memory_free").text(dict['values']['free'] + '%');

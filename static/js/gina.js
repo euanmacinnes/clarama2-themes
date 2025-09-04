@@ -120,7 +120,7 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
 function findKernelId() {
     return $('#conversation_socket').attr('task_kernel_id');
 }
-  
+
 // --- Kernel call ----------------------------------------------------------
 function runQuestionThroughKernel(questionText, forBlock) {
     get_field_values({}, true, function (field_registry) {
