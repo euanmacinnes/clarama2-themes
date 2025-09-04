@@ -4,14 +4,76 @@
     box-sizing: border-box;
 }
 
-.role-wrapper:hover {
-    transform: scale(1.07);
-    transition: all 0.3s ease-out;
+.role-wrapper {
+    transition: transform 0.2s ease-out;
 }
 
-.role-wrapper:hover .card, .role-wrapper:hover i {
-    color: #289bd1 !important;
+.role-wrapper.anim-in .clickable-card {
+    animation: cardFadeIn 0.2s ease-out both;
+    animation-delay: calc(0.02s * var(--stagger-index, 0));
+    will-change: opacity, transform;
+}
+
+.role-wrapper:hover {
+    transform: scale(1.07);
+}
+
+.role-wrapper:hover .clickable-card,
+.role-wrapper:hover i:not(.fav-toggle) {
     transition: all 0.2s ease-out;
+}
+
+.role-wrapper:hover .clickable-card, .role-wrapper:hover i:not(.fav-toggle) {
+    transition: all 0.2s ease-out;
+}
+
+.folder-link.is-open,
+.folder-link.is-ancestor {
+    transform: scale(1.07);
+}
+
+.folder-link.is-open .clickable-card,
+.folder-link.is-ancestor .clickable-card {
+    outline: 3px solid rgba(255, 255, 255, 0.412);
+    box-shadow: 0 0 0 2px rgba(0,171,119,0.65) inset;
+    transition: box-shadow .2s ease-out, outline .2s ease-out;
+}
+
+.fav-toggle:hover {
+    scale: 1.1;
+}
+
+.card {
+    border-radius: 6px;
+}
+
+.clickable-card {
+    border-radius: 30px;
+}
+
+.fav-card {
+    background-color:rgba(0, 0, 0, 0.204);
+    color: white;
+}
+
+.__administrator {
+    background-color: #01120da1;
+    color: white;
+}
+
+._user {
+    background-color: #0665ae50;
+    color: white;
+}
+
+.clickable-card-folder {
+    background-color: #00ab773d;
+    color: white;
+}
+
+.clickable-card:not(.fav-card):not(.__administrator):not(._user):not(.clickable-card-folder) {
+    background-color: #9b9b9b42; 
+    color: white;
 }
 
 .nav-search-wrapper input,
@@ -243,3 +305,102 @@ input[type="search"]::-webkit-search-cancel-button {
     background-color: transparent !important;
     color: #000 !important;
 }
+
+#roles-grid .fav-role-separator {
+    flex-basis: 100%;
+    grid-column: 1 / -1;
+    height: 0;
+    border: 0;
+    border-top: 4px dashed var(--fav-sep-color, rgba(0,0,0,0.25));
+    margin: 15px 0 15px;
+    opacity: 0.9;
+}
+
+@keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.role-wrapper.pre-wait { opacity: 0; pointer-events: none; }
+
+.role-wrapper.removing,
+.list-group-item.removing {
+    transition: opacity 0.22s ease, transform 0.22s ease, height 0.22s ease, margin 0.22s ease, padding 0.22s ease;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+}
+
+#roles-grid .fav-role-separator {
+    flex-basis: 100%;
+    grid-column: 1 / -1; 
+    height: 0;
+    border-top: 4px dashed rgba(0,0,0,0.25);
+    margin: 14px 0;
+    opacity: 0.9;
+}
+
+.folder-children-block {
+    flex-basis: 100%;
+    width: 100%;
+    border-radius: 16px;
+    --pad-top: 0.75rem;
+    --pad-x: 1rem;
+    --pad-bottom: 1rem;
+    --mb: 1rem;
+    padding: var(--pad-top) var(--pad-x) var(--pad-bottom);
+    margin: 0.25rem 0 var(--mb);
+    position: relative;
+    animation: cardFadeIn 0.1s ease-out both;
+    border: 1px solid rgba(255,255,255,0.06);
+  
+    overflow: hidden;
+    will-change: height, opacity;
+}
+
+.folder-children-block.animating {
+    transition:
+      height .26s var(--children-ease),
+      padding-top .26s var(--children-ease),
+      padding-bottom .26s var(--children-ease),
+      margin-bottom .26s var(--children-ease),
+      opacity .05s ease;
+}
+
+.folder-children-block.collapsing {
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.folder-children-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .5rem;
+}
+
+.folder-children-header .small {
+    opacity: .9;
+}
+
+.close-children-btn {
+    line-height: 1;
+    padding: .125rem .5rem;
+    border-radius: 999px;
+}
+
+.folder-children-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.folder-children-grid .role-wrapper { margin: .5rem; }
+
+.children-level-0 { background: rgba(0, 0, 0, 0.15); }
+.children-level-1 { background: rgba(0,123,255,0.15); }
+.children-level-2 { background: rgba(40,167,69,0.15); }
+.children-level-3 { background: rgba(255,193,7,0.15); }
+.children-level-4 { background: rgba(220,53,69,0.15); }
+.children-level-5 { background: rgba(111,66,193,0.15); }
+
+:root { --children-ease: cubic-bezier(.2,.8,.2,1); }

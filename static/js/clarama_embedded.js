@@ -193,6 +193,7 @@ $.fn.load_post = function (onfinished, args, json) {
                         console.log("NO JSON encoded record class on " + embedded.attr("id"));
 
                     var json_encoded = embedded.closest('.' + json_encoded_class).attr("encoded_json");
+
                     //console.log("Looking for " + json_div + " for " + url)
                     var json_element = document.getElementById(json_div);
 
@@ -225,6 +226,7 @@ $.fn.load_post = function (onfinished, args, json) {
                         try {
                             console.log("JSON Payload B64 encoded " + json_encoded);
                             json_payload = JSON.parse(atob(json_encoded));
+                            json_payload['original_url'] = embedded.closest(".embedded").attr("original_url");
                         } catch {
                             console.error("Error decoding JSON");
                         }

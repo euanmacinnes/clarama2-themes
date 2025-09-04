@@ -26,7 +26,8 @@
                     <button id="run" type="button" class="btn btn-primary kernel-play-button" socket="run_socket"
                             kill="False"><i
                             class="bi bi-play-fill h2"></i></button>
-                    <button type="button" class="btn btn-info kernel_status" id="kernel_status"> Loading...</button>
+                    <button type="button" class="btn btn-info kernel_status" id="explore-kernel-status"> Loading...
+                    </button>
                 </div>
             </div>
         </div>
@@ -88,7 +89,7 @@
     {% endfor %}
 </form>
 <div class="clarama-task">
-    <div id="run_socket" class="clarama-websocket clarama-task"
+    <div id="run_socket" class="clarama-websocket clarama-task" kernel-status="explore-kernel-status"
          mode="explore"
          topic="{{ internal_topic }}"
          task="{{ file_url }}" kill="True"></div>

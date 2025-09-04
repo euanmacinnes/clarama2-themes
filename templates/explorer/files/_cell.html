@@ -2,7 +2,8 @@
     class="row bg-white text-dark clarama-cell-item"
     steptype="{{ task_step['type'] }}"
 >
-    <div class="panel col-2 col-lg-1 d-flex flex-column position-relative bg-{{ 'primary' if task_last else 'secondary' }} text-light draggable-heading" style="padding:0">
+    <div class="panel col-2 col-lg-1 d-flex flex-column position-relative bg-{{ 'primary' if task_last else 'secondary' }} text-light draggable-heading"
+         style="padding:0">
         <hr class="faded" style="margin: 0"/>
         <div class="container-fluid pt-2">
             <div class="row g-1 align-items-center">
@@ -11,13 +12,16 @@
                 </div>
                 <div class="col text-end">
                     <div class="btn-group">
-                        <button type="button" class="btn celleditrun p-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
+                        <button type="button" class="btn celleditrun p-1" data-bs-toggle="tooltip"
+                                data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
                             <i class="fs-5 bi bi-play-fill"></i>
                         </button>
                         {% if task_step['type'] != "data" %}
-                        <button type="button" class="btn celleditdebug p-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Debug (Ctrl-\\)" data-task-index="{{ task_index }}">
-                            <i class="fs-5 bi bi-bug-fill"></i>
-                        </button>
+                            <button type="button" class="btn celleditdebug p-1" data-bs-toggle="tooltip"
+                                    data-bs-placement="bottom" title="Debug (Ctrl-\\)"
+                                    data-task-index="{{ task_index }}">
+                                <i class="fs-5 bi bi-bug-fill"></i>
+                            </button>
                         {% endif %}
                     </div>
                 </div>
@@ -25,9 +29,9 @@
             <div class="row mt-2">
                 <div class="col">
                     <input type="text" id="loop-iterable-{{ task_index }}"
-                        loop-id="{{ task_index }}"
-                        class="form-control loop-iterable loop-inactive"
-                        value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
+                           loop-id="{{ task_index }}"
+                           class="form-control loop-iterable loop-inactive"
+                           value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
                 </div>
             </div>
             <div class="row mt-2">
@@ -37,7 +41,8 @@
             </div>
         </div>
         <div class="cell-spin" style="opacity: 0">
-            <div class="d-flex justify-content-center spinner-border text-info position-absolute start-50" role="status" style="width: 4rem; height: 4rem;"></div>
+            <div class="d-flex justify-content-center spinner-border text-info position-absolute start-50" role="status"
+                 style="width: 4rem; height: 4rem;"></div>
         </div>
     </div>
     <div class="col-10 col-lg-11" style="padding:0px;">
@@ -71,8 +76,7 @@
                     </div>
                     <!-- the Results -->
                     <div class="container-fluid cell-response">
-                        <div id="results_{{ task_index }}" class="cell-results"
-                             {% if task_step['type'] == "data" %}style="min-height: 50px;" {% endif %}>
+                        <div id="results_{{ task_index }}" class="cell-results">
                         </div>
                     </div>
                 </div>
@@ -83,7 +87,6 @@
             </div>
             <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>
         </div>
-        <div class="pb-1">&nbsp;</div>
     </div>
 </li>
 

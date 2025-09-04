@@ -23,34 +23,37 @@ function _arrayBufferToBase64(buffer) {
  * This is used by the task & slate to just get a dict of current field values needed before submitting a task
  *
  */
-function get_field_values(registry, raw, field_submit, closestGrid=$()) {
+function get_field_values(registry, raw, field_submit, closestGrid = $()) {
     // Raw is used to run the fields. raw is false, when saving the fields (so we don't want to save the field values of e.g. a selected file in this case
 
-    // console.log("get_field_values closestGrid", closestGrid)
+    console.log("get_field_values closestGrid", closestGrid)
     var files_done = true;
     var result = {}
 
-    var original_url = $("#embedded").attr('original_url');
+    var original_url = closestGrid.closest(".embedded").attr('original_url');
 
     if (original_url !== undefined) {
         result['original_url'] = original_url;
     }
 
-    if (closestGrid.length) {
-        let encoded_record_info = closestGrid.closest('.clarama-slate-record').attr('encoded_json');
-        // console.log("encoded_record_info", encoded_record_info)
+    if (closestGrid !== undefined) {
+        if (closestGrid.length) {
+            let encoded_record_info = closestGrid.closest('.clarama-slate-record').attr('encoded_json');
+            // console.log("encoded_record_info", encoded_record_info)
 
-        if (encoded_record_info) {
-            try {
-                let decoded_str = atob(encoded_record_info); // decode
-                let json_record_info = JSON.parse(decoded_str); // string to obj
+            if (encoded_record_info) {
+                try {
+                    let decoded_str = atob(encoded_record_info); // decode
+                    let json_record_info = JSON.parse(decoded_str); // string to obj
 
-                // console.log("json_record_info", json_record_info);
+                    // console.log("json_record_info", json_record_info);
 
-                result['record'] = json_record_info.record;
+                    result['record'] = json_record_info.record;
+                    result['original_url'] = json_record_info.original_url;
 
-            } catch (err) {
-                console.error("invalid base64 or json", err)
+                } catch (err) {
+                    console.error("invalid base64 or json", err)
+                }
             }
         }
     }
@@ -159,6 +162,8 @@ function get_field_values(registry, raw, field_submit, closestGrid=$()) {
 function check_fields_valid(closestGrid) {
     var valid = true;
     console.log("CLARAMA_FIELDS.js: Input Validity Check");
+    if (closestGrid === undefined)
+        alert("Invalid closestGrid passed to check_fields_valid");
     let fields_to_loop = closestGrid.length ? closestGrid.find('.clarama-field') : $('.clarama-field');
     fields_to_loop.each(
         function (index) {
@@ -531,6 +536,7 @@ $.fn.initselect = function () {
                 if (close_on_select === undefined)
                     close_on_select = false
 
+
                 embedded.select2({
                     selectionCssClass: "select2-select",
                     closeOnSelect: close_on_select,
@@ -542,16 +548,22 @@ $.fn.initselect = function () {
                         contentType: "application/json; charset=utf-8",
                         type: "POST",
                         data: function (params) {
+                            var original_url = $('.embedded').eq(0).attr('original_url');
+
+                            console.log("EMBEDDED CLOSEST", embedded, $('.embedded').eq(0));
+                            console.log("PARAMS", params);
+
                             var values = get_field_values({}, true, undefined);
                             var query = {
                                 search: params.term,
-                                values: values
+                                values: values,
+                                original_url: original_url,
                             }
-                            //console.log("Fetching data " + params.term + " from " + embedded.attr("sourceurl"))
+                            console.log("Fetching data " + params.term + " from " + embedded.attr("sourceurl"), query)
                             return JSON.stringify(query);
                         },
                         processResults: function (data) {
-                            console.log("Select2 Results for " + embedded.attr("sourceurl"))
+                            console.log("Select2 Results for " + embedded.attr("sourceurl"));
                             console.log(data)
 
 

@@ -136,9 +136,10 @@
 
 <template id="task_step_result_bootstraptable" target_class="cell-results">
     <div class="tight" style="overflow: auto; height: 100%">
-        <nav class="navbar navbar-expand-lg table-{style_content}-header table-header" style="display: none;">
+        <nav class="navbar navbar-expand-lg table-{style_content}-header table-header"
+             style="display: {display_content}">
             <ul class="navbar-nav table-header-nav-bar">
-                <li class="nav-item table-header-nav-text">
+                <li class="nav-item table-header-nav-item">
                     {title_content}
                 </li>
                 <li class="nav-item table-header-nav-item">
@@ -234,8 +235,7 @@
             %ROW_NUMBER%.
         </div>
         <div class="w-100 clarama-post-embedded clarama-record-header"
-             url="/render/embed/%SLATE%?slate_id=%ROW_NUMBER%"
-             encoded_record_class="clarama-slate-record">
+             url='/render/embed/%SLATE%?slate_id=%ROW_NUMBER%'>
         </div>
     </div>
 </template>

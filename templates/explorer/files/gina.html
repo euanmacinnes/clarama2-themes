@@ -1,13 +1,16 @@
 <div id="gina-chat-container" class="gina-container d-flex flex-column">
-    <!-- Splash (fades away on first send) -->
-    <div class="gina-splash" id="gina-splash">Hello! I am GINA!</div>
-
     <div class="gina-input-container w-100">
         <div class="gina-controls w-100 d-flex justify-content-between align-items-center px-3 mt-3">
-            <button class="gina-save-btn" title="Save">
+            <button class="gina-button gina-save-btn" title="Save">
                 <i class="bi bi-floppy"></i>
             </button>
-            <button type="button" class="btn btn-secondary" id="kernel_status" style="background-color: rgba(159, 159, 159, 0.648);">Loading...</button>
+            <button class="gina-button gina-new-chat-btn" title="New chat" aria-label="Start a new chat">
+                <i class="bi bi-plus-circle"></i>
+            </button>              
+            <div class="gina-splash-holder flex-grow-1 d-flex justify-content-center align-items-center"></div>
+            <button type="button" class="btn btn-secondary" id="gina_kernel_status" gina="true"
+                    style="background-color: rgba(159, 159, 159, 0.648);">Loading...
+            </button>
         </div>
 
         <div class="gina-conversations flex-grow-1" id="gina-conversations">
@@ -21,75 +24,18 @@
 </div>
 
 <div class="clarama-task">
-    <div id="edit_socket" environment="{{ environment }}" class="clarama-websocket clarama-task"
-         mode="edit"
-         topic="{{ internal_topic }}"
-         task="{{ file_url }}" task_kill="False">
-    </div>    
+    <!-- GINA Kernel -->
+    <div id="gina_socket" environment="{{ environment }}" class="clarama-websocket clarama-task"
+         mode="run"
+         topic="gina_new_{{ username }}"
+         task="{{ file_url }}"
+         task_kill="False"
+         task=".conversation.yaml"
+         task_new="True"
+         task_type=".conversation.yaml"
+         kernel-status="gina_kernel_status"
+         onkernel="gina_kernel_registered"
+         onmessage="gina_kernel_message"
+    >
+    </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const statusBtn = document.getElementById('kernel_status');
-        const convoSocket = document.getElementById('conversation_socket');
-
-        if (!statusBtn) {
-            console.warn('GINA: #kernel_status not found.');
-            return;
-        }
-        if (!convoSocket) {
-            console.warn('GINA: #conversation_socket not found.');
-            statusBtn.textContent = 'Not available';
-            statusBtn.classList.remove('btn-warning');
-            statusBtn.classList.add('btn-secondary');
-            return;
-        }
-
-        // Helper to derive a nice label for the kernel id
-        function shortId(id) {
-            if (!id) return '';
-            return id.length > 10 ? id.slice(0, 8) + '…' : id;
-        }
-
-        function renderKernelStatus() {
-            const kid = convoSocket.getAttribute('task_kernel_id');
-            const kstate = convoSocket.getAttribute('task_state');
-
-            if (kid && kid.trim() !== '') {
-                statusBtn.textContent = shortId(kid);
-                statusBtn.title = 'Kernel ID: ' + kid;
-                statusBtn.classList.remove('btn-secondary', 'btn-warning');
-            } else {
-                if ((kstate && kstate.toLowerCase() === 'opening') || convoSocket.getAttribute('socket_opening') === 'true') {
-                    statusBtn.textContent = 'Loading…';
-                    statusBtn.title = 'Waiting for kernel';
-                    statusBtn.classList.remove('btn-secondary');
-                    statusBtn.classList.add('btn-warning');
-                } else {
-                    statusBtn.textContent = 'Not available';
-                    statusBtn.title = 'No kernel on #conversation_socket';
-                    statusBtn.classList.remove('btn-warning');
-                    statusBtn.classList.add('btn-secondary');
-                }
-            }
-        }
-
-        // Initial paint
-        renderKernelStatus();
-
-        // Update automatically whenever #conversation_socket changes
-        const observer = new MutationObserver((mutations) => {
-            for (const m of mutations) {
-                if (m.type === 'attributes') {
-                    renderKernelStatus();
-                }
-            }
-        });
-
-        observer.observe(convoSocket, {
-            attributes: true,
-            attributeFilter: ['task_kernel_id', 'task_state', 'socket_opening'], // keep tight
-        });
-
-    });
-</script>

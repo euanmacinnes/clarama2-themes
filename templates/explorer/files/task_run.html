@@ -29,7 +29,7 @@
                             class="bi bi-play-fill h2"></i></button>
                     <button id="schedule" type="button" class="btn btn-primary"><i
                             class="bi bi-stopwatch h2" onclick="show_schedule();"></i></button>
-                    <button type="button" class="btn btn-info kernel_status" id="kernel_status"> Loading...</button>
+                    <button type="button" class="btn btn-info kernel_status" id="run-kernel-status"> Loading...</button>
                 </div>
             </div>
         </div>
@@ -118,7 +118,7 @@
     </div>
 </div>
 <div class="clarama-task">
-    <div id="run_socket" class="clarama-websocket clarama-task"
+    <div id="run_socket" class="clarama-websocket clarama-task" kernel-status="run-kernel-status"
          mode="run"
          topic="{{ internal_topic }}"
          task="{{ file_url }}" task_kill="False" refresh="True"></div>

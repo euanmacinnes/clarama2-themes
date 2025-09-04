@@ -24,13 +24,14 @@ function get_url(url, field_registry) {
 
 function html_decode(input) {
     input = input.replaceAll('&quot;', '"');
-    input = input.replaceAll('&amp;', '&');
     input = input.replaceAll('&lt;', '<');
     input = input.replaceAll('&gt;', '>');
+    input = input.replaceAll('&#x27;', "'");
+    input = input.replaceAll('&amp;', '&');
     return input;
 }
 
-function _task_run(socket_div, hidden = false, closestGrid=$()) {
+function _task_run(socket_div, hidden = false, closestGrid = $()) {
     json_div = socket_div + '_args';
 
     // console.log("checking where get_field_values is called: _task_run", closestGrid)
@@ -132,10 +133,19 @@ function cell_item_run(cell_button) {
                     console.log('CLARAMA_TASK.js: Submission was successful.');
                     console.log(data);
                     var taskIndex = cell_button.attr('step');
-                    flash(`Cell ${taskIndex} ran successfully`, "success");
+                    flash(`Cell ${taskIndex} executing..`, "success");
                     // flash("CLARAMA_TASK.js: Executing!");
 
                     moveToNextCell(cell_button);
+
+                    const memText = $('#kernel_memory_free').text() || '';
+                    const match = memText.match(/(\d+(?:\.\d+)?)\s*%?/); // grab number part
+                    if (match) {
+                        const freePct = parseFloat(match[1]);
+                        if (!Number.isNaN(freePct) && freePct < 10) {
+                            flash('low memory', 'danger');
+                        }
+                    }
                 } else {
                     console.log('CLARAMA_TASK.js: Submission was not successful.');
                     console.log(data);

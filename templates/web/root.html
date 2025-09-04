@@ -1,5 +1,3 @@
-<!-- root.html -->
-
 <!doctype html>
 <html>
 
@@ -126,15 +124,7 @@
                 {% endif %}
             </div>
             <div class="d-flex flex-column flex-md-row align-items-center justify-content-lg-center">
-                <!-- GINA Kernel -->
-                <div id="conversation_socket" class="clarama-websocket clarama-task"
-                     mode="explore"
-                     topic="{{ username }}_gina_new"
-                     task=".conversation.yaml"
-                     task_new="True"
-                     task_type=".conversation.yaml"
-                     task_kill="False">
-                </div>
+
                 <!-- GINA Button Group -->
                 <div class="gina-button-group">
                     <div class="dropdown">
@@ -238,8 +228,7 @@
                 <h5 class="modal-title" id="notifModalTitle">Oh Snaps!</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="notifModalBody">
-            </div>
+            <div class="modal-body" id="notifModalBody"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>

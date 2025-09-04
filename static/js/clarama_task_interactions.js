@@ -6,14 +6,15 @@ function task_run(parent) {
         let topicVal = parent.filter('[topic]').first().attr('topic');
         // console.log("task_run topicVal", topicVal)
         let closestGrid = topicVal ? $(`.clarama-cell-item[topic="${topicVal}"]`).find('.clarama-grid') : $();
-        // console.log("task_run closestGrid", closestGrid)
+
+        console.log("task_run closestGrid", closestGrid)
 
         if (check_fields_valid(closestGrid)) {
             console.log("RUNNING");
             // Get only the field values, not the full field definitions, text or code
 
             socket_div = $(this).attr("socket")
-            console.log("socket_div",socket_div)
+            console.log("socket_div", socket_div)
 
             $('#task_progress_main').attr('aria-valuenow', 0);
 
@@ -28,8 +29,9 @@ function task_edit_run(parent) {
     parent.find("#editrun").click(function () {
         socket_div = $(this).attr("socket")
         // console.log("inside task_edit_run", parent)
+        let closestGrid = $('.clarama-grid');
         console.log("RUNNING");
-        if (check_fields_valid()) {
+        if (check_fields_valid(closestGrid)) {
             // console.log("checking where get_field_values is called: task_edit_run")
             get_field_values({}, true, function (field_registry) { // Get only the field values, not the full field definitions, text or code
                 get_fields(false, true, (task_registry) => {
