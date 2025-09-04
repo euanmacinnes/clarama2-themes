@@ -27,7 +27,7 @@
     <!-- GINA Kernel -->
     <div id="gina_socket" environment="{{ environment }}" class="clarama-websocket clarama-task"
          mode="run"
-         topic="gina_new_{{ file_url }}"
+         topic="gina_new_{{ username }}"
          task="{{ file_url }}"
          task_kill="False"
          task=".conversation.yaml"
