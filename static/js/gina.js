@@ -15,6 +15,7 @@ function gina_kernel_registered(kernel_id) {
 
 // THIS WILL BE CALLED ON MESSAGE RECEIVED TO PROCESS CUSTOM MESSAGES
 function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
+    return dict;
     // the main websocket decodes the event as a dict straight away, so we can process it here
 
     // 1) Handshake → unlock inputs
