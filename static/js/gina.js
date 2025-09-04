@@ -84,7 +84,7 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         }
 
         window.__ginaCheckDocking && window.__ginaCheckDocking();
-        return;
+        return dict;
     }
 
     // 3) Error → show error bubble and continue flow
