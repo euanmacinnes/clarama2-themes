@@ -68,7 +68,13 @@ const CHART3D_DEFAULT_PRIMITIVES = [
     // Render cube corners as points
     {name: 'Cube Points', vertices: 'cubeVertices', mode: 'point'},
     // Render the 12 textured triangles that make the cube faces
-    {name: 'Cube Triangles', vertices: 'cubeTriPositions', uv: 'cubeTriUVs', mode: 'triangle'},
+    {
+        name: 'Cube Triangles',
+        vertices: 'cubeTriPositions',
+        uv: 'cubeTriUVs',
+        mode: 'triangle',
+        textureURL: 'https://images.pexels.com/photos/129733/pexels-photo-129733.jpeg?_gl=1*ank8ph*_ga*MzI5MTE5MDI0LjE3NTcwODUyMDk.*_ga_8JE65Q40S6*czE3NTcwODUyMDkkbzEkZzEkdDE3NTcwODUyMTEkajU4JGwwJGgw'
+    },
     // Note: Lines (wireframe) are rendered by the classic path inside initCube using indices; the
     // generalized primitives expect line positions not indices, so we omit a line primitive here.
 ];
@@ -577,6 +583,68 @@ function initCube(canvas, datasets = {}, primitives = []) {
     // Build a default checker texture once
     const checkerTex = createCheckerTextureGL(64, 8);
 
+    // Texture cache and async loader for URL-based textures
+    const textureCache = new Map(); // url -> WebGLTexture | {loading:true, tex:WebGLTexture}
+
+    function isHttpUrl(u) {
+        return typeof u === 'string' && /^(https?:)?\/\//i.test(u);
+    }
+
+    function getOrLoadTexture(url, onLoaded) {
+        if (!url) return checkerTex;
+        const cached = textureCache.get(url);
+        if (cached && cached !== 'loading') return cached;
+        if (cached === 'loading') return checkerTex;
+        // mark as loading
+        textureCache.set(url, 'loading');
+
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        // temporary 1x1 pixel while loading
+        const tmp = new Uint8Array([200, 200, 200, 255]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, tmp);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        const img = new Image();
+        // allow cross-origin for http(s) sources
+        if (isHttpUrl(url)) img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            try {
+                gl.bindTexture(gl.TEXTURE_2D, tex);
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                textureCache.set(url, tex);
+                if (typeof onLoaded === 'function') onLoaded(tex);
+                requestAnimationFrame(render);
+            } catch (e) {
+                console.warn('Failed to upload texture image', url, e);
+                textureCache.set(url, checkerTex);
+                if (typeof onLoaded === 'function') onLoaded(checkerTex);
+                requestAnimationFrame(render);
+            }
+        };
+        img.onerror = () => {
+            console.warn('Failed to load texture URL:', url);
+            textureCache.set(url, checkerTex);
+            if (typeof onLoaded === 'function') onLoaded(checkerTex);
+            requestAnimationFrame(render);
+        };
+        try {
+            img.src = url;
+        } catch (e) {
+            console.warn('Invalid texture URL:', url, e);
+            textureCache.set(url, checkerTex);
+        }
+        return checkerTex;
+    }
+
     // Helper: normalize data array from various shapes to a flat Float32Array
     function toFloat32(data, componentsExpected) {
         if (!data) return null;
@@ -768,6 +836,17 @@ function initCube(canvas, datasets = {}, primitives = []) {
                     continue;
                 }
 
+                // If this primitive uses texturing and provides a texture URL, load it now (fallback to checker while loading)
+                let textureUrl = prim.textureUrl || prim.texture || prim.textureURL;
+                let initialTexture = checkerTex;
+                if (usesTex && textureUrl) {
+                    initialTexture = getOrLoadTexture(textureUrl, (tex) => {
+                        // after load, update the compiled object's texture reference
+                        const obj = compiled.find(x => x.name === name);
+                        if (obj) obj.texture = tex;
+                    });
+                }
+
                 compiled.push({
                     name,
                     program,
@@ -781,7 +860,7 @@ function initCube(canvas, datasets = {}, primitives = []) {
                     usesUniformColor,
                     uniformColor,
                     usesTex,
-                    texture: checkerTex,
+                    texture: initialTexture,
                     hasIndices: false,
                     countVerts,
                     countElems,
