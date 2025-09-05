@@ -61,59 +61,92 @@ const CHART3D_DEFAULT_DATASETS = {
         0, 0, 1, 0, 1, 1,
         0, 0, 1, 1, 0, 1,
     ]),
+    // Per-vertex RGBA colors for the 12 cube triangles (6 faces x 2 tris x 3 verts)
+    // Each face uses a distinct color; colors are repeated per vertex
+    cubeTriColors: new Float32Array([
+        // FRONT (red)
+        1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
+        1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
+
+        // BACK (green)
+        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+
+        // LEFT (blue)
+        0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1,
+        0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1,
+
+        // RIGHT (yellow)
+        1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1,
+        1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1,
+
+        // TOP (magenta)
+        1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1,
+        1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1,
+
+        // BOTTOM (cyan)
+        0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,
+        0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,
+    ]),
 };
 
 // Build an example line primitive: Mobius strip edge scaled to 10x5x3
-(function(){
-    function generateMobiusPoints(samples, R, w, vConst){
+(function () {
+    function generateMobiusPoints(samples, R, w, vConst) {
         const pts = [];
         const TWO_PI = Math.PI * 2;
         const maxT = 2 * TWO_PI; // 0..4π to close edge for v=const
-        for(let i=0;i<samples;i++){
+        for (let i = 0; i < samples; i++) {
             const t = maxT * (i / samples);
             const ct = Math.cos(t), st = Math.sin(t);
-            const c2 = Math.cos(t/2), s2 = Math.sin(t/2);
+            const c2 = Math.cos(t / 2), s2 = Math.sin(t / 2);
             const v = vConst;
             const x = (R + v * c2) * ct;
             const y = (R + v * c2) * st;
             const z = v * s2;
-            pts.push([x,y,z]);
+            pts.push([x, y, z]);
         }
         return pts;
     }
-    function scaleAndCenter(pts, target){
-        let minX=Infinity,minY=Infinity,minZ=Infinity,maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity;
-        for(const p of pts){
-            if(p[0]<minX)minX=p[0]; if(p[0]>maxX)maxX=p[0];
-            if(p[1]<minY)minY=p[1]; if(p[1]>maxY)maxY=p[1];
-            if(p[2]<minZ)minZ=p[2]; if(p[2]>maxZ)maxZ=p[2];
+
+    function scaleAndCenter(pts, target) {
+        let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+        for (const p of pts) {
+            if (p[0] < minX) minX = p[0];
+            if (p[0] > maxX) maxX = p[0];
+            if (p[1] < minY) minY = p[1];
+            if (p[1] > maxY) maxY = p[1];
+            if (p[2] < minZ) minZ = p[2];
+            if (p[2] > maxZ) maxZ = p[2];
         }
-        const cx=(minX+maxX)/2, cy=(minY+maxY)/2, cz=(minZ+maxZ)/2;
-        const sx=maxX-minX || 1, sy=maxY-minY || 1, sz=maxZ-minZ || 1;
-        const tx=target[0]/sx, ty=target[1]/sy, tz=target[2]/sz;
-        for(const p of pts){
-            p[0]=(p[0]-cx)*tx;
-            p[1]=(p[1]-cy)*ty;
-            p[2]=(p[2]-cz)*tz;
+        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
+        const sx = maxX - minX || 1, sy = maxY - minY || 1, sz = maxZ - minZ || 1;
+        const tx = target[0] / sx, ty = target[1] / sy, tz = target[2] / sz;
+        for (const p of pts) {
+            p[0] = (p[0] - cx) * tx;
+            p[1] = (p[1] - cy) * ty;
+            p[2] = (p[2] - cz) * tz;
         }
         return pts;
     }
-    function toLinePairs(pts){
-        const out=[];
-        for(let i=0;i<pts.length-1;i++){
-            const a=pts[i], b=pts[i+1];
-            out.push(a[0],a[1],a[2], b[0],b[1],b[2]);
+
+    function toLinePairs(pts) {
+        const out = [];
+        for (let i = 0; i < pts.length - 1; i++) {
+            const a = pts[i], b = pts[i + 1];
+            out.push(a[0], a[1], a[2], b[0], b[1], b[2]);
         }
         // close loop
-        const a=pts[pts.length-1], b=pts[0];
-        out.push(a[0],a[1],a[2], b[0],b[1],b[2]);
+        const a = pts[pts.length - 1], b = pts[0];
+        out.push(a[0], a[1], a[2], b[0], b[1], b[2]);
         return new Float32Array(out);
     }
+
     const samples = 600;
     const R = 2.0, w = 0.7; // base before scaling
     const vConst = w; // edge line on the strip
     let pts = generateMobiusPoints(samples, R, w, vConst);
-    pts = scaleAndCenter(pts, [10,5,3]);
+    pts = scaleAndCenter(pts, [10, 5, 3]);
     CHART3D_DEFAULT_DATASETS.mobiusLineEdges = toLinePairs(pts);
 })();
 
@@ -128,6 +161,15 @@ const CHART3D_DEFAULT_PRIMITIVES = [
         uv: 'cubeTriUVs',
         mode: 'triangle',
         textureURL: 'https://images.pexels.com/photos/129733/pexels-photo-129733.jpeg?_gl=1*ank8ph*_ga*MzI5MTE5MDI0LjE3NTcwODUyMDk.*_ga_8JE65Q40S6*czE3NTcwODUyMDkkbzEkZzEkdDE3NTcwODUyMTEkajU4JGwwJGgw'
+    },
+    // Third cube primitive: per-vertex colours (no texture)
+    {
+        name: 'Cube Triangles (per-vertex colours)',
+        vertices: 'cubeTriPositions',
+        colors: 'cubeTriColors',
+        mode: 'triangle',
+        position: {x: -3, y: -1, z: 2},
+        rotationDeg: {x: 0, y: 45, z: -30},
     },
     // Second example primitive demonstrating per-primitive position and rotation (degrees)
     {
@@ -443,8 +485,13 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const axisLenX = axisHalfExtentFor('x');
     const axisLenY = axisHalfExtentFor('y');
     const axisLenZ = axisHalfExtentFor('z');
+
     // Per-axis tick step and size with overrides from axisConfig if provided.
-    function numOr(v, d){ const n = parseFloat(v); return isFinite(n) ? n : d; }
+    function numOr(v, d) {
+        const n = parseFloat(v);
+        return isFinite(n) ? n : d;
+    }
+
     const defaultTickStep = 1.0;
     const defaultTickSize = 0.08;
     const TICK_STEP = {
@@ -462,7 +509,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         a.push(x1, y1, z1, x2, y2, z2);
     }
 
-    function getStep(axis){ const s = TICK_STEP[axis]; return (typeof s === 'number' && isFinite(s) && s > 0) ? s : defaultTickStep; }
+    function getStep(axis) {
+        const s = TICK_STEP[axis];
+        return (typeof s === 'number' && isFinite(s) && s > 0) ? s : defaultTickStep;
+    }
 
     function buildGridXY(z) {
         const a = [];
@@ -593,6 +643,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         m[10] = c;
         return m;
     }
+
     function mat4RotateZ(a) {
         const c = Math.cos(a), s = Math.sin(a);
         const m = mat4Identity();
@@ -679,7 +730,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // --- tick labels & title helpers ----------------------------------------
-    function sTick(axis){ const s = TICK_SIZE[axis]; return ((typeof s === 'number' && isFinite(s) && s > 0) ? s : defaultTickSize) * 2.0; }
+    function sTick(axis) {
+        const s = TICK_SIZE[axis];
+        return ((typeof s === 'number' && isFinite(s) && s > 0) ? s : defaultTickSize) * 2.0;
+    }
 
     function drawTickLabelOnEdge(axis, t, MVP, cssW, cssH, pxAway) {
         const Lx = axisLenX, Ly = axisLenY, Lz = axisLenZ;
@@ -1112,8 +1166,8 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             gl.useProgram(o.program);
 
             // compute per-primitive transform (position + rotation in degrees)
-            const pos = o.position || {x:0,y:0,z:0};
-            const rotD = o.rotationDeg || {x:0,y:0,z:0};
+            const pos = o.position || {x: 0, y: 0, z: 0};
+            const rotD = o.rotationDeg || {x: 0, y: 0, z: 0};
             const toRad = (d) => (d || 0) * Math.PI / 180.0;
             const Rxp = mat4RotateX(toRad(rotD.x));
             const Ryp = mat4RotateY(toRad(rotD.y));
