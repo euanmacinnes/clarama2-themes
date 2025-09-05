@@ -81,7 +81,25 @@ const CHART3D_DEFAULT_PRIMITIVES = [
 
 function boot() {
     document.querySelectorAll('canvas[id^="chart3d-"]').forEach((c) => {
-        if (!c.dataset.cubeInit) initCube(c, CHART3D_DEFAULT_DATASETS, CHART3D_DEFAULT_PRIMITIVES);
+        // Example: pass axis configuration to initCube. You can remove or customize this block.
+        const exampleAxisConfig = {
+            // Titles can be specified either at the root or per-axis object
+            titleX: 'Longitude (°)',
+            titleY: 'Latitude (°)',
+            titleZ: 'Altitude (km)',
+            // Ranges can also be specified at the root or per-axis
+            minX: -180, maxX: 180,
+            minY: -90, maxY: 90,
+            // Demonstrate per-axis nested config (will override root if both provided)
+            z: { title: 'Altitude (km)', min: 0, max: 20 },
+            // Optional tick settings (consumed elsewhere if implemented)
+            ticks: {
+                x: { step: 60, format: (v) => v.toFixed(0) },
+                y: { step: 30, format: (v) => v.toFixed(0) },
+                z: { step: 5, format: (v) => v.toFixed(0) }
+            }
+        };
+        if (!c.dataset.cubeInit) initCube(c, CHART3D_DEFAULT_DATASETS, CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
     });
 }
 
@@ -107,7 +125,7 @@ if (document.readyState === "loading") {
 // ------------------------------------------------------------
 // Per-canvas setup (generalized datasets + primitives)
 // ------------------------------------------------------------
-function initCube(canvas, datasets = {}, primitives = []) {
+function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     canvas.dataset.cubeInit = "1";
 
     const gl = canvas.getContext("webgl", {antialias: true, preserveDrawingBuffer: true});
@@ -179,12 +197,48 @@ function initCube(canvas, datasets = {}, primitives = []) {
         fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
     };
 
-    // Axis titles (from data-* if present)
+    // Axis titles (from axisConfig or data-* if present)
     const AXIS_TITLE = {
-        x: canvas.dataset.axisX || "X",
-        y: canvas.dataset.axisY || "Y",
-        z: canvas.dataset.axisZ || "Z"
+        x: (axisConfig.titleX || (axisConfig.x && axisConfig.x.title) || canvas.dataset.axisX || "X"),
+        y: (axisConfig.titleY || (axisConfig.y && axisConfig.y.title) || canvas.dataset.axisY || "Y"),
+        z: (axisConfig.titleZ || (axisConfig.z && axisConfig.z.title) || canvas.dataset.axisZ || "Z")
     };
+
+    // Axis ranges (min/max) from axisConfig or data-*
+    function parseNum(v) { const n = parseFloat(v); return isFinite(n) ? n : null; }
+    const AXIS_RANGE = {
+        x: {
+            min: (axisConfig.minX ?? (axisConfig.x && axisConfig.x.min) ?? parseNum(canvas.dataset.axisXMin)),
+            max: (axisConfig.maxX ?? (axisConfig.x && axisConfig.x.max) ?? parseNum(canvas.dataset.axisXMax)),
+        },
+        y: {
+            min: (axisConfig.minY ?? (axisConfig.y && axisConfig.y.min) ?? parseNum(canvas.dataset.axisYMin)),
+            max: (axisConfig.maxY ?? (axisConfig.y && axisConfig.y.max) ?? parseNum(canvas.dataset.axisYMax)),
+        },
+        z: {
+            min: (axisConfig.minZ ?? (axisConfig.z && axisConfig.z.min) ?? parseNum(canvas.dataset.axisZMin)),
+            max: (axisConfig.maxZ ?? (axisConfig.z && axisConfig.z.max) ?? parseNum(canvas.dataset.axisZMax)),
+        }
+    };
+
+    function hasRange(axis){
+        const r = AXIS_RANGE[axis];
+        return r && typeof r.min === 'number' && typeof r.max === 'number' && r.max !== r.min;
+    }
+
+    function mapToLabel(axis, t){
+        // Map internal coordinate t in [-axisLen, axisLen] to [min,max] if provided
+        if (!hasRange(axis)) return t;
+        const r = AXIS_RANGE[axis];
+        const u = (t + axisLen) / (2 * axisLen); // 0..1
+        return r.min + u * (r.max - r.min);
+    }
+
+    function formatTick(val){
+        if (Math.abs(val) >= 1000 || Math.abs(val) < 0.001 && val !== 0) return val.toExponential(2);
+        const fixed = (Math.abs(val) < 1) ? 3 : 2;
+        return (+val.toFixed(fixed)).toString();
+    }
 
     // --- programs (uniform color) -------------------------------------------
     const vsPos = `
@@ -522,7 +576,8 @@ function initCube(canvas, datasets = {}, primitives = []) {
         const len = Math.hypot(dx, dy) || 1;
         dx = (dx / len) * pxAway;
         dy = (dy / len) * pxAway;
-        ctx2d.fillText(String(t), p.x + dx, p.y + dy);
+        const labVal = mapToLabel(axis, t);
+        ctx2d.fillText(formatTick(labVal), p.x + dx, p.y + dy);
     }
 
     function edgeLabelPos(axis, t, MVP, cssW, cssH, pxAway) {
