@@ -146,8 +146,8 @@ function get_data_cell(cell) {
 
     // Chart advanced YAML
     var chart3d_advanced = cell.find('.chart3d-advanced');
-    var editor = ace.edit(chart3d_advanced.attr('id'));
-    var chart3d_advanced_yaml = editor.getValue();
+    var editor3d = ace.edit(chart3d_advanced.attr('id'));
+    var chart3d_advanced_yaml = editor3d.getValue();
 
     var chart3d_series_objs = [];
 
@@ -196,7 +196,6 @@ function get_data_cell(cell) {
     var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
         console.log(this);
-        var $this = $(this);
         var srs = {
             'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
             'anno-label': $(this).find('.anno-label').val(),            // label
@@ -221,7 +220,6 @@ function get_data_cell(cell) {
     var series_objs = cell.find('.chart3d-series-objects');
     series_objs.each(function () {
         console.log(this);
-        var $this = $(this);
         var srs = {
             'obj-vertices': $(this).find('.obj-vertices').val(),                                    // Input Vertices
             'obj-indexes': $(this).find('.obj-indexes').val(),                                      // Input Indexes
@@ -282,14 +280,14 @@ function get_data_cell(cell) {
             }
         });
         chart3d["series-objects"].forEach(function (series_object) {
-            if (series_object["series-vertices"] == currTabId) {
-                series_object["series-vertices"] = tabCounter;
+            if (series_object["obj-vertices"] == currTabId) {
+                series_object["obj-vertices"] = tabCounter;
             }
-            if (series_object["series-indexes"] == currTabId) {
-                series_object["series-indexes"] = tabCounter;
+            if (series_object["obj-indexes"] == currTabId) {
+                series_object["obj-indexes"] = tabCounter;
             }
-            if (series_object["series-uv"] == currTabId) {
-                series_object["series-uv"] = tabCounter;
+            if (series_object["obj-uv"] == currTabId) {
+                series_object["obj-uv"] = tabCounter;
             }
         });
 
@@ -299,6 +297,7 @@ function get_data_cell(cell) {
 
     console.log("Table config:", table);
     console.log("Chart config:", chart);
+    console.log("Chart3d config:", chart3d);
     console.log("Tabs data:", tabs_data);
 
     return {

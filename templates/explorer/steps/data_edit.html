@@ -71,7 +71,7 @@
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
                                 <i class="bi bi-graph-up-arrow"></i>
                             </button>
-                            <button id="task_step_{{ loop_index }}" type="button" data-bs-toggle="collapse" title="3D chart configuration"
+                            <button id="task_step_{{ loop_index }}_chart3d" type="button" data-bs-toggle="collapse" title="3D chart configuration"
                                     data-bs-target="#collapseChart3dOptions_{{ loop_index }}"
                                     aria-expanded="{% if output=='chart3d' %}true{% else %}false{% endif %}"
                                     aria-controls="collapseChart3dOptions_{{ loop_index }}"
@@ -434,7 +434,7 @@
                     <div style="width: 2%;"></div>
                 </div>
                 {% for sobject in seriesobjects %}
-                    {% with loop_index=loop_index, series_index=loop.index0 %}
+                    {% with loop_index=loop_index, series_index=loop.index0, sobj=sobject, tabs=tabs %}
                         {% include theme("explorer/steps/data_edit_chart3d_series_object.html") %}
                     {% endwith %}
                 {% endfor %}
