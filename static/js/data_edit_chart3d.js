@@ -88,15 +88,15 @@ function boot() {
             titleY: 'Latitude (°)',
             titleZ: 'Altitude (km)',
             // Ranges can also be specified at the root or per-axis
-            minX: -180, maxX: 180,
-            minY: -90, maxY: 90,
+            minX: -18, maxX: 18,
+            minY: -9, maxY: 9,
             // Demonstrate per-axis nested config (will override root if both provided)
-            z: { title: 'Altitude (km)', min: 0, max: 20 },
+            z: {title: 'Altitude (km)', min: 0, max: 10},
             // Optional tick settings (consumed elsewhere if implemented)
             ticks: {
-                x: { step: 60, format: (v) => v.toFixed(0) },
-                y: { step: 30, format: (v) => v.toFixed(0) },
-                z: { step: 5, format: (v) => v.toFixed(0) }
+                x: {step: 6, format: (v) => v.toFixed(0)},
+                y: {step: 3, format: (v) => v.toFixed(0)},
+                z: {step: 5, format: (v) => v.toFixed(0)}
             }
         };
         if (!c.dataset.cubeInit) initCube(c, CHART3D_DEFAULT_DATASETS, CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
@@ -205,7 +205,11 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     };
 
     // Axis ranges (min/max) from axisConfig or data-*
-    function parseNum(v) { const n = parseFloat(v); return isFinite(n) ? n : null; }
+    function parseNum(v) {
+        const n = parseFloat(v);
+        return isFinite(n) ? n : null;
+    }
+
     const AXIS_RANGE = {
         x: {
             min: (axisConfig.minX ?? (axisConfig.x && axisConfig.x.min) ?? parseNum(canvas.dataset.axisXMin)),
@@ -221,20 +225,21 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         }
     };
 
-    function hasRange(axis){
+    function hasRange(axis) {
         const r = AXIS_RANGE[axis];
         return r && typeof r.min === 'number' && typeof r.max === 'number' && r.max !== r.min;
     }
 
-    function mapToLabel(axis, t){
-        // Map internal coordinate t in [-axisLen, axisLen] to [min,max] if provided
+    function mapToLabel(axis, t) {
+        // Map internal coordinate t in [-Laxis, Laxis] to [min,max] if provided for that axis
         if (!hasRange(axis)) return t;
         const r = AXIS_RANGE[axis];
-        const u = (t + axisLen) / (2 * axisLen); // 0..1
+        const Laxis = axis === 'x' ? axisLenX : (axis === 'y' ? axisLenY : axisLenZ);
+        const u = (t + Laxis) / (2 * Laxis); // 0..1
         return r.min + u * (r.max - r.min);
     }
 
-    function formatTick(val){
+    function formatTick(val) {
         if (Math.abs(val) >= 1000 || Math.abs(val) < 0.001 && val !== 0) return val.toExponential(2);
         const fixed = (Math.abs(val) < 1) ? 3 : 2;
         return (+val.toFixed(fixed)).toString();
@@ -349,7 +354,24 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         u_tex: gl.getUniformLocation(progTrisTex, "u_tex"),
     };
 
-    const axisLen = 3.0;   // half-extent
+    // Axis half-extent per axis. If AXIS_RANGE provides numeric min/max, fit [-L,L] to [min,max]
+    // and choose L = max(|min|, |max|) so that 0 is always visible and proportions remain reasonable.
+    // Fallback to 3.0 when no range is provided.
+    const defaultAxisLen = 3.0;
+
+    function axisHalfExtentFor(axis) {
+        const r = AXIS_RANGE[axis];
+        if (r && typeof r.min === 'number' && typeof r.max === 'number') {
+            const span = r.max - r.min;
+            const L = Math.abs(span) / 2;
+            return (L > 0 && isFinite(L)) ? L : defaultAxisLen;
+        }
+        return defaultAxisLen;
+    }
+
+    const axisLenX = axisHalfExtentFor('x');
+    const axisLenY = axisHalfExtentFor('y');
+    const axisLenZ = axisHalfExtentFor('z');
     const tickStep = 1.0;
     const tickSize = 0.08;
 
@@ -359,28 +381,28 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
     function buildGridXY(z) {
         const a = [];
-        for (let x = -axisLen; x <= axisLen; x += tickStep) pushLine(a, x, -axisLen, z, x, axisLen, z);
-        for (let y = -axisLen; y <= axisLen; y += tickStep) pushLine(a, -axisLen, y, z, axisLen, y, z);
+        for (let x = -axisLenX; x <= axisLenX; x += tickStep) pushLine(a, x, -axisLenY, z, x, axisLenY, z);
+        for (let y = -axisLenY; y <= axisLenY; y += tickStep) pushLine(a, -axisLenX, y, z, axisLenX, y, z);
         return new Float32Array(a);
     }
 
     function buildGridXZ(y) {
         const a = [];
-        for (let x = -axisLen; x <= axisLen; x += tickStep) pushLine(a, x, y, -axisLen, x, y, axisLen);
-        for (let z = -axisLen; z <= axisLen; z += tickStep) pushLine(a, -axisLen, y, z, axisLen, y, z);
+        for (let x = -axisLenX; x <= axisLenX; x += tickStep) pushLine(a, x, y, -axisLenZ, x, y, axisLenZ);
+        for (let z = -axisLenZ; z <= axisLenZ; z += tickStep) pushLine(a, -axisLenX, y, z, axisLenX, y, z);
         return new Float32Array(a);
     }
 
     function buildGridYZ(x) {
         const a = [];
-        for (let y = -axisLen; y <= axisLen; y += tickStep) pushLine(a, x, y, -axisLen, x, y, axisLen);
-        for (let z = -axisLen; z <= axisLen; z += tickStep) pushLine(a, x, -axisLen, z, x, axisLen, z);
+        for (let y = -axisLenY; y <= axisLenY; y += tickStep) pushLine(a, x, y, -axisLenZ, x, y, axisLenZ);
+        for (let z = -axisLenZ; z <= axisLenZ; z += tickStep) pushLine(a, x, -axisLenY, z, x, axisLenY, z);
         return new Float32Array(a);
     }
 
-    const gridXY = buildGridXY(-axisLen);
-    const gridXZ = buildGridXZ(-axisLen);
-    const gridYZ = buildGridYZ(-axisLen);
+    const gridXY = buildGridXY(-axisLenZ);
+    const gridXZ = buildGridXZ(-axisLenY);
+    const gridYZ = buildGridYZ(-axisLenX);
     const gridXYBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, gridXYBuf);
     gl.bufferData(gl.ARRAY_BUFFER, gridXY, gl.STATIC_DRAW);
@@ -391,29 +413,32 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     gl.bindBuffer(gl.ARRAY_BUFFER, gridYZBuf);
     gl.bufferData(gl.ARRAY_BUFFER, gridYZ, gl.STATIC_DRAW);
 
-    function buildBoxEdges(L) {
+    function buildBoxEdges(Lx, Ly, Lz) {
         const a = [];
 
         function keep(x1, y1, z1, x2, y2, z2) {
-            if ((x1 === -L && x2 === -L) || (y1 === -L && y2 === -L) || (z1 === -L && z2 === -L)) a.push(x1, y1, z1, x2, y2, z2);
+            if ((x1 === -Lx && x2 === -Lx) || (y1 === -Ly && y2 === -Ly) || (z1 === -Lz && z2 === -Lz)) a.push(x1, y1, z1, x2, y2, z2);
         }
 
-        keep(-L, -L, -L, L, -L, -L);
-        keep(-L, L, -L, L, L, -L);
-        keep(-L, -L, L, L, -L, L);
-        keep(-L, L, L, L, L, L);
-        keep(-L, -L, -L, -L, L, -L);
-        keep(L, -L, -L, L, L, -L);
-        keep(-L, -L, L, -L, L, L);
-        keep(L, -L, L, L, L, L);
-        keep(-L, -L, -L, -L, -L, L);
-        keep(L, -L, -L, L, -L, L);
-        keep(-L, L, -L, -L, L, L);
-        keep(L, L, -L, L, L, L);
+        // 12 edges of a cuboid
+        keep(-Lx, -Ly, -Lz, Lx, -Ly, -Lz);
+        keep(-Lx, Ly, -Lz, Lx, Ly, -Lz);
+        keep(-Lx, -Ly, Lz, Lx, -Ly, Lz);
+        keep(-Lx, Ly, Lz, Lx, Ly, Lz);
+
+        keep(-Lx, -Ly, -Lz, -Lx, Ly, -Lz);
+        keep(Lx, -Ly, -Lz, Lx, Ly, -Lz);
+        keep(-Lx, -Ly, Lz, -Lx, Ly, Lz);
+        keep(Lx, -Ly, Lz, Lx, Ly, Lz);
+
+        keep(-Lx, -Ly, -Lz, -Lx, -Ly, Lz);
+        keep(Lx, -Ly, -Lz, Lx, -Ly, Lz);
+        keep(-Lx, Ly, -Lz, -Lx, Ly, Lz);
+        keep(Lx, Ly, -Lz, Lx, Ly, Lz);
         return new Float32Array(a);
     }
 
-    const boxEdges = buildBoxEdges(axisLen);
+    const boxEdges = buildBoxEdges(axisLenX, axisLenY, axisLenZ);
     const boxBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, boxBuf);
     gl.bufferData(gl.ARRAY_BUFFER, boxEdges, gl.STATIC_DRAW);
@@ -554,20 +579,20 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // --- tick labels & title helpers ----------------------------------------
-    const L = axisLen;
     const sTick = tickSize * 2.0;
 
     function drawTickLabelOnEdge(axis, t, MVP, cssW, cssH, pxAway) {
+        const Lx = axisLenX, Ly = axisLenY, Lz = axisLenZ;
         let base, near;
         if (axis === "x") {
-            base = [t, -L, +L];
-            near = [t, -L - sTick, +L + sTick];
+            base = [t, -Ly, +Lz];
+            near = [t, -Ly - sTick, +Lz + sTick];
         } else if (axis === "y") {
-            base = [+L, t, -L];
-            near = [+L + sTick, t, -L - sTick];
+            base = [+Lx, t, -Lz];
+            near = [+Lx + sTick, t, -Lz - sTick];
         } else {
-            base = [+L, -L, t];
-            near = [+L + sTick, -L - sTick, t];
+            base = [+Lx, -Ly, t];
+            near = [+Lx + sTick, -Ly - sTick, t];
         }
         const p = projectToScreen(base[0], base[1], base[2], MVP, cssW, cssH);
         const q = projectToScreen(near[0], near[1], near[2], MVP, cssW, cssH);
@@ -581,16 +606,17 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     function edgeLabelPos(axis, t, MVP, cssW, cssH, pxAway) {
+        const Lx = axisLenX, Ly = axisLenY, Lz = axisLenZ;
         let base, near;
         if (axis === "x") {
-            base = [t, -L, +L];
-            near = [t, -L - sTick, +L + sTick];
+            base = [t, -Ly, +Lz];
+            near = [t, -Ly - sTick, +Lz + sTick];
         } else if (axis === "y") {
-            base = [+L, t, -L];
-            near = [+L + sTick, t, -L - sTick];
+            base = [+Lx, t, -Lz];
+            near = [+Lx + sTick, t, -Lz - sTick];
         } else {
-            base = [+L, -L, t];
-            near = [+L + sTick, -L - sTick, t];
+            base = [+Lx, -Ly, t];
+            near = [+Lx + sTick, -Ly - sTick, t];
         }
         const p = projectToScreen(base[0], base[1], base[2], MVP, cssW, cssH);
         const q = projectToScreen(near[0], near[1], near[2], MVP, cssW, cssH);
@@ -1038,11 +1064,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         ctx2d.font = `${STYLE.labelPx}px ${STYLE.fontFamily}`;
         ctx2d.textAlign = "center";
         ctx2d.textBaseline = "middle";
-        for (let t = -axisLen; t <= axisLen; t += tickStep) {
-            drawTickLabelOnEdge("x", t, MVP, cssW, cssH, 12);
-            drawTickLabelOnEdge("y", t, MVP, cssW, cssH, 12);
-            drawTickLabelOnEdge("z", t, MVP, cssW, cssH, 12);
-        }
+        for (let tx = -axisLenX; tx <= axisLenX; tx += tickStep) drawTickLabelOnEdge("x", tx, MVP, cssW, cssH, 12);
+        for (let ty = -axisLenY; ty <= axisLenY; ty += tickStep) drawTickLabelOnEdge("y", ty, MVP, cssW, cssH, 12);
+        for (let tz = -axisLenZ; tz <= axisLenZ; tz += tickStep) drawTickLabelOnEdge("z", tz, MVP, cssW, cssH, 12);
         ctx2d.restore();
 
         // Axis titles
