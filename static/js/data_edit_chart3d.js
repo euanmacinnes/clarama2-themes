@@ -63,6 +63,60 @@ const CHART3D_DEFAULT_DATASETS = {
     ]),
 };
 
+// Build an example line primitive: Mobius strip edge scaled to 10x5x3
+(function(){
+    function generateMobiusPoints(samples, R, w, vConst){
+        const pts = [];
+        const TWO_PI = Math.PI * 2;
+        const maxT = 2 * TWO_PI; // 0..4π to close edge for v=const
+        for(let i=0;i<samples;i++){
+            const t = maxT * (i / samples);
+            const ct = Math.cos(t), st = Math.sin(t);
+            const c2 = Math.cos(t/2), s2 = Math.sin(t/2);
+            const v = vConst;
+            const x = (R + v * c2) * ct;
+            const y = (R + v * c2) * st;
+            const z = v * s2;
+            pts.push([x,y,z]);
+        }
+        return pts;
+    }
+    function scaleAndCenter(pts, target){
+        let minX=Infinity,minY=Infinity,minZ=Infinity,maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity;
+        for(const p of pts){
+            if(p[0]<minX)minX=p[0]; if(p[0]>maxX)maxX=p[0];
+            if(p[1]<minY)minY=p[1]; if(p[1]>maxY)maxY=p[1];
+            if(p[2]<minZ)minZ=p[2]; if(p[2]>maxZ)maxZ=p[2];
+        }
+        const cx=(minX+maxX)/2, cy=(minY+maxY)/2, cz=(minZ+maxZ)/2;
+        const sx=maxX-minX || 1, sy=maxY-minY || 1, sz=maxZ-minZ || 1;
+        const tx=target[0]/sx, ty=target[1]/sy, tz=target[2]/sz;
+        for(const p of pts){
+            p[0]=(p[0]-cx)*tx;
+            p[1]=(p[1]-cy)*ty;
+            p[2]=(p[2]-cz)*tz;
+        }
+        return pts;
+    }
+    function toLinePairs(pts){
+        const out=[];
+        for(let i=0;i<pts.length-1;i++){
+            const a=pts[i], b=pts[i+1];
+            out.push(a[0],a[1],a[2], b[0],b[1],b[2]);
+        }
+        // close loop
+        const a=pts[pts.length-1], b=pts[0];
+        out.push(a[0],a[1],a[2], b[0],b[1],b[2]);
+        return new Float32Array(out);
+    }
+    const samples = 600;
+    const R = 2.0, w = 0.7; // base before scaling
+    const vConst = w; // edge line on the strip
+    let pts = generateMobiusPoints(samples, R, w, vConst);
+    pts = scaleAndCenter(pts, [10,5,3]);
+    CHART3D_DEFAULT_DATASETS.mobiusLineEdges = toLinePairs(pts);
+})();
+
 // Define default primitives that reference the datasets by name so generalized renderer can draw them
 const CHART3D_DEFAULT_PRIMITIVES = [
     // Render cube corners as points
@@ -75,8 +129,25 @@ const CHART3D_DEFAULT_PRIMITIVES = [
         mode: 'triangle',
         textureURL: 'https://images.pexels.com/photos/129733/pexels-photo-129733.jpeg?_gl=1*ank8ph*_ga*MzI5MTE5MDI0LjE3NTcwODUyMDk.*_ga_8JE65Q40S6*czE3NTcwODUyMDkkbzEkZzEkdDE3NTcwODUyMTEkajU4JGwwJGgw'
     },
-    // Note: Lines (wireframe) are rendered by the classic path inside initCube using indices; the
-    // generalized primitives expect line positions not indices, so we omit a line primitive here.
+    // Second example primitive demonstrating per-primitive position and rotation (degrees)
+    {
+        name: 'Cube Triangles (offset + rotated)',
+        vertices: 'cubeTriPositions',
+        uv: 'cubeTriUVs',
+        mode: 'triangle',
+        // translate by +3 on X, -1 on Y, +0 on Z (world units)
+        position: {x: 3, y: -1, z: 0},
+        // rotate 30° around X and 45° around Y
+        rotationDeg: {x: 30, y: 45, z: 0},
+        textureURL: 'https://images.pexels.com/photos/129733/pexels-photo-129733.jpeg?_gl=1*ank8ph*_ga*MzI5MTE5MDI0LjE3NTcwODUyMDk.*_ga_8JE65Q40S6*czE3NTcwODUyMDkkbzEkZzEkdDE3NTcwODUyMTEkajU4JGwwJGgw'
+    },
+    // Example line primitive: Mobius strip edge scaled to 10x5x3
+    {
+        name: 'Mobius Strip Line (10x5x3)',
+        edges: 'mobiusLineEdges',
+        mode: 'line',
+        uniformColor: [0.15, 0.6, 0.2, 1.0]
+    }
 ];
 
 function boot() {
@@ -500,6 +571,15 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         m[2] = -s;
         m[8] = s;
         m[10] = c;
+        return m;
+    }
+    function mat4RotateZ(a) {
+        const c = Math.cos(a), s = Math.sin(a);
+        const m = mat4Identity();
+        m[0] = c;
+        m[1] = s;
+        m[4] = -s;
+        m[5] = c;
         return m;
     }
 
@@ -947,6 +1027,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     countElems,
                     indexType,
                     modeGL,
+                    // store transform directives from primitive (position and rotation in degrees)
+                    position: prim.position || {x: 0, y: 0, z: 0},
+                    rotationDeg: prim.rotationDeg || {x: 0, y: 0, z: 0},
                 });
             } catch (e) {
                 console.error('Error compiling primitive:', e);
@@ -1006,8 +1089,20 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         for (const o of compiled) {
             gl.useProgram(o.program);
 
-            // common: MVP
-            if (o.locations.u_mvp) gl.uniformMatrix4fv(o.locations.u_mvp, false, MVP);
+            // compute per-primitive transform (position + rotation in degrees)
+            const pos = o.position || {x:0,y:0,z:0};
+            const rotD = o.rotationDeg || {x:0,y:0,z:0};
+            const toRad = (d) => (d || 0) * Math.PI / 180.0;
+            const Rxp = mat4RotateX(toRad(rotD.x));
+            const Ryp = mat4RotateY(toRad(rotD.y));
+            const Rzp = mat4RotateZ(toRad(rotD.z));
+            const Tp = mat4Translate(pos.x || 0, pos.y || 0, pos.z || 0);
+            // Model for primitive: Translate * Rz * Ry * Rx
+            const Mp = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
+            const MVPp = mat4Mul(MVP, Mp);
+
+            // common: MVP (per primitive)
+            if (o.locations.u_mvp) gl.uniformMatrix4fv(o.locations.u_mvp, false, MVPp);
 
             // attributes
             gl.bindBuffer(gl.ARRAY_BUFFER, o.vbo);
