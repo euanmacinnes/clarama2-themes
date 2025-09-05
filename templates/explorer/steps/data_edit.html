@@ -439,6 +439,9 @@
                     {% endwith %}
                 {% endfor %}
             </ul>
+            <div id="chart3d_{{ loop_index }}">
+                {% include theme("explorer/steps/data_edit_chart3d_canvas.html") %}
+            </div>
         </div>
     </div>
     <div id="content_chart_{{ loop_index }}">
