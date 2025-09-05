@@ -427,7 +427,7 @@
                 </label>
                 <div class="list-group-item d-flex row gx-2 align-items-center">
                     <div class="grid5-col-1">Vertices</div>
-                    <div class="grid5-col-1">Indexes</div>
+                    <div class="grid5-col-1">Edges</div>
                     <div class="grid5-col-1">UV</div>
                     <div class="grid5-col-1">Colour</div>
                     <div class="grid5-col-1">Primitive</div>
@@ -565,8 +565,8 @@
                 });
             });
 
-            // Update series objects indexes dropdowns
-            $(`#seriesObj${loopIndex} .obj-indexes`).each(function() {
+            // Update series objects edges dropdowns
+            $(`#seriesObj${loopIndex} .obj-edges`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
                 $dropdown.empty();
@@ -579,6 +579,18 @@
 
             // Update series objects uv dropdowns
             $(`#seriesObj${loopIndex} .obj-uv`).each(function() {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                $dropdown.empty();
+                
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+
+            // Update series objects colour dropdowns
+            $(`#seriesObj${loopIndex} .obj-colour`).each(function() {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
                 $dropdown.empty();

@@ -222,9 +222,9 @@ function get_data_cell(cell) {
         console.log(this);
         var srs = {
             'obj-vertices': $(this).find('.obj-vertices').val(),                                    // Input Vertices
-            'obj-indexes': $(this).find('.obj-indexes').val(),                                      // Input Indexes
+            'obj-edges': $(this).find('.obj-edges').val(),                                          // Input edges
             'obj-uv': $(this).find('.obj-uv').val(),                                                // Input UV mapping
-            'obj-col': $(this).find('.chart3d-col').val(),                                          // colour
+            'obj-colour': $(this).find('.obj-colour').val(),                                        // colour
             'obj-primitive': $(this).find('.obj-primitive').find('option:selected').attr('id'),     // primitive
         };
         console.log(srs);
@@ -283,8 +283,8 @@ function get_data_cell(cell) {
             if (series_object["obj-vertices"] == currTabId) {
                 series_object["obj-vertices"] = tabCounter;
             }
-            if (series_object["obj-indexes"] == currTabId) {
-                series_object["obj-indexes"] = tabCounter;
+            if (series_object["obj-edges"] == currTabId) {
+                series_object["obj-edges"] = tabCounter;
             }
             if (series_object["obj-uv"] == currTabId) {
                 series_object["obj-uv"] = tabCounter;

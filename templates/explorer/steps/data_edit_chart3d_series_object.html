@@ -1,22 +1,9 @@
 {% if sobj is not defined %}
-    {% set sobj = {"obj-col" : "", "obj-col-back" : ""} %}
+    {% set sobj = {} %}
 {% endif %}
 {% if chart3d is not defined %}
     {% set chart3d = {} %}
 {% endif %}
-{% set chart3dColors = {
-        "Default": "",
-        "Red": "rgb(255, 50, 50)",
-        "Orange": "rgb(255, 159, 64)",
-        "Yellow": "rgb(255, 205, 86)",
-        "Green": "rgb(75, 255, 192)",
-        "Blue": "rgb(54, 162, 235)",
-        "Purple": "rgb(153, 102, 255)",
-        "Grey": "rgb(201, 203, 207)",
-        "Medium Grey": "rgb(128, 128, 128)",
-        "Dark Grey": "rgb(64, 64, 64)",
-        "Black": "rgb(20, 20, 20)"
-    } %}
 <li class="chart3d-series-objects">
     <div class="list-group-item d-flex row gx-2 align-items-center">
         <!-- vertices -->
@@ -33,23 +20,24 @@
                 {% endfor %}
             </select>
         </div>
-        <!-- indexes -->
+        <!-- edges -->
         <div class="grid5-col-1">
-            <select id="obj-indexes{{ loop_index }}_{{ series_index }}" class="form-control obj-indexes">
+            <select id="obj-edges{{ loop_index }}_{{ series_index }}" class="form-control obj-edges">
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-indexes'] and tab_id|string == sobj['obj-indexes']|string %}selected{% endif %}>
+                            {% if sobj['obj-edges'] and tab_id|string == sobj['obj-edges']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}
             </select>
         </div>
-        <!-- uv -->
+        <!-- uv (optional) -->
         <div class="grid5-col-1">
             <select id="obj-uv{{ loop_index }}_{{ series_index }}" class="form-control obj-uv">
+                <option value="none" {% if sobj['obj-uv'] and tab_id|string == sobj['obj-uv']|string %}selected{% endif %}>none</option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
@@ -63,32 +51,24 @@
         </div>
         <!-- colour -->
         <div class="grid5-col-1">
-            <div class="color-picker-container d-flex align-items-center">
-                <select class="form-control chart3d-col" id="obj-col{{ loop_index }}_{{ series_index }}" name="color"
-                        style="background-color: {{ sobj['obj-col'] }}; " title="Line colour"
-                        data-toggle="tooltip">
-                    {% for key, value in chart3dColors.items() %}
-                        <option value="{{ value }}" {%- if sobj['obj-col']==value -%}selected{%- endif -%}>
-                            {{ key }}
-                        </option>
-                    {% endfor %}
-                    {% if (sobj['obj-col']  or '').startswith('#') %}
-                        <option value="{{ sobj['obj-col'] }}" selected>{{ sobj['obj-col'] }}</option>
-                    {% endif %}
-                    <option value="custom">Custom Colour</option>
-                </select>
-                <i class="bi bi-three-dots-vertical ellipsis"></i>
-                <input type="color" selected="chart3d-col" class="form-control chart3d-col-picker"
-                       id="obj-col-picker{{ loop_index }}_{{ series_index }}"
-                       name="cc" value="{{ sobj['obj-col'] }}">
-            </div>
+            <select id="obj-colour{{ loop_index }}_{{ series_index }}" class="form-control obj-colour">
+                {% for tab in tabs %}
+                    {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
+                    {% set has_source = tab.source and tab.source.strip() %}
+                    {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
+                    <option value="{{ tab_id }}"
+                            {% if sobj['obj-colour'] and tab_id|string == sobj['obj-colour']|string %}selected{% endif %}>
+                        {{ filename }}
+                    </option>
+                {% endfor %}
+            </select>
         </div>
         <!-- primitive -->
         <div class="grid5-col-1">
             <select id="obj-primitive{{ loop_index }}_{{ series_index }}" class="form-control obj-primitive" title="Type"
                     data-toggle="tooltip">>
-                <option {{ selected("line",sobj['obj-primitive']) }} id="line">Line</option>
                 <option {{ selected("point",sobj['obj-primitive']) }} id="point">Point</option>
+                <option {{ selected("line",sobj['obj-primitive']) }} id="line">Line</option>
                 <option {{ selected("triangle",sobj['obj-primitive']) }} id="triangle">Triangle</option>
             </select>
         </div>
