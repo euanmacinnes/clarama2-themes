@@ -1,3 +1,9 @@
+{%- if field_value in ["paused","5","10","30","60","120",5,10,30,60,120] -%}
+    {% set current_field_value = field_value %}
+{% else %}
+    {% set current_field_value = "paused" %}
+{% endif %}
+
 {% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
@@ -6,6 +12,7 @@
 
         {# Preset options in seconds #}
         {% set presets = [
+        {"label":"Paused","value":"paused"},
         {"label":"5 sec","value":5},
         {"label":"10 sec","value":10},
         {"label":"30 sec","value":30},
@@ -20,14 +27,7 @@
                name="{{ field_name }}_preset"
                class="clarama-field"
                fieldtype="html"
-               value="
-
-
-
-
-
-
-                       {%- if field_value in ["5","10","30","60","120",5,10,30,60,120] %}{{ field_value }}{% else %}custom{% endif %}">
+               value="{{ current_field_value }}">
 
         <div class="btn-group">
             <button type="button"
@@ -36,8 +36,8 @@
                     aria-expanded="false"
                     id="dropdown-{{ field_id }}">
             <span class="current-label">
-                {% set current = (field_value|string) %}
-                {% if current in ["5","10","30","60","120"] %}
+                {% set current = (current_field_value|string) %}
+                {% if current in ["paused","5","10","30","60","120"] %}
                     {% for p in presets %}{% if (p.value|string) == current %}{{ p.label }}{% endif %}{% endfor %}
                 {% else %}Custom{% endif %}
             </span>
@@ -59,7 +59,7 @@
                                    class="form-control custom-field"
                                    fieldtype="html"
                                    placeholder="seconds (5-300)"
-                                   value="{{ (field_value if field_value not in ['5','10','30','60','120'] else field_value) or get(field_config,'default','') }}"
+                                   value="{{ (field_value if field_value not in ['paused','5','10','30','60','120'] else field_value) or get(field_config,'default','') }}"
                                     {% include theme("explorer/files/field_tooltip.html") %}
                             />
                         </li>
@@ -92,6 +92,7 @@
 
                 function currentSeconds() {
                     var pv = $hiddenPreset.val();
+                    if (pv === 'paused') return null;
                     if (pv === 'custom') return parseSeconds($input.val());
                     return parseSeconds(pv);
                 }
@@ -113,7 +114,9 @@
                     list = list.slice(0, 4);
                     $log.data('ticks', list);
                     var html = '<div>Last events:</div>' +
-                        '<ul class="mb-0">' + list.map(function(t){return '<li>' + t + '</li>'}).join('') + '</ul>';
+                        '<ul class="mb-0">' + list.map(function (t) {
+                            return '<li>' + t + '</li>'
+                        }).join('') + '</ul>';
                     $log.html(html);
                 }
 
@@ -122,7 +125,7 @@
                     var secs = currentSeconds();
                     if (!secs) return;
                     var interval = secs * 1000;
-                    var id = setInterval(function(){
+                    var id = setInterval(function () {
                         var payload = {
                             fieldId: $hiddenPreset.data('id') || '{{ field_id }}',
                             seconds: secs,
@@ -141,11 +144,17 @@
                 startTimer();
 
                 // Restart when values change
-                $hiddenPreset.on('change', function(){ startTimer(); });
-                $input.on('change input', function(){ if ($hiddenPreset.val()==='custom') startTimer(); });
+                $hiddenPreset.on('change', function () {
+                    startTimer();
+                });
+                $input.on('change input', function () {
+                    if ($hiddenPreset.val() === 'custom') startTimer();
+                });
 
                 // When element is removed, clear interval
-                $container.on('remove', function(){ clearTimer(); });
+                $container.on('remove', function () {
+                    clearTimer();
+                });
             }
 
             // For each timer widget on the page
@@ -159,6 +168,9 @@
                     var presetVal = $hiddenPreset.val();
                     if (presetVal === 'custom') {
                         $input.prop('readonly', false);
+                    } else if (presetVal === 'paused') {
+                        $input.val('');
+                        $input.prop('readonly', true);
                     } else {
                         $input.val(presetVal);
                         $input.prop('readonly', true);
