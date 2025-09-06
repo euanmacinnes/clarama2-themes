@@ -1,0 +1,108 @@
+{% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
+
+{% block content %}
+    <div class="input-group clarama-field-timer">
+        <span class="input-group-text"><i class="bi bi-stopwatch"></i></span>
+
+        {# Preset options in seconds #}
+        {% set presets = [
+        {"label":"5 sec","value":5},
+        {"label":"10 sec","value":10},
+        {"label":"30 sec","value":30},
+        {"label":"1 min","value":60},
+        {"label":"2 min","value":120},
+        {"label":"Custom","value":"custom"}
+    ] %}
+
+        {# Hidden input to keep the chosen preset value for form submission #}
+        <input type="hidden"
+               data-id="{{ field_id }}"
+               name="{{ field_name }}_preset"
+               class="clarama-field"
+               fieldtype="html"
+               value="
+
+
+
+
+
+
+
+                       {%- if field_value in ["5","10","30","60","120",5,10,30,60,120] %}{{ field_value }}{% else %}custom{% endif %}">
+
+        <div class="btn-group">
+            <button type="button"
+                    class="btn btn-outline-secondary dropdown-toggle"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    id="dropdown-{{ field_id }}">
+            <span class="current-label">
+                {% set current = (field_value|string) %}
+                {% if current in ["5","10","30","60","120"] %}
+                    {% for p in presets %}{% if (p.value|string) == current %}{{ p.label }}{% endif %}{% endfor %}
+                {% else %}Custom{% endif %}
+            </span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdown-{{ field_id }}">
+                {% for p in presets %}
+                    {% if p.value != 'custom' %}
+                        <li>
+                            <a class="dropdown-item preset-item" href="#" data-value="{{ p.value }}">{{ p.label }}</a>
+                        </li>
+                    {% else %}
+                        <li>
+                            <input data-id="{{ field_id }}"
+                                   name="{{ field_name }}"
+                                   type="number"
+                                   min="5"
+                                   max="300"
+                                   step="1"
+                                   class="form-control custom-field"
+                                   fieldtype="html"
+                                   placeholder="seconds (5-300)"
+                                   value="{{ (field_value if field_value not in ['5','10','30','60','120'] else field_value) or get(field_config,'default','') }}"
+                                    {% include theme("explorer/files/field_tooltip.html") %}
+                            />
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <script>
+        // Initialise the dropdown using jQuery
+        $(function () {
+            // For each timer widget on the page
+            $('.clarama-field-timer').each(function () {
+                var $container = $(this);
+                var $hiddenPreset = $container.find('input[type="hidden"].clarama-field');
+                var $input = $container.find('input.custom-field');
+                var $labelSpan = $container.find('.current-label');
+
+                function syncVisibility() {
+                    var presetVal = $hiddenPreset.val();
+                    if (presetVal === 'custom') {
+                        $input.prop('readonly', false);
+                    } else {
+                        $input.val(presetVal);
+                        $input.prop('readonly', true);
+                    }
+                }
+
+                // Click handler for preset items
+                $container.on('click', '.preset-item', function (e) {
+                    e.preventDefault();
+                    var val = $(this).data('value');
+                    $hiddenPreset.val(String(val));
+                    $labelSpan.text($(this).text().trim());
+                    // trigger change in case listeners exist
+                    $hiddenPreset.trigger('change');
+                    syncVisibility();
+                });
+
+                // Initialise
+                syncVisibility();
+            });
+        });
+    </script>
+{% endblock %}
