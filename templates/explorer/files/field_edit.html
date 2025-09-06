@@ -246,61 +246,66 @@
 
         <!-- Options Pane (merged with Settings) -->
         <div class="tab-pane fade" id="pane-options" role="tabpanel" aria-labelledby="tab-options">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col">
-                        <label class="form-label" for="placeholder">Placeholder</label>
-                        <input id="placeholder" name="placeholder" type="text" class="form-control clarama-field"
-                               placeholder="placeholder value"
-                               value="{{ get(field_config,'placeholder','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                    </div>
+            <div class="mb-3">
+                <div class="col">
+                    <label class="form-label" for="placeholder">Placeholder</label>
+                    <input id="placeholder" name="placeholder" type="text" class="form-control clarama-field"
+                           placeholder="placeholder value"
+                           value="{{ get(field_config,'placeholder','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                </div>
 
-                    <div class="col">
-                        <label class="form-label">Description</label>
-                        <textarea id="description" name="description" class="form-control clarama-field"
-                                  autocomplete="on" rows="4"
-                                  placeholder="description" {% include theme("explorer/files/field_tooltip.html") %}>{{ get(field_config,'description','') }}</textarea>
+                <div class="col">
+                    <label class="form-label">Description</label>
+                    <textarea id="description" name="description" class="form-control clarama-field"
+                              autocomplete="on" rows="4"
+                              placeholder="description" {% include theme("explorer/files/field_tooltip.html") %}>{{ get(field_config,'description','') }}</textarea>
+                </div>
+                <div class="col">
+                    <label class="form-label">Default</label>
+                    <input id="default" name="default" type="text" class="form-control clarama-field"
+                           placeholder="default value"
+                           value="{{ get(field_config,'default','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    <div class="form-text">For checkboxes, use True for checked (converted to lowercase string
+                        'true').
                     </div>
-                    <div class="col">
-                        <label class="form-label">Default</label>
-                        <input id="default" name="default" type="text" class="form-control clarama-field"
-                               placeholder="default value"
-                               value="{{ get(field_config,'default','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        <div class="form-text">For checkboxes, use True for checked (converted to lowercase string
-                            'true').
+                </div>
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col">
+                            <label class="form-label">Minimum</label>
+                            <input id="minimum" name="minimum" type="number"
+                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                                   placeholder="0"
+                                   value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
                         </div>
-                    </div>
-                    <div class="col">
-                        <label class="form-label">Minimum</label>
-                        <input id="minimum" name="minimum" type="number"
-                               class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="0"
-                               value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                    </div>
-                    <div class="col">
-                        <label class="form-label">Maximum</label>
-                        <input id="maximum" name="maximum" type="number"
-                               class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="100"
-                               value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                    </div>
-                    <div class="col">
-                        <label class="form-label">Step</label>
-                        <input id="step" name="step" type="number"
-                               class="form-control clarama-field clarama-delay-field"
-                               fieldtype="html" placeholder="1"
-                               value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                    </div>
-                    <div class="col">
-                        <label class="form-label">Size</label>
-                        <input id="size" name="size" type="number"
-                               class="form-control clarama-field clarama-delay-field"
-                               fieldtype="html" placeholder="4"
-                               value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                    </div>
-                    <div class="col">
-                        <label class="form-label">Spacing</label>
-                        <input id="spacing" name="spacing" type="number"
-                               class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="2"
-                               value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        <div class="col">
+                            <label class="form-label">Maximum</label>
+                            <input id="maximum" name="maximum" type="number"
+                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                                   placeholder="100"
+                                   value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Step</label>
+                            <input id="step" name="step" type="number"
+                                   class="form-control clarama-field clarama-delay-field"
+                                   fieldtype="html" placeholder="1"
+                                   value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Size</label>
+                            <input id="size" name="size" type="number"
+                                   class="form-control clarama-field clarama-delay-field"
+                                   fieldtype="html" placeholder="4"
+                                   value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Spacing</label>
+                            <input id="spacing" name="spacing" type="number"
+                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                                   placeholder="2"
+                                   value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -427,6 +432,40 @@
                 original_url = $(".embedded").eq(0).attr("original_url");
             } catch (e) {
             }
+
+            // If src is a relative path (no leading slash and not a full URL), resolve it against the current URL,
+            // offset by the first two folders in the URL path (they do not refer to the path)
+            (function () {
+                try {
+                    var isFullUrl = /^https?:\/\//i.test(src);
+                    if (!isFullUrl) {
+                        // Compute base path from current location, ignoring first two segments
+                        var path = window.location.pathname || "/";
+                        var segments = path.split('/'); // ['', seg1, seg2, ...]
+                        // Keep from index 3 onward (drop '', seg1, seg2)
+                        var baseSegments = segments.slice(3);
+                        function normalize(parts) {
+                            var stack = [];
+                            for (var i = 0; i < parts.length; i++) {
+                                var p = parts[i];
+                                if (!p || p === '.') continue;
+                                if (p === '..') { if (stack.length) stack.pop(); continue; }
+                                stack.push(p);
+                            }
+                            return stack;
+                        }
+                        var srcStr = (src || '').trim();
+                        if (srcStr.startsWith('/')) {
+                            // Already absolute within app; remove the first empty element to avoid double slash below
+                            srcStr = srcStr.replace(/^\/+/, '');
+                            baseSegments = [];
+                        }
+                        var srcParts = srcStr.split('/');
+                        var combined = normalize(baseSegments.concat(srcParts));
+                        src = '/' + combined.join('/');
+                    }
+                } catch (e) { /* ignore */ }
+            })();
 
             // Construct GET query string parameters
             var url = "/web/data/execute/query/" + src;
