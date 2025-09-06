@@ -27,7 +27,6 @@
 
 
 
-
                        {%- if field_value in ["5","10","30","60","120",5,10,30,60,120] %}{{ field_value }}{% else %}custom{% endif %}">
 
         <div class="btn-group">
@@ -69,9 +68,86 @@
             </ul>
         </div>
     </div>
+    {# Log container for embed mode; will be shown only when embedded #}
+    <div class="timer-event-log text-muted small mt-1" style="display:none;"></div>
     <script>
-        // Initialise the dropdown using jQuery
+        // Initialise the dropdown using jQuery and add live timer behavior
         $(function () {
+            function parseSeconds(val) {
+                var n = parseInt(val);
+                if (isNaN(n)) return null;
+                if (n < 5) n = 5;
+                if (n > 300) n = 300;
+                return n;
+            }
+
+            function isEmbedded($el) {
+                return $el.closest('.clarama-embedded, .clarama-post-embedded, [mode="embed"]').length > 0;
+            }
+
+            function setupTimer($container) {
+                var $hiddenPreset = $container.find('input[type="hidden"].clarama-field');
+                var $input = $container.find('input.custom-field');
+                var $log = $container.closest('.clarama-field-timer').parent().find('.timer-event-log').first();
+
+                function currentSeconds() {
+                    var pv = $hiddenPreset.val();
+                    if (pv === 'custom') return parseSeconds($input.val());
+                    return parseSeconds(pv);
+                }
+
+                function clearTimer() {
+                    var id = $container.data('claramaTimerId');
+                    if (id) {
+                        clearInterval(id);
+                        $container.removeData('claramaTimerId');
+                    }
+                }
+
+                function logTick(ts) {
+                    if (!isEmbedded($container)) return;
+                    // ensure log visible
+                    $log.show();
+                    var list = $log.data('ticks') || [];
+                    list.unshift(ts);
+                    list = list.slice(0, 4);
+                    $log.data('ticks', list);
+                    var html = '<div>Last events:</div>' +
+                        '<ul class="mb-0">' + list.map(function(t){return '<li>' + t + '</li>'}).join('') + '</ul>';
+                    $log.html(html);
+                }
+
+                function startTimer() {
+                    clearTimer();
+                    var secs = currentSeconds();
+                    if (!secs) return;
+                    var interval = secs * 1000;
+                    var id = setInterval(function(){
+                        var payload = {
+                            fieldId: $hiddenPreset.data('id') || '{{ field_id }}',
+                            seconds: secs,
+                            timestamp: new Date().toISOString(),
+                            mode: isEmbedded($container) ? 'embed' : 'run'
+                        };
+                        // Fire a custom event on container and on document for broader listeners
+                        $container.trigger('clarama:timer:tick', [payload]);
+                        $(document).trigger('clarama:timer:tick', [payload]);
+                        logTick(new Date().toLocaleString());
+                    }, interval);
+                    $container.data('claramaTimerId', id);
+                }
+
+                // initial start
+                startTimer();
+
+                // Restart when values change
+                $hiddenPreset.on('change', function(){ startTimer(); });
+                $input.on('change input', function(){ if ($hiddenPreset.val()==='custom') startTimer(); });
+
+                // When element is removed, clear interval
+                $container.on('remove', function(){ clearTimer(); });
+            }
+
             // For each timer widget on the page
             $('.clarama-field-timer').each(function () {
                 var $container = $(this);
@@ -102,6 +178,15 @@
 
                 // Initialise
                 syncVisibility();
+                setupTimer($container);
+
+                // Show log only if embedded
+                var $log = $container.closest('.clarama-field-timer').parent().find('.timer-event-log').first();
+                if (isEmbedded($container)) {
+                    $log.show().html('<div>Last events:</div><ul class="mb-0"></ul>');
+                } else {
+                    $log.hide();
+                }
             });
         });
     </script>
