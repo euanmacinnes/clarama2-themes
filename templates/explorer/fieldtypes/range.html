@@ -2,8 +2,8 @@
 
 {% block content %}
     <inputgroup class="input-group">
-        <input class="form-control clarama-now-field"
-               style="width: 10%;"
+        <input class="form-control clarama-now-field text-bg-primary"
+               style="width: 10%; height: 37px;"
                type="number"
                name="amountInput"
                 {{ field_config | readonly }}
@@ -14,7 +14,7 @@
                oninput="this.nextElementSibling.value=this.value"/>
         <input data-id="{{ field_id }}" name="{{ field_name }}" type="range"
                class="form-control form-range clarama-field clarama-now-field input-group-append"
-               style="width: 90%"
+               style="width: 90%; height: 37px;"
                fieldtype="html"
                 {{ field_config | required }}
                 {{ field_config | readonly }}
