@@ -1,315 +1,488 @@
-<table>
-    <tr class="bg-secondary text-white">
-        <td colspan="1">
-            <h3 style="padding: 15px;">Field</h3>
-        </td>
-        <td class="text-end" style="padding:10px;">
-            <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}"></i>
-        </td>
-    </tr>
-    <tr>
-        <td colspan="2" style="padding: 15px;">
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center bg-secondary text-white rounded-top px-3 py-2 mb-2">
+        <h3 class="m-0"><input id="name" required name="name" type="text" class="form-control clarama-field"
+                               autocomplete="on"
+                               placeholder="field name"
+                               value="{{ get(field_config,'name','') }}" {% include theme("explorer/files/field_tooltip.html") %} />
+        </h3>
+        <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}" title="Save"></i>
+    </div>
+
+    <!-- Preview at the top -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="m-0">Field Preview</h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="update_preview()">
+                <i class="bi bi-arrow-repeat me-1"></i>Refresh
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
+            <pre class="mt-2"><code id="clarama-query-result"></code></pre>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="fieldEditTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-fieldtype" data-bs-toggle="tab" data-bs-target="#pane-fieldtype"
+                    type="button" role="tab" aria-controls="pane-fieldtype" aria-selected="true">Field Type
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-settings" data-bs-toggle="tab" data-bs-target="#pane-settings"
+                    type="button" role="tab" aria-controls="pane-settings" aria-selected="false">Settings
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-dependencies" data-bs-toggle="tab" data-bs-target="#pane-dependencies"
+                    type="button" role="tab" aria-controls="pane-dependencies" aria-selected="false">Dependencies
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-data" data-bs-toggle="tab" data-bs-target="#pane-data" type="button"
+                    role="tab" aria-controls="pane-data" aria-selected="false">Data
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-options" data-bs-toggle="tab" data-bs-target="#pane-options" type="button"
+                    role="tab" aria-controls="pane-options" aria-selected="false">Options
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 p-3 rounded-bottom card-body" id="fieldEditTabsContent">
+        <!-- Field Type Pane -->
+        <div class="tab-pane fade show active" id="pane-fieldtype" role="tabpanel" aria-labelledby="tab-fieldtype">
             <div class="container-fluid">
-                <div class="row">
+                <div class="row g-3 my-2">
                     {% for key, ftype in fieldtypes.items() %}
-                        <div class="col-1">
+                        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                             <label id="field_{{ key }}" key="{{ key }}"
-                                   class="btn {% if field_config['type'] == key %} clicked btn-primary {% else %} btn-light {% endif %} field"
-                                   style="width: 100%;">
-                                <i class="bi fs-4 {{ ftype['icon'] }}" style="width: 100%;"> </i></label>
-                            <div style="overflow-wrap: initial; width: 100%" class="text-center mt-1">
-                                <b>{{ ftype['name'] }}</b>
-                            </div>
-                            <p class="text-center mt-1">{{ ftype['description'] }}</p>
+                                   class="btn w-100 {% if field_config['type'] == key %} clicked btn-primary {% else %} btn-light {% endif %} field">
+                                <i class="bi fs-4 {{ ftype['icon'] }} w-100"></i>
+                                <div class="text-center mt-1"><b>{{ ftype['name'] }}</b></div>
                             </label>
+                            <p class="text-center mt-1 small">{{ ftype['description'] }}</p>
                         </div>
                     {% endfor %}
                 </div>
-            </div>
-        </td>
 
-    </tr>
-    <tr class="bg-secondary text-white">
-        <td>
-            <table width="100%">
-                <tr>
-                    <td widht="20%"><h3 style="padding: 15px;">Edit Field</h3></td>
-                    <td width="40%">
-                        <div class="form-check form-switch inputgroup">
-                            <input class="form-check-input clarama-field clarama-now-field"
-                                   fieldtype="html"
-                                   type="checkbox"
-                                   id="required"
-                                   name="required"
-                                    {% if get(field_config,'required','') | lower == 'true' %} checked {% endif %}
-                                    {% include theme("explorer/files/field_tooltip.html") %}
-                            >
+
+            </div>
+        </div>
+
+        <!-- Settings Pane -->
+        <div class="tab-pane fade" id="pane-settings" role="tabpanel" aria-labelledby="tab-settings">
+            <div class="container-fluid">
+                <div class="row g-3 my-2">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Placeholder</label>
+                        <input id="placeholder" name="placeholder" type="text" class="form-control clarama-field"
+                               placeholder="placeholder value"
+                               value="{{ get(field_config,'placeholder','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-center gap-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
+                                   type="checkbox" id="required" name="required"
+                                    {% if get(field_config,'required','') | lower == 'true' %}
+                                   checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
                             <label class="form-check-label" for="required">Required</label>
                         </div>
-                    </td>
-                    <td width="40%">
-                        <div class="form-check form-switch inputgroup">
-                            <input class="form-check-input clarama-field clarama-now-field"
-                                   fieldtype="html"
-                                   type="checkbox"
-                                   id="readonly"
-                                   name="readonly"
-                                    {% if get(field_config,'readonly','') | lower == 'true' %} checked {% endif %}
-                                    {% include theme("explorer/files/field_tooltip.html") %}
-                            >
+                        <div class="form-check form-switch">
+                            <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
+                                   type="checkbox" id="readonly" name="readonly"
+                                    {% if get(field_config,'readonly','') | lower == 'true' %}
+                                   checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
                             <label class="form-check-label" for="readonly">Read-Only</label>
                         </div>
-                    </td>
-                </tr>
-            </table>
-        </td>
-        <td><h3 style="padding: 15px;">Field Preview</h3></td>
-    </tr>
-    <tr>
-        <td width="50%" style="vertical-align: top">
-            <table style="padding: 5px;">
-                <tr style="padding: 5px;">
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;">Name </h5>
-                    </td>
-                    <td>
-                        <input id="name" required name="name" type="text"
-                               class="form-control clarama-field"
-                               autocomplete="on"
-                               placeholder="field name"
-                               value="{{ get(field_config,'name','') }}"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        />
-                    </td>
-                </tr>
-                <tr style="padding: 5px;">
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;">Description </h5>
-                    </td>
-                    <td>
-                        <textarea id="description"
-                                  name="description" type="text"
-                                  class="form-control clarama-field"
-                                  autocomplete="on"
-                                  rows="5"
-                                  placeholder="description"
-                                  value=""
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        >{{ get(field_config,'description','') }}</textarea>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;">Default</h5>
-                    </td>
-                    <td>
-                        <input id="default" name="default" type="text"
-                               class="form-control clarama-field"
-                               autocomplete="on"
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Description</label>
+                        <textarea id="description" name="description" class="form-control clarama-field"
+                                  autocomplete="on" rows="4"
+                                  placeholder="description" {% include theme("explorer/files/field_tooltip.html") %}>{{ get(field_config,'description','') }}</textarea>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Default</label>
+                        <input id="default" name="default" type="text" class="form-control clarama-field"
                                placeholder="default value"
-                               value="{{ get(field_config,'default','') }}"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        />
-                        <div>For checkboxes, use a default value of True for checked (the value will be made lowercase,
-                            a
-                            string
-                            and
-                            then
-                            equal to 'true'), anything else will be unchecked by default
+                               value="{{ get(field_config,'default','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        <div class="form-text">For checkboxes, use True for checked (converted to lowercase string
+                            'true').
                         </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;"> Placeholder </h5>
-                    </td>
-                    <td>
-                        <input id="placeholder" name="placeholder" type="text"
-                               class="form-control clarama-field"
-                               autocomplete="on"
-                               placeholder="placeholder value"
-                               value="{{ get(field_config,'placeholder','') }}"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        />
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    </td>
-                </tr>
-                <!-- <tr>
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;"> Filters </h5>
-                    </td>
-                    <td>
-                        <input id="filters" name="filters" type="text"
-                               class="form-control clarama-field"
-                               autocomplete="on"
-                               placeholder="filters value"
-                               value="{{ get(field_config,'filters','') }}"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        />
+        <!-- Dependencies Pane -->
+        <div class="tab-pane fade" id="pane-dependencies" role="tabpanel" aria-labelledby="tab-dependencies">
+            {% set deps = get(field_config, 'dependencies', []) %}
+            <div class="mb-2">
+                <label class="form-label">Dependencies (fields this field depends on)</label>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" id="dependency-input"
+                           placeholder="pick a .field.yaml">
+                    <button type="button" class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
+                            data-bs-target="#browseFileModal" filters="*.field.yaml" inputId="dependency-file-input"
+                            title="Browse .field.yaml"><i class="bi bi-folder2-open"></i></button>
+                    <button type="button" class="btn btn-outline-primary" id="add-dependency"><i
+                            class="bi bi-plus-lg"></i></button>
+                </div>
+                <input id="dependency-file-input" type="text" class="form-control d-none"/>
+                <ul id="dependencies-list" class="list-group">
+                    {% for d in deps %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="dep-text">{{ d }}</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i
+                                    class="bi bi-x"></i></button>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <input type="hidden" id="dependencies-json" value='{{ deps | tojson | safe }}'>
+                <div class="form-text mt-2">Use the add button to include a dependency. Click X to remove.</div>
+            </div>
+        </div>
 
-                    </td>
-                </tr> -->
-                <tr>
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;"> Data </h5>
-                    </td>
-                    <td style="padding: 5px;">
-                        <div id="data"
-                             name="data"
-                             editor="yaml"
-                             class="source-editor form-control clarama-field clarama-editor-field"
-                             fieldtype="aceeditor"
-                             style="min-height:{{ get(field_config,'min-height','64') }} ;height: 100%"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        >{{ get(field_config,'data', 'source:\naction:\nparams:\n  query:\n  path:\noptions:\n') | yaml }}</div>
-                        <p>
-                            <b>source:</b> is the task/source/yaml file to get the data from. Relative to where the
-                            field
-                            is<br/>
-                            <b>params:</b> if the source in question needs additional parameters<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<b>query:</b> For SQL/CSV/Excel/Influx sources to run a query
-                            against them<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<b>path:</b> For Yaml sources to specify the /path/ in the yaml to
-                            get the
-                            dictionary
-                            from<br/>
-                            <b>options</b> is for a manual list of options for a select/select-multiple. Dictionary of
-                            id: value
-                            value:<br/>
-                        </p>
-                    </td>
-                    <td style="vertical-align: top;padding-top: 5px;">
-                        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                                filters="*.table.yaml|*.task.yaml|*.source.yaml|*.csv"
-                                style="font-size: 13px;line-height: 14px;" inputId="field_data_source">
-                            Pick source
+        <!-- Data Pane -->
+        <div class="tab-pane fade" id="pane-data" role="tabpanel" aria-labelledby="tab-data">
+            {% set data_cfg = get(field_config, 'data', {}) %}
+            {% set has_options = data_cfg and 'options' in data_cfg %}
+            {% set mode_manual = has_options %}
+            <div class="mb-3">
+                <label class="form-label me-3">Data Mode</label>
+                <div class="btn-group" role="group" aria-label="Data Mode">
+                    <input type="radio" class="btn-check" name="data-mode" id="data-mode-manual" autocomplete="off"
+                           {% if mode_manual %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary" for="data-mode-manual">Manually Entered</label>
+
+                    <input type="radio" class="btn-check" name="data-mode" id="data-mode-remote" autocomplete="off"
+                           {% if not mode_manual %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary" for="data-mode-remote">Remote</label>
+                </div>
+            </div>
+
+            <!-- Manual Data -->
+            <div id="manual-data" class="mb-3" style="display: {% if mode_manual %}block{% else %}none{% endif %};">
+                {# Normalize options into a list of {id, value} dicts to ensure iterability #}
+                {% set _opts = (data_cfg.get('options') if data_cfg and ('options' in data_cfg) else []) %}
+                {% if _opts is mapping %}
+                    {% set options_list = [] %}
+                    {% for k, v in _opts.items() %}
+                        {% do options_list.append({'id': k, 'value': v}) %}
+                    {% endfor %}
+                {% elif _opts is sequence and _opts is not string %}
+                    {% set options_list = [] %}
+                    {% for item in _opts %}
+                        {% if item is mapping %}
+                            {% set _id = item.get('id', item.get('key', '')) %}
+                            {% set _val = item.get('value', item.get('val', item.get('label', ''))) %}
+                            {% do options_list.append({'id': _id, 'value': _val}) %}
+                        {% else %}
+                            {% do options_list.append({'id': item, 'value': item}) %}
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    {% set options_list = [] %}
+                {% endif %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label m-0">Manual Options</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-option-row"><i
+                            class="bi bi-plus-lg me-1"></i>Add Row
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle" id="manual-options-table">
+                        <thead>
+                        <tr>
+                            <th style="width: 25%">Id</th>
+                            <th>Value</th>
+                            <th style="width: 48px"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for opt in options_list %}
+                            <tr>
+                                <td><input type="text" class="form-control option-id" value="{{ opt.get('id', '') }}">
+                                </td>
+                                <td><input type="text" class="form-control option-value"
+                                           value="{{ opt.get('value', '') }}"></td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-option"><i
+                                            class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% if options_list|length == 0 %}
+                            <tr>
+                                <td><input type="text" class="form-control option-id" value=""></td>
+                                <td><input type="text" class="form-control option-value" value=""></td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-option"><i
+                                            class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Remote Data (simplified) -->
+            <div id="remote-data" style="display: {% if mode_manual %}none{% else %}block{% endif %};">
+                {% set src = data_cfg.get('source', '') if data_cfg else '' %}
+                {% set params = data_cfg.get('params', {}) if data_cfg else {} %}
+                {% set query = params.get('query', '') %}
+
+                <label class="form-label">Source</label>
+                <div class="input-group mb-2 w-100">
+                    <input id="field_data_source" type="text" class="form-control source-input-field"
+                           placeholder="relative path to source/task/table/csv" value="{{ src }}">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
+                            data-bs-target="#browseFileModal" filters="*.table.yaml|*.task.yaml|*.source.yaml|*.csv"
+                            inputId="field_data_source" title="Pick source"><i class="bi bi-folder2-open"></i></button>
+                    {% if src %}
+                        <a href="{{ src }}" target="_blank" class="btn btn-outline-info" title="Open Source"><i
+                                class="bi bi-pen"></i></a>
+                    {% else %}
+                        <button type="button" class="btn btn-outline-info" disabled title="Open Source"><i
+                                class="bi bi-pen"></i></button>
+                    {% endif %}
+                </div>
+
+                <label class="form-label">Query</label>
+                <textarea id="field_data_query" class="form-control" rows="6"
+                          placeholder="Enter query (SQL/Path/YAML)">{{ query }}</textarea>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btn-preview-remote"><i
+                                class="bi bi-eye me-1"></i>Preview Result
                         </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-                        <table width="100%">
-                            <tr>
-                                <td>
-                                    <h5>Minimum</h5>
-                                    <input id="minimum" name="minimum" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="0"
-                                           value="{{ get(field_config,'minimum','') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
-                                </td>
-                                <td>
-                                    <h5>Maximum</h5>
-                                    <input id="maximum" name="maximum" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="100"
-                                           value="{{ get(field_config,'maximum','') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
-                                </td>
-                                <td>
-                                    <h5>Step</h5>
-                                    <input id="step" name="step" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="100"
-                                           value="{{ get(field_config,'step','') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
-                                </td>
-                                <td>
-                                    <h5>Size</h5>
-                                    <input id="size" name="size" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="4"
-                                           value="{{ get(field_config,'size','4') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
-                                </td>
-                                <td>
-                                    <h5>Spacing</h5>
-                                    <input id="spacing" name="spacing" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="2"
-                                           value="{{ get(field_config,'spacing','3') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 5px;">For number &amp; range fields</td>
-                                <td style="padding: 5px;">For number &amp; range fields</td>
-                                <td style="padding: 5px;">For number &amp; range fields</td>
-                                <td style="padding: 5px;">For select, number of items to show</td>
-                                <td style="padding: 5px;">Spacing of the name/description</td>
-                            </tr>
-                        </table>
-                    </td>
-            </table>
-        </td>
-        <td width="50%" style="vertical-align: top; padding:30px;">
-            <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
-            <pre><code id="clarama-query-result"></code></pre>
-        </td>
-    </tr>
+                    </div>
+                    <div class="text-muted small">Remote data will save selected source and query.</div>
+                </div>
 
-</table>
+                <div class="table-responsive mt-2" id="remote-preview" style="display:none;">
+                    <table class="table table-sm table-striped mb-0" id="remote-preview-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <input type="hidden" id="data_text" value=""> <!-- holds JSON/YAML generated for backend -->
+        </div>
+
+        <!-- Options Pane -->
+        <div class="tab-pane fade" id="pane-options" role="tabpanel" aria-labelledby="tab-options">
+            <div class="row g-3">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Minimum</label>
+                    <input id="minimum" name="minimum" type="number"
+                           class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="0"
+                           value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Maximum</label>
+                    <input id="maximum" name="maximum" type="number"
+                           class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="100"
+                           value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Step</label>
+                    <input id="step" name="step" type="number" class="form-control clarama-field clarama-delay-field"
+                           fieldtype="html" placeholder="1"
+                           value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Size</label>
+                    <input id="size" name="size" type="number" class="form-control clarama-field clarama-delay-field"
+                           fieldtype="html" placeholder="4"
+                           value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Spacing</label>
+                    <input id="spacing" name="spacing" type="number"
+                           class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="2"
+                           value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
     var key = "{{ get(field_config,'type','string') }}";
 
-    $(".field").click(function () {
-        $(".field").removeClass("clicked");
-        $(".field").removeClass("btn-primary");
-        $(".field").addClass("btn-light");
-        key = $(this).attr("key");
-        $(this).addClass("clicked");
-        $(this).addClass("btn-primary");
-        $(this).removeClass("btn-light");
-        update_preview();
-    });
-
-    $(".clarama-field")
-        .on("focusout", function () {
+    $(function () {
+        // Click handlers
+        $(document).on('click', '.field', function () {
+            $(".field").removeClass("clicked btn-primary").addClass("btn-light");
+            key = $(this).attr("key");
+            $(this).addClass("clicked btn-primary").removeClass("btn-light");
             update_preview();
         });
 
+        $(document).on('focusout change', '.clarama-field, #field_data_source, #field_data_query', function () {
+            update_preview();
+        });
+
+        // Data mode toggle
+        $("#data-mode-manual").on('change', function () {
+            if (this.checked) {
+                $("#manual-data").show();
+                $("#remote-data").hide();
+                update_preview();
+            }
+        });
+        $("#data-mode-remote").on('change', function () {
+            if (this.checked) {
+                $("#manual-data").hide();
+                $("#remote-data").show();
+                update_preview();
+            }
+        });
+
+        // Manual options add/remove
+        $("#add-option-row").on('click', function () {
+            $("#manual-options-table tbody").append(`<tr>
+                <td><input type=\"text\" class=\"form-control option-id\" value=\"\"></td>
+                <td><input type=\"text\" class=\"form-control option-value\" value=\"\"></td>
+                <td><button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-option\"><i class=\"bi bi-trash\"></i></button></td>
+            </tr>`);
+        });
+        $(document).on('click', '.remove-option', function () {
+            $(this).closest('tr').remove();
+            update_preview();
+        });
+
+        // Dependencies add/remove
+        $("#add-dependency").on('click', function () {
+            var val = $("#dependency-input").val().trim();
+            if (!val) return;
+            var exists = false;
+            $("#dependencies-list .dep-text").each(function () {
+                if ($(this).text() === val) {
+                    exists = true;
+                }
+            });
+            if (!exists) {
+                $("#dependencies-list").append(`<li class=\"list-group-item d-flex justify-content-between align-items-center\">
+                    <span class=\"dep-text\">${val}</span>
+                    <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-dep\"><i class=\"bi bi-x\"></i></button>
+                </li>`);
+                $("#dependency-input").val('');
+                update_dependencies_json();
+            }
+        });
+        $(document).on('click', '.remove-dep', function () {
+            $(this).closest('li').remove();
+            update_dependencies_json();
+        });
+
+        // Support adding dependency via file browser limited to .field.yaml
+        $(document).on('change', '#dependency-file-input', function () {
+            var path = $(this).val().trim();
+            if (!path) return;
+            addDependencyValue(path);
+            $(this).val('');
+        });
+
+        function addDependencyValue(val) {
+            var exists = false;
+            $("#dependencies-list .dep-text").each(function () {
+                if ($(this).text() === val) {
+                    exists = true;
+                }
+            });
+            if (!exists) {
+                $("#dependencies-list").append(`<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="dep-text">${val}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i class="bi bi-x"></i></button>
+                </li>`);
+                update_dependencies_json();
+            }
+        }
+
+        function update_dependencies_json() {
+            var arr = [];
+            $("#dependencies-list .dep-text").each(function () {
+                arr.push($(this).text());
+            });
+            $("#dependencies-json").val(JSON.stringify(arr));
+            update_preview();
+        }
+
+        // Remote preview (basic): just refresh field preview and attempt trivial JSON display if present
+        $("#btn-preview-remote").on('click', function () {
+            update_preview(); /* placeholder for any extra preview logic */
+        });
+
+        // Initialize dependencies json from server-rendered list, ensure hidden input matches list
+        update_dependencies_json();
+
+        // Initial preview
+        setTimeout(update_preview, 150);
+    });
+
+    function build_data_json() {
+        // Returns a JS object to be encoded to YAML/JSON
+        var isManual = $("#data-mode-manual").is(':checked');
+        if (isManual) {
+            var options = [];
+            $("#manual-options-table tbody tr").each(function () {
+                var id = $(this).find('input.option-id').val();
+                var value = $(this).find('input.option-value').val();
+                if (id !== '' || value !== '') options.push({id: id, value: value});
+            });
+            return {options: options};
+        } else {
+            var src = $("#field_data_source").val();
+            var q = $("#field_data_query").val();
+            var data = {source: src};
+            if (q && q.trim() !== '') data['params'] = {query: q};
+            return data;
+        }
+    }
+
     function update_preview() {
-        var editor = ace.edit("data");
-        var code = editor.getValue();
+        var codeObj = build_data_json();
+        var code = JSON.stringify(codeObj, null, 2); // JSON is valid YAML
+        $("#data_text").val(code);
 
         var url = "{{ embedded_url(filename=file_url) }}"
-            + "?type=" + key
-            + "&name=" + $("#name").val()
-            + "&description=" + $("#description").val()
-            + "&placeholder=" + $("#placeholder").val()
-            + "&default=" + $("#default").val()
-            + "&maximum=" + $("#maximum").val()
-            + "&minimum=" + $("#minimum").val()
-            + "&readonly=" + $("#readonly").prop('checked')
-            + "&required=" + $("#required").prop('checked')
-            + "&step=" + $("#step").val()
-            + "&spacing=" + $("#spacing").val()
-            + "&data_text=" + code
+            + "?type=" + encodeURIComponent(key)
+            + "&name=" + encodeURIComponent($("#name").val())
+            + "&description=" + encodeURIComponent($("#description").val())
+            + "&placeholder=" + encodeURIComponent($("#placeholder").val())
+            + "&default=" + encodeURIComponent($("#default").val())
+            + "&maximum=" + encodeURIComponent($("#maximum").val())
+            + "&minimum=" + encodeURIComponent($("#minimum").val())
+            + "&readonly=" + encodeURIComponent($("#readonly").prop('checked'))
+            + "&required=" + encodeURIComponent($("#required").prop('checked'))
+            + "&step=" + encodeURIComponent($("#step").val())
+            + "&spacing=" + encodeURIComponent($("#spacing").val())
+            + "&data_text=" + encodeURIComponent(code)
         ;
-        console.log(url);
         $("#preview").attr("url", url);
-        $("#preview").attr("clarama_loaded", false)
+        $("#preview").attr("clarama_loaded", false);
         $('#preview').load();
     }
 
     function save_field() {
-        var editor = ace.edit("data");
-        var code = editor.getValue();
+        var codeObj = build_data_json();
+        var code = JSON.stringify(codeObj, null, 2);
+
+        var deps_json = $("#dependencies-json").val();
+        var deps = [];
+        try {
+            deps = JSON.parse(deps_json || '[]');
+        } catch (e) {
+            deps = [];
+        }
 
         var field_data = {
             "type": key,
@@ -323,12 +496,11 @@
             "spacing": $("#spacing").val(),
             "readonly": $("#readonly").prop('checked'),
             "required": $("#required").prop('checked'),
+            "dependencies": deps,
             "data_text": code
-        }
+        };
 
-        var url = "/content/save/" + $("#save").attr("url")
-
-        console.log(url);
+        var url = "/content/save/" + $("#save").attr("url");
 
         $.ajax({
             type: 'POST',
@@ -338,18 +510,12 @@
             data: JSON.stringify(field_data),
             success: function (data) {
                 if (data['data'] == 'ok') {
-                    console.log('Submission was successful.');
-                    console.log(data);
                     flash("Saved!", "success");
                 } else {
-                    console.log('Submission was not successful.');
-                    console.log(data);
                     flash("Couldn't save content: " + data['error'], "danger");
                 }
             },
             error: function (data) {
-                console.log('An error occurred.');
-                console.log(data);
                 flash("Couldn't save content, access denied", "danger");
             }
         });
