@@ -19,7 +19,7 @@
                        type="checkbox" id="readonly" name="readonly"
                         {% if get(field_config,'readonly','') | lower == 'true' %}
                        checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
-                <label class="form-check-label" for="readonly">Read-Only</label>
+                <label class="form-check-label nowrap" for="readonly">Read-Only</label>
             </div>
         </div>
         <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}" title="Save"></i>
@@ -34,6 +34,7 @@
             </button>
         </div>
         <div class="card-body">
+            <div id="dependencies-preview" class="mb-2"></div>
             <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
             <pre class="mt-2"><code id="clarama-query-result"></code></pre>
         </div>
@@ -52,13 +53,13 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-dependencies" data-bs-toggle="tab" data-bs-target="#pane-dependencies"
-                    type="button" role="tab" aria-controls="pane-dependencies" aria-selected="false">Dependencies
+            <button class="nav-link" id="tab-data" data-bs-toggle="tab" data-bs-target="#pane-data" type="button"
+                    role="tab" aria-controls="pane-data" aria-selected="false">Data
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-data" data-bs-toggle="tab" data-bs-target="#pane-data" type="button"
-                    role="tab" aria-controls="pane-data" aria-selected="false">Data
+            <button class="nav-link" id="tab-dependencies" data-bs-toggle="tab" data-bs-target="#pane-dependencies"
+                    type="button" role="tab" aria-controls="pane-dependencies" aria-selected="false">Dependency Testing
             </button>
         </li>
     </ul>
@@ -89,7 +90,14 @@
         <div class="tab-pane fade" id="pane-dependencies" role="tabpanel" aria-labelledby="tab-dependencies">
             {% set deps = get(field_config, 'dependencies', []) %}
             <div class="mb-2">
-                <label class="form-label">Dependencies (fields this field depends on)</label>
+                <p>
+                    This feature is only for testing purposes, so you can test what happens right here with multiple
+                    other field inputs. The dependencies will be saved along with the field, but will not add
+                    automatically to a slate or task.
+                </p>
+                <p>
+                    Select a field file in the box below, then click the [+] button to add to the list
+                </p>
                 <div class="input-group mb-2">
                     <input type="text" class="form-control" id="dependency-input"
                            placeholder="pick a .field.yaml">
@@ -99,6 +107,7 @@
                     <button type="button" class="btn btn-outline-primary" id="add-dependency"><i
                             class="bi bi-plus-lg"></i></button>
                 </div>
+                <label class="form-label">Dependencies (fields this field depends on)</label>
                 <input id="dependency-file-input" type="text" class="form-control d-none"/>
                 <ul id="dependencies-list" class="list-group">
                     {% for d in deps %}
@@ -352,12 +361,26 @@
             update_preview();
         });
 
-        $(document).on('focusout change', '.clarama-field, #field_data_source', function () {
+        // Any field change (including dependency dropdowns rendered with .clarama-field) triggers preview refresh
+        // But do NOT refresh if the change originated inside the preview or any dependency preview to avoid loops.
+        $(document).on('focusout change', '.clarama-field, #field_data_source', function (e) {
+            try {
+                var $t = $(e.target);
+                // Main preview container
+                var inMainPreview = $t.closest('#preview').length > 0;
+                // Dependency previews container or individual dependency blocks
+                var inDepsPreviewArea = $t.closest('#dependencies-preview').length > 0 || $t.closest('.clarama-post-embedded').length > 0;
+                if (inMainPreview || inDepsPreviewArea) {
+                    return; // Skip refresh if interaction is inside preview areas
+                }
+            } catch (err) { /* ignore and fall through to update */
+            }
             update_preview();
         });
         // React to editor changes as well
         try {
-            ace.edit('field_data_query').session.on('change', function () {
+            ace.edit('field_data_query').session.on('change', function (e) {
+                // Editor is outside preview containers; safe to refresh
                 update_preview();
             });
         } catch (e) {
@@ -617,7 +640,77 @@
         var code = JSON.stringify(codeObj, null, 2); // JSON is valid YAML
         $("#data_text").val(code);
 
-        var url = "{{ embedded_url(filename=file_url) }}"
+        // Helper to resolve a possibly-relative path against current location
+        function resolvePath(p) {
+            try {
+                if (!p) return '';
+                var isFullUrl = /^https?:\/\//i.test(p);
+                if (isFullUrl) return p; // leave external URLs as-is
+
+                var path = window.location.pathname || "/";
+                var segments = path.split('/'); // ['', seg1, seg2, ...]
+                // Keep from index 3 onward (drop '', seg1, seg2) and drop the last segment (current filename)
+                var baseSegments = segments.slice(3);
+                if (baseSegments.length > 0) {
+                    baseSegments = baseSegments.slice(0, -1);
+                }
+
+                function normalize(parts) {
+                    var stack = [];
+                    for (var i = 0; i < parts.length; i++) {
+                        var part = parts[i];
+                        if (!part || part === '.') continue;
+                        if (part === '..') {
+                            if (stack.length) stack.pop();
+                            continue;
+                        }
+                        stack.push(part);
+                    }
+                    return stack;
+                }
+
+                var srcStr = (p || '').trim();
+                if (srcStr.startsWith('/')) {
+                    // Already absolute within app; remove the first empty element to avoid double slash below
+                    srcStr = srcStr.replace(/^\/+/, '');
+                    baseSegments = [];
+                }
+                var srcParts = srcStr.split('/');
+                var combined = normalize(baseSegments.concat(srcParts));
+                return '/' + combined.join('/');
+            } catch (e) {
+                return p;
+            }
+        }
+
+        // Build dependency preview elements first
+        var deps = [];
+        try {
+            deps = JSON.parse($("#dependencies-json").val() || '[]') || [];
+        } catch (e) {
+            deps = [];
+        }
+
+        var $depsContainer = $("#dependencies-preview");
+        $depsContainer.empty();
+
+        var depDivs = [];
+        if (deps.length > 0) {
+            // Add a small title
+            $depsContainer.append('<div class="text-muted small mb-1">Dependencies</div>');
+
+            for (var i = 0; i < deps.length; i++) {
+                var depPath = resolvePath(deps[i]);
+                var depUrl = '/render/embed/' + depPath;
+                var depId = 'dep_preview_' + i;
+                var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div>';
+                $depsContainer.append(depHtml);
+                depDivs.push('#' + depId);
+            }
+        }
+
+        // Now prepare main preview URL, but defer loading until dependencies are loaded
+        var mainUrl = "{{ embedded_url(filename=file_url) }}"
             + "?type=" + encodeURIComponent(key)
             + "&name=" + encodeURIComponent($("#name").val())
             + "&description=" + encodeURIComponent($("#description").val())
@@ -629,11 +722,40 @@
             + "&required=" + encodeURIComponent($("#required").prop('checked'))
             + "&step=" + encodeURIComponent($("#step").val())
             + "&spacing=" + encodeURIComponent($("#spacing").val())
-            + "&data_text=" + encodeURIComponent(code)
-        ;
-        $("#preview").attr("url", url);
-        $("#preview").attr("clarama_loaded", false);
-        $('#preview').load();
+            + "&data_text=" + encodeURIComponent(code);
+
+        function loadMainPreview() {
+            $("#preview").attr("url", mainUrl);
+            $("#preview").attr("clarama_loaded", false);
+            $('#preview').load();
+        }
+
+        if (depDivs.length === 0) {
+            // No dependencies, just load main preview
+            loadMainPreview();
+        } else {
+            // Load dependencies sequentially, then main preview
+            var idx = 0;
+
+            function loadNext() {
+                if (idx >= depDivs.length) {
+                    loadMainPreview();
+                    return;
+                }
+                var sel = depDivs[idx++];
+                try {
+                    $(sel).attr('clarama_loaded', false);
+                    $(sel).attr('autorun', true);
+                    $(sel).load_post(function () {
+                        loadNext();
+                    }, undefined, {});
+                } catch (e) {
+                    loadNext();
+                }
+            }
+
+            loadNext();
+        }
     }
 
     function save_field() {
