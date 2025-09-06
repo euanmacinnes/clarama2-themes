@@ -220,10 +220,18 @@
                     {% endif %}
                 </div>
 
-                <label class="form-label">Query</label>
+                <label class="form-label">Query
+                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline ms-1" title="Query help"
+                            data-bs-toggle="modal" data-bs-target="#queryHelpModal">
+                        <i class="bi bi-question-circle"></i>
+                    </button>
+                </label>
                 <div id="field_data_query" class="source-editor form-control clarama-editor-field" editor="sql"
                      style="min-height: 0; height: 160px;"
                      placeholder="Enter query (SQL/Path/YAML)">{{ query }}</div>
+                <div class="form-text mt-2">The first column is used as the ID, the second is used as the value. It does
+                    not matter what the columns are called
+                </div>
                 <script type="text/javascript">$(function () {
                     $('#field_data_query').editor();
                 });</script>
@@ -234,7 +242,6 @@
                                 class="bi bi-eye me-1"></i>Preview Result
                         </button>
                     </div>
-                    <div class="text-muted small">Remote data will save selected source and query.</div>
                 </div>
 
                 <div class="table-responsive mt-2" id="remote-preview" style="display:none;">
@@ -673,6 +680,74 @@
         });
     }
 </script>
+
+<!-- Query Help Modal -->
+<div class="modal fade" id="queryHelpModal" tabindex="-1" aria-labelledby="queryHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="queryHelpModalLabel">Query Help</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">You can enter SQL (or a path/YAML depending on the Source type).</p>
+                <h6>SQL basics</h6>
+                <ul>
+                    <li>SELECT col1, col2 FROM table WHERE col1 = 'value'</li>
+                    <li>Use LIKE for wildcard search: col1 LIKE '%text%'</li>
+                    <li>Use IN for lists: col1 IN ('a','b','c')</li>
+                    <li>The first column of the result is used as the ID, the second as the display value.</li>
+                </ul>
+                <h6 class="mt-3">Global fields preprocessing</h6>
+                <p>Before SQL (or any other query type) is executed, Clarama preprocesses the text using the "Global
+                    Fields" function. This lets
+                    you insert variables and build common SQL fragments.
+                    These placeholders use double square brackets [[...]].
+                    They are used to reference both the name and current value of other fields that may be chosen by the
+                    user.
+                </p>
+                <p>
+                    Field names here are based off the <i>filename</i> of the field, not the "name" property.
+                    For example, if you have a field named "my_field.field.yaml", you can use [[my_field]] to reference
+                    the
+                    value of the field.</p>
+                <p>
+                    Spaces, symbols and other characters are replaced with _. Field names are <i>always</i> lower case.
+                </p>
+                <ul>
+                    <li>[[field_name]] — simple substitution of a scalar value.</li>
+                    <li>[[field_name:list]] — join a list with commas (a,b,c).</li>
+                    <li>[[field_name:sql]] — join a list as single-quoted SQL values ('a','b','c').</li>
+                    <li>[[field_name:in]] — expand to: field_name IN ('a','b',...).</li>
+                    <li>[[field_name:where]] — expand to: WHERE field_name IN ('a','b',...).</li>
+                    <li>[[field_name:search]] — expand to: field_name LIKE '%search%' (use mapping below to choose
+                        column).
+                    </li>
+                    <li>Mapping: [[from=>to:layout]] — use field_name <em>from</em> but target DB column
+                        <em>to</em>. This is if the field_name differs from the database name.
+                    </li>
+                    <li>Extensions: Some layouts accept an extension after a third colon, e.g. [[field_name:in:AND]] or
+                        [[field_name:search:AND]]. For LIKE, [[field_name:like]] generates multiple ORed LIKE parts if
+                        the field_name is a list.
+                    </li>
+                </ul>
+                <p class="text-muted small">Missing field_name remove the placeholder, ie.. the user did not select
+                    anything, or the required field was not added.</p>
+                <h6 class="mt-3">Examples</h6>
+                <pre class="small bg-light p-2 border">SELECT id, name FROM users WHERE [[status=>status:in:AND]] [[name=>name:search]]</pre>
+                <p class="small text-muted">If status=[active,disabled] and search name='ann', the above becomes e.g.
+                    "status IN ('active','disabled') AND name LIKE '%ann%'".</p>
+
+                <p class="small text-muted">If status is not available/found and search name='ann', the above becomes
+                    e.g.
+                    "name LIKE '%ann%'".</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% include theme("explorer/files/browse_file_modal.html") %}
 {% include theme("explorer/files/file_modal_shared_logic.html") %}
