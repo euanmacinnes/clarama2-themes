@@ -36,7 +36,6 @@
         <div class="card-body">
             <div id="dependencies-preview" class="mb-2"></div>
             <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
-            <pre class="mt-2"><code id="clarama-query-result"></code></pre>
         </div>
     </div>
 
@@ -255,6 +254,7 @@
                         <button type="button" class="btn btn-outline-primary btn-sm" id="btn-preview-remote"><i
                                 class="bi bi-eye me-1"></i>Preview Result
                         </button>
+                        <pre class="mt-2"><code id="clarama-query-result"></code></pre>
                     </div>
                 </div>
 
@@ -782,7 +782,7 @@
                 var depPath = resolvePath(deps[i]);
                 var depUrl = '/render/embed/' + depPath;
                 var depId = 'dep_preview_' + i;
-                var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div>';
+                var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded bg-light p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div><i class="fs-3 bi bi-arrow-down" style="margin-left: 70px;"></i>';
                 $depsContainer.append(depHtml);
                 depDivs.push('#' + depId);
             }
