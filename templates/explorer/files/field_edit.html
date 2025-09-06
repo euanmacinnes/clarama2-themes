@@ -221,8 +221,12 @@
                 </div>
 
                 <label class="form-label">Query</label>
-                <textarea id="field_data_query" class="form-control" rows="6"
-                          placeholder="Enter query (SQL/Path/YAML)">{{ query }}</textarea>
+                <div id="field_data_query" class="source-editor form-control clarama-editor-field" editor="sql"
+                     style="min-height: 0; height: 160px;"
+                     placeholder="Enter query (SQL/Path/YAML)">{{ query }}</div>
+                <script type="text/javascript">$(function () {
+                    $('#field_data_query').editor();
+                });</script>
 
                 <div class="d-flex justify-content-between align-items-center mt-2">
                     <div>
@@ -316,6 +320,17 @@
 <script type="text/javascript">
     var key = "{{ get(field_config,'type','string') }}";
 
+    function getEditorValue(id) {
+        try {
+            var ed = ace.edit(id);
+            if (ed && ed.getValue) {
+                return ed.getValue();
+            }
+        } catch (e) {
+        }
+        return $("#" + id).val();
+    }
+
     $(function () {
         // Click handlers
         $(document).on('click', '.field', function () {
@@ -325,9 +340,16 @@
             update_preview();
         });
 
-        $(document).on('focusout change', '.clarama-field, #field_data_source, #field_data_query', function () {
+        $(document).on('focusout change', '.clarama-field, #field_data_source', function () {
             update_preview();
         });
+        // React to editor changes as well
+        try {
+            ace.edit('field_data_query').session.on('change', function () {
+                update_preview();
+            });
+        } catch (e) {
+        }
 
         // Data mode toggle
         $("#data-mode-manual").on('change', function () {
@@ -419,7 +441,7 @@
         $("#btn-preview-remote").on('click', function () {
             // Build the data execute URL similar to datasource_url()
             var src = ($("#field_data_source").val() || "").trim();
-            var q = ($("#field_data_query").val() || "").trim();
+            var q = (getEditorValue("field_data_query") || "").trim();
             if (!src) {
                 flash("Please provide a Source to preview remote data.", "warning");
                 return;
@@ -442,18 +464,26 @@
                         // Compute base path from current location, ignoring first two segments
                         var path = window.location.pathname || "/";
                         var segments = path.split('/'); // ['', seg1, seg2, ...]
-                        // Keep from index 3 onward (drop '', seg1, seg2)
+                        // Keep from index 3 onward (drop '', seg1, seg2) and drop the last segment (current filename)
                         var baseSegments = segments.slice(3);
+                        if (baseSegments.length > 0) {
+                            baseSegments = baseSegments.slice(0, -1);
+                        }
+
                         function normalize(parts) {
                             var stack = [];
                             for (var i = 0; i < parts.length; i++) {
                                 var p = parts[i];
                                 if (!p || p === '.') continue;
-                                if (p === '..') { if (stack.length) stack.pop(); continue; }
+                                if (p === '..') {
+                                    if (stack.length) stack.pop();
+                                    continue;
+                                }
                                 stack.push(p);
                             }
                             return stack;
                         }
+
                         var srcStr = (src || '').trim();
                         if (srcStr.startsWith('/')) {
                             // Already absolute within app; remove the first empty element to avoid double slash below
@@ -464,7 +494,8 @@
                         var combined = normalize(baseSegments.concat(srcParts));
                         src = '/' + combined.join('/');
                     }
-                } catch (e) { /* ignore */ }
+                } catch (e) { /* ignore */
+                }
             })();
 
             // Construct GET query string parameters
@@ -562,7 +593,7 @@
             return {options: options};
         } else {
             var src = $("#field_data_source").val();
-            var q = $("#field_data_query").val();
+            var q = getEditorValue("field_data_query");
             var data = {source: src};
             if (q && q.trim() !== '') data['params'] = {query: q};
             return data;
