@@ -1,10 +1,27 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center bg-secondary text-white rounded-top px-3 py-2 mb-2">
-        <h3 class="m-0"><input id="name" required name="name" type="text" class="form-control clarama-field"
-                               autocomplete="on"
-                               placeholder="field name"
-                               value="{{ get(field_config,'name','') }}" {% include theme("explorer/files/field_tooltip.html") %} />
-        </h3>
+        <div class="col-12 col-md-6 d-flex align-items-center gap-4">
+            <label class="form-check-label" for="name">Name</label>
+            <input id="name" required name="name" type="text" class="form-control clarama-field"
+                   autocomplete="on"
+                   placeholder="field name"
+                   value="{{ get(field_config,'name','') }}" {% include theme("explorer/files/field_tooltip.html") %} />
+
+            <div class="form-check form-switch">
+                <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
+                       type="checkbox" id="required" name="required"
+                        {% if get(field_config,'required','') | lower == 'true' %}
+                       checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
+                <label class="form-check-label" for="required">Required</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
+                       type="checkbox" id="readonly" name="readonly"
+                        {% if get(field_config,'readonly','') | lower == 'true' %}
+                       checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
+                <label class="form-check-label" for="readonly">Read-Only</label>
+            </div>
+        </div>
         <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}" title="Save"></i>
     </div>
 
@@ -30,8 +47,8 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-settings" data-bs-toggle="tab" data-bs-target="#pane-settings"
-                    type="button" role="tab" aria-controls="pane-settings" aria-selected="false">Settings
+            <button class="nav-link" id="tab-options" data-bs-toggle="tab" data-bs-target="#pane-options" type="button"
+                    role="tab" aria-controls="pane-options" aria-selected="false">Settings
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -42,11 +59,6 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-data" data-bs-toggle="tab" data-bs-target="#pane-data" type="button"
                     role="tab" aria-controls="pane-data" aria-selected="false">Data
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-options" data-bs-toggle="tab" data-bs-target="#pane-options" type="button"
-                    role="tab" aria-controls="pane-options" aria-selected="false">Options
             </button>
         </li>
     </ul>
@@ -72,50 +84,6 @@
             </div>
         </div>
 
-        <!-- Settings Pane -->
-        <div class="tab-pane fade" id="pane-settings" role="tabpanel" aria-labelledby="tab-settings">
-            <div class="container-fluid">
-                <div class="row g-3 my-2">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label">Placeholder</label>
-                        <input id="placeholder" name="placeholder" type="text" class="form-control clarama-field"
-                               placeholder="placeholder value"
-                               value="{{ get(field_config,'placeholder','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                    </div>
-                    <div class="col-12 col-md-6 d-flex align-items-center gap-4">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
-                                   type="checkbox" id="required" name="required"
-                                    {% if get(field_config,'required','') | lower == 'true' %}
-                                   checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
-                            <label class="form-check-label" for="required">Required</label>
-                        </div>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
-                                   type="checkbox" id="readonly" name="readonly"
-                                    {% if get(field_config,'readonly','') | lower == 'true' %}
-                                   checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
-                            <label class="form-check-label" for="readonly">Read-Only</label>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Description</label>
-                        <textarea id="description" name="description" class="form-control clarama-field"
-                                  autocomplete="on" rows="4"
-                                  placeholder="description" {% include theme("explorer/files/field_tooltip.html") %}>{{ get(field_config,'description','') }}</textarea>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label">Default</label>
-                        <input id="default" name="default" type="text" class="form-control clarama-field"
-                               placeholder="default value"
-                               value="{{ get(field_config,'default','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        <div class="form-text">For checkboxes, use True for checked (converted to lowercase string
-                            'true').
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Dependencies Pane -->
         <div class="tab-pane fade" id="pane-dependencies" role="tabpanel" aria-labelledby="tab-dependencies">
@@ -276,38 +244,64 @@
             <input type="hidden" id="data_text" value=""> <!-- holds JSON/YAML generated for backend -->
         </div>
 
-        <!-- Options Pane -->
+        <!-- Options Pane (merged with Settings) -->
         <div class="tab-pane fade" id="pane-options" role="tabpanel" aria-labelledby="tab-options">
-            <div class="row g-3">
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Minimum</label>
-                    <input id="minimum" name="minimum" type="number"
-                           class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="0"
-                           value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Maximum</label>
-                    <input id="maximum" name="maximum" type="number"
-                           class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="100"
-                           value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Step</label>
-                    <input id="step" name="step" type="number" class="form-control clarama-field clarama-delay-field"
-                           fieldtype="html" placeholder="1"
-                           value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Size</label>
-                    <input id="size" name="size" type="number" class="form-control clarama-field clarama-delay-field"
-                           fieldtype="html" placeholder="4"
-                           value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Spacing</label>
-                    <input id="spacing" name="spacing" type="number"
-                           class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="2"
-                           value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label" for="placeholder">Placeholder</label>
+                        <input id="placeholder" name="placeholder" type="text" class="form-control clarama-field"
+                               placeholder="placeholder value"
+                               value="{{ get(field_config,'placeholder','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+
+                    <div class="col">
+                        <label class="form-label">Description</label>
+                        <textarea id="description" name="description" class="form-control clarama-field"
+                                  autocomplete="on" rows="4"
+                                  placeholder="description" {% include theme("explorer/files/field_tooltip.html") %}>{{ get(field_config,'description','') }}</textarea>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Default</label>
+                        <input id="default" name="default" type="text" class="form-control clarama-field"
+                               placeholder="default value"
+                               value="{{ get(field_config,'default','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        <div class="form-text">For checkboxes, use True for checked (converted to lowercase string
+                            'true').
+                        </div>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Minimum</label>
+                        <input id="minimum" name="minimum" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="0"
+                               value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Maximum</label>
+                        <input id="maximum" name="maximum" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="100"
+                               value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Step</label>
+                        <input id="step" name="step" type="number"
+                               class="form-control clarama-field clarama-delay-field"
+                               fieldtype="html" placeholder="1"
+                               value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Size</label>
+                        <input id="size" name="size" type="number"
+                               class="form-control clarama-field clarama-delay-field"
+                               fieldtype="html" placeholder="4"
+                               value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Spacing</label>
+                        <input id="spacing" name="spacing" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html" placeholder="2"
+                               value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
                 </div>
             </div>
         </div>
@@ -416,9 +410,97 @@
             update_preview();
         }
 
-        // Remote preview (basic): just refresh field preview and attempt trivial JSON display if present
+        // Remote data preview: fetch via same API used by select2 and render with bootstrap-table below the editor
         $("#btn-preview-remote").on('click', function () {
-            update_preview(); /* placeholder for any extra preview logic */
+            // Build the data execute URL similar to datasource_url()
+            var src = ($("#field_data_source").val() || "").trim();
+            var q = ($("#field_data_query").val() || "").trim();
+            if (!src) {
+                flash("Please provide a Source to preview remote data.", "warning");
+                return;
+            }
+
+            // Ensure the top preview stays as-is (do not refresh it), just compute current config for context
+            var codeObj = build_data_json();
+            var original_url = undefined;
+            try {
+                original_url = $(".embedded").eq(0).attr("original_url");
+            } catch (e) {
+            }
+
+            // Construct GET query string parameters
+            var url = "/web/data/execute/query/" + src;
+            var params = [];
+            if (q) params.push("query=" + encodeURIComponent(q));
+            params.push("clarama-field-format=True");
+            if (params.length > 0) url += "?" + params.join("&");
+
+            // Build POST body similar to select2 ajax: search, values, original_url
+            var postBody = {
+                search: null,
+                values: {},
+                original_url: original_url || ""
+            };
+            // Try to capture current field values if available
+            if (typeof get_field_values === 'function') {
+                try {
+                    postBody.values = get_field_values({}, true, undefined) || {};
+                } catch (e) {
+                }
+            }
+
+            // Show loading state
+            $("#remote-preview").show();
+            var $thead = $("#remote-preview-table thead");
+            var $tbody = $("#remote-preview-table tbody");
+            $thead.html("<tr><th>Loading...</th></tr>");
+            $tbody.empty();
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(postBody),
+                success: function (data) {
+                    if (data && data['data'] === 'ok' && data['results']) {
+                        // Update query info if provided
+                        if (data['results']['info'] && data['results']['info']['query']) {
+                            $('#clarama-query-result').text(data['results']['info']['query']);
+                        }
+                        // Render using bootstrap-table helper
+                        try {
+                            bTable('remote-preview-table', data['results']);
+                        } catch (e) {
+                            // Fallback manual render
+                            var cols = data['results']['cols'] || [];
+                            var rows = data['results']['rows'] || [];
+                            var ths = cols.map(c => '<th>' + c + '</th>').join('');
+                            $thead.html('<tr>' + ths + '</tr>');
+                            var trs = '';
+                            rows.forEach(function (r) {
+                                var tds = '';
+                                for (var i = 0; i < cols.length; i++) {
+                                    tds += '<td>' + (r[i] !== undefined ? r[i] : '') + '</td>';
+                                }
+                                trs += '<tr>' + tds + '</tr>';
+                            });
+                            $tbody.html(trs);
+                        }
+                    } else {
+                        var err = (data && data['error']) ? data['error'] : 'Unknown error fetching data';
+                        $('#clarama-query-result').text(err);
+                        $thead.html('');
+                        $tbody.html('<tr><td class="text-danger">' + err + '</td></tr>');
+                    }
+                },
+                error: function (xhr) {
+                    var msg = 'Request failed: ' + (xhr.responseText || xhr.statusText || xhr.status);
+                    $('#clarama-query-result').text(msg);
+                    $thead.html('');
+                    $tbody.html('<tr><td class="text-danger">' + msg + '</td></tr>');
+                }
+            });
         });
 
         // Initialize dependencies json from server-rendered list, ensure hidden input matches list
