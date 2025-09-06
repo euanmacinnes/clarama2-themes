@@ -1,0 +1,24 @@
+{% extends theme("web/root.html") %}
+{% block content %}
+<div class="container py-3">
+  <h3 class="text-white">Global Field Expression Editor</h3>
+  <div class="card">
+    <div class="card-body">
+      <div id="gfe" class="my-2"></div>
+      <div class="mt-2 small text-muted">Example fields provided to the editor are shown below:</div>
+      <pre class="bg-light p-2 border" id="gfe-fields"></pre>
+    </div>
+  </div>
+</div>
+<script src="{{ static( filename='js/global_field_editor.js') }}" type="text/javascript"></script>
+<script type="text/javascript">
+  $(function(){
+    const fields = {{ fields | tojson | safe }};
+    $("#gfe-fields").text(JSON.stringify(fields, null, 2));
+    GlobalFieldEditor.init($('#gfe'), {
+      fields: fields,
+      previewUrl: '{{ url_for("clarama_web.global_field_preview") }}'
+    });
+  });
+</script>
+{% endblock %}
