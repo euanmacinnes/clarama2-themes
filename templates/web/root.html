@@ -159,7 +159,7 @@
                     <button id="recorder-toggle" class="btn nav-search-btn" type="button" title="Start Recording"
                             style="background-color: #303030; color: #fff; display:flex; align-items:center; gap:6px;">
                         <i id="recorder-icon" class="bi bi-record-circle" style="color: #dc3545;"></i>
-                        <span class="d-none d-lg-inline" id="recorder-label">Record</span>
+                        <span class="d-none d-lg-inline" id="recorder-label"></span>
                     </button>
                 </div>
                 <!-- <form id="search" class="d-flex nav-search-wrapper">
@@ -342,6 +342,7 @@
     function updateUrlToDefault(url) {
         return updateUrlToDefaultImpl(url);
     }
+
     // keep original function body in a new name to allow us to add early nav toolbar bindings
     function updateUrlToDefaultImpl(url) {
         console.log("updateUrlToDefault", url)
