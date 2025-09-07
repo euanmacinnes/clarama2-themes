@@ -47,10 +47,33 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
     }
 
+    function hasEvents() {
+        try {
+            const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            return Array.isArray(arr) && arr.length > 0;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function ensureWidgetVisibility() {
+        const existing = document.getElementById('clarama-recorder-widget');
+        if (hasEvents()) {
+            if (!existing) {
+                injectWidget();
+            }
+        } else {
+            if (existing) {
+                existing.remove();
+            }
+        }
+    }
+
     function pushEvent(evt) {
         const events = loadEvents();
         events.push(evt);
         saveEvents(events);
+        try { ensureWidgetVisibility(); } catch (e) {}
     }
 
     function serializeTarget(e) {
@@ -149,6 +172,7 @@
     function clear() {
         saveEvents([]);
         flashMsg('Recording cleared');
+        try { ensureWidgetVisibility(); } catch (e) {}
     }
 
     function eventsToYaml() {
@@ -350,6 +374,16 @@
             downloadYaml(eventsToYaml());
         };
         qs('clarama-rec-clear').onclick = clear;
+        // If navbar recorder exists, hide Start/Stop to avoid duplicate controls
+        try {
+            const navBtn = document.getElementById('recorder-toggle');
+            if (navBtn) {
+                const st = document.getElementById('clarama-rec-start');
+                const sp = document.getElementById('clarama-rec-stop');
+                if (st) st.style.display = 'none';
+                if (sp) sp.style.display = 'none';
+            }
+        } catch (e) {}
     }
 
     function showExportModal() {
@@ -522,7 +556,7 @@
     // Initialize
     document.addEventListener('DOMContentLoaded', function () {
         loadState();
-        injectWidget();
+        ensureWidgetVisibility();
         ensureRecGlowCss();
         wireNavbarRecorder();
         // expose countdown for other scripts if needed
