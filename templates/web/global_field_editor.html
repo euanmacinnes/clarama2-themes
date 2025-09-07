@@ -17,7 +17,7 @@
     $("#gfe-fields").text(JSON.stringify(fields, null, 2));
     GlobalFieldEditor.init($('#gfe'), {
       fields: fields,
-      previewUrl: '{{ url_for("clarama_web.global_field_preview") }}'
+      previewUrl: '/api/preview_global_field'
     });
   });
 </script>

@@ -432,7 +432,7 @@
                 var initGfe = function () {
                     try {
                         var fields = {}; // example fields not critical; server builds examples too
-                        var previewUrl = '{{ url_for("clarama_web.global_field_preview") }}';
+                        var previewUrl = '/api/preview_global_field';
                         var api = GlobalFieldEditor && GlobalFieldEditor.init($('#gfe-inline'), {
                             fields: fields,
                             previewUrl: previewUrl,
