@@ -219,13 +219,14 @@ function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
             if (response.ok) {
                 console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " response " + response.status);
                 return response.json();
-	    };
-            
+            }
+            ;
+
             console.error("ERROR calling", task_url, response);
             return Promise.reject(response);
         })
         .then((task_response) => {
-	    if (task_response['data'] == 'error')	
+            if (task_response['data'] == 'error')
                 alert(task_response['error'] + ' on ' + task_url);
 
             // console.log(JSON.stringify(task_response, null, 2));
@@ -233,8 +234,8 @@ function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
             let task_environment = task_response['results']['environment_name'];
             let environment_file = task_response['results']['environment'];
 
-	    if (kernel_id === undefined)
-	       console.error('undefined kernel for ' + task_url, task_response); 
+            if (kernel_id === undefined)
+                console.error('undefined kernel for ' + task_url, task_response);
 
 
             embedded.attr('task_kernel_id', kernel_id);
@@ -643,7 +644,41 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 flash(dict['message'], dict['category']);
             }
 
-            if (dict['class'] === "template") {
+            if (dict['class'] === "progress_bar") {
+                let resulter = "#" + dict['step_id'];
+
+                console.log("WEBSOCKET.js: PROGRESS BAR Received progress_bar message", dict, $(resulter));
+                const id = dict['id'];
+                const percentVal = (dict['percent'] != null) ? Math.round(dict['percent']) : 0;
+                const sub = {
+                    id: id,
+                    title: dict['title'] || 'Working',
+                    percent: percentVal,
+                    elapsed: (dict['elapsed_sec'] != null) ? dict['elapsed_sec'].toFixed(1) : '0.0',
+                    avg: (dict['avg_per_item_sec'] != null) ? dict['avg_per_item_sec'].toFixed(2) : '0.00',
+                    eta: (dict['eta_sec'] != null) ? dict['eta_sec'].toFixed(1) : '—'
+                };
+                if (dict['event'] === 'show') {
+                    // create if not exists
+                    if ($(`#pb_${id}`).length === 0) {
+                        process_template('progress_bar_item', sub, $(resulter));
+                    }
+                }
+                if (dict['event'] === 'show' || dict['event'] === 'update') {
+                    // update fields
+                    $(`#pb_${id}_bar`).css('width', `${percentVal}%`);
+                    $(`#pb_${id}_percent`).text(`${percentVal}%`);
+                    $(`#pb_${id}_elapsed`).text(`t: ${sub.elapsed}s`);
+                    $(`#pb_${id}_avg`).text(`avg: ${sub.avg}s`);
+                    $(`#pb_${id}_eta`).text(`eta: ${sub.eta}s`);
+                }
+                if (dict['event'] === 'hide') {
+                    const card = $(`#pb_${id}`);
+                    card.fadeOut(400, function () {
+                        $(this).remove();
+                    });
+                }
+            } else if (dict['class'] === "template") {
                 let output_text = dict['values']['output'];
                 let step_id = dict['step_id'];
 

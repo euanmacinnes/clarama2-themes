@@ -90,6 +90,26 @@
     </div>
 </template>
 
+<template id="progress_bar_item" target_class="cell-results">
+    <div class="card shadow-sm mb-2" id="pb_{id_content}"
+         style="min-width:260px; background-color:#1f1f1f; color:#fff; border:1px solid #2a2a2a;">
+        <div class="card-body py-2 px-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="fw-semibold">{title_content}</div>
+                <div class="small text-white-50" id="pb_{id_content}_percent">{percent_content}%</div>
+            </div>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar bg-success" id="pb_{id_content}_bar" style="width:{percent_content}%"></div>
+            </div>
+            <div class="d-flex justify-content-between small text-white-50 mt-1">
+                <div id="pb_{id_content}_elapsed">t: {elapsed_content}s</div>
+                <div id="pb_{id_content}_avg">avg: {avg_content}s</div>
+                <div id="pb_{id_content}_eta">eta: {eta_content}s</div>
+            </div>
+        </div>
+    </div>
+</template>
+
 <template id="task_step_result" target_class="cell-results">
     <pre class="print_response"><code class="code_response">{output_content}</code></pre>
 </template>
