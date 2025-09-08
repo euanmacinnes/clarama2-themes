@@ -1,5 +1,5 @@
-function enable_interactions(parent, reload=false) {
-    // console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class") );
+function enable_interactions(parent, reload = false, runtask = false) {
+    console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class"));
 
     //      parent.find('.clarama-execute').execute();
     parent.find(".dropdown-toggle").dropdown();
@@ -8,11 +8,14 @@ function enable_interactions(parent, reload=false) {
     parent.find('.text-editor').trumbowyg({
         autogrow: true,
         autogrowOnEnter: true,
+        removeformatPasted: true,
         btns: [
+            ['viewHTML'],
             ['historyUndo', 'historyRedo'],
             ['formatting'],
             ['fontsize', 'foreColor', 'backColor'],
             ['strong', 'em', 'del'],
+            ['mathml'],
             ['superscript', 'subscript'],
             ['link'],
             ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
@@ -37,6 +40,7 @@ function enable_interactions(parent, reload=false) {
 
     cell_insert_step(parent);
     cell_delete_step(parent);
+    cell_toggle_debug_view(parent);
 
     var fields = parent.find('.clarama-field');
 
@@ -63,11 +67,18 @@ function enable_interactions(parent, reload=false) {
         }
     });
     hoverover_this(parent.find('.hoverover'));
-    
+
     if (reload) {
         parent.find('.clarama-post-embedded').attr('clarama_loaded', false);
         parent.find('.clarama-embedded').attr('clarama_loaded', false);
     }
+
+    if (runtask) {
+        console.log("runtask autorun")
+        parent.find('.clarama-post-embedded').attr('autorun', true);
+        parent.find('.clarama-embedded').attr('autorun', true);
+    }
+
     parent.find('.clarama-post-embedded').load_post();
     parent.find('.clarama-embedded').load();
     Prism.highlightAll(); // Manually trigger highlighting

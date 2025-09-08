@@ -1,15 +1,26 @@
 // This function is called by the user when they click on a Run button
 function task_run(parent) {
+    // console.log("task_run parent", parent)
     parent.find("#run").click(function () {
-        if (check_fields_valid()) {
+        // console.log("inside task_run", parent)
+        let topicVal = parent.filter('[topic]').first().attr('topic');
+        // console.log("task_run topicVal", topicVal)
+        let closestGrid = topicVal ? $(`.clarama-cell-item[topic="${topicVal}"]`).find('.clarama-grid') : $();
+
+        console.log("task_run closestGrid", closestGrid)
+
+        if (check_fields_valid(closestGrid)) {
             console.log("RUNNING");
             // Get only the field values, not the full field definitions, text or code
 
             socket_div = $(this).attr("socket")
+            console.log("socket_div", socket_div)
 
             $('#task_progress_main').attr('aria-valuenow', 0);
 
-            _task_run(socket_div);
+            // isHidden = $(this).attr("hiddenCM")
+            // console.log("checking where _task_run: task_run")
+            _task_run(socket_div, false, closestGrid);
         }
     });
 }
@@ -17,8 +28,11 @@ function task_run(parent) {
 function task_edit_run(parent) {
     parent.find("#editrun").click(function () {
         socket_div = $(this).attr("socket")
+        // console.log("inside task_edit_run", parent)
+        let closestGrid = $('.clarama-grid');
         console.log("RUNNING");
-        if (check_fields_valid()) {
+        if (check_fields_valid(closestGrid)) {
+            // console.log("checking where get_field_values is called: task_edit_run")
             get_field_values({}, true, function (field_registry) { // Get only the field values, not the full field definitions, text or code
                 get_fields(false, true, (task_registry) => {
                     task_registry['parameters'] = field_registry
@@ -83,7 +97,7 @@ function task_save(parent) {
                     if (data['data'] === 'ok') {
                         console.log('Submission was successful.');
                         console.log(data);
-                        flash("Saved!");
+                        flash("Saved!", "success");
                     } else {
                         console.log('Submission was not successful.');
                         console.log(data);

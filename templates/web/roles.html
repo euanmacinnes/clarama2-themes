@@ -1,40 +1,350 @@
 <!--
-  ~ Copyright (c) 2024. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
-  -->
+    ~ Copyright (c) 2024. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
+-->
 
-  {% extends theme("web/root.html") %}
+{% extends theme("web/root.html") %}
 
 {% block content %}
-    <div class="row flex-column flex-lg-row p-0 m-0 flex-grow-1 w-100">
-        <div class="container col-lg-9 order-2 order-lg-1 my-2 py-4">
-            <div class="row justify-content-center flex-wrap">
-                {% for role in role_info %}
-                    {% if 'title' in role['card'] %}
-                        <a href="{{ role['default_folder'] }}"
-                           class="d-flex role-wrapper m-3 text-decoration-none "
-                           style="width: 21rem;">
-                            <div class="card align-items-center shadow-lg p-4 flex-grow-1 {{ role['card']['card-css-classes'] }}">
-                                <i class="bi {{ role['card']['icon'] | d('bi-folder',True) }} fs-2 p-0"
-                                ></i>
-                                <div class="card-body text-center w-100 d-flex flex-column py-2">
-                                    <h5 class="card-title">{{ role['card']['title'] }}</h5>
-                                    <p class="card-text">{{ role['card']['description'] }}</p>
-                                    <!-- <a href="{{role['default_folder']}}" class="btn btn-primary stretched-link">Go</a> -->
-                                </div>
-                            </div>
-                        </a>
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
 
-        <div class="col-lg-3 order-1 order-lg-2 bg-white" id="my-favorites-container" style="display: none;">
-            <div class="p-3 pb-0">
-                <p class="fs-4 fw-semibold m-1">My Favorites</p>
-            </div>
-            <div id="my-favorites-listing" class="list-group">
-            </div>
+<!-- Hidden filetype mappings -->
+<div id="clarama-filetype-map" class="d-none" aria-hidden="true">
+    {% for extension, filetype in clarama['UI']['FiletypeNames'].items() %}
+        <div id="{{ extension|lower }}">{{ filetype }}</div>
+    {% endfor %}
+</div>
+
+<script id="role-tree-json" type="application/json">
+    {{ role_tree_list | tojson }}
+</script>
+
+<!-- <div id="clarama-role-tree-list" class="d-none" aria-hidden="true">
+    {% for v in role_tree_list.items() %}
+        <div>{{ v }}</div>
+    {% endfor %}
+</div> -->
+
+<!-- <div id="clarama-role-tree-list">
+    {% for k, v in role_tree_list.items() %}
+        <div id="{{ k|lower }}" class="level1">Level 1 {{ k }}
+            {% if v['dict_type'] == 'folder' %}
+                {% for k2, v2 in v['role_children'].items() %}
+                    <div id="{{ k2|lower }}" class="level2">&nbsp;&nbsp;Level 2 {{ k2 }} 
+                        {% if v2['dict_type'] == 'folder' %}
+                            {% for k3, v3 in v2['role_children'].items() %}
+                                <div id="{{ k3|lower }}" class="level3">&nbsp;&nbsp;&nbsp;Level 3 {{ k3 }}
+                                    {% if v3['dict_type'] == 'node' %}
+                                            <div id="{{ k3|lower }}" class="level3_card">&nbsp;&nbsp;&nbsp;Level 3 Card: {{ v3['role_card']['card']['title'] }} {{ v3['role_card']['role_path'] }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div id="{{ k2|lower }}" class="level2_card">&nbsp;&nbsp;Level 2 Card: {{ v2['role_card']['card']['title'] }} {{ v2['role_card']['role_path'] }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div id="{{ k1|lower }}" class="level1_card">Level 1 Card {{ v['role_card']['card']['title'] }} {{ v['role_card']['role_path'] }}</div>
+            {% endif%}
         </div>
+    {% endfor %}
+</div> -->
+
+<div class="row flex-column flex-lg-row p-0 m-0 flex-grow-1 w-100">
+    <div class="container col-12 my-2 py-4">
+        
+        <div class="row justify-content-center flex-wrap" id="roles-grid">
+
+            {% for name, node in role_tree_list.items() %}
+      
+                {% if node.get('role_card') %}
+                    {% set role = node['role_card'] %}
+                    {% include theme("web/roles_card.html") %}
+                {% endif %}
+        
+                {% if node.get('role_children') %}
+                    {% set title = name %}
+                    {% set child_count = node['role_children'] | length %}
+                    {% set description = (child_count ~ ' item' ~ ('s' if child_count != 1 else '')) %}
+                    {% set href = '/roles/' ~ name %}
+                    {% include theme("web/roles_folder_card.html") %}
+                {% endif %}
+      
+            {% endfor %}
+
+        </div>        
     </div>
+</div>
+
+<script>
+    (() => {
+        const ROLE_TREE = (() => {
+            const el = document.getElementById('role-tree-json');
+            try { return JSON.parse(el?.textContent || '{}'); } catch { return {}; }
+        })();
+        
+        const LEVEL_CLASSES = [
+            'children-level-0','children-level-1','children-level-2',
+            'children-level-3','children-level-4','children-level-5'
+        ];
+        
+        const ROOT_GRID = document.getElementById('roles-grid');
+        
+        function getNodeFromPath(path, rootMap = ROLE_TREE) {
+            if (!path) return null;
+            const parts = path.split('/').filter(Boolean);
+            let curMap = rootMap, node = null;
+            for (const name of parts) {
+                node = curMap?.[name];
+                if (!node) return null;
+                curMap = node.role_children || {};
+            }
+            return node;
+        }
+        
+        const getChildrenMap = (node) => (node && node.role_children) ? node.role_children : null;
+        
+        function renderRoleCard(role) {
+            const icon = role?.card?.icon || 'bi-folder';
+            const typeClass = role?.card?.type ? (' ' + role.card.type) : '';
+            const href = role?.default_folder || '#';
+            const title = role?.card?.title || '';
+            const desc = role?.card?.description || '';
+            return `
+            <a href="${href}" class="d-flex role-wrapper m-3 text-decoration-none" style="width: 21rem;">
+                <div class="clickable-card card align-items-center shadow-lg p-4 flex-grow-1${typeClass}">
+                <i class="bi ${icon} fs-2 p-0"></i>
+                <div class="card-body text-center w-100 d-flex flex-column py-2">
+                    <h5 class="card-title">${title}</h5>
+                    <p class="card-text">${desc}</p>
+                </div>
+                </div>
+            </a>
+            `;
+        }
+        
+        function renderFolderCard(name, node, level, path) {
+            const childCount = node?.role_children ? Object.keys(node.role_children).length : 0;
+            const desc = childCount === 1 ? '1 item' : `${childCount} items`;
+            return `
+            <a href="/roles/${encodeURIComponent(name)}"
+                class="d-flex role-wrapper m-3 text-decoration-none folder-link"
+                data-folder="${name}"
+                data-level="${level}"
+                data-path="${path || ''}"
+                style="width: 21rem;">
+                <div class="clickable-card card align-items-center shadow-lg p-4 flex-grow-1 clickable-card-folder">
+                <i class="bi bi-collection fs-2 p-0"></i>
+                <div class="card-body text-center w-100 d-flex flex-column py-2">
+                    <h5 class="card-title">${name}</h5>
+                    <p class="card-text">${desc}</p>
+                </div>
+                </div>
+            </a>
+            `;
+        }
+        
+        function buildChildrenBlock(childrenMap, level, parentPath) {
+            const div = document.createElement('div');
+            const id = safeIdFromPath(parentPath || '');
+            div.id = id;
+            div.className = `folder-children-block ${LEVEL_CLASSES[level % LEVEL_CLASSES.length]}`;
+            div.dataset.level = String(level);
+            div.dataset.path = parentPath || '';
+
+            const fullPath = parentPath || '';
+            const displayCrumb = 'home > ' + fullPath.split('/').join(' > ');
+
+            div.innerHTML = `
+            <div class="folder-children-header">
+                <div class="small" style="color: rgba(255, 255, 255, 0.8);">
+                <i class="bi bi-folder2-open me-1"></i><strong>${displayCrumb}</strong>
+                </div>
+                <div>
+                <button type="button"
+                        class="btn btn-sm btn-outline-light close-children-btn"
+                        data-target="${id}"
+                        aria-label="Close">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+                </div>
+            </div>
+            <div class="folder-children-grid"></div>
+            `;
+
+            const grid = div.querySelector('.folder-children-grid');
+            for (const [name, node] of Object.entries(childrenMap || {})) {
+            if (node.role_card) grid.insertAdjacentHTML('beforeend', renderRoleCard(node.role_card));   /* mirrors roles_card.html */
+                if (node.role_children) {
+                    const path = fullPath ? `${fullPath}/${name}` : name;
+                    grid.insertAdjacentHTML('beforeend', renderFolderCard(name, node, level + 1, path));      /* mirrors roles_folder_card.html */
+                }
+            }
+            return div;
+        }
+
+        function expandChildrenBlock(block) {
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reduce) return; 
+
+            block.classList.add('animating');
+            block.style.opacity = '0';
+            block.style.height = '0px';
+
+            requestAnimationFrame(() => {
+                const full = block.scrollHeight;
+                block.style.opacity = '1';
+                block.style.height = full + 'px';
+
+                const onEnd = (e) => {
+                    if (e.propertyName === 'height') {
+                    block.classList.remove('animating');
+                    block.style.height = '';  
+                    block.style.opacity = '';
+                    block.removeEventListener('transitionend', onEnd);
+                    }
+                };
+                block.addEventListener('transitionend', onEnd);
+            });
+        }
+
+        function collapseChildrenBlock(block, removeAfter = false) {
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reduce) { if (removeAfter) block.remove(); return; }
+
+            const full = block.scrollHeight;
+            block.classList.add('animating');
+            block.style.height = full + 'px';
+            block.style.opacity = '1';
+
+            void block.offsetHeight;
+
+            block.classList.add('collapsing');
+            block.style.height = '0px';
+            block.style.opacity = '0';
+
+            const onEnd = (e) => {
+                if (e.propertyName === 'height') {
+                    block.classList.remove('animating', 'collapsing');
+                    if (removeAfter) {
+                        block.remove();
+                    } else {
+                        block.style.height = '';
+                        block.style.opacity = '';
+                    }
+                    block.removeEventListener('transitionend', onEnd);
+                    updateOpenFolderHighlights();
+                }
+            };
+            block.addEventListener('transitionend', onEnd);
+        }
+
+        /** Return the last element in the same row as `el` within `container` (flex-wrap grid). */
+        function lastInRow(el, container) {
+            const siblings = Array.from(container.querySelectorAll(':scope > .role-wrapper, :scope > .folder-children-block'));
+            const rowY = el.offsetTop;
+            const sameRow = siblings.filter(n => n.offsetTop === rowY);
+            if (!sameRow.length) return el;
+            return sameRow.reduce((best, cur) => (best.offsetLeft > cur.offsetLeft ? best : cur));
+        }
+
+        function safeIdFromPath(path) {
+            return 'children-of-' + String(path || '')
+                .toLowerCase()
+                .replace(/\//g, '-')        // folder separators -> hyphen
+                .replace(/&/g, '-and-')     // avoid raw ampersand
+                .replace(/\s+/g, '-')       // spaces -> hyphen
+                .replace(/[^a-z0-9\-_:.]/g, '-') // remove other unsafe chars
+                .replace(/-+/g, '-')        // collapse repeats
+                .replace(/^-|-$/g, '');     // trim edges
+        }
+
+        function closeOpenBlocksAtLevel(level, exceptPath = null) {
+            document
+                .querySelectorAll(`.folder-children-block[data-level="${level}"]`)
+                .forEach(block => {
+                    if (!exceptPath || block.dataset.path !== exceptPath) {
+                        collapseChildrenBlock(block, true);
+                    }
+                });
+        }
+
+        function toggleFolder(linkEl) {
+            const hostGrid   = linkEl.closest('.folder-children-grid') || ROOT_GRID;
+            const level      = parseInt(linkEl.dataset.level || '0', 10);
+            const label      = linkEl.dataset.folder;
+            const folderPath = linkEl.dataset.path || label;
+
+            const node = linkEl.dataset.path ? getNodeFromPath(folderPath) : (ROLE_TREE?.[label] || null);
+            const childrenMap = getChildrenMap(node);
+            if (!childrenMap) return;
+
+            const blockId  = safeIdFromPath(folderPath);
+            const existing = document.getElementById(blockId);
+
+            if (existing) {
+                collapseChildrenBlock(existing, true);
+                return;
+            }
+
+            closeOpenBlocksAtLevel(level);
+
+            // Build, insert after the last card in the same row, then animate open
+            const rowEnd = lastInRow(linkEl.closest('.role-wrapper'), hostGrid);
+            const block  = buildChildrenBlock(childrenMap, level, folderPath);
+            rowEnd.insertAdjacentElement('afterend', block);
+            expandChildrenBlock(block);
+            updateOpenFolderHighlights();
+        }
+
+        function getParentFolderLinkByPath(path) {
+            if (!path) return null;
+            const esc = (s) => CSS && CSS.escape ? CSS.escape(s) : s.replace(/"/g, '\\"');
+            return document.querySelector(`.folder-link[data-path="${esc(path)}"]`)
+                || document.querySelector(`.folder-link[data-folder="${esc(path)}"]`);
+        }
+
+        function updateOpenFolderHighlights() {
+            document.querySelectorAll('.folder-link')
+                .forEach(a => a.classList.remove('is-open', 'is-ancestor'));
+
+            const openBlocks = Array.from(document.querySelectorAll('.folder-children-block'));
+
+            openBlocks
+                .map(b => b.dataset.path)
+                .filter(Boolean)
+                .forEach(path => {
+                    const current = getParentFolderLinkByPath(path);
+                    if (current) current.classList.add('is-open');
+
+                    const parts = path.split('/').filter(Boolean);
+                    for (let i = 1; i < parts.length; i++) {
+                        const parentPath = parts.slice(0, i).join('/');
+                        const parentLink = getParentFolderLinkByPath(parentPath);
+                        if (parentLink) {
+                            parentLink.classList.add('is-ancestor');
+                        }
+                    }
+                });
+        }
+
+        // Event delegation for opening folders 
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('.folder-link');
+            if (!link) return;
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFolder(link);
+        });
+
+        // Event delegation for the “×” close button — animate then remove
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.close-children-btn');
+            if (!btn) return;
+            const block = document.getElementById(btn.dataset.target);
+            if (block) collapseChildrenBlock(block, true);
+        });
+    })();
+</script>
 
 {% endblock %}
+

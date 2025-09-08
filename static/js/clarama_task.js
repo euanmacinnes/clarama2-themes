@@ -18,23 +18,38 @@ function get_url(url, field_registry) {
     //console.log(queryparams);
 
     var new_url = $CLARAMA_ROOT + url + '?' + jQuery.param(queryparams);
-    //console.log(new_url);
+    console.log(new_url);
     return new_url;
 }
 
-function _task_run(socket_div) {
+function html_decode(input) {
+    input = input.replaceAll('&quot;', '"');
+    input = input.replaceAll('&lt;', '<');
+    input = input.replaceAll('&gt;', '>');
+    input = input.replaceAll('&#x27;', "'");
+    input = input.replaceAll('&amp;', '&');
+    return input;
+}
+
+function _task_run(socket_div, hidden = false, closestGrid = $()) {
     json_div = socket_div + '_args';
 
+    // console.log("checking where get_field_values is called: _task_run", closestGrid)
     get_field_values({}, true, function (field_registry) {
         var field_merged = field_registry;
 
-        console.log("CLARAMA_TASK.js : TASK RUN Socket " + socket + " looking for " + json_div)
+        console.log("CLARAMA_TASK.js : TASK RUN Socket " + socket_div + " looking for " + json_div)
         var json_data = document.getElementById(json_div)
 
 
         if (json_data != null) {
-            var json_element = JSON.parse(json_data.innerHTML);
-            field_merged = Object.assign({}, field_registry, json_element);
+            try {
+                var json_element = JSON.parse(html_decode(json_data.innerHTML));
+                field_merged = Object.assign({}, field_registry, json_element);
+            } catch (err) {
+                console.error("CLARAMA_TASK.js : " + json_div + " div containing JSON is not valid JSON")
+                console.error(err)
+            }
 
             //if (json_element != null && json_element.value == '') {
             //console.log("found json element for task in " + json_div);
@@ -44,11 +59,14 @@ function _task_run(socket_div) {
         }
 
         var task_socket = $("#" + socket_div);
+        console.log("task_socket", task_socket)
 
         field_merged['clarama_task_kill'] = task_socket.attr("task_kill");
 
         task_kernel_id = task_socket.attr("task_kernel_id");
+        console.log("task_kernel_id", task_kernel_id)
         url = $CLARAMA_ENVIRONMENTS_TASK_RUN + task_kernel_id;
+        console.log("url", url)
 
         // Pass in the task's user-defined parameters from the field_registry, and paste into the header the internal configuration
 
@@ -69,18 +87,23 @@ function _task_run(socket_div) {
             .then((response) => {
                 console.log("CLARAMA_TASK.js: TASK RUN RESPONSE " + task);
                 console.log(response);
+            })
+            .catch((error) => {
+                console.error("Fetch error:", error);
             });
         /*fetch(task)
             .then((response) => {
                 console.log("TASK RUN RESPONSE " + task);
                 console.log(response);
             });*/
-    });
-}
 
+        // console.log("_task_run field_registry", field_registry)
+    }, closestGrid);
+}
 
 function cell_item_run(cell_button) {
     console.log("CLARAMA_TASK.js: RUNNING");
+    // console.log("checking where get_field_values is called: cell_item_run")
     get_field_values({}, true, function (field_registry) { // Get only the field values, not the full field definitions, text or code
         var task_registry = get_cell_fields(cell_button);
         task_registry['parameters'] = field_registry
@@ -109,13 +132,24 @@ function cell_item_run(cell_button) {
                 if (data['data'] == 'ok') {
                     console.log('CLARAMA_TASK.js: Submission was successful.');
                     console.log(data);
+                    var taskIndex = cell_button.attr('step');
+                    flash(`Cell ${taskIndex} executing..`, "success");
                     // flash("CLARAMA_TASK.js: Executing!");
 
                     moveToNextCell(cell_button);
+
+                    const memText = $('#kernel_memory_free').text() || '';
+                    const match = memText.match(/(\d+(?:\.\d+)?)\s*%?/); // grab number part
+                    if (match) {
+                        const freePct = parseFloat(match[1]);
+                        if (!Number.isNaN(freePct) && freePct < 10) {
+                            flash('low memory', 'danger');
+                        }
+                    }
                 } else {
-                    console.log('CLARAMA_TASK.js: Submission was successful.');
+                    console.log('CLARAMA_TASK.js: Submission was not successful.');
                     console.log(data);
-                    flash("Couldn't run content: " + data['error']);
+                    flash("Couldn't run content: " + data['error'], "danger");
                 }
             },
             error: function (data) {

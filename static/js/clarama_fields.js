@@ -23,19 +23,44 @@ function _arrayBufferToBase64(buffer) {
  * This is used by the task & slate to just get a dict of current field values needed before submitting a task
  *
  */
-function get_field_values(registry, raw, field_submit) {
+function get_field_values(registry, raw, field_submit, closestGrid = $()) {
     // Raw is used to run the fields. raw is false, when saving the fields (so we don't want to save the field values of e.g. a selected file in this case
 
+    console.log("get_field_values closestGrid", closestGrid)
     var files_done = true;
     var result = {}
 
-    var original_url = $("#embedded").attr('original_url');
+    var original_url = closestGrid.closest(".embedded").attr('original_url');
 
     if (original_url !== undefined) {
         result['original_url'] = original_url;
     }
 
-    $('.clarama-field').each(
+    if (closestGrid !== undefined) {
+        if (closestGrid.length) {
+            let encoded_record_info = closestGrid.closest('.clarama-slate-record').attr('encoded_json');
+            // console.log("encoded_record_info", encoded_record_info)
+
+            if (encoded_record_info) {
+                try {
+                    let decoded_str = atob(encoded_record_info); // decode
+                    let json_record_info = JSON.parse(decoded_str); // string to obj
+
+                    // console.log("json_record_info", json_record_info);
+
+                    result['record'] = json_record_info.record;
+                    result['original_url'] = json_record_info.original_url;
+
+                } catch (err) {
+                    console.error("invalid base64 or json", err)
+                }
+            }
+        }
+    }
+
+    let fields_to_loop = closestGrid.length ? closestGrid.find('.clarama-field') : $('.clarama-field');
+    // console.log("fields_to_loop", fields_to_loop);
+    fields_to_loop.each(
         function (index) {
             var input = $(this);
             // var panel = $("#panel_" + input.attr('name'));
@@ -68,12 +93,12 @@ function get_field_values(registry, raw, field_submit) {
         }
     );
 
-    if (raw && field_submit !== undefined)
-        $('.clarama-field').each(
+    if (raw && field_submit !== undefined) {
+        fields_to_loop.each(
             function (index) {
                 var input = $(this);
                 // var panel = $("#panel_" + input.attr('name'));
-                console.log("Input Field " + input.attr("id") + ':' + input.val());
+                console.log("Input Field " + input.attr("data-id") + ':' + input.val());
 
                 switch (input.attr('fieldtype')) {
                     case 'file':
@@ -111,7 +136,7 @@ function get_field_values(registry, raw, field_submit) {
                 }
             }
         );
-
+    }
 
     if (files_done) {
         if (raw)
@@ -125,7 +150,7 @@ function get_field_values(registry, raw, field_submit) {
             };
         }
 
-        console.log(registry);
+        console.log("registry: ", registry);
 
         if (field_submit !== undefined)
             field_submit(registry);
@@ -134,10 +159,13 @@ function get_field_values(registry, raw, field_submit) {
     }
 }
 
-function check_fields_valid() {
+function check_fields_valid(closestGrid) {
     var valid = true;
     console.log("CLARAMA_FIELDS.js: Input Validity Check");
-    $('.clarama-field').each(
+    if (closestGrid === undefined)
+        alert("Invalid closestGrid passed to check_fields_valid");
+    let fields_to_loop = closestGrid.length ? closestGrid.find('.clarama-field') : $('.clarama-field');
+    fields_to_loop.each(
         function (index) {
             var input = $(this);
             // var panel = $("#panel_" + input.attr('name'));
@@ -165,9 +193,9 @@ function check_fields_valid() {
                         valid = false;
                         input.tooltip('show');
                     }
-                    console.log("Input Field " + input.attr("id") + ':' + inputval + ':' + valid);
+                    console.log("Input Field " + input.attr("data-id") + ':' + inputval + ':' + valid);
                 } else {
-                    console.log("Input Field " + input.attr("id") + ': not required');
+                    console.log("Input Field " + input.attr("data-id") + ': not required');
                 }
             }
         }
@@ -175,7 +203,6 @@ function check_fields_valid() {
 
     return valid;
 }
-
 
 /**
  * saveGrid is in the _grid_edit.html and is dynamically generated with the saved grid definition inside the HTML
@@ -203,6 +230,8 @@ function get_fields(fields, cell, field_submit) {
         });
 
     if (fields) {
+        // console.log("get_fields fields", fields)
+        // console.log("checking where get_field_values is called: get_fields")
         get_field_values(registry, false, field_submit);
         // Get the field grid
 
@@ -210,6 +239,214 @@ function get_fields(fields, cell, field_submit) {
         field_submit(registry);
 }
 
+function toggleDebugForCurrentCell(cell) {
+    if (!cell) return false;
+
+    const $cell = $(cell);
+    const debugButton = $cell.find('.celleditdebug').first();
+    debugButton.click();
+}
+
+/**
+ * Cell Navigation and Execution Functions
+ * Provides keyboard shortcuts for navigating and executing cells
+ */
+function initializeCellNavigation() {
+    let currentCellStep = null;
+
+    function getAllCells() {
+        return $('.clarama-cell-item').toArray().sort((a, b) => {
+            const aStep = parseInt($(a).attr('step'));
+            const bStep = parseInt($(b).attr('step'));
+            return aStep - bStep;
+        });
+    }
+
+    function getCellByStep(stepNumber) {
+        return $(`.clarama-cell-item[step="${stepNumber}"]`).first()[0];
+    }
+
+    function getCurrentCell() {
+        let currentCell = null;
+
+        // Check if any cell editor has focus
+        $('.cell-editor').each(function () {
+            if ($(this).is(':focus') || $(this).find(':focus').length > 0) {
+                currentCell = $(this).closest('.clarama-cell-item')[0];
+                return false; // break
+            }
+        });
+
+        // If no cell has focus, try to find the cell by step number
+        if (!currentCell && currentCellStep !== null) {
+            currentCell = getCellByStep(currentCellStep);
+        }
+
+        // If still no cell, default to the first cell
+        if (!currentCell) {
+            const cells = getAllCells();
+            if (cells.length > 0) {
+                currentCell = cells[0];
+                currentCellStep = parseInt($(currentCell).attr('step'));
+            }
+        }
+
+        return currentCell;
+    }
+
+    function moveToNextCell(currentCell) {
+        if (!currentCell) return null;
+
+        const currentStep = parseInt($(currentCell).attr('step'));
+        console.log('Current cell step:', currentStep);
+
+        // Find the next cell by step number
+        const nextStep = currentStep + 1;
+        const nextCell = getCellByStep(nextStep);
+
+        if (nextCell) {
+            currentCellStep = nextStep;
+            // console.log('Moving to next cell step:', nextStep);
+
+            const nextEditor = $(nextCell).find('.cell-editor').first();
+            if (nextEditor.length > 0) {
+                nextEditor.focus();
+
+                const textInput = nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                if (textInput.length > 0) {
+                    textInput.focus();
+                }
+            }
+
+            // Anchor scroll position to the next cell
+            function anchorToNextCell() {
+                const nextCellTop = nextCell.getBoundingClientRect().top + window.pageYOffset;
+                const viewportOffset = 100;
+
+                window.scrollTo({
+                    top: nextCellTop - viewportOffset,
+                    behavior: 'smooth'
+                });
+            }
+
+            setTimeout(anchorToNextCell, 200);
+
+            // Monitor for DOM changes that might affect positioning
+            if (window.MutationObserver) {
+                const observer = new MutationObserver(function (mutations) {
+                    let shouldReanchor = false;
+
+                    mutations.forEach(function (mutation) {
+                        // Check if the mutation affects content before our next cell
+                        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                            const mutationTarget = mutation.target;
+
+                            // Check if this mutation is in a cell before our target cell
+                            const mutationCell = $(mutationTarget).closest('.clarama-cell-item')[0];
+                            if (mutationCell) {
+                                const mutationStep = parseInt($(mutationCell).attr('step'));
+                                if (mutationStep < nextStep) {
+                                    shouldReanchor = true;
+                                }
+                            }
+                        }
+                    });
+
+                    if (shouldReanchor) {
+                        anchorToNextCell();
+                    }
+                });
+
+                // Observe the current cell's results area for changes
+                const currentCellResults = $(currentCell).find('.cell-results')[0];
+                if (currentCellResults) {
+                    observer.observe(currentCellResults, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true
+                    });
+
+                    // Stop observing after 10 seconds or when cell execution likely finishes
+                    setTimeout(() => {
+                        observer.disconnect();
+                    }, 10000);
+                }
+            }
+
+            return nextCell;
+        } else {
+            console.log('No next cell found after step:', currentStep);
+        }
+
+        return null;
+    }
+
+    function runCurrentCell(cell) {
+        if (!cell) return false;
+
+        const $cell = $(cell);
+        const runButton = $cell.find('.celleditrun').first();
+        if (runButton.length > 0) {
+            runButton.click();
+            return true;
+        }
+        return false;
+    }
+
+    function toggleDebugForCurrentCell(cell) {
+        if (!cell) return false;
+
+        const $cell = $(cell);
+        const debugButton = $cell.find('.celleditdebug').first();
+        if (debugButton.length > 0) {
+            debugButton.click();
+            return true;
+        }
+        return false;
+    }
+
+    // Event handlers
+    $(document).on('click', '.clarama-cell-item', function () {
+        currentCellStep = parseInt($(this).attr('step'));
+        console.log('Clicked on cell step:', currentCellStep);
+    });
+
+    $(document).on('focus', '.cell-editor, .cell-editor input, .cell-editor textarea', function () {
+        const cell = $(this).closest('.clarama-cell-item')[0];
+        if (cell) {
+            currentCellStep = parseInt($(cell).attr('step'));
+            console.log('Focused on cell step:', currentCellStep);
+        }
+    });
+
+    $(document).on('keydown', function (e) {
+        // Ctrl+Enter: Run current cell and move to next
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
+            e.preventDefault();
+
+            const currentCell = getCurrentCell();
+            if (!currentCell) return;
+
+            const runSuccess = runCurrentCell(currentCell);
+
+            if (runSuccess) {
+                setTimeout(() => {
+                    moveToNextCell(currentCell);
+                }, 300);
+            }
+        }
+
+        // Ctrl+\ : Toggle debug for current cell
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
+            e.preventDefault();
+
+            const currentCell = getCurrentCell();
+            if (!currentCell) return;
+
+            toggleDebugForCurrentCell(currentCell);
+        }
+    });
+}
 
 /**
  * Enable the custom daterange dropdown, using a custom attribute "data", parsed for JSON, to use to define custom
@@ -293,9 +530,16 @@ $.fn.initselect = function () {
         if (!embedded.attr("clarama_data_set")) {
             if (embedded.attr("sourceurl")) {
                 console.log("Enabling data for select2: " + embedded.attr("sourceurl"))
+
+                var close_on_select = embedded.attr("close_on_select");
+
+                if (close_on_select === undefined)
+                    close_on_select = false
+
+
                 embedded.select2({
-                    selectionCssClass: "col",
-                    closeOnSelect: false,
+                    selectionCssClass: "select2-select",
+                    closeOnSelect: close_on_select,
                     dataType: 'json',
                     minimumResultsForSearch: 1,
                     ajax: {
@@ -304,16 +548,22 @@ $.fn.initselect = function () {
                         contentType: "application/json; charset=utf-8",
                         type: "POST",
                         data: function (params) {
+                            var original_url = $('.embedded').eq(0).attr('original_url');
+
+                            console.log("EMBEDDED CLOSEST", embedded, $('.embedded').eq(0));
+                            console.log("PARAMS", params);
+
                             var values = get_field_values({}, true, undefined);
                             var query = {
                                 search: params.term,
-                                values: values
+                                values: values,
+                                original_url: original_url,
                             }
-                            console.log("Fetching data " + params.term + " from " + embedded.attr("sourceurl"))
+                            console.log("Fetching data " + params.term + " from " + embedded.attr("sourceurl"), query)
                             return JSON.stringify(query);
                         },
                         processResults: function (data) {
-                            console.log("Results")
+                            console.log("Select2 Results for " + embedded.attr("sourceurl"));
                             console.log(data)
 
 
@@ -323,6 +573,7 @@ $.fn.initselect = function () {
                             var hcount = headings.length;
 
                             if (data['data'] != 'ok') {
+                                $('#clarama-query-result').html(data['error']);
                                 var error_lines = data['error'].split(/\r?\n/)
                                 var i = 0
                                 for (var r in error_lines) {
@@ -338,6 +589,10 @@ $.fn.initselect = function () {
                                     }
                                 }
                             } else {
+                                if ('info' in data['results']) {
+                                    $('#clarama-query-result').html(data['results']['info']['query']);
+                                }
+
                                 for (var row in rows) {
                                     var result = {};
                                     for (var i = 0; i < hcount; i++) {
@@ -382,17 +637,6 @@ $.fn.editor = function () {
                 maxLines: 75
             });
 
-            editor.commands.addCommand({
-                name: 'replace',
-                bindKey: {win: 'Ctrl-Enter', mac: 'Command-Option-Enter'},
-                exec: function (editor) {
-                    var source_editor = embedded.closest(".clarama-cell-item");
-                    console.log("SOURCE EDITOR: " + source_editor);
-                    cell_item_run(source_editor);
-                },
-                readOnly: true
-            });
-
             $('#' + savebutton).click(function () {
                 var data = {
                     task_action: "save",
@@ -410,10 +654,12 @@ $.fn.editor = function () {
                     success: function (data) {
                         console.log('Submission was successful.');
                         console.log(data);
+                        flash("Saved!", "success");
                     },
                     error: function (data) {
                         console.log('An error occurred.');
                         console.log(data);
+                        flash("An error occured.", "danger");
                     }
                 })
             });
@@ -421,4 +667,36 @@ $.fn.editor = function () {
     });
 }
 
+// This is to allow the shortcut to be read through the code editors
+$(document).on('focus', '.source-editor, .text-editor, .ace_text-input', function () {
+    const editor = $(this);
+
+    if (editor.hasClass('source-editor') && editor.attr('id')) {
+        try {
+            const aceEditor = ace.edit(editor.attr('id'));
+
+            // Remove any existing command to avoid duplicates
+            aceEditor.commands.removeCommand('toggleDebug');
+
+            // Add the debug toggle command to ACE editor
+            aceEditor.commands.addCommand({
+                name: 'toggleDebug',
+                bindKey: {win: 'Ctrl-\\', mac: 'Cmd-\\'},
+                exec: function (editor) {
+                    const editorElement = $(editor.container);
+                    const currentCell = editorElement.closest('.clarama-cell-item')[0];
+                    if (currentCell) {
+                        toggleDebugForCurrentCell(currentCell);
+                    }
+                }
+            });
+        } catch (e) {
+            console.log('Could not bind debug shortcut to ACE editor:', e);
+        }
+    }
+});
+
+$(document).ready(function () {
+    initializeCellNavigation();
+});
 

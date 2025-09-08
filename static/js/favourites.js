@@ -127,13 +127,13 @@ function updateFavoritesUI() {
     const myFavoritesContainer = document.getElementById("my-favorites-listing");
     if (myFavoritesContainer) {
         myFavoritesContainer.innerHTML = "";
-        render_my_favorites();
+        render_home_favorites();
     }
 
     const favoritesContainer = document.getElementById("favorites-listing");
     if (favoritesContainer) {
         favoritesContainer.innerHTML = "";
-        render_favorites();
+        render_nav_favorites();
     }
 
     var starIcon = document.getElementById("page-fav");

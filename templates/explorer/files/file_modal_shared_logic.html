@@ -1,0 +1,173 @@
+<script>
+    function isFolder(item) {
+        return item.hasClass('bi bi-folder-fill');
+    }
+
+    // Extract the current directory depth
+    var relativePath;
+    function renderBreadcrumb(path, breadcrumbId, selectId, filters) {
+        const targetPath = path.split('?')[0].split('/').slice(3).join('/');
+        relativePath = getRelativePath("{{ file_url | path }}", targetPath);
+        
+        const breadcrumb = document.getElementById(breadcrumbId);
+        breadcrumb.innerHTML = '';
+
+        // console.log("path", path);
+        const trimmedPath = path.split('/').slice(3);
+        // console.log("trimmedPath", trimmedPath);
+
+        const root = document.createElement('li');
+        if (trimmedPath[0][0] != "?") {
+            root.style.cursor = 'pointer';
+            root.className = 'text-secondary';
+            root.innerHTML = "Clarama&nbsp;>&nbsp;";
+        } else {
+            root.innerHTML = "Clarama";
+        }
+        root.addEventListener('click', () => navigateToPath(path.split('/').slice(0, 3).join('/') + "/?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
+        breadcrumb.appendChild(root);
+
+        trimmedPath.forEach((part, index, array) => {
+            // console.log(part)
+            const li = document.createElement('li');
+
+            if (index < array.length - 1) {
+                li.style.cursor = 'pointer';
+                li.className = 'text-secondary';
+                li.addEventListener('click', () => navigateToPath(path.split('/').slice(0, index + 4).join('/') + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
+                li.innerHTML = part + "&nbsp;>&nbsp;";
+            } else {
+                li.innerText = part.split('?')[0];
+            }
+            breadcrumb.appendChild(li);
+        });
+    }
+
+    function getRelativePath(from, to) {
+        const fromParts = from.split('/').filter(Boolean);
+        const toParts = to.split('/').filter(Boolean);
+        // find common root
+        let i = 0;
+        while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) {
+            i++;
+        }
+
+        // how many levels to go up from `from`
+        const upLevels = fromParts.length - i; // eg. if this is 6-4 = 2
+        const goUp = Array(upLevels).fill('..').join('/'); // this will be ../../
+
+        // navigate down to `to`
+        const goDown = toParts.slice(i).join('/'); // extracts the remaining thats not common
+
+        if (!goUp && !goDown) {
+            return ''
+        }
+
+        return goUp ? `${goUp}/${goDown}` : goDown; // if no goUp means we r in the correct folder
+    }
+
+    // sort the file/folder
+    function naturalSort(arr) {
+        return arr.sort((a, b) => {
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        })
+    }
+
+    function renderFilesNFolder(path, breadcrumbId, selectId, filters) {
+        const selectElement = document.getElementById(selectId);
+        console.log(`fetch path: ${path}`)
+        fetch(path)
+            .then((response) => response.json())
+            .then((json_files) => {
+                console.log("json files", json_files)
+                $(`#${selectId}`).empty();
+
+                const sortedFolders = naturalSort(json_files['results']['folders']);
+                const sortedFiles = naturalSort(json_files['results']['files']);
+                console.log("folders", sortedFolders)
+                console.log("files", sortedFiles)
+
+                // using regex to filter
+                // *.field.yaml -> /^.*\.field\.yaml$/
+                // *.task.yaml -> /^.*\.task\.yaml$/
+                // *.md -> /^.*\.md$/
+                console.log("filters", filters);
+                const filePathFilters = filters
+                    .split('|')
+                    .map(path => {
+                        const escaped = path.replace(/\./g, '\\.').replace(/\*/g,  '.*');
+                        return new RegExp(`${escaped}`);
+                    })
+
+                console.log("filePathFilters", filePathFilters)
+
+                // render folders
+                sortedFolders.forEach(folder => {
+                    const option = document.createElement('option');
+                    option.value = folder;
+                    option.className = "bi bi-folder-fill";
+                    option.innerHTML = `&nbsp; ${folder}`;
+                    if (path.split('?')[0] == "/content/json/") {
+                        option.addEventListener('dblclick', () => navigateToPath(`/content/json/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
+                    } else {
+                        option.addEventListener('dblclick', () => navigateToPath(`${path.split('?')[0]}/${folder}` + "?subfolders=True&extensions=" + filters, breadcrumbId, selectId, filters));
+                    }
+                    selectElement.appendChild(option);
+                });
+
+                // render files with relative paths
+                sortedFiles.forEach(filePath => {
+                    // only display the files that match the filters
+                    const matches = filePathFilters.some(regex => regex.test(filePath));
+                    if (!matches) return
+
+                    const option = document.createElement('option');
+
+                    // store relative path in val
+                    console.log("relativePath", relativePath)
+                    const trimmedPath = relativePath.trim();
+                    console.log("trimmedPath", trimmedPath)
+                    if (/^(?:\.\.\/)+$/.test(trimmedPath) || trimmedPath === '') {
+                        option.value = trimmedPath + filePath;
+                    } else {
+                        option.value = trimmedPath + "/" + filePath;
+                    }
+
+                    let matchedIcon = Object.entries(filetypeCSS)
+                        .find(([ext, _]) => filePath.endsWith(ext));
+                    if (!matchedIcon) {
+                        const simpleExt = `.${filePath.split('.').pop()}`;
+                        matchedIcon = filetypeCSS[simpleExt] ? [simpleExt, filetypeCSS[simpleExt]] : null;
+                    }
+                    const icon = matchedIcon ? matchedIcon[1] : "bi-file-earmark";
+                    option.className = `bi ${icon}`;
+
+                    option.innerHTML = `&nbsp; ${filePath}`;
+                    selectElement.appendChild(option);
+                });
+            });
+    }
+
+    // to navigate to a specific path
+    function navigateToPath(path, breadcrumbId, selectId, filters) {
+        console.log("path", path)
+        const match = path.match(/^\/content\/json\/?(.*?)(\?|$)/);
+        currentModalAddContentPath = match ? match[1] : "";
+        renderBreadcrumb(path, breadcrumbId, selectId, filters);
+        renderFilesNFolder(path, breadcrumbId, selectId, filters);
+    }
+
+    // make the relative file path absolute
+    function resolveRelativeFilePath(currentPath, relativePath) {
+        const baseParts = currentPath.split('/').filter(Boolean);
+        const relativeParts = relativePath.split('/').filter(Boolean);
+        for (const part of relativeParts) {
+            if (part === '..') {
+                baseParts.pop();
+            } else if (part !== '.') {
+                baseParts.push(part);
+            }
+        }
+        return baseParts.join('/');
+    }
+</script>

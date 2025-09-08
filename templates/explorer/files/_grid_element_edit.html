@@ -13,13 +13,13 @@
                     <button type="button" class="btn btn-outline-primary input-group-text" data-bs-toggle="modal" id="browseFileBtn"
                         data-bs-target="#browseFileModal"
                         inputId="{{ target }}_elemInput"
-                        filters="*.task.yaml">
+                        filters="*.field.yaml|*.task.yaml|*.md">
                         <i class="bi bi-folder2-open"></i>
                     </button>
 
-                    <span class="input-group-text"><a id="{{ target }}_elemInput" href="/content/edit/{{ element_content_url }}" target="new">{{ target_element['url'] }}</a></span>
+                    <div class="input-group-text" style="text-wrap: auto;"><a id="{{ target }}_elemInput" href="/content/edit/{{ element_content_url }}" target="_blank">{{ target_element['url'] }}</a></div>
 
-                    <button type="button" class="btn btn-outline-secondary border-end-0 p-1" onclick="clearInput('{{ target }}_elemInput', event)" style="font-size: 1rem;border-color: #dee2e6;">
+                    <button type="button" class="btn btn-outline-secondary border-end-0 p-1" onclick="clearInput('{{ target }}_elemInput', 'url', '{{ target }}', event)" style="font-size: 1rem;border-color: #dee2e6;">
                       <i class="bi bi-x"></i>
                     </button>
 
@@ -28,7 +28,7 @@
                     <input type="text" class="form-control removeInputFocus" id="{{ target }}_paramsInput" placeholder="my_param=something"
                             value="{{ target_element['params'] }}">
 
-                    <button type="button" class="btn btn-outline-secondary p-1 border-end-0" onclick="clearInput('{{ target }}_paramsInput', event)" style="font-size: 1rem;border-color: #dee2e6;">
+                    <button type="button" class="btn btn-outline-secondary p-1 border-end-0" onclick="clearInput('{{ target }}_paramsInput', 'params', '{{ target }}', event)" style="font-size: 1rem;border-color: #dee2e6;">
                         <i class="bi bi-x"></i>
                     </button>
 
@@ -75,12 +75,32 @@
                     data-bs-target="#interactionSettingsModal" onclick="openInteractionSettings('{{ target }}')" style="cursor: pointer;"></i></h6>
             </li>
             <div id="grid_element_target-{{ target }}">
+                <!-- 
+                    need to check if link.element is defined bec the old ver bef the interaction was implemented will hv smth like this:
+                        (i cnt rmb if last time got params in the element, iirc thr isnt but jic ill j check for it)
+                        element_6:
+                            links:
+                            - element_5
+                            url: ./End Date.field.yaml
+
+                    meanwhile with the interactions its like this:
+                        element_0:
+                            links:
+                            -   element: element_0
+                                params: ''
+                                uid: '0'
+                                url: ''
+                                wait: false
+                            spacing: '5'
+                            url: ./11_1sf.field.yaml
+                -->
                 {% for link in elements[target]['links'] %}
-                    {% set loop_index = loop.index-1 %}
+                    {% set uid = link.uid %}
                     {% if link.element is defined %}
                         {% set current_element = link.element %}
                         {% set current_element_url = link.url %}
                         {% set current_element_params = link.params %}
+                        {% set do_wait = link.wait %}
                         {% set menu_item_name = link.menu_item_name %}
                     {% else %}
                         {% set current_element = link %}

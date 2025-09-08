@@ -12,7 +12,7 @@
  * @returns {Object} Object containing the cell type and code content
  */
 function get_code_cell(cell) {
-    var id = cell.attr('id')
+    var id = cell.attr('id');
     var editor = ace.edit(id);
     var code = editor.getValue();
 
@@ -28,9 +28,9 @@ function get_code_cell(cell) {
  */
 function get_tab_ids(cell) {
     var tab_ids = [];
-    
+
     // Find all tab content blocks for this cell
-    cell.find('.tab-content-block').each(function() {
+    cell.find('.tab-content-block').each(function () {
         var tab_id = $(this).data('tab-id');
         if (tab_id !== undefined && tab_id !== null) {
             tab_ids.push(tab_id);
@@ -50,7 +50,7 @@ function get_tab_ids(cell) {
 function get_tab_data(cell, tab_id) {
     var dataid = cell.attr('dataid');
     var editor_id = "content_query_" + dataid + "_tab_" + tab_id;
-    
+
     try {
         var editor = ace.edit(editor_id);
         var code = editor.getValue();
@@ -58,11 +58,11 @@ function get_tab_data(cell, tab_id) {
         console.warn("Editor not found for " + editor_id + ", using empty content");
         var code = "";
     }
-    
+
     // Get source file path from the tab content block
     var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
     var source = $("#" + source_input_id).val() || "";
-    
+
     return {
         "tab_id": tab_id,
         "source": source,
@@ -77,22 +77,22 @@ function get_tab_data(cell, tab_id) {
  */
 function get_data_cell(cell) {
     var dataid = cell.attr('dataid');
-    
+
     console.log("Getting data cell " + dataid);
-    
+
     // Get output type
     var output_id = "task_step_" + dataid + "_output";
     var output = $("#" + output_id).val();
-    
+
     // Get all tab data
     var tab_ids = get_tab_ids(cell);
     var tabs_data = [];
-    
-    tab_ids.forEach(function(tab_id) {
+
+    tab_ids.forEach(function (tab_id) {
         var tab_data = get_tab_data(cell, tab_id);
         tabs_data.push(tab_data);
     });
-    
+
     if (tabs_data.length === 0) {
         var legacy_id = "content_query_" + dataid;
         try {
@@ -100,7 +100,7 @@ function get_data_cell(cell) {
             var code = editor.getValue();
             var source_id = "task_step_" + dataid + "_source";
             var source = $("#" + source_id).val();
-            
+
             tabs_data.push({
                 "tab_id": 0,
                 "source": source,
@@ -110,10 +110,11 @@ function get_data_cell(cell) {
             console.warn("No editor found for legacy or tab format");
         }
     }
-    
+
     // Extract table configuration
     var table_style = cell.find('.table-style').find('option:selected').attr('id');
     var table_title = cell.find('.table-title').val();
+    var table_slate = cell.find('.table-slate').val();
     var table_search = cell.find('.table-search').prop('checked');
     var table_export = cell.find('.table-export').prop('checked');
     var table_filter = cell.find('.table-filter').prop('checked');
@@ -123,17 +124,33 @@ function get_data_cell(cell) {
     var table_sortable = cell.find('.table-sortable').prop('checked');
     var table_pagesize = cell.find('.table-pagesize').val();
     var table_footer = cell.find('.table-footer').prop('checked');
-    
+
     // Extract chart configuration
     var chart_title = cell.find('.chart-title').val();
     var chart_subtitle = cell.find('.chart-subtitle').val();
     var chart_legend = cell.find('.chart-legend').val();
     var chart_xaxis_type = cell.find('.chart-xaxis-type').val();
-    
+
+    // Chart advanced YAML
+    var chart_advanced = cell.find('.chart-advanced');
+    var editor = ace.edit(chart_advanced.attr('id'));
+    var chart_advanced_yaml = editor.getValue();
+
     var chart_series_groups = [];
     var chart_series_formats = [];
     var chart_series_annos = [];
-    
+
+    // Extract chart3d configuration
+    var chart3d_title = cell.find('.chart3d-title').val();
+    var chart3d_legend = cell.find('.chart3d-legend').val();
+
+    // Chart advanced YAML
+    var chart3d_advanced = cell.find('.chart3d-advanced');
+    var editor3d = ace.edit(chart3d_advanced.attr('id'));
+    var chart3d_advanced_yaml = editor3d.getValue();
+
+    var chart3d_series_objs = [];
+
     // Extract series groups
     var series_groups = cell.find('.chart-series-groups');
     series_groups.each(function () {
@@ -153,7 +170,7 @@ function get_data_cell(cell) {
         console.log(srs);
         chart_series_groups.push(srs);
     });
-    
+
     // Extract series formats
     var series_formats = cell.find('.chart-series-formats');
     series_formats.each(function () {
@@ -174,7 +191,7 @@ function get_data_cell(cell) {
         console.log(srs);
         chart_series_formats.push(srs);
     });
-    
+
     // Extract series annotations
     var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
@@ -182,11 +199,13 @@ function get_data_cell(cell) {
         var srs = {
             'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
             'anno-label': $(this).find('.anno-label').val(),            // label
+            'anno-i': $(this).find('.anno-i').val(),                    // X axis
             'anno-x': $(this).find('.anno-x').val(),                    // X axis
             'anno-y': $(this).find('.anno-y').val(),                    // Y axis
             'anno-xm': $(this).find('.anno-xm').val(),                  // X MAX axis
             'anno-ym': $(this).find('.anno-ym').val(),                  // Y MAX axis
             'anno-u': $(this).find('.anno-u').val(),                    // unit axis
+            'anno-s': $(this).find('.anno-s').val(),                    // state axis
             'anno-dt': $(this).find('.anno-dt').is(':checked'),         // dotted
             'anno-width': $(this).find('.anno-width').val(),            // border width
             'anno-type': $(this).find('.anno-type').find('option:selected').attr('id'), // type
@@ -196,19 +215,45 @@ function get_data_cell(cell) {
         console.log(srs);
         chart_series_annos.push(srs);
     });
-    
+
+    // Extract series objects
+    var series_objs = cell.find('.chart3d-series-objects');
+    series_objs.each(function () {
+        console.log(this);
+        const uvVal = $(this).find('.obj-uv').val();
+        const colVal = $(this).find('.obj-colour').val();
+        var srs = {
+            'obj-vertices': $(this).find('.obj-vertices').val(),                                    // Input Vertices
+            'obj-edges': $(this).find('.obj-edges').val(),                                          // Input edges
+            'obj-uv': (uvVal && uvVal !== 'none') ? uvVal : '',
+            'obj-colour': (colVal && colVal !== 'none') ? colVal : '',                                        // colour
+            'obj-primitive': $(this).find('.obj-primitive').find('option:selected').attr('id'),     // primitive
+        };
+        console.log(srs);
+        chart3d_series_objs.push(srs);
+    });
+
     var chart = {
         'title': chart_title,
         'subtitle': chart_subtitle,
         'legend': chart_legend,
+        'advanced': chart_advanced_yaml,
         'xaxis-type': chart_xaxis_type,
         'series-groups': chart_series_groups,
         'series-formats': chart_series_formats,
         'series-annos': chart_series_annos
     };
-    
+
+    var chart3d = {
+        'title': chart3d_title,
+        'legend': chart3d_legend,
+        'advanced': chart3d_advanced_yaml,
+        'series-objects': chart3d_series_objs
+    }
+
     var table = {
         'title': table_title,
+        'slate': table_slate,
         'search': table_search,
         'export': table_export,
         'style': table_style,
@@ -220,17 +265,55 @@ function get_data_cell(cell) {
         'sortable': table_sortable,
         'pagesize': table_pagesize
     };
-    
+
+    // reset the tab_ids to start from 0
+    let tabCounter = 0;
+    tabs_data.forEach(function (tab_data) {
+        const currTabId = tab_data.tab_id;
+
+        chart["series-annos"].forEach(function (series_anno) {
+            if (series_anno["anno-tab"] == currTabId) {
+                series_anno["anno-tab"] = tabCounter;
+            }
+        });
+        chart["series-groups"].forEach(function (series_group) {
+            if (series_group["series-tab"] == currTabId) {
+                series_group["series-tab"] = tabCounter;
+            }
+        });
+        chart3d["series-objects"].forEach(function (series_object) {
+            if (series_object["obj-vertices"] == currTabId) {
+                series_object["obj-vertices"] = tabCounter;
+            }
+            if (series_object["obj-edges"] == currTabId) {
+                series_object["obj-edges"] = tabCounter;
+            }
+            if (series_object["obj-uv"] !== '' && series_object["obj-uv"] !== 'none' &&
+                series_object["obj-uv"] == currTabId) {
+                series_object["obj-uv"] = tabCounter;
+            }
+            if (series_object["obj-colour"] !== '' && series_object["obj-colour"] !== 'none' &&
+                series_object["obj-colour"] == currTabId) {
+                series_object["obj-colour"] = tabCounter;
+            }
+        });
+
+        tab_data.tab_id = tabCounter;
+        tabCounter++;
+    });
+
     console.log("Table config:", table);
     console.log("Chart config:", chart);
+    console.log("Chart3d config:", chart3d);
     console.log("Tabs data:", tabs_data);
-    
+
     return {
         "type": "data",
         "output": output,
         "tabs": tabs_data,
         "table": table,
-        "chart": chart
+        "chart": chart,
+        "chart3d": chart3d
     };
 }
 
@@ -243,6 +326,21 @@ function get_text_cell(cell) {
     var myContent = cell.trumbowyg('html');
     console.log("Getting text " + myContent);
     return {"type": "markdown", "content": myContent};
+}
+
+function get_question_cell(cell) {
+    var dataid = cell.attr('dataid');
+
+    var id = "content_query_" + dataid;
+
+    var question = $("#" + id).val();
+
+    console.log("Getting question " + question);
+
+    return {
+        "type": "question",
+        "source": question
+    };
 }
 
 /**
@@ -299,6 +397,34 @@ function get_source_cell(cell) {
 }
 
 /**
+ * Extracts data from a task cell
+ * @param {jQuery} cell - jQuery object representing the task cell
+ * @returns {Object} Object containing the cell type and source information
+ */
+function get_task_cell(cell) {
+    var dataid = cell.attr('dataid');
+
+    var id = "content_query_" + dataid;
+
+    console.log("Getting data " + id);
+
+    var task_id = "task_step_" + dataid + "_task";
+    var task_ping = "task_step_" + dataid + "_ping";
+    var task_timeout = "task_step_" + dataid + "_timeout";
+
+    var task = $("#" + task_id).val();
+    var ping = $("#" + task_ping).val();
+    var timeout = $("#" + task_timeout).val();
+
+    return {
+        "type": "task",
+        "task": task,
+        "ping": ping,
+        "timeout": timeout
+    };
+}
+
+/**
  * Extracts data from a URL cell
  * @param {jQuery} cell - jQuery object representing the URL cell
  * @returns {Object} Object containing the cell type, mode, URL, and parameters
@@ -336,7 +462,6 @@ function get_shell_cell(cell) {
     return {"type": "shell", "content": code};
 }
 
-
 /**
  * Calls the specific get_<cell_type>_cell function to extract the entire cell information
  * @param {jQuery} cell - jQuery object representing the cell
@@ -350,6 +475,7 @@ function get_cell_values(cell) {
 
 
     console.log('cell data: ', cell_data);
+    // cell_data["content"] = "locals().keys()";
     return cell_data;
 }
 
@@ -381,12 +507,8 @@ function get_cell(cell_owner, topic) {
 
             if (topic != "") {
                 console.log("Getting Cell with STEP: " + topic)
-
-
                 cell['topic'] = topic;
                 cell['step'] = topic;
-
-
             }
 
             owner_cells.push(cell);

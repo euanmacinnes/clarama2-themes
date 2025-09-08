@@ -4,10 +4,9 @@
             <i class="bi bi-link fs-4 mb-3"> Call Web Page</i>
         </div>
         <div class="alert alert-secondary">
-            <div>Call
-            </div>
-            <div class="row">
-                <div class="col-1">
+            <div class="mb-2">Call</div>
+            <div class="row g-2">
+                <div class="col-12 col-md-2">
                     <select id="content_query_{{ loop_index }}_mode" class="form-control">
                         {% if mode is defined %}
                             <option {{ selected("GET", mode) }} >GET</option>
@@ -16,16 +15,23 @@
                             <option>GET</option>
                             <option>POST</option>
                         {% endif %}
-
-                    </select></div>
-                <div class="col"><input id="content_query_{{ loop_index }}_url"
-                                        name="task_step_field_{{ loop_index }}_url" class="form-control"
-                                        value="{{ url }}"></div>
+                    </select>
+                </div>
+                <div class="col-12 col-md-10">
+                    <input id="content_query_{{ loop_index }}_url"
+                           name="task_step_field_{{ loop_index }}_url" 
+                           class="form-control"
+                           value="{{ url }}"
+                           placeholder="Enter URL">
+                </div>
             </div>
 
-            <div><br/>Parameters (headers, data, json), enter in YAML format</div>
-            <div id="content_query_{{ loop_index }}_params" name="task_step_field_{{ loop_index }}_params" editor="yaml"
-                 class="source-editor form-control" style="min-height: 100px">{{ parameters }}</div>
+            <div class="mt-3 mb-2">Parameters (headers, data, json), enter in YAML format</div>
+            <div id="content_query_{{ loop_index }}_params" 
+                 name="task_step_field_{{ loop_index }}_params" 
+                 editor="yaml"
+                 class="source-editor form-control" 
+                 style="min-height: 100px">{{ parameters }}</div>
         </div>
     </div>
 </div>

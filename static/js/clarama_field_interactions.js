@@ -26,30 +26,44 @@ function debounce(func, timeout = 500) {
 }
 
 function perform_interact(field, args = {}) {
-    console.log("field", field);
-    console.log("Interacting from " + field.attr("id"));
-    console.log("args", args);
+    // console.log("perform_interact field", field);
+    // console.log("Interacting from " + field.attr("id"));
+    // console.log("args", args);
+
+    var closestGrid = $(field).closest(".clarama-grid");
+    // console.log("perform_interact closestGrid", closestGrid);
+
     var element = field.parents(".clarama-element").attr('id');
-    var grid = field.parents(".grid-stack");
+    var grid = closestGrid.find(".grid-stack");
     var grid_id = field.parents(".clarama-element").attr('grid-id');
-    console.log("grid_id", grid_id)
+    // console.log("grid_id", grid_id)
 
     if (grid_id !== undefined) {
         var element_array = eval(grid_id + "elements");
         var eobj = element_array[element];
-        console.log("eobj", eobj)
+        // console.log("eobj", eobj, " for ", grid_id + "elements", " element ", element);
+
         if ('links' in eobj) {
+            // console.log("checking where get_field_values is called: perform_interact")
             get_field_values({}, true, function (field_registry) {
+                // console.log("field_registry", field_registry)
                 field_values = merge_dicts(field_registry, args);
+                // console.log("perform_interact field_values", field_values);
                 links = eobj["links"]; // array of file names to refresh
-                //console.log(links);
                 //flash(element + ' links to ' + links);
+
                 for (const link of links) {
-                    if (typeof link === 'string' || (typeof link === 'object' && link.element.includes("element_"))) {
+                    if (link.contextMenu) continue; // context menu code is in clarama_grid_interactions.js
+                    
+                    // typeof link === 'string' exists so bec of old code
+                    // bec we implemented interactions thus link type can be object
+                    if (typeof link === 'string' || (typeof link === 'object' && link.element.includes("element_"))) { // for interaction type element
                         if (typeof link === 'object') {
                             linked_element = grid.find('#' + link.element);
-                            if (element_array[link.element]['url'] !== link.url && link.url !== "") {
-                                linked_type = "changed";
+
+                            // need to check if (interaction) element url differs bec the element-type might change based on url
+                            if (element_array[link.element]['url'] !== link.url && link.url !== "") { 
+                                linked_type = "changed"; 
                             } else {
                                 linked_type = linked_element.attr("element-type");
                             }
@@ -57,9 +71,8 @@ function perform_interact(field, args = {}) {
                             linked_element = grid.find('#' + link);
                             linked_type = linked_element.attr("element-type");
                         }
-                        console.log("linked_element", linked_element)
+                        // console.log("linked_element", linked_element)
 
-                        // console.log("Linking " + link + '->' + linked_type);
                         switch (linked_type) {
                             case ".task":
                                 field_values['clarama_var_run'] = 'True'
@@ -79,47 +92,46 @@ function perform_interact(field, args = {}) {
                                 break;
 
                             case "changed":
-                                linked_element[0].innerHTML = "";
-                                linked_element[0].append(showInteractionContent('run', link.url+"?"+link.params));
-                                enable_interactions($(`#${link.element}`));
+                                linked_element.empty();
+                                linked_element.append(showInteractionContent(field, 'run', link.url + "?" + link.params));
+                                enable_interactions(linked_element);
                                 break;
 
                             default:
                                 flash("Don't know how to interact " + linked_type + " - " + link, 'danger');
                         }
                     } else if (typeof link === 'object') {
-                        const {element, url, params} = link;
+                        const { element, url, params } = link; // only need these
                         let fullUrl = url + "?" + params;
                         $('.select2-container').blur();
+
                         if (element === 'popup') {
-                            showPopupNearMouse(fullUrl, field_values);
+                            showPopupNearMouse(field, fullUrl, field_values);
                         } else if (element === 'modal') {
-                            showModalWithContent(fullUrl, field_values);
-                            // linked_element = grid.find('#interactionModalContent');
-                            // console.log("linked_element modal", linked_element)
-                            // reload(linked_element, field_values)
+                            showModalWithContent(field, fullUrl, field_values);
                         } else if (element === 'tab') {
-                            triggerTabInteraction(fullUrl, field_values);
+                            triggerTabInteraction(field, fullUrl, field_values);
+                        } else if (element === 'hidden') {
+                            // this prob isnt the most ideal way but i think itll do for now since autorun isnt work
+                            playHiddenContent(field, fullUrl, field_values);
+                            const interval = setInterval(() => {
+                                const runBtn = $("#run");
+                                const socketId = $("#" + runBtn.attr("socket")).attr("task_kernel_id");
+
+                                // ensure that runBtn exists n socket has an Id before simulating the click on the task run btn
+                                if (runBtn && socketId) {
+                                    runBtn.attr("hiddenCM", "true")
+                                    runBtn.click();
+                                    clearInterval(interval); // this will stop looping n finding the runBtn n socketId
+
+                                    flash("hidden content ran");
+                                }
+                            }, 300);
                         }
-                        // else {
-                        //     const toOverride = document.getElementById(element);
-                        //     console.log("toOverride", toOverride)
-                        //     toOverride.innerHTML = "";
-                        //     toOverride.append(showInteractionContent(url));
-                        //     enable_interactions($(`#${element}`));
-                        // }
                     }
                 }
-            });
+            }, closestGrid);
         }
-
-        // if (field.length && field.is('table') && field_values['row']['issue_id']) {
-        //     showModalWithContent("/System/Slates/Tasks/Issue_Details.task.yaml");
-        //     // linked_element = $('#interactionModalBody');
-        //     // console.log("linked_element modal", linked_element)
-        //     // console.log("field_values issue_id", field_values);
-        //     // reload(linked_element, field_values)
-        // }
     }
 }
 

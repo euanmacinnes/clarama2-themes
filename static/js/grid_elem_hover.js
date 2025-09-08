@@ -1,9 +1,11 @@
-var activeDropdownId = null;
+var activeDropdownId = null; // track currently opened dropdown menu's id
+
 document.addEventListener('shown.bs.dropdown', function (event) {
     if (event.target.id == 'navbarAlertDropdown') {
         const $bellIcon = $('#alertsmenu i.bi');
         hasUnseenDanger = false;
         $bellIcon.removeClass('shaking');
+        $bellIcon.removeClass('danger');
     }
 
     const trigger = event.target.closest('.grid-elem-menu');
@@ -17,6 +19,7 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     const dropdownMenu = dropdown.querySelector('.dropdown-menu');
     if (!dropdownMenu) return;
 
+    // add listener to each input to handle parameter-saving when typing
     const inputs = dropdownMenu.querySelectorAll('input');
     inputs.forEach(input => {
         input.addEventListener('input', () => {
@@ -25,6 +28,8 @@ document.addEventListener('shown.bs.dropdown', function (event) {
             saveElementParams(target);
         });
     });
+    
+    // add hover listeners to items in the dropdown to highlight associated grid element on the grid
     const items = dropdownMenu.querySelectorAll('.slate-elem-dropdown-item');
     items.forEach(item => {
         item.addEventListener('mouseover', () => {
@@ -50,13 +55,20 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     }
 });
 
+// removes the interaction in the ui
 $(document).on('click', '.delete-grid-interaction', function () {
     $(this).closest('li').remove();
 });
 
-function addGridInteraction(gelem_target, selectedValue, selectedValueUrl, loopIndex, urlParams, menuItemName="") {
+// newIndex - unique index or id for the interaction
+// gelem_target - target grid element id
+// selectedValue - selected interaction (type)
+// selectedValueUrl - url of selected interaction
+// urlParams - extra params to send
+// menuItemName - (optional, only for context menu) context menu item label
+function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, wait, menuItemName="") {
     const newGI = document.createElement("div");
     newGI.className = "clarama-post-embedded clarama-replaceable";
-    newGI.setAttribute("url", `/template/render/explorer/steps/grid_edit_interaction?current_element=${selectedValue}&target=${gelem_target}&current_element_url=${selectedValueUrl}&loop_index=${loopIndex}&current_element_params=${urlParams}&menu_item_name=${menuItemName}`);
+    newGI.setAttribute("url", `/template/render/explorer/steps/grid_edit_interaction?uid=${newIndex}&current_element=${selectedValue}&target=${gelem_target}&current_element_url=${selectedValueUrl}&current_element_params=${urlParams}&do_wait=${wait}&menu_item_name=${menuItemName}`);
     return newGI;
 }

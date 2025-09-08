@@ -1,5 +1,5 @@
 data-bs-toggle="tooltip"
-data-bs-title="{{ get(field_config,'description',"Field: " + field_config['name']) | safe }}"
+data-bs-title="Field {{ get(field_config,'description',"Field: " + field_config['name']) | safe }}"
 data-bs-placement="bottom"
 {% if field_config["data"] %}
     data="{{ field_config["data"] | to_json }}"

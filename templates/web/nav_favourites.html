@@ -1,0 +1,17 @@
+<div class="list-group-item list-group-item-action d-flex flex-row align-items-center justify-content-between border-0 p-3">
+    <a href="{{ url }}" class="d-flex flex-column align-items-start p-0 text-decoration-none" title="{{ url }}">
+        <div class="d-flex flex-row align-items-center">
+            <i class="bi {{ icon|default('bi-file-earmark') }} text-dark" style="font-size: 1.2rem; margin: 0 auto;"></i>
+            <p class="card-title text-dark fw-medium text-truncate ms-2">{{ name }}</p>
+        </div>
+        <p class="card-subtitle text-body-secondary text-break fst-italic" style="font-size: 10px;">{{ url }}</p>
+    </a>
+    <i class="bi bi-star-fill text-warning ps-3 nav-fav-toggle"
+       role="button"
+       aria-label="Unfavourite"
+       style="font-size: 1.2rem; cursor: pointer;"
+       data-name="{{ name }}"
+       data-url="{{ url }}"
+       data-icon="{{ icon|default('bi-file-earmark') }}"
+       data-type="{{ type|default('file') }}"></i>
+</div>

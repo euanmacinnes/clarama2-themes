@@ -1,3 +1,5 @@
+.MJXp-math { font-size: 1.5em !important; }
+
 .pre_response {
     white-space: pre-wrap;
     display: block;
@@ -7,6 +9,10 @@
     height: 200px;
     overflow-y: scroll;
     font-size: .9em;
+}
+
+.close-tab:hover {
+    color: #f8162d;
 }
 
 .clarama-checkbox {
@@ -25,6 +31,9 @@
 .shaking {
     display: inline-block;
     animation: shake 0.5s infinite ease-in-out;
+}
+
+.shaking.danger {
     color: #ff475a;
     font-size: 16px;
     text-shadow: 0 0 5px #ff0018, 0 0 10px #dc3545;
@@ -82,7 +91,7 @@
     margin-top: 0;
     margin-bottom: 0rem;
     overflow: auto;
-    overflow-y: scroll;
+    overflow-y: auto;
     font-size: .9em;
 }
 
@@ -128,7 +137,7 @@
     border-style: dashed !important;
     border-radius: 8px !important;
     height: 100% !important;
-    border-color: DeepSkyBlue !important;
+    border-color: Grey !important;
     background-color: GhostWhite;
 }
 
@@ -220,6 +229,22 @@
     display: block;
 }
 
+.select2-select {
+    height:36px !important;
+    width: 100%;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--bs-body-color);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: var(--bs-body-bg);
+    background-clip: padding-box;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out !important;
+}
 
 .code_response {
     font-size: medium;
@@ -315,7 +340,8 @@
     right: 0 !important;
     left: unset !important
     z-index: 1000;
-    min-width: 700px;
+    min-width: 290px;
+    width: 42vw;
     /* box-shadow: 10px 10px 5px lightblue; */
     box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
 }

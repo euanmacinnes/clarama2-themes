@@ -1,290 +1,849 @@
-<table>
-    <tr class="bg-secondary text-white">
-        <td colspan="1">
-            <h3 style="padding: 15px;">Field</h3>
-        </td>
-        <td class="text-end" style="padding:10px;">
-            <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}"></i>
-        </td>
-    </tr>
-    <tr>
-        <td colspan="2" style="padding: 15px;">
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center bg-secondary text-white rounded-top px-3 py-2 mb-2">
+        <div class="col-12 col-md-6 d-flex align-items-center gap-4">
+            <label class="form-check-label" for="name">Name</label>
+            <input id="name" required name="name" type="text" class="form-control clarama-field"
+                   autocomplete="on"
+                   placeholder="field name"
+                   value="{{ get(field_config,'name','') }}" {% include theme("explorer/files/field_tooltip.html") %} />
+
+            <div class="form-check form-switch">
+                <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
+                       type="checkbox" id="required" name="required"
+                        {% if get(field_config,'required','') | lower == 'true' %}
+                       checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
+                <label class="form-check-label" for="required">Required</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
+                       type="checkbox" id="readonly" name="readonly"
+                        {% if get(field_config,'readonly','') | lower == 'true' %}
+                       checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
+                <label class="form-check-label nowrap" for="readonly">Read-Only</label>
+            </div>
+        </div>
+        <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}" title="Save"></i>
+    </div>
+
+    <!-- Preview at the top -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="m-0">Field Preview</h5>
+        </div>
+        <div class="card-body">
+            <div id="dependencies-preview" class="mb-2"></div>
+            <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="fieldEditTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-fieldtype" data-bs-toggle="tab" data-bs-target="#pane-fieldtype"
+                    type="button" role="tab" aria-controls="pane-fieldtype" aria-selected="true">Field Type
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-options" data-bs-toggle="tab" data-bs-target="#pane-options" type="button"
+                    role="tab" aria-controls="pane-options" aria-selected="false">Settings
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-data" data-bs-toggle="tab" data-bs-target="#pane-data" type="button"
+                    role="tab" aria-controls="pane-data" aria-selected="false">Data
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-dependencies" data-bs-toggle="tab" data-bs-target="#pane-dependencies"
+                    type="button" role="tab" aria-controls="pane-dependencies" aria-selected="false">Dependency Testing
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 p-3 rounded-bottom card-body" id="fieldEditTabsContent">
+        <!-- Field Type Pane -->
+        <div class="tab-pane fade show active" id="pane-fieldtype" role="tabpanel" aria-labelledby="tab-fieldtype">
             <div class="container-fluid">
-                <div class="row">
+                <div class="row g-3 my-2">
                     {% for key, ftype in fieldtypes.items() %}
-                        <div class="col">
+                        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                             <label id="field_{{ key }}" key="{{ key }}"
-                                   class="btn {% if field_config['type'] == key %} clicked btn-primary {% else %} btn-light {% endif %} field"
-                                   style="width: 100%;">
-                                <i class="bi fs-4 {{ ftype['icon'] }}" style="width: 100%;"> </i></label>
-                            <div style="overflow-wrap: initial; width: 100%" class="text-center">
-                                <br/><b>{{ ftype['name'] }}</b>
-                            </div>
-                            <br/>{{ ftype['description'] }}
+                                   class="btn w-100 {% if field_config['type'] == key %} clicked btn-primary {% else %} btn-light {% endif %} field">
+                                <i class="bi fs-4 {{ ftype['icon'] }} w-100"></i>
+                                <div class="text-center mt-1"><b>{{ ftype['name'] }}</b></div>
                             </label>
+                            <p class="text-center mt-1 small">{{ ftype['description'] }}</p>
                         </div>
                     {% endfor %}
                 </div>
+
+
             </div>
-        </td>
+        </div>
 
-    </tr>
-    <tr class="bg-secondary text-white">
-        <td>
-            <table width="100%">
-                <tr>
-                    <td widht="20%"><h3 style="padding: 15px;">Edit Field</h3></td>
-                    <td width="40%">
-                        <div class="form-check form-switch inputgroup">
-                            <input class="form-check-input clarama-field clarama-now-field"
-                                   fieldtype="html"
-                                   type="checkbox"
-                                   id="required"
-                                   name="required"
-                                    {% if get(field_config,'required','') | lower == 'true' %} checked {% endif %}
-                                    {% include theme("explorer/files/field_tooltip.html") %}
-                            >
-                            <label class="form-check-label" for="required">Required</label>
-                        </div>
-                    </td>
-                    <td width="40%">
-                        <div class="form-check form-switch inputgroup">
-                            <input class="form-check-input clarama-field clarama-now-field"
-                                   fieldtype="html"
-                                   type="checkbox"
-                                   id="readonly"
-                                   name="readonly"
-                                    {% if get(field_config,'readonly','') | lower == 'true' %} checked {% endif %}
-                                    {% include theme("explorer/files/field_tooltip.html") %}
-                            >
-                            <label class="form-check-label" for="readonly">Read-Only</label>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        </td>
-        <td><h3 style="padding: 15px;">Field Preview</h3></td>
-    </tr>
-    <tr>
-        <td width="50%" style="vertical-align: top">
-            <table style="padding: 5px;">
-                <tr style="padding: 5px;">
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;">Name </h5>
-                    </td>
-                    <td>
-                        <input id="name" required name="name" type="text"
-                               class="form-control clarama-field"
-                               autocomplete="on"
-                               placeholder="field name"
-                               value="{{ get(field_config,'name','') }}"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        />
-                    </td>
-                </tr>
-                <tr style="padding: 5px;">
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;">Description </h5>
-                    </td>
-                    <td>
-                        <textarea id="description"
-                                  name="description" type="text"
-                                  class="form-control clarama-field"
-                                  autocomplete="on"
-                                  rows="5"
-                                  placeholder="description"
-                                  value=""
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        >{{ get(field_config,'description','') }}</textarea>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;">Default</h5>
-                    </td>
-                    <td>
-                        <input id="default" name="default" type="text"
-                               class="form-control clarama-field"
-                               autocomplete="on"
-                               placeholder="default value"
-                               value="{{ get(field_config,'default','') }}"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        />
-                        <div>For checkboxes, use a default value of True for checked (the value will be made lowercase,
-                            a
-                            string
-                            and
-                            then
-                            equal to 'true'), anything else will be unchecked by default
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;"> Placeholder </h5>
-                    </td>
-                    <td>
-                        <input id="placeholder" name="placeholder" type="text"
-                               class="form-control clarama-field"
-                               autocomplete="on"
-                               placeholder="placeholder value"
-                               value="{{ get(field_config,'placeholder','') }}"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        />
 
-                    </td>
-                </tr>
-                <tr>
-                    <td style="vertical-align: top">
-                        <h5 style="padding: 5px;"> Data </h5>
-                    </td>
-                    <td style="padding: 5px;">
-                        <div id="data"
-                             name="data"
-                             editor="yaml"
-                             class="source-editor form-control clarama-field clarama-editor-field"
-                             fieldtype="aceeditor"
-                             style="min-height:{{ get(field_config,'min-height','64') }} ;height: 100%"
-                                {% include theme("explorer/files/field_tooltip.html") %}
-                        >{{ get(field_config,'data', 'source:\naction:\nparams:\n  query:\n  path:\noptions:\n') | yaml }}</div>
-                        <p>
-                            <b>source:</b> is the task/source/yaml file to get the data from. Relative to where the
-                            field
-                            is<br/>
-                            <b>params:</b> if the source in question needs additional parameters<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<b>query:</b> For SQL/CSV/Excel/Influx sources to run a query
-                            against them<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<b>path:</b> For Yaml sources to specify the /path/ in the yaml to
-                            get the
-                            dictionary
-                            from<br/>
-                            <b>options</b> is for a manual list of options for a select/select-multiple<br/>
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-                        <table width="100%">
+        <!-- Dependencies Pane -->
+        <div class="tab-pane fade" id="pane-dependencies" role="tabpanel" aria-labelledby="tab-dependencies">
+            {% set deps = get(field_config, 'dependencies', []) %}
+            <div class="mb-2">
+                <p>
+                    This feature is only for testing purposes, so you can test what happens right here with multiple
+                    other field inputs. The dependencies will be saved along with the field, but will not add
+                    automatically to a slate or task.
+                </p>
+                <p>
+                    Select a field file in the box below, then click the [+] button to add to the list
+                </p>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" id="dependency-input"
+                           placeholder="pick a .field.yaml">
+                    <button type="button" class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
+                            data-bs-target="#browseFileModal" filters="*.field.yaml" inputId="dependency-file-input"
+                            title="Browse .field.yaml"><i class="bi bi-folder2-open"></i></button>
+                    <button type="button" class="btn btn-outline-primary" id="add-dependency"><i
+                            class="bi bi-plus-lg"></i></button>
+                </div>
+                <label class="form-label">Dependencies (fields this field depends on)</label>
+                <input id="dependency-file-input" type="text" class="form-control d-none"/>
+                <ul id="dependencies-list" class="list-group">
+                    {% for d in deps %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="dep-text">{{ d }}</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i
+                                    class="bi bi-x"></i></button>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <input type="hidden" id="dependencies-json" value='{{ deps | tojson | safe }}'>
+                <div class="form-text mt-2">Use the add button to include a dependency. Click X to remove.</div>
+            </div>
+        </div>
+
+        <!-- Data Pane -->
+        <div class="tab-pane fade" id="pane-data" role="tabpanel" aria-labelledby="tab-data">
+            {% set data_cfg = get(field_config, 'data', {}) %}
+            {% set has_options = data_cfg and 'options' in data_cfg %}
+            {% set mode_manual = has_options %}
+            <div class="mb-3">
+                <label class="form-label me-3">Data Mode</label>
+                <div class="btn-group" role="group" aria-label="Data Mode">
+                    <input type="radio" class="btn-check" name="data-mode" id="data-mode-manual" autocomplete="off"
+                           {% if mode_manual %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary" for="data-mode-manual">Manually Entered</label>
+
+                    <input type="radio" class="btn-check" name="data-mode" id="data-mode-remote" autocomplete="off"
+                           {% if not mode_manual %}checked{% endif %}>
+                    <label class="btn btn-outline-secondary" for="data-mode-remote">Remote</label>
+                </div>
+            </div>
+
+            <!-- Manual Data -->
+            <div id="manual-data" class="mb-3" style="display: {% if mode_manual %}block{% else %}none{% endif %};">
+                {# Normalize options into a list of {id, value} dicts to ensure iterability #}
+                {% set _opts = (data_cfg.get('options') if data_cfg and ('options' in data_cfg) else []) %}
+                {% if _opts is mapping %}
+                    {% set options_list = [] %}
+                    {% for k, v in _opts.items() %}
+                        {% do options_list.append({'id': k, 'value': v}) %}
+                    {% endfor %}
+                {% elif _opts is sequence and _opts is not string %}
+                    {% set options_list = [] %}
+                    {% for item in _opts %}
+                        {% if item is mapping %}
+                            {% set _id = item.get('id', item.get('key', '')) %}
+                            {% set _val = item.get('value', item.get('val', item.get('label', ''))) %}
+                            {% do options_list.append({'id': _id, 'value': _val}) %}
+                        {% else %}
+                            {% do options_list.append({'id': item, 'value': item}) %}
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    {% set options_list = [] %}
+                {% endif %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="form-text mt-2">Manually enter values you would like to show in the dropdown.
+                        <br>
+                        <br>
+                        <b>Note:</b> If you are using a remote source, the values here will be ignored.
+                    </div>
+                    <label class="form-label m-0">Manual Options</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-option-row"><i
+                            class="bi bi-plus-lg me-1"></i>Add Row
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle" id="manual-options-table">
+                        <thead>
+                        <tr>
+                            <th style="width: 25%">Id</th>
+                            <th>Value</th>
+                            <th style="width: 48px"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for opt in options_list %}
                             <tr>
-                                <td>
-                                    <h5>Minimum</h5>
-                                    <input id="minimum" name="minimum" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="0"
-                                           value="{{ get(field_config,'minimum','') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
+                                <td><input type="text" class="form-control option-id" value="{{ opt.get('id', '') }}">
                                 </td>
+                                <td><input type="text" class="form-control option-value"
+                                           value="{{ opt.get('value', '') }}"></td>
                                 <td>
-                                    <h5>Maximum</h5>
-                                    <input id="maximum" name="maximum" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="100"
-                                           value="{{ get(field_config,'maximum','') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
-                                </td>
-                                <td>
-                                    <h5>Step</h5>
-                                    <input id="step" name="step" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="100"
-                                           value="{{ get(field_config,'step','') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
-                                </td>
-                                <td>
-                                    <h5>Size</h5>
-                                    <input id="size" name="size" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="4"
-                                           value="{{ get(field_config,'size','4') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
-                                </td>
-                                <td>
-                                    <h5>Spacing</h5>
-                                    <input id="spacing" name="spacing" type="number"
-                                           class="form-control clarama-field clarama-delay-field"
-                                           fieldtype="html"
-                                           autocomplete="on"
-                                           placeholder="2"
-                                           value="{{ get(field_config,'spacing','3') }}"
-                                            {% include theme("explorer/files/field_tooltip.html") %}
-                                    />
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-option"><i
+                                            class="bi bi-trash"></i></button>
                                 </td>
                             </tr>
+                        {% endfor %}
+                        {% if options_list|length == 0 %}
                             <tr>
-                                <td style="padding: 5px;">For number &amp; range fields</td>
-                                <td style="padding: 5px;">For number &amp; range fields</td>
-                                <td style="padding: 5px;">For number &amp; range fields</td>
-                                <td style="padding: 5px;">For select, number of items to show</td>
-                                <td style="padding: 5px;">Spacing of the name/description</td>
+                                <td><input type="text" class="form-control option-id" value=""></td>
+                                <td><input type="text" class="form-control option-value" value=""></td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-option"><i
+                                            class="bi bi-trash"></i></button>
+                                </td>
                             </tr>
-                        </table>
-                    </td>
-            </table>
-        </td>
-        <td width="50%" style="vertical-align: top; padding:30px;">
-            <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
-        </td>
-    </tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-</table>
+            <!-- Remote Data (simplified) -->
+            <div id="remote-data" style="display: {% if mode_manual %}none{% else %}block{% endif %};">
+                {% set src = data_cfg.get('source', '') if data_cfg else '' %}
+                {% set params = data_cfg.get('params', {}) if data_cfg else {} %}
+                {% set query = params.get('query', '') %}
+
+                <label class="form-label">Source</label>
+                <div class="input-group mb-2 w-100">
+                    <input id="field_data_source" type="text" class="form-control source-input-field"
+                           placeholder="relative path to source/task/table/csv" value="{{ src }}">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
+                            data-bs-target="#browseFileModal" filters="*.table.yaml|*.task.yaml|*.source.yaml|*.csv"
+                            inputId="field_data_source" title="Pick source"><i class="bi bi-folder2-open"></i></button>
+                    {% if src %}
+                        <a href="{{ src }}" target="_blank" class="btn btn-outline-info" title="Open Source"><i
+                                class="bi bi-pen"></i></a>
+                    {% else %}
+                        <button type="button" class="btn btn-outline-info" disabled title="Open Source"><i
+                                class="bi bi-pen"></i></button>
+                    {% endif %}
+                </div>
+
+                <label class="form-label">Query
+                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline ms-1" title="Query help"
+                            data-bs-toggle="modal" data-bs-target="#queryHelpModal">
+                        <i class="bi bi-question-circle"></i>
+                    </button>
+                </label>
+                <div id="field_data_query" class="source-editor form-control clarama-editor-field" editor="sql"
+                     style="min-height: 0; height: 160px;"
+                     placeholder="Enter query (SQL/Path/YAML)">{{ query }}</div>
+                <div class="form-text mt-2">The first column is used as the ID, the second is used as the value. It does
+                    not matter what the columns are called
+                </div>
+                <script type="text/javascript">$(function () {
+                    $('#field_data_query').editor();
+                });</script>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btn-preview-remote"><i
+                                class="bi bi-eye me-1"></i>Preview Result
+                        </button>
+                        <pre class="mt-2"><code id="clarama-query-result"></code></pre>
+                    </div>
+                </div>
+
+                <div class="table-responsive mt-2" id="remote-preview" style="display:none;">
+                    <table class="table table-sm table-striped mb-0" id="remote-preview-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <input type="hidden" id="data_text" value=""> <!-- holds JSON/YAML generated for backend -->
+        </div>
+
+        <!-- Options Pane (merged with Settings) -->
+        <div class="tab-pane fade" id="pane-options" role="tabpanel" aria-labelledby="tab-options">
+            <div class="mb-3">
+                <div class="col">
+                    <label class="form-label" for="placeholder">Placeholder</label>
+                    <input id="placeholder" name="placeholder" type="text" class="form-control clarama-field"
+                           placeholder="placeholder value"
+                           value="{{ get(field_config,'placeholder','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                </div>
+
+                <div class="col">
+                    <label class="form-label">Description</label>
+                    <textarea id="description" name="description" class="form-control clarama-field"
+                              autocomplete="on" rows="4"
+                              placeholder="description" {% include theme("explorer/files/field_tooltip.html") %}>{{ get(field_config,'description','') }}</textarea>
+                </div>
+                <div class="col">
+                    <label class="form-label">Default</label>
+                    <input id="default" name="default" type="text" class="form-control clarama-field"
+                           placeholder="default value"
+                           value="{{ get(field_config,'default','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    <div class="form-text">For checkboxes, use True for checked (converted to lowercase string
+                        'true').
+                    </div>
+                </div>
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col">
+                            <label class="form-label">Minimum</label>
+                            <input id="minimum" name="minimum" type="number"
+                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                                   placeholder="0"
+                                   value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Maximum</label>
+                            <input id="maximum" name="maximum" type="number"
+                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                                   placeholder="100"
+                                   value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Step</label>
+                            <input id="step" name="step" type="number"
+                                   class="form-control clarama-field clarama-delay-field"
+                                   fieldtype="html" placeholder="1"
+                                   value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Size</label>
+                            <input id="size" name="size" type="number"
+                                   class="form-control clarama-field clarama-delay-field"
+                                   fieldtype="html" placeholder="4"
+                                   value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Spacing</label>
+                            <input id="spacing" name="spacing" type="number"
+                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                                   placeholder="2"
+                                   value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
     var key = "{{ get(field_config,'type','string') }}";
 
-    $(".field").click(function () {
-        $(".field").removeClass("clicked");
-        $(".field").removeClass("btn-primary");
-        $(".field").addClass("btn-light");
-        key = $(this).attr("key");
-        $(this).addClass("clicked");
-        $(this).addClass("btn-primary");
-        $(this).removeClass("btn-light");
-        update_preview();
-    });
+    function getEditorValue(id) {
+        try {
+            var ed = ace.edit(id);
+            if (ed && ed.getValue) {
+                return ed.getValue();
+            }
+        } catch (e) {
+        }
+        return $("#" + id).val();
+    }
 
-    $(".clarama-field")
-        .on("focusout", function () {
+    $(function () {
+        // Click handlers
+        $(document).on('click', '.field', function () {
+            $(".field").removeClass("clicked btn-primary").addClass("btn-light");
+            key = $(this).attr("key");
+            $(this).addClass("clicked btn-primary").removeClass("btn-light");
             update_preview();
         });
 
-    function update_preview() {
-        var editor = ace.edit("data");
-        var code = editor.getValue();
+        // Any field change (including dependency dropdowns rendered with .clarama-field) triggers preview refresh
+        // But do NOT refresh if the change originated inside the preview or any dependency preview to avoid loops.
+        $(document).on('focusout change', '.clarama-field, #field_data_source', function (e) {
+            try {
+                var $t = $(e.target);
+                // Main preview container
+                var inMainPreview = $t.closest('#preview').length > 0;
+                // Dependency previews container or individual dependency blocks
+                var inDepsPreviewArea = $t.closest('#dependencies-preview').length > 0 || $t.closest('.clarama-post-embedded').length > 0;
+                if (inMainPreview || inDepsPreviewArea) {
+                    return; // Skip refresh if interaction is inside preview areas
+                }
+            } catch (err) { /* ignore and fall through to update */
+            }
+            update_preview();
+        });
+        // React to editor changes as well
+        try {
+            var queryEditor = ace.edit('field_data_query');
+            queryEditor.session.on('change', function (e) {
+                // Editor is outside preview containers; safe to refresh
+                update_preview();
+            });
 
-        var url = "{{ embedded_url(filename=file_url) }}"
-            + "?type=" + key
-            + "&name=" + $("#name").val()
-            + "&description=" + $("#description").val()
-            + "&placeholder=" + $("#placeholder").val()
-            + "&default=" + $("#default").val()
-            + "&maximum=" + $("#maximum").val()
-            + "&minimum=" + $("#minimum").val()
-            + "&readonly=" + $("#readonly").prop('checked')
-            + "&required=" + $("#required").prop('checked')
-            + "&step=" + $("#step").val()
-            + "&spacing=" + $("#spacing").val()
-            + "&data_text=" + code
-        ;
-        console.log(url);
-        $("#preview").attr("url", url);
-        $("#preview").attr("clarama_loaded", false)
-        $('#preview').load();
+            // When user clicks within a [[ ... ]] token, open the Global Field Editor modal
+            queryEditor.container.addEventListener('mouseup', function () {
+                setTimeout(function () {
+                    try {
+                        var pos = queryEditor.getCursorPosition();
+                        var line = queryEditor.session.getLine(pos.row);
+                        // find closest [[ ... ]] spanning the cursor column
+                        var start = line.lastIndexOf('[[', pos.column);
+                        var end = line.indexOf(']]', pos.column);
+                        if (start !== -1 && end !== -1 && end > start) {
+                            var inside = line.substring(start + 2, end).trim();
+                            if (inside.length > 0) {
+                                openGlobalFieldEditorForToken(inside, function (newToken) {
+                                    // replace only this occurrence within the line
+                                    var before = line.substring(0, start);
+                                    var after = line.substring(end + 2);
+                                    var replacement = '[[ ' + newToken.trim() + ' ]]';
+                                    var newLine = before + replacement + after;
+                                    queryEditor.session.replace({
+                                        start: {row: pos.row, column: 0},
+                                        end: {row: pos.row, column: line.length}
+                                    }, newLine);
+                                });
+                            }
+                        }
+                    } catch (ex) { /* ignore */
+                    }
+                }, 0);
+            });
+        } catch (e) {
+        }
+
+        function openGlobalFieldEditorForToken(initial, onOk) {
+            try {
+                // Ensure GFE script is available; if not, we still render instructions
+                var modalEl = document.getElementById('interactionModal');
+                var modal = new bootstrap.Modal(modalEl);
+                $('#interactionModalTitle').text('Edit Global Field Expression');
+                var $body = $('#interactionModalBody');
+                $body.empty();
+                $body.append('<div id="gfe-inline" class="my-2"></div>');
+                $body.append('<div class="d-flex justify-content-end gap-2 mt-2">\
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>\
+                    <button type="button" class="btn btn-primary" id="gfe-inline-apply">Apply</button>\
+                </div>');
+
+                // Initialize editor after modal shown to ensure layout is correct
+                var initGfe = function () {
+                    try {
+                        var fields = {}; // example fields not critical; server builds examples too
+                        var previewUrl = '/api/preview_global_field';
+                        var api = GlobalFieldEditor && GlobalFieldEditor.init($('#gfe-inline'), {
+                            fields: fields,
+                            previewUrl: previewUrl,
+                            initialExpression: '[[ ' + (initial || '').trim() + ' ]]'
+                        });
+                        $('#gfe-inline-apply').off('click').on('click', function () {
+                            try {
+                                var expr = api && api.getExpression ? api.getExpression() : '';
+                                // extract inside of [[ ... ]]
+                                var m = expr.match(/\[\[\s*(.*?)\s*\]\]/);
+                                var tokenInside = m ? m[1] : expr;
+                                if (typeof onOk === 'function') onOk(tokenInside);
+                                modal.hide();
+                            } catch (ex) {
+                                modal.hide();
+                            }
+                        });
+                    } catch (ex) { /* ignore */
+                    }
+                };
+                modalEl.addEventListener('shown.bs.modal', function handler() {
+                    modalEl.removeEventListener('shown.bs.modal', handler);
+                    initGfe();
+                });
+                modal.show();
+            } catch (ex) { /* ignore */
+            }
+        }
+
+        // Data mode toggle
+        $("#data-mode-manual").on('change', function () {
+            if (this.checked) {
+                $("#manual-data").show();
+                $("#remote-data").hide();
+                update_preview();
+            }
+        });
+        $("#data-mode-remote").on('change', function () {
+            if (this.checked) {
+                $("#manual-data").hide();
+                $("#remote-data").show();
+                update_preview();
+            }
+        });
+
+        // Manual options add/remove
+        $("#add-option-row").on('click', function () {
+            $("#manual-options-table tbody").append(`<tr>
+                <td><input type=\"text\" class=\"form-control option-id\" value=\"\"></td>
+                <td><input type=\"text\" class=\"form-control option-value\" value=\"\"></td>
+                <td><button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-option\"><i class=\"bi bi-trash\"></i></button></td>
+            </tr>`);
+        });
+        $(document).on('click', '.remove-option', function () {
+            $(this).closest('tr').remove();
+            update_preview();
+        });
+
+        // Dependencies add/remove
+        $("#add-dependency").on('click', function () {
+            var val = $("#dependency-input").val().trim();
+            if (!val) return;
+            var exists = false;
+            $("#dependencies-list .dep-text").each(function () {
+                if ($(this).text() === val) {
+                    exists = true;
+                }
+            });
+            if (!exists) {
+                $("#dependencies-list").append(`<li class=\"list-group-item d-flex justify-content-between align-items-center\">
+                    <span class=\"dep-text\">${val}</span>
+                    <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-dep\"><i class=\"bi bi-x\"></i></button>
+                </li>`);
+                $("#dependency-input").val('');
+                update_dependencies_json();
+            }
+        });
+        $(document).on('click', '.remove-dep', function () {
+            $(this).closest('li').remove();
+            update_dependencies_json();
+        });
+
+        // Support adding dependency via file browser limited to .field.yaml
+        $('#browseFileModal').on('hidden.bs.modal', function () {
+            var path = $('#dependency-file-input').val().trim();
+            if (!path) return;
+            addDependencyValue(path);
+        });
+
+        function addDependencyValue(val) {
+            var exists = false;
+            $("#dependencies-list .dep-text").each(function () {
+                if ($(this).text() === val) {
+                    exists = true;
+                }
+            });
+            if (!exists) {
+                $("#dependencies-list").append(`<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="dep-text">${val}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i class="bi bi-x"></i></button>
+                </li>`);
+                update_dependencies_json();
+            }
+        }
+
+        function update_dependencies_json() {
+            var arr = [];
+            $("#dependencies-list .dep-text").each(function () {
+                arr.push($(this).text());
+            });
+            $("#dependencies-json").val(JSON.stringify(arr));
+            update_preview();
+        }
+
+        // Remote data preview: fetch via same API used by select2 and render with bootstrap-table below the editor
+        $("#btn-preview-remote").on('click', function () {
+            // Build the data execute URL similar to datasource_url()
+            var src = ($("#field_data_source").val() || "").trim();
+            var q = (getEditorValue("field_data_query") || "").trim();
+            if (!src) {
+                flash("Please provide a Source to preview remote data.", "warning");
+                return;
+            }
+
+            // Ensure the top preview stays as-is (do not refresh it), just compute current config for context
+            var codeObj = build_data_json();
+            var original_url = undefined;
+            try {
+                original_url = $(".embedded").eq(0).attr("original_url");
+            } catch (e) {
+            }
+
+            // If src is a relative path (no leading slash and not a full URL), resolve it against the current URL,
+            // offset by the first two folders in the URL path (they do not refer to the path)
+            (function () {
+                try {
+                    var isFullUrl = /^https?:\/\//i.test(src);
+                    if (!isFullUrl) {
+                        // Compute base path from current location, ignoring first two segments
+                        var path = window.location.pathname || "/";
+                        var segments = path.split('/'); // ['', seg1, seg2, ...]
+                        // Keep from index 3 onward (drop '', seg1, seg2) and drop the last segment (current filename)
+                        var baseSegments = segments.slice(3);
+                        if (baseSegments.length > 0) {
+                            baseSegments = baseSegments.slice(0, -1);
+                        }
+
+                        function normalize(parts) {
+                            var stack = [];
+                            for (var i = 0; i < parts.length; i++) {
+                                var p = parts[i];
+                                if (!p || p === '.') continue;
+                                if (p === '..') {
+                                    if (stack.length) stack.pop();
+                                    continue;
+                                }
+                                stack.push(p);
+                            }
+                            return stack;
+                        }
+
+                        var srcStr = (src || '').trim();
+                        if (srcStr.startsWith('/')) {
+                            // Already absolute within app; remove the first empty element to avoid double slash below
+                            srcStr = srcStr.replace(/^\/+/, '');
+                            baseSegments = [];
+                        }
+                        var srcParts = srcStr.split('/');
+                        var combined = normalize(baseSegments.concat(srcParts));
+                        src = '/' + combined.join('/');
+                    }
+                } catch (e) { /* ignore */
+                }
+            })();
+
+            // Construct GET query string parameters
+            var url = "/web/data/execute/query/" + src;
+            var params = [];
+            if (q) params.push("query=" + encodeURIComponent(q));
+            params.push("clarama-field-format=True");
+            if (params.length > 0) url += "?" + params.join("&");
+
+            // Build POST body similar to select2 ajax: search, values, original_url
+            var postBody = {
+                search: null,
+                values: {},
+                original_url: original_url || ""
+            };
+            // Try to capture current field values if available
+            if (typeof get_field_values === 'function') {
+                try {
+                    postBody.values = get_field_values({}, true, undefined) || {};
+                } catch (e) {
+                }
+            }
+
+            // Show loading state
+            $("#remote-preview").show();
+            var $thead = $("#remote-preview-table thead");
+            var $tbody = $("#remote-preview-table tbody");
+            $thead.html("<tr><th>Loading...</th></tr>");
+            $tbody.empty();
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(postBody),
+                success: function (data) {
+                    if (data && data['data'] === 'ok' && data['results']) {
+                        // Update query info if provided
+                        if (data['results']['info'] && data['results']['info']['query']) {
+                            $('#clarama-query-result').text(data['results']['info']['query']);
+                        }
+                        // Render using bootstrap-table helper
+                        try {
+                            bTable('remote-preview-table', data['results']);
+                        } catch (e) {
+                            // Fallback manual render
+                            var cols = data['results']['cols'] || [];
+                            var rows = data['results']['rows'] || [];
+                            var ths = cols.map(c => '<th>' + c + '</th>').join('');
+                            $thead.html('<tr>' + ths + '</tr>');
+                            var trs = '';
+                            rows.forEach(function (r) {
+                                var tds = '';
+                                for (var i = 0; i < cols.length; i++) {
+                                    tds += '<td>' + (r[i] !== undefined ? r[i] : '') + '</td>';
+                                }
+                                trs += '<tr>' + tds + '</tr>';
+                            });
+                            $tbody.html(trs);
+                        }
+                    } else {
+                        var err = (data && data['error']) ? data['error'] : 'Unknown error fetching data';
+                        $('#clarama-query-result').text(err);
+                        $thead.html('');
+                        $tbody.html('<tr><td class="text-danger">' + err + '</td></tr>');
+                    }
+                },
+                error: function (xhr) {
+                    var msg = 'Request failed: ' + (xhr.responseText || xhr.statusText || xhr.status);
+                    $('#clarama-query-result').text(msg);
+                    $thead.html('');
+                    $tbody.html('<tr><td class="text-danger">' + msg + '</td></tr>');
+                }
+            });
+        });
+
+        // Initialize dependencies json from server-rendered list, ensure hidden input matches list
+        update_dependencies_json();
+
+        // Initial preview
+        setTimeout(update_preview, 150);
+    });
+
+    function build_data_json() {
+        // Returns a JS object to be encoded to YAML/JSON
+        var isManual = $("#data-mode-manual").is(':checked');
+        if (isManual) {
+            var options = [];
+            $("#manual-options-table tbody tr").each(function () {
+                var id = $(this).find('input.option-id').val();
+                var value = $(this).find('input.option-value').val();
+                if (id !== '' || value !== '') options.push({id: id, value: value});
+            });
+            return {options: options};
+        } else {
+            var src = $("#field_data_source").val();
+            var q = getEditorValue("field_data_query");
+            var data = {source: src};
+            if (q && q.trim() !== '') data['params'] = {query: q};
+            return data;
+        }
+    }
+
+    function update_preview() {
+        var codeObj = build_data_json();
+        var code = JSON.stringify(codeObj, null, 2); // JSON is valid YAML
+        $("#data_text").val(code);
+
+        // Helper to resolve a possibly-relative path against current location
+        function resolvePath(p) {
+            try {
+                if (!p) return '';
+                var isFullUrl = /^https?:\/\//i.test(p);
+                if (isFullUrl) return p; // leave external URLs as-is
+
+                var path = window.location.pathname || "/";
+                var segments = path.split('/'); // ['', seg1, seg2, ...]
+                // Keep from index 3 onward (drop '', seg1, seg2) and drop the last segment (current filename)
+                var baseSegments = segments.slice(3);
+                if (baseSegments.length > 0) {
+                    baseSegments = baseSegments.slice(0, -1);
+                }
+
+                function normalize(parts) {
+                    var stack = [];
+                    for (var i = 0; i < parts.length; i++) {
+                        var part = parts[i];
+                        if (!part || part === '.') continue;
+                        if (part === '..') {
+                            if (stack.length) stack.pop();
+                            continue;
+                        }
+                        stack.push(part);
+                    }
+                    return stack;
+                }
+
+                var srcStr = (p || '').trim();
+                if (srcStr.startsWith('/')) {
+                    // Already absolute within app; remove the first empty element to avoid double slash below
+                    srcStr = srcStr.replace(/^\/+/, '');
+                    baseSegments = [];
+                }
+                var srcParts = srcStr.split('/');
+                var combined = normalize(baseSegments.concat(srcParts));
+                return '/' + combined.join('/');
+            } catch (e) {
+                return p;
+            }
+        }
+
+        // Build dependency preview elements first
+        var deps = [];
+        try {
+            deps = JSON.parse($("#dependencies-json").val() || '[]') || [];
+        } catch (e) {
+            deps = [];
+        }
+
+        var $depsContainer = $("#dependencies-preview");
+        $depsContainer.empty();
+
+        var depDivs = [];
+        if (deps.length > 0) {
+            // Add a small title
+            $depsContainer.append('<div class="text-muted small mb-1">Dependencies</div>');
+
+            for (var i = 0; i < deps.length; i++) {
+                var depPath = resolvePath(deps[i]);
+                var depUrl = '/render/embed' + depPath;
+                var depId = 'dep_preview_' + i;
+                var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded bg-light p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div><i class="fs-3 bi bi-arrow-down" style="margin-left: 70px;"></i>';
+                $depsContainer.append(depHtml);
+                depDivs.push('#' + depId);
+            }
+        }
+
+        // Now prepare main preview URL, but defer loading until dependencies are loaded
+        var mainUrl = "{{ embedded_url(filename=file_url) }}"
+            + "?type=" + encodeURIComponent(key)
+            + "&name=" + encodeURIComponent($("#name").val())
+            + "&description=" + encodeURIComponent($("#description").val())
+            + "&placeholder=" + encodeURIComponent($("#placeholder").val())
+            + "&default=" + encodeURIComponent($("#default").val())
+            + "&maximum=" + encodeURIComponent($("#maximum").val())
+            + "&minimum=" + encodeURIComponent($("#minimum").val())
+            + "&readonly=" + encodeURIComponent($("#readonly").prop('checked'))
+            + "&required=" + encodeURIComponent($("#required").prop('checked'))
+            + "&step=" + encodeURIComponent($("#step").val())
+            + "&spacing=" + encodeURIComponent($("#spacing").val())
+            + "&data_text=" + encodeURIComponent(code);
+
+        function loadMainPreview() {
+            $("#preview").attr("url", mainUrl);
+            $("#preview").attr("clarama_loaded", false);
+            $('#preview').load();
+        }
+
+        if (depDivs.length === 0) {
+            // No dependencies, just load main preview
+            loadMainPreview();
+        } else {
+            // Load dependencies sequentially, then main preview
+            var idx = 0;
+
+            function loadNext() {
+                if (idx >= depDivs.length) {
+                    loadMainPreview();
+                    return;
+                }
+                var sel = depDivs[idx++];
+                try {
+                    $(sel).attr('clarama_loaded', false);
+                    $(sel).attr('autorun', true);
+                    $(sel).load_post(function () {
+                        loadNext();
+                    }, undefined, {});
+                } catch (e) {
+                    loadNext();
+                }
+            }
+
+            loadNext();
+        }
     }
 
     function save_field() {
-        var editor = ace.edit("data");
-        var code = editor.getValue();
+        var codeObj = build_data_json();
+        var code = JSON.stringify(codeObj, null, 2);
+
+        var deps_json = $("#dependencies-json").val();
+        var deps = [];
+        try {
+            deps = JSON.parse(deps_json || '[]');
+        } catch (e) {
+            deps = [];
+        }
 
         var field_data = {
             "type": key,
@@ -298,12 +857,11 @@
             "spacing": $("#spacing").val(),
             "readonly": $("#readonly").prop('checked'),
             "required": $("#required").prop('checked'),
+            "dependencies": deps,
             "data_text": code
-        }
+        };
 
-        var url = "/content/save/" + $("#save").attr("url")
-
-        console.log(url);
+        var url = "/content/save/" + $("#save").attr("url");
 
         $.ajax({
             type: 'POST',
@@ -313,22 +871,87 @@
             data: JSON.stringify(field_data),
             success: function (data) {
                 if (data['data'] == 'ok') {
-                    console.log('Submission was successful.');
-                    console.log(data);
-                    flash("Saved!");
+                    flash("Saved!", "success");
                 } else {
-                    console.log('Submission was not successful.');
-                    console.log(data);
                     flash("Couldn't save content: " + data['error'], "danger");
                 }
             },
             error: function (data) {
-                console.log('An error occurred.');
-                console.log(data);
                 flash("Couldn't save content, access denied", "danger");
             }
         });
     }
 </script>
+<script src="{{ static( filename='js/global_field_editor.js') }}" type="text/javascript"></script>
 
+<!-- Query Help Modal -->
+<div class="modal fade" id="queryHelpModal" tabindex="-1" aria-labelledby="queryHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="queryHelpModalLabel">Query Help</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">You can enter SQL (or a path/YAML depending on the Source type).</p>
+                <h6>SQL basics</h6>
+                <ul>
+                    <li>SELECT col1, col2 FROM table WHERE col1 = 'value'</li>
+                    <li>Use LIKE for wildcard search: col1 LIKE '%text%'</li>
+                    <li>Use IN for lists: col1 IN ('a','b','c')</li>
+                    <li>The first column of the result is used as the ID, the second as the display value.</li>
+                </ul>
+                <h6 class="mt-3">Global fields preprocessing</h6>
+                <p>Before SQL (or any other query type) is executed, Clarama preprocesses the text using the "Global
+                    Fields" function. This lets
+                    you insert variables and build common SQL fragments.
+                    These placeholders use double square brackets [[...]].
+                    They are used to reference both the name and current value of other fields that may be chosen by the
+                    user.
+                </p>
+                <p>
+                    Field names here are based off the <i>filename</i> of the field, not the "name" property.
+                    For example, if you have a field named "my_field.field.yaml", you can use [[my_field]] to reference
+                    the
+                    value of the field.</p>
+                <p>
+                    Spaces, symbols and other characters are replaced with _. Field names are <i>always</i> lower case.
+                </p>
+                <ul>
+                    <li>[[field_name]] — simple substitution of a scalar value.</li>
+                    <li>[[field_name:list]] — join a list with commas (a,b,c).</li>
+                    <li>[[field_name:sql]] — join a list as single-quoted SQL values ('a','b','c').</li>
+                    <li>[[field_name:in]] — expand to: field_name IN ('a','b',...).</li>
+                    <li>[[field_name:where]] — expand to: WHERE field_name IN ('a','b',...).</li>
+                    <li>[[field_name:search]] — expand to: field_name LIKE '%search%' (use mapping below to choose
+                        column).
+                    </li>
+                    <li>Mapping: [[from=>to:layout]] — use field_name <em>from</em> but target DB column
+                        <em>to</em>. This is if the field_name differs from the database name.
+                    </li>
+                    <li>Extensions: Some layouts accept an extension after a third colon, e.g. [[field_name:in:AND]] or
+                        [[field_name:search:AND]]. For LIKE, [[field_name:like]] generates multiple ORed LIKE parts if
+                        the field_name is a list.
+                    </li>
+                </ul>
+                <p class="text-muted small">Missing field_name remove the placeholder, ie.. the user did not select
+                    anything, or the required field was not added.</p>
+                <h6 class="mt-3">Examples</h6>
+                <pre class="small bg-light p-2 border">SELECT id, name FROM users WHERE [[status=>status:in:AND]] [[name=>name:search]]</pre>
+                <p class="small text-muted">If status=[active,disabled] and search name='ann', the above becomes e.g.
+                    "status IN ('active','disabled') AND name LIKE '%ann%'".</p>
+
+                <p class="small text-muted">If status is not available/found and search name='ann', the above becomes
+                    e.g.
+                    "name LIKE '%ann%'".</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include theme("explorer/files/browse_file_modal.html") %}
+{% include theme("explorer/files/file_modal_shared_logic.html") %}
 {% include theme("web/file_footer.html") %}

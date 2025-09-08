@@ -2,57 +2,47 @@
     class="row bg-white text-dark clarama-cell-item"
     steptype="{{ task_step['type'] }}"
 >
-    <div class="panel col-2 col-lg-1
-                 {% if task_last %}
-                    bg-primary
-                 {% else %}
-                    bg-secondary
-                 {% endif %}
-                 text-light draggable-heading justify-content-end position-relative"
+    <div class="panel col-2 col-lg-1 d-flex flex-column position-relative bg-{{ 'primary' if task_last else 'secondary' }} text-light draggable-heading"
          style="padding:0">
-        <hr class="faded"/>
-        <div class="container-fluid">
-            <div class="row">
+        <hr class="faded" style="margin: 0"/>
+        <div class="container-fluid pt-2">
+            <div class="row g-1 align-items-center">
                 <div class="col-auto">
-                    <button type="button" class="btn text-white step-label">{{ task_index }}</button>
+                    <button type="button" class="btn text-white step-label px-2 py-1">{{ task_index }}</button>
                 </div>
+                <div class="col text-end">
+                    <div class="btn-group">
+                        <button type="button" class="btn celleditrun p-1" data-bs-toggle="tooltip"
+                                data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
+                            <i class="fs-5 bi bi-play-fill"></i>
+                        </button>
+                        {% if task_step['type'] != "data" %}
+                            <button type="button" class="btn celleditdebug p-1" data-bs-toggle="tooltip"
+                                    data-bs-placement="bottom" title="Debug (Ctrl-\\)"
+                                    data-task-index="{{ task_index }}">
+                                <i class="fs-5 bi bi-bug-fill"></i>
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
                 <div class="col">
                     <input type="text" id="loop-iterable-{{ task_index }}"
                            loop-id="{{ task_index }}"
                            class="form-control loop-iterable loop-inactive"
-                           value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}"
-                           opacity="0.04">
+                           value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
                 </div>
             </div>
-            {% if task_step['type'] != "markdown" %}
-                <div class="row">
-                    <div class="col">&nbsp;</div>
-                    <div class="col-auto hoverover auto-hover"
-                         id="task_toolbar_{{ stream }}_{{ task_index }}_play"
-                         opacity="0.04">
-                        <button type="button" class="btn celleditrun" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Run this step"><i
-                                class="mb-3 fs-4 bi bi-play-fill " style="width: 75px;"></i></button>
-                        <button type="button" class="btn celleditfwd" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Run from this step onwards"><i
-                                class="mb-3 fs-4 bi bi-fast-forward-fill"></i>
-                        </button>
-                    </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <div class="cell-timing container-fluid px-0"></div>
                 </div>
-            {% endif %}
+            </div>
         </div>
-
         <div class="cell-spin" style="opacity: 0">
-            <div
-                    class="d-flex justify-content-center spinner-border text-info position-absolute start-50"
-                    role="status"
-                    style="width: 4rem; height: 4rem;"
-            >
-            </div>
-        </div>
-        <div class="d-flex justify-content-center position-absolute bottom-0">
-            <div class="container-fluid cell-timing">
-            </div>
+            <div class="d-flex justify-content-center spinner-border text-info position-absolute start-50" role="status"
+                 style="width: 4rem; height: 4rem;"></div>
         </div>
     </div>
     <div class="col-10 col-lg-11" style="padding:0px;">
@@ -76,7 +66,8 @@
                 <div class="col loop-left loop-hidden loop-{{ task_index }}">
                     <div class="loop loop-left loop-height">&nbsp;</div>
                 </div>
-                <div class="col">
+                <!-- Left Half -->
+                <div class="col-6 left-content" id="left_content_{{ task_index }}">
                     <!-- the Editing -->
                     <div id="step_{{ stream }}_{{ task_index }}"
                          class="clarama-post-embedded cell-editor"
@@ -85,10 +76,13 @@
                     </div>
                     <!-- the Results -->
                     <div class="container-fluid cell-response">
-                        <div id="results_{{ task_index }}" class="cell-results"
-                             {% if task_step['type'] == "data" %}style="min-height: 50px;" {% endif %}>
+                        <div id="results_{{ task_index }}" class="cell-results">
                         </div>
                     </div>
+                </div>
+                <!-- Right Half -->
+                <div class="col-6 right-content d-none" id="right_content_{{ task_index }}">
+                    {% include theme("explorer/files/_cell_debugger.html") %}
                 </div>
             </div>
             <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>
@@ -136,8 +130,8 @@
         $("input").off("change");
         $("input").on("change", function () {
             toggle_loop($(this));
-
-
         });
+
+        initializeCellCopyPaste();
     });
 </script>

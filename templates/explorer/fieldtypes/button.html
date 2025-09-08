@@ -1,7 +1,7 @@
 {% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
-    <input id="{{ field_id }}" {{ required }} name="{{ field_name }}" type="button"
+    <input data-id="{{ field_id }}" {{ required }} name="{{ field_name }}" type="button"
            class="btn btn-primary form-control clarama-field clarama-button-field"
            autocomplete="on"
            fieldtype="html"

@@ -1,7 +1,7 @@
 {% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
-    <input id="{{ field_id }}" name="{{ field_name }}" type="file"
+    <input data-id="{{ field_id }}" name="{{ field_name }}" type="file"
            class="form-control clarama-field clarama-delay-field"
            fieldtype="file"
             {{ field_config | required }}
