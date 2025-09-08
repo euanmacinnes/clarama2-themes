@@ -516,11 +516,10 @@
         });
 
         // Support adding dependency via file browser limited to .field.yaml
-        $(document).on('change', '#dependency-file-input', function () {
-            var path = $(this).val().trim();
+        $('#browseFileModal').on('hidden.bs.modal', function () {
+            var path = $('#dependency-file-input').val().trim();
             if (!path) return;
             addDependencyValue(path);
-            $(this).val('');
         });
 
         function addDependencyValue(val) {
