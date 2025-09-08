@@ -583,11 +583,14 @@
             // Update series objects uv dropdowns
             $(`#seriesObj${loopIndex} .obj-uv`).each(function() {
                 const $dropdown = $(this);
-                const currentValue = $dropdown.val();
+                let currentValue = $dropdown.val();
+                if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
                 $dropdown.empty();
-                
-                currentTabs.forEach((tab, index) => {
-                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+
+                $dropdown.append(`<option value="" ${currentValue === '' ? 'selected' : ''}>— none —</option>`);
+
+                currentTabs.forEach((tab) => {
+                    const isSelected = currentValue !== '' && String(currentValue) === String(tab.id);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
@@ -595,11 +598,14 @@
             // Update series objects colour dropdowns
             $(`#seriesObj${loopIndex} .obj-colour`).each(function() {
                 const $dropdown = $(this);
-                const currentValue = $dropdown.val();
+                let currentValue = $dropdown.val();
+                if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
                 $dropdown.empty();
-                
-                currentTabs.forEach((tab, index) => {
-                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+
+                $dropdown.append(`<option value="" ${currentValue === '' ? 'selected' : ''}>— none —</option>`);
+
+                currentTabs.forEach((tab) => {
+                    const isSelected = currentValue !== '' && String(currentValue) === String(tab.id);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
