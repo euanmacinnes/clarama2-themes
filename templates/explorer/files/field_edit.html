@@ -262,20 +262,22 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small mb-1">Map to (to)</label>
+                                <label class="form-label small mb-1">Map to (if database is different)</label>
                                 <input type="text" class="form-control" id="gfe_to" placeholder="to (db column)">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small mb-1">Value Layout - how to write the field's
+                                <label class="form-label small mb-1">Value Comparison - how to write the field's
                                     value</label>
                                 <select class="form-select" id="gfe_layout">
                                     <option value="">value as-is, unformatted</option>
-                                    <option value=":list">list</option>
-                                    <option value=":sql">sql</option>
-                                    <option value=":in">in</option>
-                                    <option value=":where">where</option>
-                                    <option value=":search">search</option>
-                                    <option value=":like">like</option>
+                                    <option value=":list">Comma-separated list</option>
+                                    <option value=":sql">Comma-separated quoted list</option>
+                                    <option value=":in">..in selected values</option>
+                                    <option value=":where">Where field in selected values</option>
+                                    <option value=":search">search (user-entered search value is somewhere in the
+                                        string)
+                                    </option>
+                                    <option value=":like">like (field's value is somewhere in the string)</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
