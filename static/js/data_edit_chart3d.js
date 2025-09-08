@@ -1041,7 +1041,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                         locations = loc.lines;
                     }
                     modeGL = gl.LINES;
-                } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh') {
+                } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh' || mode === 'trianglestrip' || mode === 'triangle_strip') {
                     if (!verts || verts.length < 9) {
                         console.warn('Primitive skipped (no triangle vertices):', name);
                         continue;
@@ -1067,7 +1067,8 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                         program = progTris;
                         locations = loc.tris;
                     }
-                    modeGL = gl.TRIANGLES;
+                    // Select WebGL draw mode: TRIANGLES for lists, TRIANGLE_STRIP if requested
+                    modeGL = (mode === 'trianglestrip' || mode === 'triangle_strip') ? gl.TRIANGLE_STRIP : gl.TRIANGLES;
                 } else {
                     console.warn('Unknown primitive mode, skipping:', mode);
                     continue;
