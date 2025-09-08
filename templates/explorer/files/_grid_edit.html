@@ -874,13 +874,14 @@
             const li = grid_element_target.querySelector(`li[loop-index="${uid}"]`);
             if (!li) return;
             li.setAttribute('elem-id', checkedType);
+            li.getAttribute('elem-id', checkedType);
     
             const innerTextDiv = li.querySelector('div.cElem');
             if (innerTextDiv) {
                 if (isContextMenu) {
-                    innerTextDiv.textContent = checkedType + " - " + menuItem;
+                    innerTextDiv.textContent = element_summary_js(checkedType) + " - " + menuItem;
                 } else {
-                    innerTextDiv.textContent = checkedType;
+                    innerTextDiv.textContent = element_summary_js(checkedType);
                 }
             }
 
