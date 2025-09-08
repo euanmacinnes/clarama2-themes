@@ -230,7 +230,6 @@
                     {% endif %}
                 </div>
 
-            
                 <label class="form-label">Query
                     <button type="button" class="btn btn-link btn-sm p-0 align-baseline ms-1" title="Query help"
                             data-bs-toggle="modal" data-bs-target="#queryHelpModal">
@@ -241,8 +240,60 @@
                      style="min-height: 0; height: 160px;"
                      placeholder="Enter query (SQL/Path/YAML)">{{ query }}</div>
                 <div class="form-text mt-2">The first column is used as the ID, the second is used as the value. It does
-                    not matter what the columns are called
+                    not matter what the columns are called<br/><br/>
                 </div>
+
+
+                <!-- Quick Insert Global Field Expression -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="m-0">Global Fields</h6> take dependent field values, if found, and insert into the
+                        Query above prior to execution
+                    </div>
+                    <div class="card card-body p-2 mb-2 border-0">
+                        <div class="row g-2 align-items-start">
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">Dependent field (from)</label>
+                                <select class="form-select" id="gfe_dep_field"
+                                        title="Select a dependent field"></select>
+                                <div class="form-text small">Choose from the Dependencies list above. Add dependencies
+                                    in
+                                    the Dependency Testing tab.
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">Map to (to)</label>
+                                <input type="text" class="form-control" id="gfe_to" placeholder="to (db column)">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">Value Layout - how to write the field's
+                                    value</label>
+                                <select class="form-select" id="gfe_layout">
+                                    <option value="">value as-is, unformatted</option>
+                                    <option value=":list">list</option>
+                                    <option value=":sql">sql</option>
+                                    <option value=":in">in</option>
+                                    <option value=":where">where</option>
+                                    <option value=":search">search</option>
+                                    <option value=":like">like</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">Extension - if other fields will follow, an AND or
+                                    OR</label>
+                                <input type="text" class="form-control" id="gfe_ext" placeholder="optional">
+                            </div>
+                            <div class="col-md-1 d-grid">
+                                <label class="form-label small mb-1">&nbsp;</label>
+                                <button type="button" class="btn btn-outline-primary" id="gfe_insert"><i
+                                        class="bi bi-plus-lg me-1"></i>Insert
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
                 <script type="text/javascript">$(function () {
                     $('#field_data_query').editor();
                 });</script>
@@ -293,8 +344,8 @@
                     </div>
                 </div>
                 <div class="container-fluid">
-                    <div class="row">
-                        <div class="col">
+                    <div class="row align-items-start">
+                        <div class="col align-items-start">
                             <label class="form-label">Minimum</label>
                             <input id="minimum" name="minimum" type="number"
                                    class="form-control clarama-field clarama-delay-field" fieldtype="html"
@@ -381,6 +432,35 @@
             queryEditor.session.on('change', function (e) {
                 // Editor is outside preview containers; safe to refresh
                 update_preview();
+            });
+            // Quick insert handler
+            $(document).on('click', '#gfe_insert', function () {
+                try {
+                    var from = ($('#gfe_dep_field').find('option:selected').val() || $('#gfe_dep_field').val() || '').trim();
+                    var layout = $('#gfe_layout').val() || '';
+                    var to = ($('#gfe_to').val() || '').trim();
+                    var ext = ($('#gfe_ext').val() || '').trim();
+                    if (!from) {
+                        flash('Please enter a dependent field (from).', 'warning');
+                        return;
+                    }
+                    // Build token parts
+                    var token = '';
+                    if (to) {
+                        token = from.toLowerCase() + '=>' + to + (layout || '');
+                    } else {
+                        token = from.toLowerCase() + (layout || '');
+                    }
+                    if (ext) {
+                        token += ':' + ext;
+                    }
+                    var text = '[[' + token + ']]';
+                    // Insert at current cursor
+                    var pos = queryEditor.getCursorPosition();
+                    queryEditor.session.insert(pos, text);
+                    queryEditor.focus();
+                } catch (e) { /* ignore */
+                }
             });
 
             // When user clicks within a [[ ... ]] token, open the Global Field Editor modal
@@ -687,6 +767,52 @@
 
         // Initialize dependencies json from server-rendered list, ensure hidden input matches list
         update_dependencies_json();
+
+        // Populate dependent field listbox from dependencies
+        function refreshDependentFieldList() {
+            try {
+                var deps = [];
+                try {
+                    deps = JSON.parse($("#dependencies-json").val() || '[]') || [];
+                } catch (e) {
+                    deps = [];
+                }
+                var $sel = $("#gfe_dep_field");
+                if ($sel.length === 0) return;
+                var current = $sel.val();
+                $sel.empty();
+                if (deps.length === 0) {
+                    $sel.append('<option value="" disabled selected>No dependencies</option>');
+                    return;
+                }
+                // convert file paths like "/content/path/field_name.field.yaml" to id "field_name"
+                deps.forEach(function (d) {
+                    var name = (d || '').split('/').pop(); // last segment
+                    // remove extension variants
+                    name = name.replace(/\.field\.ya?ml$/i, '');
+                    name = name.replace(/\.[^\.]+$/i, '');
+                    $sel.append('<option value="' + name + '">' + name + '</option>');
+                });
+                if (current) {
+                    $sel.val(current);
+                }
+            } catch (e) { /* ignore */
+            }
+        }
+
+        // Refresh when dependencies change
+        $(document).on('click', '#add-dependency, .remove-dep', function () {
+            setTimeout(function () {
+                refreshDependentFieldList();
+            }, 0);
+        });
+        $(document).on('change', '#dependency-file-input', function () {
+            setTimeout(function () {
+                refreshDependentFieldList();
+            }, 0);
+        });
+        // Initial fill
+        setTimeout(refreshDependentFieldList, 50);
 
         // Initial preview
         setTimeout(update_preview, 150);
