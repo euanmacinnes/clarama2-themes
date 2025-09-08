@@ -270,14 +270,19 @@
                                     value</label>
                                 <select class="form-select" id="gfe_layout">
                                     <option value="">value as-is, unformatted</option>
-                                    <option value=":list">Comma-separated list</option>
-                                    <option value=":sql">Comma-separated quoted list</option>
-                                    <option value=":in">..in selected values</option>
-                                    <option value=":where">Where field in selected values</option>
-                                    <option value=":search">search (user-entered search value is somewhere in the
-                                        string)
-                                    </option>
+                                    <option value=":list">Comma-separated list (0,1,2)</option>
+                                    <option value=":sql">Comma-separated quoted list ('a','b','c')</option>
+                                    <option value=":in">field in (selected values)</option>
+                                    <option value=":where">Where field in (selected values)</option>
+                                    <option value=":search">Where field like ('%search%')</option>
                                     <option value=":like">like (field's value is somewhere in the string)</option>
+                                    <option value=":=">equals (dbcol = 'value')</option>
+                                    <option value=":!=">not equals (dbcol != 'value')</option>
+                                    <option value=":<>">not equals (dbcol <> 'value')</option>
+                                    <option value=":>">greater than (dbcol > 'value')</option>
+                                    <option value=":<">less than (dbcol < 'value')</option>
+                                    <option value=":>=">greater or equal (dbcol >= 'value')</option>
+                                    <option value=":<=">less or equal (dbcol <= 'value')</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -1055,6 +1060,10 @@
                     <li>[[field_name:where]] — expand to: WHERE field_name IN ('a','b',...).</li>
                     <li>[[field_name:search]] — expand to: field_name LIKE '%search%' (use mapping below to choose
                         column).
+                    </li>
+                    <li>Comparators: [[field_name:==]], [[field_name:=]], [[field_name:!=]] (or <>), [[field_name:>]],
+                        [[field_name:<]], [[field_name:>=]], [[field_name:<=]] — expand to standard SQL comparisons
+                        using the field's value.
                     </li>
                     <li>Mapping: [[from=>to:layout]] — use field_name <em>from</em> but target DB column
                         <em>to</em>. This is if the field_name differs from the database name.
