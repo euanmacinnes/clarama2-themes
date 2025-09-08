@@ -383,34 +383,34 @@
             });
 
             // When user clicks within a [[ ... ]] token, open the Global Field Editor modal
-            queryEditor.container.addEventListener('mouseup', function () {
-                setTimeout(function () {
-                    try {
-                        var pos = queryEditor.getCursorPosition();
-                        var line = queryEditor.session.getLine(pos.row);
-                        // find closest [[ ... ]] spanning the cursor column
-                        var start = line.lastIndexOf('[[', pos.column);
-                        var end = line.indexOf(']]', pos.column);
-                        if (start !== -1 && end !== -1 && end > start) {
-                            var inside = line.substring(start + 2, end).trim();
-                            if (inside.length > 0) {
-                                openGlobalFieldEditorForToken(inside, function (newToken) {
-                                    // replace only this occurrence within the line
-                                    var before = line.substring(0, start);
-                                    var after = line.substring(end + 2);
-                                    var replacement = '[[ ' + newToken.trim() + ' ]]';
-                                    var newLine = before + replacement + after;
-                                    queryEditor.session.replace({
-                                        start: {row: pos.row, column: 0},
-                                        end: {row: pos.row, column: line.length}
-                                    }, newLine);
-                                });
-                            }
-                        }
-                    } catch (ex) { /* ignore */
-                    }
-                }, 0);
-            });
+            {#queryEditor.container.addEventListener('mouseup', function () {#}
+            {#     setTimeout(function () {#}
+            {#         try {#}
+            {#             var pos = queryEditor.getCursorPosition();#}
+            {#             var line = queryEditor.session.getLine(pos.row);#}
+            {#             // find closest [[ ... ]] spanning the cursor column#}
+            {#             var start = line.lastIndexOf('[[', pos.column);#}
+            {#             var end = line.indexOf(']]', pos.column);#}
+            {#             if (start !== -1 && end !== -1 && end > start) {#}
+            {#                 var inside = line.substring(start + 2, end).trim();#}
+            {#                 if (inside.length > 0) {#}
+            {#                     openGlobalFieldEditorForToken(inside, function (newToken) {#}
+            {#                         // replace only this occurrence within the line#}
+            {#                         var before = line.substring(0, start);#}
+            {#                         var after = line.substring(end + 2);#}
+            {#                         var replacement = '[[ ' + newToken.trim() + ' ]]';#}
+            {#                         var newLine = before + replacement + after;#}
+            {#                         queryEditor.session.replace({#}
+            {#                             start: {row: pos.row, column: 0},#}
+            {#                             end: {row: pos.row, column: line.length}#}
+            {#                         }, newLine);#}
+            {#                     });#}
+            {#                 }#}
+            {#             }#}
+            {#         } catch (ex) { /* ignore */#}
+            {#         }#}
+            {#     }, 0);#}
+            {# });#}
         } catch (e) {
         }
 
