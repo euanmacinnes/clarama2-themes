@@ -777,7 +777,7 @@
 
             for (var i = 0; i < deps.length; i++) {
                 var depPath = resolvePath(deps[i]);
-                var depUrl = '/render/embed/' + depPath;
+                var depUrl = '/render/embed' + depPath;
                 var depId = 'dep_preview_' + i;
                 var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded bg-light p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div><i class="fs-3 bi bi-arrow-down" style="margin-left: 70px;"></i>';
                 $depsContainer.append(depHtml);
