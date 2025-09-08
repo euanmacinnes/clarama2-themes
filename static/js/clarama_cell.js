@@ -220,11 +220,13 @@ function get_data_cell(cell) {
     var series_objs = cell.find('.chart3d-series-objects');
     series_objs.each(function () {
         console.log(this);
+        const uvVal = $(this).find('.obj-uv').val();
+        const colVal = $(this).find('.obj-colour').val();
         var srs = {
             'obj-vertices': $(this).find('.obj-vertices').val(),                                    // Input Vertices
             'obj-edges': $(this).find('.obj-edges').val(),                                          // Input edges
-            'obj-uv': $(this).find('.obj-uv').val(),                                                // Input UV mapping
-            'obj-colour': $(this).find('.obj-colour').val(),                                        // colour
+            'obj-uv': (uvVal && uvVal !== 'none') ? uvVal : '',
+            'obj-colour': (colVal && colVal !== 'none') ? colVal : '',                                        // colour
             'obj-primitive': $(this).find('.obj-primitive').find('option:selected').attr('id'),     // primitive
         };
         console.log(srs);
@@ -286,8 +288,13 @@ function get_data_cell(cell) {
             if (series_object["obj-edges"] == currTabId) {
                 series_object["obj-edges"] = tabCounter;
             }
-            if (series_object["obj-uv"] == currTabId) {
+            if (series_object["obj-uv"] !== '' && series_object["obj-uv"] !== 'none' &&
+                series_object["obj-uv"] == currTabId) {
                 series_object["obj-uv"] = tabCounter;
+            }
+            if (series_object["obj-colour"] !== '' && series_object["obj-colour"] !== 'none' &&
+                series_object["obj-colour"] == currTabId) {
+                series_object["obj-colour"] = tabCounter;
             }
         });
 

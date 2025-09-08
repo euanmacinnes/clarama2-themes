@@ -36,8 +36,9 @@
         </div>
         <!-- uv (optional) -->
         <div class="grid5-col-1">
+            {% set uv_val = sobj.get('obj-uv') if sobj is defined else '' %}
             <select id="obj-uv{{ loop_index }}_{{ series_index }}" class="form-control obj-uv">
-                <option value="none" {% if sobj['obj-uv'] and tab_id|string == sobj['obj-uv']|string %}selected{% endif %}>none</option>
+                <option value="" {% if not sobj['obj-uv'] or sobj['obj-uv'] in ['', 'none'] %}selected{% endif %}>— none —</option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
@@ -51,7 +52,9 @@
         </div>
         <!-- colour -->
         <div class="grid5-col-1">
+            {% set col_val = sobj.get('obj-colour') if sobj is defined else '' %}
             <select id="obj-colour{{ loop_index }}_{{ series_index }}" class="form-control obj-colour">
+                <option value="" {% if not sobj['obj-colour'] or sobj['obj-colour'] in ['', 'none'] %}selected{% endif %}>— none —</option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}

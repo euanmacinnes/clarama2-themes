@@ -518,6 +518,29 @@ document.addEventListener("DOMContentLoaded", () => {
         checkDocking();
     }
 
+
+    function openGina() {
+        mainContent?.classList.add("hidden");
+        ginaContainer.classList.add("active", "mode-floating");
+        ginaButtonGroup?.classList.add("gina-active");
+        setNavbarOffsetVar();
+        requestAnimationFrame(checkDocking);
+        const firstInput = ginaContainer.querySelector(".gina-input");
+        setTimeout(() => {
+            if (firstInput) {
+                firstInput.focus();
+                autoSize(firstInput);
+            }
+        }, 200);
+    }
+
+    function closeGina() {
+        ginaContainer.classList.remove("active", "mode-floating", "mode-docked");
+        ginaButtonGroup?.classList.remove("gina-active");
+        mainContent?.classList.remove("collapsed");
+        setTimeout(() => mainContent?.classList.remove("hidden"), 0);
+    }
+
     // --- Visibility toggle ----------------------------------------------------
     if (ginaButton) {
         ginaButton.addEventListener("click", () => {
@@ -529,23 +552,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             const open = ginaContainer.classList.contains("active");
             if (!open) {
-                mainContent?.classList.add("hidden");
-                ginaContainer.classList.add("active", "mode-floating");
-                ginaButtonGroup?.classList.add("gina-active");
-                setNavbarOffsetVar();
-                requestAnimationFrame(checkDocking);
-                const firstInput = ginaContainer.querySelector(".gina-input");
-                setTimeout(() => {
-                    if (firstInput) {
-                        firstInput.focus();
-                        autoSize(firstInput);
-                    }
-                }, 200);
+                openGina();
             } else {
-                ginaContainer.classList.remove("active", "mode-floating", "mode-docked");
-                ginaButtonGroup?.classList.remove("gina-active");
-                mainContent?.classList.remove("collapsed");
-                setTimeout(() => mainContent?.classList.remove("hidden"), 0);
+                closeGina();
             }
         });
     }
@@ -829,6 +838,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const block = e.target.closest(".gina-block");
             const btn = block?.querySelector(".gina-send-btn");
             if (btn && !btn.disabled) btn.click();
+        }
+        // Allow escape key to toggle Gina close
+        if (e.key === "Escape" || e.key === "Esc" || e.code === "Escape") {
+            if (ginaContainer.classList.contains("active")) {
+                e.preventDefault();
+                closeGina();
+            }
         }
     });
 
