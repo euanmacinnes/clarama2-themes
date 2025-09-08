@@ -655,7 +655,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // --- interaction --------------------------------------------------------
-    const initDist = 14.0, initRotX = 0.3, initRotY = -0.4;
+    const initDist = 30.0, initRotX = 0, initRotY = 0; // the initial rotation upon loading
     let dist = initDist, rotX = initRotX, rotY = initRotY;
     let dragging = false, lastX = 0, lastY = 0;
 
