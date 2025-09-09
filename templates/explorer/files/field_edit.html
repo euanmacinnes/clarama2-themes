@@ -126,14 +126,24 @@
             {% set mode_manual = has_options %}
             <div class="mb-3">
                 <label class="form-label me-3">Data Mode</label>
+                {% set is_list = (get(field_config,'type','') == 'list') %}
+                {% set has_columns = data_cfg and ('columns' in data_cfg) %}
+                {% set mode_custom = is_list and has_columns and (not has_options) and (not data_cfg.get('source')) %}
                 <div class="btn-group" role="group" aria-label="Data Mode">
                     <input type="radio" class="btn-check" name="data-mode" id="data-mode-manual" autocomplete="off"
-                           {% if mode_manual %}checked{% endif %}>
+                           {% if mode_manual and not mode_custom %}checked{% endif %}>
                     <label class="btn btn-outline-secondary" for="data-mode-manual">Manually Entered</label>
 
                     <input type="radio" class="btn-check" name="data-mode" id="data-mode-remote" autocomplete="off"
-                           {% if not mode_manual %}checked{% endif %}>
+                           {% if (not mode_manual) and (not mode_custom) %}checked{% endif %}>
                     <label class="btn btn-outline-secondary" for="data-mode-remote">Remote</label>
+
+                    <span id="data-mode-custom-wrapper"
+                          style="display: {% if is_list %}inline-block{% else %}none{% endif %};">
+                        <input type="radio" class="btn-check" name="data-mode" id="data-mode-custom" autocomplete="off"
+                               {% if mode_custom %}checked{% endif %}>
+                        <label class="btn btn-outline-secondary" for="data-mode-custom">Custom</label>
+                    </span>
                 </div>
             </div>
 
@@ -322,6 +332,108 @@
                 </div>
             </div>
 
+            <!-- Custom Data (List Columns) -->
+            {% set raw_cols = (data_cfg.get('columns') if data_cfg and ('columns' in data_cfg) else []) %}
+            {% set columns_list = [] %}
+            {% if raw_cols is mapping %}
+                {% for ck, cv in raw_cols.items() %}
+                    {% if cv is mapping %}
+                        {% set _type = cv.get('type','string') %}
+                        {% set _name = cv.get('name', ck) %}
+                        {% set _opts = cv.get('options') or (cv.get('data',{}).get('options') if cv.get('data') else None) %}
+                        {% do columns_list.append({'key': ck, 'name': _name, 'type': _type, 'options': _opts}) %}
+                    {% else %}
+                        {% do columns_list.append({'key': ck, 'name': ck, 'type': cv or 'string'}) %}
+                    {% endif %}
+                {% endfor %}
+            {% elif raw_cols is sequence and raw_cols is not string %}
+                {% for item in raw_cols %}
+                    {% if item is mapping %}
+                        {% set _key = item.get('key') or item.get('name') or 'col' ~ loop.index %}
+                        {% set _name = item.get('name', _key) %}
+                        {% set _type = item.get('type','string') %}
+                        {% set _opts = item.get('options') or (item.get('data',{}).get('options') if item.get('data') else None) %}
+                        {% do columns_list.append({'key': _key, 'name': _name, 'type': _type, 'options': _opts}) %}
+                    {% else %}
+                        {% do columns_list.append({'key': item|string, 'name': item|string, 'type': 'string'}) %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            <div id="custom-data" class="mb-3" style="display: {% if mode_custom %}block{% else %}none{% endif %};">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="form-text mt-2">Define the columns for your list. Each column must have a unique key.
+                        For select-type columns, you can provide options (comma-separated).
+                    </div>
+                    <label class="form-label m-0">List Columns</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-column-row"><i
+                            class="bi bi-plus-lg me-1"></i>Add Column
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle" id="custom-columns-table">
+                        <thead>
+                        <tr>
+                            <th style="width: 18%">Key</th>
+                            <th style="width: 22%">Name</th>
+                            <th style="width: 18%">Type</th>
+                            <th>Options (comma-separated)</th>
+                            <th style="width: 48px"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for col in columns_list %}
+                            <tr>
+                                <td><input type="text" class="form-control col-key" value="{{ col.get('key','') }}">
+                                </td>
+                                <td><input type="text" class="form-control col-name" value="{{ col.get('name','') }}">
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm col-type">
+                                        {% set types = ['string','number','checkbox','select','select_multiple','date','time','datetime'] %}
+                                        {% for t in types %}
+                                            <option value="{{ t }}"
+                                                    {% if (col.get('type','string')|lower) == t %}selected{% endif %}>{{ t }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input type="text" class="form-control col-options" value="
+                                        {% if col.get('options') %}{{ (col.get('options')|join(', ')) }}{% endif %}">
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-column"><i
+                                            class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% if columns_list|length == 0 %}
+                            <tr>
+                                <td><input type="text" class="form-control col-key" value=""></td>
+                                <td><input type="text" class="form-control col-name" value=""></td>
+                                <td>
+                                    <select class="form-select form-select-sm col-type">
+                                        <option value="string" selected>string</option>
+                                        <option value="number">number</option>
+                                        <option value="checkbox">checkbox</option>
+                                        <option value="select">select</option>
+                                        <option value="select_multiple">select_multiple</option>
+                                        <option value="date">date</option>
+                                        <option value="time">time</option>
+                                        <option value="datetime">datetime</option>
+                                    </select>
+                                </td>
+                                <td><input type="text" class="form-control col-options" value=""></td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-column"><i
+                                            class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <input type="hidden" id="data_text" value=""> <!-- holds JSON/YAML generated for backend -->
         </div>
 
@@ -414,6 +526,17 @@
             $(".field").removeClass("clicked btn-primary").addClass("btn-light");
             key = $(this).attr("key");
             $(this).addClass("clicked btn-primary").removeClass("btn-light");
+            // Toggle custom mode availability for list type
+            if (key === 'list') {
+                $("#data-mode-custom-wrapper").show();
+            } else {
+                $("#data-mode-custom-wrapper").hide();
+                $("#custom-data").hide();
+                // If custom was selected, switch to manual by default
+                if ($("#data-mode-custom").is(':checked')) {
+                    $("#data-mode-manual").prop('checked', true).trigger('change');
+                }
+            }
             schedule_update_preview();
         });
 
@@ -562,6 +685,15 @@
             if (this.checked) {
                 $("#manual-data").hide();
                 $("#remote-data").show();
+                $("#custom-data").hide();
+                schedule_update_preview();
+            }
+        });
+        $("#data-mode-custom").on('change', function () {
+            if (this.checked) {
+                $("#manual-data").hide();
+                $("#remote-data").hide();
+                $("#custom-data").show();
                 schedule_update_preview();
             }
         });
@@ -575,6 +707,32 @@
             </tr>`);
         });
         $(document).on('click', '.remove-option', function () {
+            $(this).closest('tr').remove();
+            schedule_update_preview();
+        });
+
+        // Custom columns add/remove
+        $("#add-column-row").on('click', function () {
+            $("#custom-columns-table tbody").append(`<tr>
+                <td><input type=\"text\" class=\"form-control col-key\" value=\"\"></td>
+                <td><input type=\"text\" class=\"form-control col-name\" value=\"\"></td>
+                <td>
+                    <select class=\"form-select form-select-sm col-type\">
+                        <option value=\"string\" selected>string</option>
+                        <option value=\"number\">number</option>
+                        <option value=\"checkbox\">checkbox</option>
+                        <option value=\"select\">select</option>
+                        <option value=\"select_multiple\">select_multiple</option>
+                        <option value=\"date\">date</option>
+                        <option value=\"time\">time</option>
+                        <option value=\"datetime\">datetime</option>
+                    </select>
+                </td>
+                <td><input type=\"text\" class=\"form-control col-options\" value=\"\"></td>
+                <td><button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-column\"><i class=\"bi bi-trash\"></i></button></td>
+            </tr>`);
+        });
+        $(document).on('click', '.remove-column', function () {
             $(this).closest('tr').remove();
             schedule_update_preview();
         });
@@ -827,6 +985,8 @@
     function build_data_json() {
         // Returns a JS object to be encoded to YAML/JSON
         var isManual = $("#data-mode-manual").is(':checked');
+        var isRemote = $("#data-mode-remote").is(':checked');
+        var data = {};
         if (isManual) {
             var options = [];
             $("#manual-options-table tbody tr").each(function () {
@@ -834,19 +994,45 @@
                 var value = $(this).find('input.option-value').val();
                 if (id !== '' || value !== '') options.push({id: id, value: value});
             });
-            return {options: options};
-        } else {
+            if (options.length > 0) data['options'] = options;
+        }
+        if (isRemote) {
             var src = $("#field_data_source").val();
             var q = getEditorValue("field_data_query");
-            var data = {source: src};
+            if (src && src.trim() !== '') data['source'] = src;
             if (q && q.trim() !== '') data['params'] = {query: q};
-            return data;
         }
+        // Always include columns if any are defined and type is list (even if not in Custom mode),
+        // so columns can coexist with remote/manual data for list fields.
+        if (key === 'list') {
+            var cols = [];
+            $("#custom-columns-table tbody tr").each(function () {
+                var k = $(this).find('input.col-key').val().trim();
+                var n = $(this).find('input.col-name').val().trim();
+                var t = ($(this).find('select.col-type').val() || 'string').trim();
+                var o = $(this).find('input.col-options').val().trim();
+                if (k || n || t || o) {
+                    var entry = {key: k || (n || ''), name: n || (k || ''), type: t || 'string'};
+                    if (o) {
+                        var arr = o.split(',').map(function (s) {
+                            return s.trim();
+                        }).filter(function (s) {
+                            return s.length > 0;
+                        });
+                        if (arr.length > 0) entry['options'] = arr;
+                    }
+                    cols.push(entry);
+                }
+            });
+            if (cols.length > 0) data['columns'] = cols;
+        }
+        return data;
     }
 
     // Debounced preview scheduler: waits 4s; if dependencies didn't change, will not refresh dependency previews
     var _updateTimer = null;
     var _depsChanged = false;
+
     function schedule_update_preview(markDepsChanged) {
         if (markDepsChanged === true) {
             _depsChanged = true;
@@ -854,7 +1040,7 @@
         if (_updateTimer) {
             clearTimeout(_updateTimer);
         }
-        _updateTimer = setTimeout(function(){
+        _updateTimer = setTimeout(function () {
             var flag = _depsChanged;
             _depsChanged = false; // reset for next cycle
             _updateTimer = null;
@@ -935,7 +1121,7 @@
             }
         } else {
             // Detect existing dependency preview blocks if present, to chain main preview load after them
-            $depsContainer.find('.clarama-post-embedded[id^="dep_preview_"]').each(function(){
+            $depsContainer.find('.clarama-post-embedded[id^="dep_preview_"]').each(function () {
                 depDivs.push('#' + $(this).attr('id'));
             });
         }

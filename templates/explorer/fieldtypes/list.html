@@ -1,0 +1,438 @@
+{% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
+
+{% set cfg = field_config or {} %}
+{% set data_cfg = cfg.get('data', {}) or {} %}
+{# Columns can be an array of column defs or a mapping of key -> def/type #}
+{% set raw_columns = data_cfg.get('columns', []) %}
+{% set rows_value = field_value or cfg.get('default') or data_cfg.get('rows', []) %}
+
+{# Normalize columns into a list of {key, name, type, ...} #}
+{% set columns = [] %}
+{% if raw_columns is mapping %}
+    {% for k, v in raw_columns.items() %}
+        {% if v is mapping %}
+            {% set col = {'key': k, 'name': v.get('name', k), 'type': v.get('type','string')} %}
+            {% set col = col.update(v) or col %}
+            {% set _ = columns.append(col) %}
+        {% else %}
+            {% set _ = columns.append({'key': k, 'name': k, 'type': v or 'string'}) %}
+        {% endif %}
+    {% endfor %}
+{% elif raw_columns is sequence %}
+    {% for item in raw_columns %}
+        {% if item is mapping %}
+            {% set key = item.get('key') or item.get('name') or 'col' ~ loop.index %}
+            {% set _ = columns.append({'key': key, 'name': item.get('name', key), 'type': item.get('type','string'), 'options': item.get('options') or item.get('data',{}).get('options') }) %}
+        {% else %}
+            {% set _ = columns.append({'key': item|string, 'name': item|string, 'type': 'string'}) %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+{# Ensure rows are a list of dicts #}
+{% set initial_rows = [] %}
+{% if rows_value is string %}
+    {# try to parse JSON safely via script; for initial rendering, just start empty if string #}
+{% elif rows_value is sequence %}
+    {% for r in rows_value %}
+        {% if r is mapping %}
+            {% set _ = initial_rows.append(r) %}
+        {% endif %}
+    {% endfor %}
+{% elif rows_value is mapping %}
+    {% set _ = initial_rows.append(rows_value) %}
+{% endif %}
+
+{% block content %}
+    <div id="{{ field_id }}" class="clarama-field-list" data-id="{{ field_id }}">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-2">
+                <thead>
+                <tr>
+                    {% for c in columns %}
+                        <th class="text-nowrap">{{ c.name }}</th>
+                    {% endfor %}
+                    <th style="width:1%"></th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="d-flex gap-2">
+            {% if not cfg.get('readonly') %}
+            <button type="button" class="btn btn-outline-secondary btn-sm add-row"><i class="bi bi-plus"></i> Add Row
+            </button>
+            <div class="text-muted small align-self-center">Click + to add, trash to remove. Changes are saved
+                automatically.
+            </div>
+            {% else %}
+            <div class="text-muted small align-self-center">Read-only</div>
+            {% endif %}
+        </div>
+        <input type="hidden"
+               name="{{ field_name }}"
+               class="clarama-field"
+               fieldtype="html"
+                {% if cfg.get('required') %} required {% endif %}
+               value="">
+    </div>
+
+    <script>
+        $(document).ready(() => {
+            var root = '#{{ field_id }}';
+
+            var columns = {{ columns | tojson }};
+
+            var initialRows = (function () {
+                try {
+                    // If field_value passed as string JSON
+                    var s = {{ (rows_value if rows_value is string) and (rows_value | tojson) or 'null' }};
+                    if (typeof s === 'string') return JSON.parse(s);
+                } catch (e) {
+                }
+                return {{ initial_rows | tojson }};
+            })();
+            var $root = $(root);
+            var $tbody = $root.find('tbody');
+            var $hidden = $root.find('input[type="hidden"].clarama-field');
+
+
+            var useRemote = {{ (data_cfg.get('source') and 'true') or 'false' }};
+            var remoteSrc = {{ (data_cfg.get('source') or '') | tojson }};
+            var remoteQuery = {{ (data_cfg.get('params',{}).get('query') if data_cfg else '') | tojson }};
+
+            function defaultRow() {
+                var r = {};
+                columns.forEach(function (c) {
+                    var def;
+                    var t = (c.type || 'string').toLowerCase();
+                    if (c.hasOwnProperty('default')) {
+                        def = c.default;
+                    } else {
+                        if (t === 'checkbox' || t === 'bool' || t === 'boolean') {
+                            def = false;
+                        } else if (t === 'select_multiple') {
+                            def = [];
+                        } else if (t === 'number' || t === 'range') {
+                            def = (c.min !== undefined ? c.min : '');
+                        } else {
+                            def = '';
+                        }
+                    }
+                    r[c.key] = def;
+                });
+                return r;
+            }
+
+            var isReadonly = {{ (cfg.get('readonly') and 'true') or 'false' }};
+
+            function renderRow(row, idx) {
+                var tr = $('<tr>');
+                columns.forEach(function (c) {
+                    var td = $('<td>');
+                    var val = row[c.key];
+                    var t = (c.type || 'string').toLowerCase();
+                    var input;
+                    if (t === 'number' || t === 'range') {
+                        input = $('<input type="number" class="form-control form-control-sm">');
+                        if (c.min !== undefined) input.attr('min', c.min);
+                        if (c.max !== undefined) input.attr('max', c.max);
+                        if (c.step !== undefined) input.attr('step', c.step);
+                    } else if (t === 'checkbox' || t === 'bool' || t === 'boolean') {
+                        input = $('<input type="checkbox" class="form-check-input">');
+                        input.prop('checked', !!val);
+                    } else if (t === 'select' || t === 'select_multiple') {
+                        var multiple = (t === 'select_multiple');
+                        input = $('<select class="form-select form-select-sm" ' + (multiple ? 'multiple' : '') + '>');
+                        var opts = c.options || (c.data && c.data.options) || [];
+                        opts.forEach(function (o) {
+                            var ov, ovl;
+                            if (typeof o === 'object' && o !== null) {
+                                ov = o.id;
+                                ovl = o.value;
+                            } else {
+                                ov = o;
+                                ovl = o;
+                            }
+                            var opt = $('<option>').attr('value', ov).text(ovl);
+                            input.append(opt);
+                        });
+                        if (multiple && Array.isArray(val)) input.val(val);
+                        else if (!multiple && val != null) input.val(String(val));
+                    } else if (t === 'date') {
+                        input = $('<input type="date" class="form-control form-control-sm">');
+                    } else if (t === 'time') {
+                        input = $('<input type="time" class="form-control form-control-sm">');
+                    } else if (t === 'datetime' || t === 'datetime-local') {
+                        input = $('<input type="datetime-local" class="form-control form-control-sm">');
+                    } else if (t === 'file') {
+                        // Render as a file field with optional field.yaml override renderer
+                        // The value is expected to be a path or URL string
+                        var wrap = $('<div class="input-group input-group-sm">');
+                        input = $('<input type="text" class="form-control form-control-sm file-path-input">');
+                        if (c.placeholder) input.attr('placeholder', c.placeholder || 'Select a file...');
+                        var btn = $('<button type="button" class="btn btn-outline-secondary browse-file-btn"><i class="bi bi-folder2-open"></i></button>');
+                        // Optional: allow a separate field.yaml path selector to render the file differently
+                        var yamlInput = $('<input type="text" class="form-control form-control-sm field-yaml-input" placeholder="field.yaml path (optional)">');
+                        if (c.yaml_placeholder) yamlInput.attr('placeholder', c.yaml_placeholder);
+                        // store current yaml path in row using key `${key}__field_yaml`
+                        var yamlKey = (c.key || 'file') + '__field_yaml';
+                        var yamlVal = row[yamlKey];
+                        if (yamlVal != null) yamlInput.val(yamlVal);
+                        // Set current value for file path
+                        if (val != null) input.val(val);
+                        // Compose group: [file path][browse][yaml]
+                        var group = $('<div class="input-group">');
+                        group.append(input);
+                        group.append($('<span class="input-group-text p-0">').append(btn));
+                        // Place yamlInput after as another control in cell
+                        wrap.append(group);
+                        wrap.append($('<div class="mt-1">').append(yamlInput));
+                        input = wrap; // use wrapper as input for appending
+                    } else {
+                        input = $('<input type="text" class="form-control form-control-sm">');
+                        if (c.placeholder) input.attr('placeholder', c.placeholder);
+                    }
+                    // set value
+                    if (input.attr('type') !== 'checkbox') {
+                        if (val != null) input.val(val);
+                    }
+                    if (isReadonly) {
+                        // Make control non-editable
+                        if (input.is('input, select, textarea, div')) {
+                            input.find('input, select, textarea, button').prop('disabled', true);
+                            input.prop('disabled', true);
+                        }
+                    } else {
+                        if (t === 'file') {
+                            // Hook events for path and yaml inputs
+                            var pathInput = input.find('input.file-path-input');
+                            var yamlInput = input.find('input.field-yaml-input');
+                            var yamlKey = (c.key || 'file') + '__field_yaml';
+                            pathInput.on('change input', function(){
+                                row[c.key] = $(this).val();
+                                syncHidden();
+                            });
+                            yamlInput.on('change input', function(){
+                                row[yamlKey] = $(this).val();
+                                syncHidden();
+                            });
+                            // Browse button opens file browser modal if available
+                            input.find('button.browse-file-btn').on('click', function(){
+                                try {
+                                    if (typeof open_file_browser_modal === 'function') {
+                                        open_file_browser_modal(function(sel){
+                                            if (sel) {
+                                                pathInput.val(sel).trigger('input');
+                                            }
+                                        });
+                                    } else {
+                                        // fallback: use a hidden file input to get a local path name (not uploaded here)
+                                        var tmp = $('<input type="file" style="display:none">');
+                                        tmp.on('change', function(){
+                                            var f = this.files && this.files[0];
+                                            if (f) pathInput.val(f.name).trigger('input');
+                                            tmp.remove();
+                                        });
+                                        $('body').append(tmp);
+                                        tmp.click();
+                                    }
+                                } catch(e) {}
+                            });
+                        } else {
+                            input.data('colKey', c.key).on('change input', function () {
+                                var key = $(this).data('colKey');
+                                if ($(this).attr('type') === 'checkbox') {
+                                    row[key] = $(this).is(':checked');
+                                } else if (this.tagName.toLowerCase() === 'select' && this.hasAttribute('multiple')) {
+                                    row[key] = $(this).val() || [];
+                                } else {
+                                    row[key] = $(this).val();
+                                }
+                                syncHidden();
+                            });
+                        }
+                    }
+                    td.append(input);
+                    tr.append(td);
+                });
+                var removeTd = $('<td class="text-end">');
+                if (!isReadonly) {
+                    var btn = $('<button type="button" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>');
+                    btn.on('click', function () {
+                        tr.remove();
+                        rows.splice(idx, 1);
+                        rebuild();
+                    });
+                    removeTd.append(btn);
+                }
+                tr.append(removeTd);
+                return tr;
+            }
+
+            var rows = Array.isArray(initialRows) ? initialRows.slice() : [];
+
+            function syncHidden() {
+                $hidden.val(JSON.stringify(rows));
+                $hidden.trigger('change');
+            }
+
+            function rebuild() {
+                $tbody.empty();
+                rows.forEach(function (r, i) {
+                    $tbody.append(renderRow(r, i));
+                });
+                syncHidden();
+            }
+
+            $root.on('click', '.add-row', function () {
+                if (isReadonly) return;
+                rows.push(defaultRow());
+                rebuild();
+                try {
+                    var $rows = $tbody.find('tr');
+                    var $last = $rows.last();
+                    var $firstInput = $last.find('input, select, textarea').first();
+                    if ($firstInput.length) {
+                        $firstInput.focus();
+                        if ($firstInput.is('input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="datetime-local"]')) {
+                            $firstInput.select();
+                        }
+                    }
+                } catch (e) {
+                }
+            });
+
+            // initial build
+            function rebuildOrInit() {
+                if (!isReadonly && rows.length === 0 && {{ (cfg.get('required') and 'true') or 'false' }}) {
+                    rows.push(defaultRow());
+                }
+                rebuild();
+            }
+
+            function resolvePath(p) {
+                try {
+                    if (!p) return '';
+                    var isFullUrl = /^https?:\/\//i.test(p);
+                    if (isFullUrl) return p;
+                    var path = window.location.pathname || "/";
+                    var segments = path.split('/');
+                    var baseSegments = segments.slice(3);
+                    if (baseSegments.length > 0) baseSegments = baseSegments.slice(0, -1);
+
+                    function normalize(parts) {
+                        var stack = [];
+                        for (var i = 0; i < parts.length; i++) {
+                            var part = parts[i];
+                            if (!part || part === '.') continue;
+                            if (part === '..') {
+                                if (stack.length) stack.pop();
+                                continue;
+                            }
+                            stack.push(part);
+                        }
+                        return stack;
+                    }
+
+                    var srcStr = (p || '').trim();
+                    if (srcStr.startsWith('/')) {
+                        srcStr = srcStr.replace(/^\/+/, '');
+                        baseSegments = [];
+                    }
+                    var srcParts = srcStr.split('/');
+                    var combined = normalize(baseSegments.concat(srcParts));
+                    return '/' + combined.join('/');
+                } catch (e) {
+                    return p;
+                }
+            }
+
+            function mapRemoteToRows(result) {
+                try {
+                    var cols = (result && result.cols) || [];
+                    var dataRows = (result && result.rows) || [];
+                    var mapped = [];
+                    dataRows.forEach(function (r) {
+                        var obj = {};
+                        if (columns && columns.length > 0) {
+                            for (var i = 0; i < columns.length && i < r.length; i++) {
+                                obj[columns[i].key] = r[i];
+                            }
+                        } else if (cols && cols.length > 0) {
+                            cols.forEach(function (cName, i) {
+                                var key = String(cName || ('c' + i)).toLowerCase().replace(/[^a-z0-9]+/g, '_');
+                                obj[key] = r[i];
+                            });
+                        } else {
+                            r.forEach(function (v, i) {
+                                obj['c' + i] = v;
+                            });
+                        }
+                        mapped.push(obj);
+                    });
+                    return mapped;
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function fetchRemoteAndPopulate(cb) {
+                try {
+                    var src = remoteSrc;
+                    var q = remoteQuery;
+                    if (!src) {
+                        cb && cb();
+                        return;
+                    }
+                    // Build URL
+                    var url = "/web/data/execute/query/" + resolvePath(src);
+                    var params = [];
+                    if (q) params.push("query=" + encodeURIComponent(q));
+                    params.push("clarama-field-format=True");
+                    if (params.length > 0) url += "?" + params.join("&");
+                    var postBody = {search: null, values: {}, original_url: ''};
+                    try {
+                        if (typeof get_field_values === 'function') {
+                            postBody.values = get_field_values({}, true, undefined) || {};
+                        }
+                    } catch (e) {
+                    }
+                    $.ajax({
+                        url: url,
+                        type: "POST",
+                        dataType: "json",
+                        contentType: "application/json; charset=utf-8",
+                        data: JSON.stringify(postBody),
+                        success: function (data) {
+                            if (data && data.data === 'ok' && data.results) {
+                                var mapped = mapRemoteToRows(data.results);
+                                if (mapped && mapped.length > 0) {
+                                    rows = mapped;
+                                }
+                            }
+                            rebuildOrInit();
+                            cb && cb();
+                        },
+                        error: function () {
+                            rebuildOrInit();
+                            cb && cb();
+                        }
+                    });
+                } catch (e) {
+                    rebuildOrInit();
+                    cb && cb();
+                }
+            }
+
+            if (useRemote && (!initialRows || initialRows.length === 0)) {
+                fetchRemoteAndPopulate();
+            } else {
+                if (rows.length === 0 && initialRows && initialRows.length > 0) {
+                    rows = initialRows.slice();
+                }
+                rebuildOrInit();
+            }
+        });
+    </script>
+{% endblock %}

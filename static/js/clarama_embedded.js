@@ -80,8 +80,37 @@ function insertScript($script, callback) {
 var current_embedded = '';
 
 window.onerror = function (message, source, lineno, colno, error) {
-    console.error("Global error:", message);
-    console.error("Source:", source, "Line No:", lineno, "Col No:", colno, "Last embedded", current_embedded);
+    try {
+        console.error("Global error:", message);
+        console.error("Source:", source, "Line No:", lineno, "Col No:", colno, "Last embedded", current_embedded);
+
+        // Attempt to fetch and log the exact source code line where the error occurred
+        if (source && typeof lineno === 'number' && lineno > 0) {
+            fetch(source, { cache: 'no-store' })
+                .then(r => r.ok ? r.text() : Promise.reject(new Error("Failed to fetch source: " + r.status)))
+                .then(txt => {
+                    const lines = txt.split(/\r?\n/);
+                    const idx = Math.max(0, lineno - 1);
+                    const contextStart = Math.max(0, idx - 2);
+                    const contextEnd = Math.min(lines.length - 1, idx + 2);
+                    const context = [];
+                    for (let i = contextStart; i <= contextEnd; i++) {
+                        const marker = (i === idx) ? '>>' : '  ';
+                        context.push(`${marker} ${i + 1}: ${lines[i]}`);
+                    }
+                    console.error("Offending source (±2 lines):\n" + context.join("\n"));
+                })
+                .catch(err => {
+                    console.warn('Unable to retrieve error source code:', err);
+                });
+        }
+
+        if (error && error.stack) {
+            console.error('Stack trace:', error.stack);
+        }
+    } catch (inner) {
+        // Swallow any logging errors to avoid recursive onerror
+    }
     return true; // Prevent default error handling
 }
 
