@@ -596,7 +596,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
     let message_event = socket_div.attr('onmessage');
 
     if (message_event !== undefined) {
-        console.log("Message event: " + message_event);
+        //console.log("Message event: " + message_event);
         dict = window[message_event](dict, socket_url, webSocket, socket_div);
 
         if (dict === undefined)
@@ -604,10 +604,10 @@ function onMessage(event, socket_url, webSocket, socket_div) {
     }
 
     if ('class' in dict) {
-        console.log("WEBSOCKET.js: Processing Socket Message " + dict['class']);
+        //console.log("WEBSOCKET.js: Processing Socket Message " + dict['class']);
         try {
             if (dict['class'] === "ping") {
-                console.log('ping back ' + new Date() + ' ' + task_active_socket);
+                //console.log('ping back ' + new Date() + ' ' + task_active_socket);
                 task_active_socket.send('ping');
             }
 
@@ -787,8 +787,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 let resulter = "#" + dict['step_id'];
                 console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART3D MESSAGE:" + webSocket.url + " " + dict['step_id']);
                 console.log($(resulter));
-                var canvas = process_template(dict['type'], dict['values'], $(resulter));
-                bChart3d(canvas, dict['values']['chart_id'], dict['results']);
+                process_template(dict['type'], dict['values'], $(resulter));
+                bChart3d(dict['values']['chart_id'], dict['results']);
             }
 
             if (dict['class'] === 'task_memory') {
@@ -833,7 +833,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
         console.log("CLARAMA_WEBSOCKET.js: WTF was this: " + dict);
     }
 
-    console.log(task_active_socket);
+    //console.log(task_active_socket);
 }
 
 /**

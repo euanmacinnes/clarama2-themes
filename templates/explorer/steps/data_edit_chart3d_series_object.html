@@ -20,9 +20,12 @@
                 {% endfor %}
             </select>
         </div>
-        <!-- edges -->
+        <!-- edges (optional) -->
         <div class="grid5-col-1">
             <select id="obj-edges{{ loop_index }}_{{ series_index }}" class="form-control obj-edges">
+                <option value="" {% if not sobj['obj-edges'] or sobj['obj-edges'] in ['', 'none'] %}selected{% endif %}
+                >— none —
+                </option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
@@ -38,7 +41,9 @@
         <div class="grid5-col-1">
             {% set uv_val = sobj.get('obj-uv') if sobj is defined else '' %}
             <select id="obj-uv{{ loop_index }}_{{ series_index }}" class="form-control obj-uv">
-                <option value="" {% if not sobj['obj-uv'] or sobj['obj-uv'] in ['', 'none'] %}selected{% endif %}>— none —</option>
+                <option value="" {% if not sobj['obj-uv'] or sobj['obj-uv'] in ['', 'none'] %}selected{% endif %}>— none
+                    —
+                </option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
@@ -54,7 +59,10 @@
         <div class="grid5-col-1">
             {% set col_val = sobj.get('obj-colour') if sobj is defined else '' %}
             <select id="obj-colour{{ loop_index }}_{{ series_index }}" class="form-control obj-colour">
-                <option value="" {% if not sobj['obj-colour'] or sobj['obj-colour'] in ['', 'none'] %}selected{% endif %}>— none —</option>
+                <option value=""
+                        {% if not sobj['obj-colour'] or sobj['obj-colour'] in ['', 'none'] %}selected{% endif %}>— none
+                    —
+                </option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
@@ -68,7 +76,8 @@
         </div>
         <!-- primitive -->
         <div class="grid5-col-1">
-            <select id="obj-primitive{{ loop_index }}_{{ series_index }}" class="form-control obj-primitive" title="Type"
+            <select id="obj-primitive{{ loop_index }}_{{ series_index }}" class="form-control obj-primitive"
+                    title="Type"
                     data-toggle="tooltip">>
                 <option {{ selected("point",sobj['obj-primitive']) }} id="point">Point</option>
                 <option {{ selected("line",sobj['obj-primitive']) }} id="line">Line</option>

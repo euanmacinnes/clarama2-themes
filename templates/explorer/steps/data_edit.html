@@ -568,11 +568,14 @@
             // Update series objects edges dropdowns
             $(`#seriesObj${loopIndex} .obj-edges`).each(function() {
                 const $dropdown = $(this);
-                const currentValue = $dropdown.val();
+                let currentValue = $dropdown.val();
+                if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
                 $dropdown.empty();
-                
+
+                $dropdown.append(`<option value="" ${currentValue === '' ? 'selected' : ''}>— none —</option>`);
+
                 currentTabs.forEach((tab, index) => {
-                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    const isSelected = currentValue !== '' && String(currentValue) === String(tab.id);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
