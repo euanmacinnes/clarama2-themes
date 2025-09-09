@@ -22,7 +22,7 @@
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" {% if do_wait == 'true' %}checked{% endif %} value="" id="wait">
                         <label class="form-check-label" for="wait">
-                            Wait for previous interaction's resume command before executing
+                            Wait
                         </label>
                     </div>
                     <!-- <div class="form-check mb-2">
@@ -874,13 +874,14 @@
             const li = grid_element_target.querySelector(`li[loop-index="${uid}"]`);
             if (!li) return;
             li.setAttribute('elem-id', checkedType);
+            li.getAttribute('elem-id', checkedType);
     
             const innerTextDiv = li.querySelector('div.cElem');
             if (innerTextDiv) {
                 if (isContextMenu) {
-                    innerTextDiv.textContent = checkedType + " - " + menuItem;
+                    innerTextDiv.textContent = element_summary_js(checkedType) + " - " + menuItem;
                 } else {
-                    innerTextDiv.textContent = checkedType;
+                    innerTextDiv.textContent = element_summary_js(checkedType);
                 }
             }
 
