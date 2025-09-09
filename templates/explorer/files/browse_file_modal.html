@@ -43,7 +43,12 @@
             const inputId = button.attr('inputId');
             const gridElem = button.attr('gridElem');
 
+            const adjacent = button.prev(".browse-field");
+
+            console.log("ADJACENT", adjacent);
+
             $(this).data('inputId', inputId);
+            $(this).data('adjacent', adjacent);
             $(this).data('gridElem', gridElem);
             path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
 
@@ -61,46 +66,24 @@
 
         const newSource = $CLARAMA_ROOT + selected_val;
 
-        const inputId = $("#browseFileModal").data('inputId');
+        let inputId = $("#browseFileModal").data('inputId');
         // console.log("inputId", inputId)
 
-        // this applies to the part in .field.yaml under data pick source
-        // once u pick a source itll replace the current code editors's 'source: '
-        // if no 'source: ' is found then itll j insert at the last row
-        if (inputId == "field_data_source") {
-            const fieldEditor = ace.edit("data");
-            console.log("fieldEditor", fieldEditor)
-            const fieldSession = fieldEditor.getSession();
-            console.log("fieldSession", fieldSession)
-            const fieldLines = fieldSession.getDocument().getAllLines();
-            console.log("fieldLines", fieldLines)
+        let targetInput = document.getElementById(inputId); // this just the input field to put the url
+        let target = '';
 
-            let found = false;
-            const newText = "source: " + newSource;
-
-            for (let i = 0; i < fieldLines.length; i++) {
-                if (fieldLines[i].includes("source")) {
-                    fieldSession.replace({
-                        start: { row: i, column: 0 },
-                        end: { row: i, column: fieldLines[i].length }
-                    }, newText);
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                const lastRow = fieldLines.length;
-                fieldSession.insert({ row: lastRow, column: 0 }, newText);
-            }
-            
-            $("#browseFileModal").modal('hide');
-            return;
+        if (targetInput === null) {
+            targetInput = $("#browseFileModal").data('adjacent');
+            console.log("targetInput", targetInput);
+            inputId='relative';
         }
+        else
+            {
+                target = inputId.replace('_elemInput', '');
+            }
 
-        const targetInput = document.getElementById(inputId); // this just the input field to put the url
-        let target = inputId.replace('_elemInput', ''); 
         if (targetInput) {
+
             let absolutePath = resolveRelativeFilePath("{{ file_url | path }}", newSource)
             if (inputId.includes('_elemInput')) { // this is the grid element's dropdown menu
                 targetInput.href = "/content/edit/" + absolutePath;
@@ -151,7 +134,12 @@
                         };
                     });
             } else {
-                targetInput.value = newSource;
+                if (targetInput.jquery) {
+                    targetInput.val(newSource);
+                    }
+                else {
+                    targetInput.value = newSource;
+                }
             }
 
             if (inputId !== "grid-elem" && (!inputId.includes('_elemInput'))) {
