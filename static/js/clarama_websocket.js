@@ -783,6 +783,14 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 bChart(dict['values']['chart_id'], dict['results']);
             }
 
+            if (dict['class'] === "template_chart3d") {
+                let resulter = "#" + dict['step_id'];
+                console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART3D MESSAGE:" + webSocket.url + " " + dict['step_id']);
+                console.log($(resulter));
+                process_template(dict['type'], dict['values'], $(resulter));
+                bChart3d(dict['values']['chart_id'], dict['results']);
+            }
+
             if (dict['class'] === 'task_memory') {
                 $("#kernel_memory_free").text(dict['values']['free'] + '%');
             }
