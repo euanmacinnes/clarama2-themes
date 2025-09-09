@@ -193,7 +193,8 @@ const CHART3D_DEFAULT_PRIMITIVES = [
 ];
 
 function boot() {
-    document.querySelectorAll('canvas[id^="chart3d-"]').forEach((c) => {
+    const CANVAS_SELECTOR = '.chart3d-canvas-holder > canvas[id^="c_"]';
+    document.querySelectorAll(CANVAS_SELECTOR).forEach((c) => {
         // Example: pass axis configuration to initCube. You can remove or customize this block.
         const exampleAxisConfig = {
             // Titles can be specified either at the root or per-axis object
@@ -251,11 +252,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // --- helpers ------------------------------------------------------------
-    function getSelectedPrimitive() {
-        // returns 'point' | 'line' | 'triangle'
-        return $('.chart3d-series-objects .obj-primitive option:selected').attr('id') || 'point';
-    }
-
     function sh(type, src) {
         const s = gl.createShader(type);
         gl.shaderSource(s, src);
@@ -283,7 +279,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // 2D overlay for tick labels & titles
-    const wrap = canvas.parentElement || document.body;
+    const wrap = canvas.closest('.chart3d-canvas-holder') || canvas.parentElement || document.body;
     if (getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
     const overlay = document.createElement("canvas");
     overlay.style.position = "absolute";
@@ -712,8 +708,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         requestAnimationFrame(render);
     }
 
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
+    
     const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
+    ro.observe(wrap);
     window.addEventListener("resize", resize);
     document.addEventListener("shown.bs.tab", resize, true);
     document.addEventListener("shown.bs.collapse", resize, true);
@@ -1125,7 +1125,8 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         gl.clearColor(STYLE.clear[0], STYLE.clear[1], STYLE.clear[2], STYLE.clear[3]);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        const rect = canvas.getBoundingClientRect();
+        const host = canvas.closest('.chart3d-canvas-holder') || canvas.parentElement || canvas;
+        const rect = host.getBoundingClientRect();
         const cssW = Math.max(1, rect.width);
         const cssH = Math.max(1, rect.height);
 

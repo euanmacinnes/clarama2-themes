@@ -1,7 +1,7 @@
-<div id="chart3d-wrap-{{ loop_index }}" class="bg-dark-subtle rounded p-2">
-    <canvas id="chart3d-{{ loop_index }}" style="width:100%; height:600px; display:block;"></canvas>
-    <div class="form-text text-light-emphasis mt-1">
-        Drag to rotate • Scroll to zoom • Double-click to reset
+<div class="container-fluid position-relative tight" style="height: 100%">
+    <div id="{chart_id_content}-holder" style="width:100%; height:600px; display:block;"
+         class="chart3d-canvas-holder">
+        <canvas id="c_{chart_id_content}" class="no-drag" width="100%"></canvas>
     </div>
 </div>
 <script src="{{ static( filename='js/data_edit_chart3d.js') }}" type="text/javascript"></script>
