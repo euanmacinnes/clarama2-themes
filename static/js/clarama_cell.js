@@ -226,7 +226,8 @@ function get_data_cell(cell) {
             'obj-vertices': $(this).find('.obj-vertices').val(),                                    // Input Vertices
             'obj-edges': $(this).find('.obj-edges').val(),                                          // Input edges
             'obj-uv': (uvVal && uvVal !== 'none') ? uvVal : '',
-            'obj-colour': (colVal && colVal !== 'none') ? colVal : '',                                        // colour
+            'obj-colour': (colVal && colVal !== 'none') ? colVal : '',                              // colour
+            'obj-texture': $(this).find('.obj-texture').val() || '',                                // texture file path
             'obj-primitive': $(this).find('.obj-primitive').find('option:selected').attr('id'),     // primitive
         };
         console.log(srs);

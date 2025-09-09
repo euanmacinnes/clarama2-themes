@@ -74,6 +74,11 @@
     width: 19.6%; /* this is derived from (100-2)/5 because the last col (bin icon) i set width: 2% */
 }
 
+.grid6-col-1 { /* Series Objects (6 columns) */
+    flex: 0 0 auto;
+    width: 16.3333%; /* (100 - 2) / 6 because the last col (bin icon) is width: 2% */
+}
+
 .grid9-col-1 { /* Series Formats */
     flex: 0 0 auto;
     width: 10.8887%; /* this is derived from (100-2)/9 because the last col (bin icon) i set width: 2% */
