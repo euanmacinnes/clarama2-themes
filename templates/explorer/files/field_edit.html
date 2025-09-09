@@ -32,6 +32,9 @@
         </div>
         <div class="card-body">
             <div id="dependencies-preview" class="mb-2"></div>
+            <div id="list-columns-warning" class="alert alert-warning py-2 px-3 d-none" role="alert" style="margin-bottom:8px;">
+                Preview note: For List fields, at least two columns must be supplied.
+            </div>
             <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
         </div>
     </div>
@@ -759,6 +762,10 @@
             $(this).closest('tr').remove();
             schedule_update_preview();
         });
+        // React to edits in columns table to update preview/warning
+        $(document).on('input change', '#custom-columns-table input, #custom-columns-table select', function(){
+            schedule_update_preview();
+        });
 
         // Dependencies add/remove
         $("#add-dependency").on('click', function () {
@@ -936,11 +943,26 @@
                             });
                             $tbody.html(trs);
                         }
+                        // After rendering remote preview, warn if only one column is present
+                        try {
+                            var previewCols = (data['results'] && data['results']['cols']) || [];
+                            var colCount = Array.isArray(previewCols) ? previewCols.length : 0;
+                            var $warn = $('#list-columns-warning');
+                            if ($warn.length) {
+                                if (colCount === 1) {
+                                    $warn.text('Preview Result has only one column; two columns must be supplied.').removeClass('d-none');
+                                } else if (colCount > 1) {
+                                    $warn.addClass('d-none');
+                                }
+                            }
+                        } catch (ex) { /* ignore */ }
                     } else {
                         var err = (data && data['error']) ? data['error'] : 'Unknown error fetching data';
                         $('#clarama-query-result').text(err);
                         $thead.html('');
                         $tbody.html('<tr><td class="text-danger">' + err + '</td></tr>');
+                        // Hide the warning on error
+                        $('#list-columns-warning').addClass('d-none');
                     }
                 },
                 error: function (xhr) {
@@ -948,6 +970,8 @@
                     $('#clarama-query-result').text(msg);
                     $thead.html('');
                     $tbody.html('<tr><td class="text-danger">' + msg + '</td></tr>');
+                    // Hide the warning on request failure
+                    $('#list-columns-warning').addClass('d-none');
                 }
             });
         });
@@ -1072,6 +1096,29 @@
     }
 
     function update_preview(depsChanged) {
+        // Toggle list columns warning when applicable
+        try {
+            var isList = (typeof key !== 'undefined' && String(key).toLowerCase() === 'list');
+            var colsCount = 0;
+            if (isList) {
+                // Count meaningful column rows (any cell filled) from the custom columns table
+                $("#custom-columns-table tbody tr").each(function(){
+                    var k = $(this).find('input.col-key').val().trim();
+                    var n = $(this).find('input.col-name').val().trim();
+                    var t = ($(this).find('select.col-type').val() || '').trim();
+                    var o = $(this).find('input.col-options').val().trim();
+                    if (k || n || t || o) colsCount += 1;
+                });
+            }
+            var $warn = $("#list-columns-warning");
+            if ($warn.length) {
+                if (isList && colsCount === 1) {
+                    $warn.removeClass('d-none');
+                } else {
+                    $warn.addClass('d-none');
+                }
+            }
+        } catch(e) { /* ignore */ }
         var codeObj = build_data_json();
         var code = JSON.stringify(codeObj, null, 2); // JSON is valid YAML
         $("#data_text").val(code);
