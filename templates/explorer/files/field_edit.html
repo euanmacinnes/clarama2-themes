@@ -414,7 +414,7 @@
             $(".field").removeClass("clicked btn-primary").addClass("btn-light");
             key = $(this).attr("key");
             $(this).addClass("clicked btn-primary").removeClass("btn-light");
-            update_preview();
+            schedule_update_preview();
         });
 
         // Any field change (including dependency dropdowns rendered with .clarama-field) triggers preview refresh
@@ -431,14 +431,14 @@
                 }
             } catch (err) { /* ignore and fall through to update */
             }
-            update_preview();
+            schedule_update_preview();
         });
         // React to editor changes as well
         try {
             var queryEditor = ace.edit('field_data_query');
             queryEditor.session.on('change', function (e) {
                 // Editor is outside preview containers; safe to refresh
-                update_preview();
+                schedule_update_preview();
             });
             // Quick insert handler
             $(document).on('click', '#gfe_insert', function () {
@@ -555,14 +555,14 @@
             if (this.checked) {
                 $("#manual-data").show();
                 $("#remote-data").hide();
-                update_preview();
+                schedule_update_preview();
             }
         });
         $("#data-mode-remote").on('change', function () {
             if (this.checked) {
                 $("#manual-data").hide();
                 $("#remote-data").show();
-                update_preview();
+                schedule_update_preview();
             }
         });
 
@@ -576,7 +576,7 @@
         });
         $(document).on('click', '.remove-option', function () {
             $(this).closest('tr').remove();
-            update_preview();
+            schedule_update_preview();
         });
 
         // Dependencies add/remove
@@ -632,7 +632,7 @@
                 arr.push($(this).text());
             });
             $("#dependencies-json").val(JSON.stringify(arr));
-            update_preview();
+            schedule_update_preview(true);
         }
 
         // Remote data preview: fetch via same API used by select2 and render with bootstrap-table below the editor
@@ -820,8 +820,8 @@
         // Initial fill
         setTimeout(refreshDependentFieldList, 50);
 
-        // Initial preview
-        setTimeout(update_preview, 150);
+        // Initial preview (debounced) - include dependencies on first render
+        schedule_update_preview(true);
     });
 
     function build_data_json() {
@@ -844,7 +844,25 @@
         }
     }
 
-    function update_preview() {
+    // Debounced preview scheduler: waits 4s; if dependencies didn't change, will not refresh dependency previews
+    var _updateTimer = null;
+    var _depsChanged = false;
+    function schedule_update_preview(markDepsChanged) {
+        if (markDepsChanged === true) {
+            _depsChanged = true;
+        }
+        if (_updateTimer) {
+            clearTimeout(_updateTimer);
+        }
+        _updateTimer = setTimeout(function(){
+            var flag = _depsChanged;
+            _depsChanged = false; // reset for next cycle
+            _updateTimer = null;
+            update_preview(flag);
+        }, 4000);
+    }
+
+    function update_preview(depsChanged) {
         var codeObj = build_data_json();
         var code = JSON.stringify(codeObj, null, 2); // JSON is valid YAML
         $("#data_text").val(code);
@@ -892,30 +910,34 @@
             }
         }
 
-        // Build dependency preview elements first
-        var deps = [];
-        try {
-            deps = JSON.parse($("#dependencies-json").val() || '[]') || [];
-        } catch (e) {
-            deps = [];
-        }
-
-        var $depsContainer = $("#dependencies-preview");
-        $depsContainer.empty();
-
+        // Build dependency preview elements only if dependencies changed during debounce window
         var depDivs = [];
-        if (deps.length > 0) {
-            // Add a small title
-            $depsContainer.append('<div class="text-muted small mb-1">Dependencies</div>');
-
-            for (var i = 0; i < deps.length; i++) {
-                var depPath = resolvePath(deps[i]);
-                var depUrl = '/render/embed' + depPath;
-                var depId = 'dep_preview_' + i;
-                var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded bg-light p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div><i class="fs-3 bi bi-arrow-down" style="margin-left: 70px;"></i>';
-                $depsContainer.append(depHtml);
-                depDivs.push('#' + depId);
+        var $depsContainer = $("#dependencies-preview");
+        if (depsChanged === true) {
+            var deps = [];
+            try {
+                deps = JSON.parse($("#dependencies-json").val() || '[]') || [];
+            } catch (e) {
+                deps = [];
             }
+            $depsContainer.empty();
+            if (deps.length > 0) {
+                // Add a small title
+                $depsContainer.append('<div class="text-muted small mb-1">Dependencies</div>');
+                for (var i = 0; i < deps.length; i++) {
+                    var depPath = resolvePath(deps[i]);
+                    var depUrl = '/render/embed' + depPath;
+                    var depId = 'dep_preview_' + i;
+                    var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded bg-light p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div><i class="fs-3 bi bi-arrow-down" style="margin-left: 70px;"></i>';
+                    $depsContainer.append(depHtml);
+                    depDivs.push('#' + depId);
+                }
+            }
+        } else {
+            // Detect existing dependency preview blocks if present, to chain main preview load after them
+            $depsContainer.find('.clarama-post-embedded[id^="dep_preview_"]').each(function(){
+                depDivs.push('#' + $(this).attr('id'));
+            });
         }
 
         // Now prepare main preview URL, but defer loading until dependencies are loaded
