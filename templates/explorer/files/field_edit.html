@@ -374,10 +374,11 @@
                     <table class="table table-sm align-middle" id="custom-columns-table">
                         <thead>
                         <tr>
-                            <th style="width: 18%">Key</th>
-                            <th style="width: 22%">Name</th>
-                            <th style="width: 18%">Type</th>
+                            <th style="width: 16%">Key</th>
+                            <th style="width: 20%">Name</th>
+                            <th style="width: 14%">Type</th>
                             <th>Options (comma-separated)</th>
+                            <th style="width: 22%">Field YAML (for file type)</th>
                             <th style="width: 48px"></th>
                         </tr>
                         </thead>
@@ -390,7 +391,7 @@
                                 </td>
                                 <td>
                                     <select class="form-select form-select-sm col-type">
-                                        {% set types = ['string','number','checkbox','select','select_multiple','date','time','datetime'] %}
+                                        {% set types = ['string','number','checkbox','select','select_multiple','date','time','datetime','file'] %}
                                         {% for t in types %}
                                             <option value="{{ t }}"
                                                     {% if (col.get('type','string')|lower) == t %}selected{% endif %}>{{ t }}</option>
@@ -399,6 +400,13 @@
                                 </td>
                                 <td><input type="text" class="form-control col-options" value="
                                         {% if col.get('options') %}{{ (col.get('options')|join(', ')) }}{% endif %}">
+                                </td>
+                                <td>
+                                    <div class="input-group input-group-sm col-field-container">
+                                        {% set field_path = col.get('field','') %}
+                                        <input type="text" class="form-control col-field" placeholder="pick a .field.yaml" value="{{ field_path }}">
+                                        <button type="button" class="btn btn-outline-secondary browse-col-field" title="Browse .field.yaml" data-bs-toggle="modal" data-bs-target="#browseFileModal" filters="*.field.yaml"><i class="bi bi-folder2-open"></i></button>
+                                    </div>
                                 </td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-outline-danger remove-column"><i
@@ -420,9 +428,16 @@
                                         <option value="date">date</option>
                                         <option value="time">time</option>
                                         <option value="datetime">datetime</option>
+                                        <option value="file">file</option>
                                     </select>
                                 </td>
                                 <td><input type="text" class="form-control col-options" value=""></td>
+                                <td>
+                                    <div class="input-group input-group-sm col-field-container">
+                                        <input type="text" class="form-control col-field" placeholder="pick a .field.yaml" value="">
+                                        <button type="button" class="btn btn-outline-secondary browse-col-field" title="Browse .field.yaml" data-bs-toggle="modal" data-bs-target="#browseFileModal" filters="*.field.yaml"><i class="bi bi-folder2-open"></i></button>
+                                    </div>
+                                </td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-outline-danger remove-column"><i
                                             class="bi bi-trash"></i></button>
@@ -725,7 +740,7 @@
                         <option value=\"select_multiple\">select_multiple</option>
                         <option value=\"date\">date</option>
                         <option value=\"time\">time</option>
-                        <option value=\"datetime\">datetime</option>
+                        <option value=\"datetime\">datetime</option>\n                        <option value=\"file\">file</option>
                     </select>
                 </td>
                 <td><input type=\"text\" class=\"form-control col-options\" value=\"\"></td>
