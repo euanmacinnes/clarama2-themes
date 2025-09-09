@@ -787,8 +787,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 let resulter = "#" + dict['step_id'];
                 console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART3D MESSAGE:" + webSocket.url + " " + dict['step_id']);
                 console.log($(resulter));
-                process_template(dict['type'], dict['values'], $(resulter));
-                bChart3d(dict['values']['chart_id'], dict['results']);
+                var canvas = process_template(dict['type'], dict['values'], $(resulter));
+                bChart3d(canvas, dict['values']['chart_id'], dict['results']);
             }
 
             if (dict['class'] === 'task_memory') {

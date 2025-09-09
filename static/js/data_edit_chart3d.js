@@ -1,5 +1,5 @@
 // Default datasets for the demo cube geometry moved outside initCube
-window.CHART3D_DEFAULT_DATASETS = window.CHART3D_DEFAULT_DATASETS || {
+window.CUBE_DATA = window.CUBE_DATA || {
     cubeVertices: new Float32Array([
         -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1,
         -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1
@@ -90,6 +90,20 @@ window.CHART3D_DEFAULT_DATASETS = window.CHART3D_DEFAULT_DATASETS || {
     ]),
 };
 
+window.exampleAxisConfig = {
+    titleX: 'Longitude (°)',
+    titleY: 'Latitude (°)',
+    titleZ: 'Altitude (km)',
+    minX: -18, maxX: 18,
+    minY: -9,  maxY: 9,
+    z: { title: 'Altitude (km)', min: 0, max: 10 },
+    ticks: {
+        x: { step: 6, format: (v) => v.toFixed(0) },
+        y: { step: 3, format: (v) => v.toFixed(0) },
+        z: { step: 5, format: (v) => v.toFixed(0) }
+    }
+};
+
 // Build an example line primitive: Mobius strip edge scaled to 10x5x3
 (function () {
     function generateMobiusPoints(samples, R, w, vConst) {
@@ -147,7 +161,7 @@ window.CHART3D_DEFAULT_DATASETS = window.CHART3D_DEFAULT_DATASETS || {
     const vConst = w; // edge line on the strip
     let pts = generateMobiusPoints(samples, R, w, vConst);
     pts = scaleAndCenter(pts, [10, 5, 3]);
-    CHART3D_DEFAULT_DATASETS.mobiusLineEdges = toLinePairs(pts);
+    CUBE_DATA.mobiusLineEdges = toLinePairs(pts);
 })();
 
 // Define default primitives that reference the datasets by name so generalized renderer can draw them
@@ -198,19 +212,7 @@ window.CHART3D_DEFAULT_PRIMITIVES = window.CHART3D_DEFAULT_PRIMITIVES || [
   
     const CANVAS_SELECTOR = '.chart3d-canvas-holder > canvas[id^="c_"]';
   
-    const exampleAxisConfig = {
-        titleX: 'Longitude (°)',
-        titleY: 'Latitude (°)',
-        titleZ: 'Altitude (km)',
-        minX: -18, maxX: 18,
-        minY: -9,  maxY: 9,
-        z: { title: 'Altitude (km)', min: 0, max: 10 },
-        ticks: {
-            x: { step: 6, format: (v) => v.toFixed(0) },
-            y: { step: 3, format: (v) => v.toFixed(0) },
-            z: { step: 5, format: (v) => v.toFixed(0) }
-        }
-    };
+    
   
     // Init canvases added later
     const mo = new MutationObserver((mutList) => {
@@ -219,11 +221,11 @@ window.CHART3D_DEFAULT_PRIMITIVES = window.CHART3D_DEFAULT_PRIMITIVES || [
             if (!(n instanceof Element)) continue;
     
             if (n.matches && n.matches(CANVAS_SELECTOR) && !n.dataset.cubeInit) {
-                initCube(n, window.CHART3D_DEFAULT_DATASETS, window.CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
+                initCube(n, window.CUBE_DATA, window.CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
             }
             n.querySelectorAll && n.querySelectorAll(CANVAS_SELECTOR).forEach((c) => {
                 if (!c.dataset.cubeInit) {
-                initCube(c, window.CHART3D_DEFAULT_DATASETS, window.CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
+                initCube(c, window.CUBE_DATA, window.CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
                 }
             });
             }
