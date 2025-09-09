@@ -913,9 +913,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 }
 
                 // If this primitive uses texturing and provides a texture URL, load it now (fallback to checker while loading)
-                let textureUrl = prim.textureUrl || prim.texture || prim.textureURL;
+                let textureUrl = prim['obj-texture-absolute'];
                 let initialTexture = checkerTex;
                 if (usesTex && textureUrl) {
+                    flash("Loading texture " + textureUrl);
                     initialTexture = getOrLoadTexture(textureUrl, (tex) => {
                         // after load, update the compiled object's texture reference
                         const obj = compiled.find(x => x.name === name);

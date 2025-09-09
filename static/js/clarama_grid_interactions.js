@@ -5,6 +5,34 @@
 let lastMouseEvent = null;
 var currentModalAddContentPath = "";
 
+// Ensure resolveRelativeFilePath is globally accessible
+if (typeof window !== 'undefined' && typeof window.resolveRelativeFilePath !== 'function') {
+    window.resolveRelativeFilePath = function(currentPath, relativePath) {
+        try {
+            if (!currentPath) return (relativePath || '').replace(/^\.\//, '');
+            // If relativePath looks absolute (starts with http(s):// or begins with /content or /render etc.), just normalize slashes and strip leading "./"
+            const absLike = /^(https?:)?\/\//i.test(relativePath) || /^\/(content|render|template)\//.test(relativePath || '');
+            if (absLike) {
+                return (relativePath || '').replace(/^\.\//, '').replace(/^\/+/, '');
+            }
+            const baseParts = String(currentPath).split('/').filter(Boolean);
+            const rel = String(relativePath || '').replace(/^\.\//, '');
+            const relativeParts = rel.split('/').filter(Boolean);
+            for (const part of relativeParts) {
+                if (part === '..') {
+                    baseParts.pop();
+                } else if (part !== '.') {
+                    baseParts.push(part);
+                }
+            }
+            return baseParts.join('/');
+        } catch (e) {
+            console.warn('resolveRelativeFilePath fallback error:', e);
+            return String(relativePath || '').replace(/^\.\//, '');
+        }
+    };
+}
+
 // this exists because add_selected_content() has a promise n the onlcick will call add_selected_content() but it wont be able to catch err onclick
 function handle_add_selected_content(url, selecte_v = "") {
     add_selected_content(url, selecte_v)

@@ -286,7 +286,8 @@ function get_data_cell(cell) {
             if (series_object["obj-vertices"] == currTabId) {
                 series_object["obj-vertices"] = tabCounter;
             }
-            if (series_object["obj-edges"] == currTabId) {
+            if (series_object["obj-edges"] != '' && series_object["obj-edges"] !== 'none' &&
+                series_object["obj-edges"] == currTabId) {
                 series_object["obj-edges"] = tabCounter;
             }
             if (series_object["obj-uv"] !== '' && series_object["obj-uv"] !== 'none' &&
