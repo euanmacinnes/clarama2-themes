@@ -488,6 +488,13 @@
                         'true').
                     </div>
                 </div>
+                <div class="col" id="filters_group" style="display: {% if get(field_config,'type','')=='c2file' %}block{% else %}none{% endif %};">
+                    <label class="form-label">Filters (for Browse File)</label>
+                    <input id="filters" name="filters" type="text" class="form-control clarama-field"
+                           placeholder="e.g., *.field.yaml|*.task.yaml|*.source.yaml|*.csv"
+                           value="{{ get(field_config,'filters','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    <div class="form-text">Pipe-separated list of file patterns. Example: *.field.yaml|*.task.yaml</div>
+                </div>
                 <div class="container-fluid">
                     <div class="row align-items-start">
                         <div class="col align-items-start">
@@ -562,6 +569,12 @@
                 if ($("#data-mode-custom").is(':checked')) {
                     $("#data-mode-manual").prop('checked', true).trigger('change');
                 }
+            }
+            // Show/Hide filters field for c2file type
+            if (key === 'c2file') {
+                $('#filters_group').show();
+            } else {
+                $('#filters_group').hide();
             }
             schedule_update_preview();
         });
@@ -1209,6 +1222,7 @@
             + "&required=" + encodeURIComponent($("#required").prop('checked'))
             + "&step=" + encodeURIComponent($("#step").val())
             + "&spacing=" + encodeURIComponent($("#spacing").val())
+            + "&filters=" + encodeURIComponent($("#filters").val() || '')
             + "&data_text=" + encodeURIComponent(code);
 
         function loadMainPreview() {
@@ -1269,6 +1283,7 @@
             "spacing": $("#spacing").val(),
             "readonly": $("#readonly").prop('checked'),
             "required": $("#required").prop('checked'),
+            "filters": $("#filters").val(),
             "dependencies": deps,
             "data_text": code
         };
