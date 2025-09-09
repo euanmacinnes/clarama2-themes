@@ -95,7 +95,7 @@
                     Select a field file in the box below, then click the [+] button to add to the list
                 </p>
                 <div class="input-group mb-2">
-                    <input type="text" class="form-control" id="dependency-input"
+                    <input type="text" class="form-control" id="dependency-file-input"
                            placeholder="pick a .field.yaml">
                     <button type="button" class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
                             data-bs-target="#browseFileModal" filters="*.field.yaml" inputId="dependency-file-input"
@@ -581,7 +581,7 @@
 
         // Dependencies add/remove
         $("#add-dependency").on('click', function () {
-            var val = $("#dependency-input").val().trim();
+            var val = $("#dependency-file-input").val().trim();
             if (!val) return;
             var exists = false;
             $("#dependencies-list .dep-text").each(function () {
@@ -594,7 +594,7 @@
                     <span class=\"dep-text\">${val}</span>
                     <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-dep\"><i class=\"bi bi-x\"></i></button>
                 </li>`);
-                $("#dependency-input").val('');
+                $("#dependency-file-input").val('');
                 update_dependencies_json();
             }
         });
