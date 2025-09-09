@@ -14,7 +14,7 @@
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-vertices'] and tab_id|string == sobj['obj-vertices']|string %}selected{% endif %}>
+                            {% if sobj['obj-vertices'] is defined and tab_id|string == sobj['obj-vertices']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}
@@ -23,7 +23,7 @@
         <!-- edges (optional) -->
         <div class="grid6-col-1">
             <select id="obj-edges{{ loop_index }}_{{ series_index }}" class="form-control obj-edges">
-                <option value="" {% if not sobj['obj-edges'] or sobj['obj-edges'] in ['', 'none'] %}selected{% endif %}
+                <option value="" {% if sobj['obj-edges'] is not defined or sobj['obj-edges'] in ['', 'none'] %}selected{% endif %}
                 >— none —
                 </option>
                 {% for tab in tabs %}
@@ -31,7 +31,7 @@
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-edges'] and tab_id|string == sobj['obj-edges']|string %}selected{% endif %}>
+                            {% if sobj['obj-edges'] is defined and tab_id|string == sobj['obj-edges']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}
@@ -41,7 +41,7 @@
         <div class="grid6-col-1">
             {% set uv_val = sobj.get('obj-uv') if sobj is defined else '' %}
             <select id="obj-uv{{ loop_index }}_{{ series_index }}" class="form-control obj-uv">
-                <option value="" {% if not sobj['obj-uv'] or sobj['obj-uv'] in ['', 'none'] %}selected{% endif %}>— none
+                <option value="" {% if sobj['obj-uv'] is not defined or sobj['obj-uv'] in ['', 'none'] %}selected{% endif %}>— none
                     —
                 </option>
                 {% for tab in tabs %}
@@ -49,7 +49,7 @@
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-uv'] and tab_id|string == sobj['obj-uv']|string %}selected{% endif %}>
+                            {% if sobj['obj-uv'] is defined and tab_id|string == sobj['obj-uv']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}
@@ -60,7 +60,7 @@
             {% set col_val = sobj.get('obj-colour') if sobj is defined else '' %}
             <select id="obj-colour{{ loop_index }}_{{ series_index }}" class="form-control obj-colour">
                 <option value=""
-                        {% if not sobj['obj-colour'] or sobj['obj-colour'] in ['', 'none'] %}selected{% endif %}>— none
+                        {% if sobj['obj-colour'] is not defined or sobj['obj-colour'] in ['', 'none'] %}selected{% endif %}>— none
                     —
                 </option>
                 {% for tab in tabs %}
@@ -68,7 +68,7 @@
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-colour'] and tab_id|string == sobj['obj-colour']|string %}selected{% endif %}>
+                            {% if sobj['obj-colour'] is defined and tab_id|string == sobj['obj-colour']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}

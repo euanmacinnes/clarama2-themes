@@ -11,7 +11,23 @@ function bChart3d(chart_id, chart_data) {
     var canvas = $('#c_' + chart_id).get(0);
     console.log('bChart3d canvas: ', canvas);
 
+    // Build axis configuration from config (GraphScaler-compatible: original and graph bounds)
+    function toNum(v) {
+        if (v === undefined || v === null || v === '') return undefined;
+        var n = parseFloat(v);
+        return isFinite(n) ? n : undefined;
+    }
+
+    var axisCfg = config['axis'] || {};
+    var axisConfig = {
+        titles: axisCfg['titles'] || {},
+        orig_bounds: axisCfg['orig_bounds'] || {},
+        graph_bounds: axisCfg['graph_bounds'] || axisCfg['orig_bounds'] || {}
+    };
+
+    console.log('bChart3d axisConfig: ', axisConfig);
     canvas.setAttribute("datasets", datasets);
-    canvas.setAttribute("primitives", dfDictToArrayOfDicts(s_objects));
-    initCube(canvas, datasets, s_objects, exampleAxisConfig)
+    const primArray = dfDictToArrayOfDicts(s_objects);
+    canvas.setAttribute("primitives", primArray);
+    initCube(canvas, datasets, primArray, axisConfig)
 }

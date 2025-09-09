@@ -130,9 +130,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
     // Axis titles (from axisConfig or data-* if present)
     const AXIS_TITLE = {
-        x: (axisConfig.titleX || (axisConfig.x && axisConfig.x.title) || canvas.dataset.axisX || "X"),
-        y: (axisConfig.titleY || (axisConfig.y && axisConfig.y.title) || canvas.dataset.axisY || "Y"),
-        z: (axisConfig.titleZ || (axisConfig.z && axisConfig.z.title) || canvas.dataset.axisZ || "Z")
+        x: ((axisConfig.titles && axisConfig.titles.x) || "X"),
+        y: ((axisConfig.titles && axisConfig.titles.y) || "Y"),
+        z: ((axisConfig.titles && axisConfig.titles.z) || "Z")
     };
 
     // Axis ranges (min/max) from axisConfig or data-*
@@ -141,30 +141,48 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         return isFinite(n) ? n : null;
     }
 
-    const AXIS_RANGE = {
+    // Separate ranges:
+    // - GRAPH_RANGE controls the physical size of the rendered axes (cube extent)
+    // - LABEL_RANGE controls the numeric values written on the axes (tick labels)
+    const GRAPH_RANGE = {
         x: {
-            min: (axisConfig.minX ?? (axisConfig.x && axisConfig.x.min) ?? parseNum(canvas.dataset.axisXMin)),
-            max: (axisConfig.maxX ?? (axisConfig.x && axisConfig.x.max) ?? parseNum(canvas.dataset.axisXMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.x && axisConfig.graph_bounds.x[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.x && axisConfig.graph_bounds.x[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[1]) ?? undefined,
         },
         y: {
-            min: (axisConfig.minY ?? (axisConfig.y && axisConfig.y.min) ?? parseNum(canvas.dataset.axisYMin)),
-            max: (axisConfig.maxY ?? (axisConfig.y && axisConfig.y.max) ?? parseNum(canvas.dataset.axisYMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.y && axisConfig.graph_bounds.y[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.y && axisConfig.graph_bounds.y[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[1]) ?? undefined,
         },
         z: {
-            min: (axisConfig.minZ ?? (axisConfig.z && axisConfig.z.min) ?? parseNum(canvas.dataset.axisZMin)),
-            max: (axisConfig.maxZ ?? (axisConfig.z && axisConfig.z.max) ?? parseNum(canvas.dataset.axisZMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.z && axisConfig.graph_bounds.z[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.z && axisConfig.graph_bounds.z[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[1]) ?? undefined,
         }
     };
 
-    function hasRange(axis) {
-        const r = AXIS_RANGE[axis];
+    const LABEL_RANGE = {
+        x: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[1]) ?? undefined,
+        },
+        y: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[1]) ?? undefined,
+        },
+        z: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[1]) ?? undefined,
+        }
+    };
+
+    function hasLabelRange(axis) {
+        const r = LABEL_RANGE[axis];
         return r && typeof r.min === 'number' && typeof r.max === 'number' && r.max !== r.min;
     }
 
     function mapToLabel(axis, t) {
-        // Map internal coordinate t in [-Laxis, Laxis] to [min,max] if provided for that axis
-        if (!hasRange(axis)) return t;
-        const r = AXIS_RANGE[axis];
+        // Map internal coordinate t in [-Laxis, Laxis] to [min,max] from LABEL_RANGE if provided
+        if (!hasLabelRange(axis)) return t;
+        const r = LABEL_RANGE[axis];
         const Laxis = axis === 'x' ? axisLenX : (axis === 'y' ? axisLenY : axisLenZ);
         const u = (t + Laxis) / (2 * Laxis); // 0..1
         return r.min + u * (r.max - r.min);
@@ -285,13 +303,13 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         u_tex: gl.getUniformLocation(progTrisTex, "u_tex"),
     };
 
-    // Axis half-extent per axis. If AXIS_RANGE provides numeric min/max, fit [-L,L] to [min,max]
-    // and choose L = max(|min|, |max|) so that 0 is always visible and proportions remain reasonable.
-    // Fallback to 3.0 when no range is provided.
+    // Axis half-extent per axis. If GRAPH_RANGE provides numeric min/max, fit [-L,L] to [min,max]
+    // and choose L = (max - min)/2 for physical size of the cube. Fallback to 3.0 when no range is provided.
+    // Note: LABEL_RANGE controls tick label values separately.
     const defaultAxisLen = 3.0;
 
     function axisHalfExtentFor(axis) {
-        const r = AXIS_RANGE[axis];
+        const r = GRAPH_RANGE[axis];
         if (r && typeof r.min === 'number' && typeof r.max === 'number') {
             const span = r.max - r.min;
             const L = Math.abs(span) / 2;
@@ -807,7 +825,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 const vertsRaw = getDS(prim['obj-vertices']);
                 const edgesRaw = getDS(prim['obj-edges']);
                 const uvRaw = getDS(prim['obj-uv']);
-                const colRaw = getDS(prim['obj-color']);
+                const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
 
                 const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
                 const edges = toFloat32(edgesRaw, ['x', 'y', 'z']); // positions for lines

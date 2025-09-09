@@ -144,6 +144,33 @@ function get_data_cell(cell) {
     var chart3d_title = cell.find('.chart3d-title').val();
     var chart3d_legend = cell.find('.chart3d-legend').val();
 
+    // Axis titles and bounds (optional)
+    var chart3d_axis_title_x = cell.find('.chart3d-axis-title-x').val();
+    var chart3d_axis_title_y = cell.find('.chart3d-axis-title-y').val();
+    var chart3d_axis_title_z = cell.find('.chart3d-axis-title-z').val();
+    var chart3d_axis_min_x = cell.find('.chart3d-axis-min-x').val();
+    var chart3d_axis_max_x = cell.find('.chart3d-axis-max-x').val();
+    var chart3d_axis_min_y = cell.find('.chart3d-axis-min-y').val();
+    var chart3d_axis_max_y = cell.find('.chart3d-axis-max-y').val();
+    var chart3d_axis_min_z = cell.find('.chart3d-axis-min-z').val();
+    var chart3d_axis_max_z = cell.find('.chart3d-axis-max-z').val();
+
+    // Graph bounds (optional, override display range)
+    var chart3d_graph_min_x = cell.find('.chart3d-graph-min-x').val();
+    var chart3d_graph_max_x = cell.find('.chart3d-graph-max-x').val();
+    var chart3d_graph_min_y = cell.find('.chart3d-graph-min-y').val();
+    var chart3d_graph_max_y = cell.find('.chart3d-graph-max-y').val();
+    var chart3d_graph_min_z = cell.find('.chart3d-graph-min-z').val();
+    var chart3d_graph_max_z = cell.find('.chart3d-graph-max-z').val();
+
+    // Tick configuration (optional)
+    var chart3d_tick_step_x = cell.find('.chart3d-tick-step-x').val();
+    var chart3d_tick_step_y = cell.find('.chart3d-tick-step-y').val();
+    var chart3d_tick_step_z = cell.find('.chart3d-tick-step-z').val();
+    var chart3d_tick_size_x = cell.find('.chart3d-tick-size-x').val();
+    var chart3d_tick_size_y = cell.find('.chart3d-tick-size-y').val();
+    var chart3d_tick_size_z = cell.find('.chart3d-tick-size-z').val();
+
     // Chart advanced YAML
     var chart3d_advanced = cell.find('.chart3d-advanced');
     var editor3d = ace.edit(chart3d_advanced.attr('id'));
@@ -249,8 +276,47 @@ function get_data_cell(cell) {
         'title': chart3d_title,
         'legend': chart3d_legend,
         'advanced': chart3d_advanced_yaml,
-        'series-objects': chart3d_series_objs
+        'series-objects': chart3d_series_objs,
+        // Axis config (GraphScaler-compatible)
+        'axis': {
+            'titles': { x: chart3d_axis_title_x, y: chart3d_axis_title_y, z: chart3d_axis_title_z },
+            'orig_bounds': {
+                x: [chart3d_axis_min_x !== '' ? parseFloat(chart3d_axis_min_x) : undefined,
+                    chart3d_axis_max_x !== '' ? parseFloat(chart3d_axis_max_x) : undefined],
+                y: [chart3d_axis_min_y !== '' ? parseFloat(chart3d_axis_min_y) : undefined,
+                    chart3d_axis_max_y !== '' ? parseFloat(chart3d_axis_max_y) : undefined],
+                z: [chart3d_axis_min_z !== '' ? parseFloat(chart3d_axis_min_z) : undefined,
+                    chart3d_axis_max_z !== '' ? parseFloat(chart3d_axis_max_z) : undefined]
+            },
+            'graph_bounds': {
+                x: [chart3d_graph_min_x !== '' ? parseFloat(chart3d_graph_min_x) : undefined,
+                    chart3d_graph_max_x !== '' ? parseFloat(chart3d_graph_max_x) : undefined],
+                y: [chart3d_graph_min_y !== '' ? parseFloat(chart3d_graph_min_y) : undefined,
+                    chart3d_graph_max_y !== '' ? parseFloat(chart3d_graph_max_y) : undefined],
+                z: [chart3d_graph_min_z !== '' ? parseFloat(chart3d_graph_min_z) : undefined,
+                    chart3d_graph_max_z !== '' ? parseFloat(chart3d_graph_max_z) : undefined]
+            }
+        }
     }
+
+    // Inject tick configuration if provided
+    if (!chart3d.axis) chart3d.axis = {};
+    var ticks = {};
+    if (chart3d_tick_step_x !== '') {
+        ticks.x = ticks.x || {}; ticks.x.step = parseFloat(chart3d_tick_step_x);
+    }
+    if (chart3d_tick_step_y !== '') {
+        ticks.y = ticks.y || {}; ticks.y.step = parseFloat(chart3d_tick_step_y);
+    }
+    if (chart3d_tick_step_z !== '') {
+        ticks.z = ticks.z || {}; ticks.z.step = parseFloat(chart3d_tick_step_z);
+    }
+    if (Object.keys(ticks).length > 0) {
+        chart3d.axis.ticks = ticks;
+    }
+    if (chart3d_tick_size_x !== '') chart3d.axis.tickSizeX = parseFloat(chart3d_tick_size_x);
+    if (chart3d_tick_size_y !== '') chart3d.axis.tickSizeY = parseFloat(chart3d_tick_size_y);
+    if (chart3d_tick_size_z !== '') chart3d.axis.tickSizeZ = parseFloat(chart3d_tick_size_z);
 
     var table = {
         'title': table_title,
