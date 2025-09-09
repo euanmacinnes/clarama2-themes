@@ -404,8 +404,12 @@
                                 <td>
                                     <div class="input-group input-group-sm col-field-container">
                                         {% set field_path = col.get('field','') %}
-                                        <input type="text" class="form-control col-field" placeholder="pick a .field.yaml" value="{{ field_path }}">
-                                        <button type="button" class="btn btn-outline-secondary browse-col-field" title="Browse .field.yaml" data-bs-toggle="modal" data-bs-target="#browseFileModal" filters="*.field.yaml"><i class="bi bi-folder2-open"></i></button>
+                                        <input type="text" class="form-control col-field browse-field"
+                                               placeholder="pick a .field.yaml" value="{{ field_path }}">
+                                        <button type="button" class="btn btn-outline-secondary browse-col-field"
+                                                title="Browse .field.yaml" data-bs-toggle="modal"
+                                                data-bs-target="#browseFileModal" filters="*.field.yaml"><i
+                                                class="bi bi-folder2-open"></i></button>
                                     </div>
                                 </td>
                                 <td>
@@ -434,8 +438,12 @@
                                 <td><input type="text" class="form-control col-options" value=""></td>
                                 <td>
                                     <div class="input-group input-group-sm col-field-container">
-                                        <input type="text" class="form-control col-field" placeholder="pick a .field.yaml" value="">
-                                        <button type="button" class="btn btn-outline-secondary browse-col-field" title="Browse .field.yaml" data-bs-toggle="modal" data-bs-target="#browseFileModal" filters="*.field.yaml"><i class="bi bi-folder2-open"></i></button>
+                                        <input type="text" class="form-control col-field"
+                                               placeholder="pick a .field.yaml" value="">
+                                        <button type="button" class="btn btn-outline-secondary browse-col-field"
+                                                title="Browse .field.yaml" data-bs-toggle="modal"
+                                                data-bs-target="#browseFileModal" filters="*.field.yaml"><i
+                                                class="bi bi-folder2-open"></i></button>
                                     </div>
                                 </td>
                                 <td>
