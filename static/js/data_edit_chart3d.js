@@ -597,39 +597,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     // ---------- compile generalized primitives ---------------------------------
     const compiled = [];
 
-    function createCheckerTextureGL(size = 64, squares = 8) {
-        const tex = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-
-        const pixels = new Uint8Array(size * size * 4);
-        const step = size / squares;
-
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                const idx = (y * size + x) * 4;
-                const cx = Math.floor(x / step);
-                const cy = Math.floor(y / step);
-                const on = (cx + cy) % 2 === 0;
-                const v = on ? 230 : 40;
-                pixels[idx + 0] = v;
-                pixels[idx + 1] = v;
-                pixels[idx + 2] = v;
-                pixels[idx + 3] = 255;
-            }
-        }
-
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        return tex;
-    }
-
-    // Build a default checker texture once
-    const checkerTex = createCheckerTextureGL(64, 8);
-
     // Texture cache and async loader for URL-based textures
     const textureCache = new Map(); // url -> WebGLTexture | {loading:true, tex:WebGLTexture}
 
@@ -638,10 +605,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     function getOrLoadTexture(url, onLoaded) {
-        if (!url) return checkerTex;
+        if (!url) return;
         const cached = textureCache.get(url);
         if (cached && cached !== 'loading') return cached;
-        if (cached === 'loading') return checkerTex;
+        if (cached === 'loading') return;
         // mark as loading
         textureCache.set(url, 'loading');
 
@@ -672,24 +639,19 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 requestAnimationFrame(render);
             } catch (e) {
                 console.warn('Failed to upload texture image', url, e);
-                textureCache.set(url, checkerTex);
-                if (typeof onLoaded === 'function') onLoaded(checkerTex);
                 requestAnimationFrame(render);
             }
         };
         img.onerror = () => {
             console.warn('Failed to load texture URL:', url);
-            textureCache.set(url, checkerTex);
-            if (typeof onLoaded === 'function') onLoaded(checkerTex);
             requestAnimationFrame(render);
         };
         try {
             img.src = url;
         } catch (e) {
             console.warn('Invalid texture URL:', url, e);
-            textureCache.set(url, checkerTex);
         }
-        return checkerTex;
+        return;
     }
 
     // Helper: convert df_to_dict-like data using specified column names into a flat Float32Array
@@ -900,9 +862,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     continue;
                 }
 
-                // If this primitive uses texturing and provides a texture URL, load it now (fallback to checker while loading)
+                // If this primitive uses texturing and provides a texture URL, load it now
                 let textureUrl = prim['obj-texture-absolute'];
-                let initialTexture = checkerTex;
+                let initialTexture;
                 if (usesTex && textureUrl) {
                     flash("Loading texture " + textureUrl);
                     initialTexture = getOrLoadTexture(textureUrl, (tex) => {
