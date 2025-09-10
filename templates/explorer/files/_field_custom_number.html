@@ -1,0 +1,22 @@
+{# Custom options for number fields #}
+<div class="row g-3">
+  <div class="col-md-4">
+    <label class="form-label">Unit</label>
+    <input id="num_unit" name="num_unit" type="text" class="form-control clarama-field clarama-delay-field" value="{{ get(field_config,'unit','') }}">
+    <div class="form-text">Optional display unit (e.g., kg, %).</div>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Decimals</label>
+    <input id="num_decimals" name="num_decimals" type="number" class="form-control clarama-field clarama-delay-field" value="{{ get(field_config,'decimals','') }}">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Thousand Separator</label>
+    <select id="num_thousands" name="num_thousands" class="form-select clarama-field clarama-delay-field">
+      {% set sep = get(field_config,'thousands',',') %}
+      <option value="," {% if sep==',' %}selected{% endif %}>, (comma)</option>
+      <option value="." {% if sep=='.' %}selected{% endif %}>. (dot)</option>
+      <option value=" " {% if sep==' ' %}selected{% endif %}>space</option>
+      <option value="" {% if sep=='' %}selected{% endif %}>None</option>
+    </select>
+  </div>
+</div>

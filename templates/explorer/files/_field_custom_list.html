@@ -1,0 +1,124 @@
+{# Custom Data (List Columns) extracted from field_edit.html #}
+{%- set raw_cols = (data_cfg.get('columns') if data_cfg and ('columns' in data_cfg) else []) -%}
+{%- set columns_list = [] -%}
+{%- if raw_cols is mapping -%}
+    {%- for ck, cv in raw_cols.items() -%}
+        {%- if cv is mapping %}
+            {%- set _type = cv.get('type','string') -%}
+            {%- set _name = cv.get('name', ck) -%}
+            {%- set _opts = cv.get('options') or (cv.get('data',{}).get('options') if cv.get('data') else None) -%}
+            {%- do columns_list.append({'key': ck, 'name': _name, 'type': _type, 'options': _opts}) -%}
+        {%- else -%}
+            {%- do columns_list.append({'key': ck, 'name': ck, 'type': cv or 'string'}) -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- elif raw_cols is sequence and raw_cols is not string -%}
+    {%- for item in raw_cols -%}
+        {%- if item is mapping -%}
+            {%- set _key = item.get('key') or item.get('name') or 'col' ~ loop.index -%}
+            {%- set _name = item.get('name', _key) -%}
+            {%- set _type = item.get('type','string') -%}
+            {%- set _opts = item.get('options') or (item.get('data',{}).get('options') if item.get('data') else None) -%}
+            {%- do columns_list.append({'key': _key, 'name': _name, 'type': _type, 'options': _opts}) -%}
+        {%- else -%}
+            {%- do columns_list.append({'key': item|string, 'name': item|string, 'type': 'string'}) -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endif -%}
+
+<div id="custom-data" class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="form-text mt-2">Define the columns for your list. Each column must have a unique key.
+            For select-type columns, you can provide options (comma-separated).
+        </div>
+        <label class="form-label m-0">List Columns</label>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add-column-row"><i
+                class="bi bi-plus-lg me-1"></i>Add Column
+        </button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle" id="custom-columns-table">
+            <thead>
+            <tr>
+                <th style="width: 16%">Key</th>
+                <th style="width: 20%">Name</th>
+                <th style="width: 14%">Type</th>
+                <th>Options (comma-separated)</th>
+                <th style="width: 22%">Field YAML (for file type)</th>
+                <th style="width: 48px"></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for col in columns_list %}
+                <tr>
+                    <td><input type="text" class="form-control col-key" value="{{ col.get('key','') }}">
+                    </td>
+                    <td><input type="text" class="form-control col-name" value="{{ col.get('name','') }}">
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm col-type">
+                            {% set types = ['string','number','checkbox','select','select_multiple','date','time','datetime','file'] %}
+                            {% for t in types %}
+                                <option value="{{ t }}"
+                                        {% if (col.get('type','string')|lower) == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control col-options" value="
+                            {% if col.get('options') %}{{ (col.get('options')|join(', ')) }}{% endif %}">
+                    </td>
+                    <td>
+                        <div class="input-group input-group-sm col-field-container">
+                            {% set field_path = col.get('field','') %}
+                            <input type="text" class="form-control col-field browse-field"
+                                   placeholder="pick a .field.yaml" value="{{ field_path }}">
+                            <button type="button" class="btn btn-outline-secondary browse-col-field"
+                                    title="Browse .field.yaml" data-bs-toggle="modal"
+                                    data-bs-target="#browseFileModal" filters="*.field.yaml"><i
+                                    class="bi bi-folder2-open"></i></button>
+                        </div>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-column"><i
+                                class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            {% endfor %}
+            {% if columns_list|length == 0 %}
+                <tr>
+                    <td><input type="text" class="form-control col-key" value=""></td>
+                    <td><input type="text" class="form-control col-name" value=""></td>
+                    <td>
+                        <select class="form-select form-select-sm col-type">
+                            <option value="string" selected>string</option>
+                            <option value="number">number</option>
+                            <option value="checkbox">checkbox</option>
+                            <option value="select">select</option>
+                            <option value="select_multiple">select_multiple</option>
+                            <option value="date">date</option>
+                            <option value="time">time</option>
+                            <option value="datetime">datetime</option>
+                            <option value="file">file</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control col-options" value=""></td>
+                    <td>
+                        <div class="input-group input-group-sm col-field-container">
+                            <input type="text" class="form-control col-field"
+                                   placeholder="pick a .field.yaml" value="">
+                            <button type="button" class="btn btn-outline-secondary browse-col-field"
+                                    title="Browse .field.yaml" data-bs-toggle="modal"
+                                    data-bs-target="#browseFileModal" filters="*.field.yaml"><i
+                                    class="bi bi-folder2-open"></i></button>
+                        </div>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-column"><i
+                                class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
