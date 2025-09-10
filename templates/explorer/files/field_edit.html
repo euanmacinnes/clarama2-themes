@@ -525,7 +525,7 @@
             }
             // Render custom options dynamically
             renderCustomPane(key);
-            schedule_update_preview();
+            schedule_update_preview(false, undefined, 'field type changed');
         });
 
         // Any field change (including dependency dropdowns rendered with .clarama-field) triggers preview refresh
@@ -542,14 +542,14 @@
                 }
             } catch (err) { /* ignore and fall through to update */
             }
-            schedule_update_preview();
+            schedule_update_preview(false, e, 'field form changed');
         });
         // React to editor changes as well
         try {
             var queryEditor = ace.edit('field_data_query');
             queryEditor.session.on('change', function (e) {
                 // Editor is outside preview containers; safe to refresh
-                schedule_update_preview();
+                schedule_update_preview(false, undefined, 'query editor changed');
             });
             // Quick insert handler
             $(document).on('click', '#gfe_insert', function () {
@@ -666,7 +666,7 @@
             if (this.checked) {
                 $("#manual-data").show();
                 $("#remote-data").hide();
-                schedule_update_preview();
+                schedule_update_preview(false, undefined, 'data mode: manual');
             }
         });
         $("#data-mode-remote").on('change', function () {
@@ -686,7 +686,7 @@
         });
         $(document).on('click', '.remove-option', function () {
             $(this).closest('tr').remove();
-            schedule_update_preview();
+            schedule_update_preview(false, undefined, 'manual option removed');
         });
 
         // Custom columns add/remove
@@ -715,15 +715,15 @@
                 </td>
                 <td><button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-column\"><i class=\"bi bi-trash\"></i></button></td>
             </tr>`);
-            schedule_update_preview();
+            schedule_update_preview(false, undefined, 'column added');
         });
         $(document).on('click', '.remove-column', function () {
             $(this).closest('tr').remove();
-            schedule_update_preview();
+            schedule_update_preview(false, undefined, 'column removed');
         });
         // React to edits in columns table to update preview/warning
         $(document).on('input change', '#custom-columns-table input, #custom-columns-table select', function () {
-            schedule_update_preview();
+            schedule_update_preview(false, undefined, 'columns edited');
         });
 
         // Dependencies add/remove
@@ -779,7 +779,7 @@
                 arr.push($(this).text());
             });
             $("#dependencies-json").val(JSON.stringify(arr));
-            schedule_update_preview(true);
+            schedule_update_preview(true, undefined, 'dependencies list changed');
         }
 
         // Remote data preview: fetch via same API used by select2 and render with bootstrap-table below the editor
@@ -987,7 +987,7 @@
 
         // Initial render of custom pane and preview
         renderCustomPane(key);
-        schedule_update_preview(true);
+        schedule_update_preview(true, undefined, 'initial render');
     });
 
     function build_data_json() {
