@@ -15,22 +15,22 @@ function gina_kernel_registered(kernel_id) {
 
 // THIS WILL BE CALLED ON MESSAGE RECEIVED TO PROCESS CUSTOM MESSAGES
 function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
-    return dict;
     // the main websocket decodes the event as a dict straight away, so we can process it here
 
     // 1) Handshake → unlock inputs
     if (dict && dict.type === "ai_user_input") {
-        console.log("GINA handshake received.");
+        console.log("GINA user input requested.");
         window.__ginaHandshakeDone = true;
         window.waitingForAiUserInput = false;
-        window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+        window.__ginaSetInputsEnabled(true, "Type your question.");
         return;
     }
 
     // 2) Answer (either a welcome/system message OR a reply to the user's turn)
-    if (dict && dict["class"] === "template" && dict["type"] === "task_step_result") {
-        const reply = html_decode(dict.values.output[0]);
-        console.log('reply: ', reply)
+    if (dict && dict["type"] === "task_llm_result") {
+        const outputs = (dict.values && dict.values.output) ? dict.values.output : [];
+        const chunk = html_decode(outputs.join(""));
+        const isFinal = !!(dict.values && dict.values.final);
         const container = document.getElementById("gina-chat-container");
 
         // If there is NO block currently processing, this is a system/welcome reply.
@@ -55,33 +55,76 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         const out = block?.querySelector(".gina-output");
         const outContainer = block?.querySelector(".gina-output-container");
         if (outContainer) outContainer.style.display = "block";
-        if (out) {
-            out.classList.remove("loading");
-            out.style.whiteSpace = "pre-wrap";
-            out.textContent = reply || "";
+
+        // Helper: escape HTML
+        function escHtml(s) {
+            return (s || "").replace(/[&<>\"']/g, (c) => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[c]));
         }
 
-        // User turn is "finalized" only if the block is in chat mode (we replaced the textarea with a user bubble)
-        const isFinalizedUserTurn =
-            block?.classList.contains("chat-mode") ||
-            !!block?.querySelector(".gina-input-wrapper.finalized");
-
-        if (isFinalizedUserTurn) {
-            block.classList.remove("processing");
-            window.__ginaClearProcessingGuard && window.__ginaClearProcessingGuard();
-            window.__ginaSetProcessingState && window.__ginaSetProcessingState(false);
-
-            // Clear the active reference before moving it away
-            if (window.__ginaGetActiveBlock && block === window.__ginaGetActiveBlock()) {
-                window.__ginaSetActiveBlock && window.__ginaSetActiveBlock(null);
-                window.__ginaActiveTurnId = null;
+        // Minimal markdown-ish formatting: code fences, links, paragraphs/line breaks
+        function renderLLM(text) {
+            const safe = String(text || "");
+            const parts = safe.split(/```/g);
+            let html = "";
+            for (let i = 0; i < parts.length; i++) {
+                const segment = parts[i];
+                if (i % 2 === 1) {
+                    // code fence block
+                    html += `<pre class="ginacode"><code>${escHtml(segment)}</code></pre>`;
+                } else {
+                    // normal text: escape then linkify and break lines
+                    let t = escHtml(segment);
+                    // linkify http(s)
+                    t = t.replace(/(https?:\/\/[^\s)]+)(\)?)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>$2');
+                    // simple paragraphs: two newlines -> paragraph
+                    t = t.replace(/\n\n+/g, '</p><p>');
+                    // single newline -> <br>
+                    t = t.replace(/\n/g, '<br>');
+                    if (t.trim().length) html += `<p>${t}</p>`; else html += t;
+                }
             }
+            return html;
+        }
 
-            window.__ginaMoveBlockToHistory && window.__ginaMoveBlockToHistory(block);
-            window.__ginaSpawnNext && window.__ginaSpawnNext();
-        } else {
-            // Welcome/system message — keep the composer in place
-            window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+        if (out) {
+            out.classList.remove("loading");
+            out.style.whiteSpace = "normal"; // use HTML rendering
+            // Accumulate buffer for streaming
+            const prev = out.__streamBuffer || "";
+            const next = prev + (chunk || "");
+            out.__streamBuffer = next;
+            out.innerHTML = renderLLM(next);
+        }
+
+        // If final chunk received, finalize the block and UI state
+        if (isFinal) {
+            const isFinalizedUserTurn =
+                block?.classList.contains("chat-mode") ||
+                !!block?.querySelector(".gina-input-wrapper.finalized");
+
+            if (isFinalizedUserTurn) {
+                block.classList.remove("processing");
+                window.__ginaClearProcessingGuard && window.__ginaClearProcessingGuard();
+                window.__ginaSetProcessingState && window.__ginaSetProcessingState(false);
+
+                // Clear the active reference before moving it away
+                if (window.__ginaGetActiveBlock && block === window.__ginaGetActiveBlock()) {
+                    window.__ginaSetActiveBlock && window.__ginaSetActiveBlock(null);
+                    window.__ginaActiveTurnId = null;
+                }
+
+                window.__ginaMoveBlockToHistory && window.__ginaMoveBlockToHistory(block);
+                window.__ginaSpawnNext && window.__ginaSpawnNext();
+            } else {
+                // Welcome/system message — keep the composer in place
+                window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+            }
         }
 
         window.__ginaCheckDocking && window.__ginaCheckDocking();
@@ -124,7 +167,7 @@ function runQuestionThroughKernel(questionText, forBlock) {
 
         const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
         const task_registry = {
-            streams: [{ main: [{ source: questionText, type: "question" }] }],
+            streams: [{main: [{source: questionText, type: "question"}]}],
             parameters: field_registry
         };
 
@@ -194,7 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ginaContainer.classList.remove("mode-floating");
         syncMainCollapse();
         // Once docked, the page is the only scroller
-        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+        window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
     }
 
     function checkDocking() {
@@ -246,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function stickHistoryToBottom() {
         if (ginaContainer.classList.contains("mode-docked")) {
-            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+            window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
         } else {
             // when floating, keep as-is; no inner scrolling needed
         }
@@ -322,7 +365,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return oneLineH;
     }
 
-    function autoSize(el, { expandFully = false } = {}) {
+    function autoSize(el, {expandFully = false} = {}) {
         if (!el) return;
 
         const scope = el.closest("#gina-chat-container") || document.documentElement;
@@ -548,7 +591,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.__ginaHandshakeSent = true;
                 window.waitingForAiUserInput = true;
                 window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(false, "GINA is getting ready...");
-                runQuestionThroughKernel("");
+                runQuestionThroughKernel("/init");
             }
             const open = ginaContainer.classList.contains("active");
             if (!open) {
@@ -658,7 +701,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     reject(new Error("Timeout waiting for block to render"));
                 }
             });
-            mo.observe(ginaContainer, { childList: true, subtree: true });
+            mo.observe(ginaContainer, {childList: true, subtree: true});
             setTimeout(() => {
                 mo.disconnect();
                 if (!tryFind()) reject(new Error("Timeout waiting for block to render"));
@@ -728,6 +771,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function setInputsEnabled(enabled, placeholderText = "Type your question...") {
+        flash("GINA Inputs");
         const inputs = ginaContainer.querySelectorAll(".gina-input");
         inputs.forEach((inp) => {
             if (enabled) {
@@ -756,7 +800,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
-    __ginaObserver.observe(historyHost, { childList: true, subtree: true });
+    __ginaObserver.observe(historyHost, {childList: true, subtree: true});
 
     // --- Delegated events (latest + history) ---------------------------------
     ginaContainer.addEventListener("input", (e) => {
@@ -802,7 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isListening) stopListening();
 
         // Expand fully so the full message height is captured, then render bubble
-        autoSize(input, { expandFully: true });
+        autoSize(input, {expandFully: true});
 
         const userBubble = document.createElement("div");
         userBubble.className = "gina-msg user";
@@ -861,8 +905,8 @@ document.addEventListener("DOMContentLoaded", () => {
         for (const b of blocks) {
             const q = b.querySelector(".gina-msg.user")?.textContent?.trim();
             const a = b.querySelector(".gina-output")?.textContent?.trim();
-            if (q) turns.push({ role: "user", content: q });
-            if (a) turns.push({ role: "assistant", content: a });
+            if (q) turns.push({role: "user", content: q});
+            if (a) turns.push({role: "assistant", content: a});
         }
 
         // 2) Also include the latest block if it's in chat mode
@@ -871,8 +915,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const q = latest.querySelector(".gina-msg.user")?.textContent?.trim();
             const a = latest.querySelector(".gina-output")?.textContent?.trim();
             if (q) {
-                turns.push({ role: "user", content: q });
-                if (a) turns.push({ role: "assistant", content: a });
+                turns.push({role: "user", content: q});
+                if (a) turns.push({role: "assistant", content: a});
             }
         }
         return turns;
@@ -893,18 +937,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ginaNewChatBtn?.addEventListener("click", async (e) => {
         e.preventDefault();
-      
+
         // Force floating mode
         ginaContainer.classList.add("active", "mode-floating");
         ginaContainer.classList.remove("mode-docked");
-      
+
         // Hide & collapse the page content while floating
         mainContent?.classList.add("hidden", "collapsed");
-      
+
         // Ensure CSS vars and layout are up to date
         setNavbarOffsetVar();
         requestAnimationFrame(checkDocking);
-      
+
         await resetConversation();
         const firstInput = document.querySelector("#gina-latest .gina-input");
         if (firstInput) firstInput.focus();

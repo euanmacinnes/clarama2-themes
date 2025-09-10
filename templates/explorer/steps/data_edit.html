@@ -53,7 +53,7 @@
             <!-- Toggle buttons -->
             <div class="d-flex flex-wrap align-items-center">
                 <div class="flex-grow-1">
-                    <ul class="nav nav-tabs gap-1" id="dataSourceTabs" role="tablist">
+                    <ul class="nav nav-tabs gap-1" id="dataSourceTabs_{{ loop_index }}" role="tablist">
                         <div class="nav-item btn-group me-2">
                             <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse" title="output"
                                     data-bs-target="#collapseTableOptions_{{ loop_index }}"
@@ -102,7 +102,7 @@
                         {% endfor %}
 
                         <li class="add-tab-button" role="presentation">
-                            <button id="add-source-tab" type="button" class="nav-link add-source-tab" title="Add tab" data-loop-index="{{ loop_index }}">
+                            <button id="add-source-tab-{{ loop_index }}" type="button" class="nav-link add-source-tab" title="Add tab" data-loop-index="{{ loop_index }}">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </li>
@@ -667,7 +667,7 @@
 
         function updateAllTabDropdowns(loopIndex) {
             const currentTabs = [];
-            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').each(function() {
+            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').each(function() {
                 const $tabButton = $(this);
                 const tabId = $tabButton.attr('id').split('_').pop();
                 
@@ -804,7 +804,7 @@
 
         // --- TAB MANAGEMENT ---
         let tabCounter = 0;
-        const existingTabs = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab');
+        const existingTabs = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab');
 
         let maxExistingTabId = -1;
         existingTabs.each(function() {
@@ -817,9 +817,9 @@
 
         tabCounter = maxExistingTabId + 1;
 
-        const tabsContainer = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs`);
+        const tabsContainer = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex}`);
         const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`);
-        const addSourceTabBtn = $(`#dataEditTabContentContainer_${loopIndex} #add-source-tab`);
+        const addSourceTabBtn = $(`#dataEditTabContentContainer_${loopIndex} #add-source-tab-${loopIndex}`);
 
         function addTabHeader(tabId, isFirst = false) {
             const newTabHeader = document.createElement("li");
@@ -871,7 +871,7 @@
             const tabId = tabCounter++;
             
             // Check if this is the first tab (no existing tabs)
-            const existingTabsCount = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').length;
+            const existingTabsCount = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').length;
             const isFirst = existingTabsCount === 0;
 
             const tabHeader = addTabHeader(tabId, isFirst);
@@ -945,7 +945,7 @@
                 $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
             });
         } else {
-            console.warn(`Add Source Tab button (#add-source-tab) not found for cell ${loopIndex}.`);
+            console.warn(`Add Source Tab button (#add-source-tab-${loopIndex}) not found for cell ${loopIndex}.`);
         }
 
         // --- DYNAMIC TAB NAMING ---
@@ -984,7 +984,7 @@
         function activateTab(tabButton) {
             const $tabButton = $(tabButton);
             const targetContentId = $tabButton.attr('aria-controls');
-            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs .nav-link`).removeClass('active').attr('aria-selected', 'false');
+            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} .nav-link`).removeClass('active').attr('aria-selected', 'false');
             $(`#dataEditTabContentContainer_${loopIndex} .tab-pane`).removeClass('show active');
             $tabButton.addClass('active').attr('aria-selected', 'true');
             $(`#${targetContentId}`).addClass('show active');
@@ -999,11 +999,11 @@
             activateTab(this);
         });
 
-        const $initialActiveTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link.active`);
+        const $initialActiveTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link.active`);
         if ($initialActiveTab.length) {
             // Tab already active
         } else {
-            const $firstTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs button.nav-link`).not('.add-source-tab').first();
+            const $firstTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').first();
             if ($firstTab.length) {
                 activateTab($firstTab[0]);
                 updateAllTabDropdowns(loopIndex);

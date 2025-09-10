@@ -495,6 +495,8 @@ $.fn.enablesocket = function () {
  * @returns {string} Processed text.
  */
 function replace_keys(text, key_dict) {
+    if (text === undefined || text === '' || text === null) return text;
+
     Object.entries(key_dict).forEach(([key, value]) => {
         if (key !== 'array') {
             //console.log('key ' + key);
@@ -577,6 +579,124 @@ function process_template(template_id, substitutions, target_div) {
     }
 }
 
+// ---- Element protocol helpers ----
+function _findElementRootByName(name) {
+    // Prefer elements marked with data-element-name
+    let $root = $("[data-element-name='" + name + "']");
+    if ($root.length === 0) {
+        // Fallback to id selector
+        $root = $("#" + name);
+    }
+    return $root;
+}
+
+function _readFieldValue($field) {
+    if (!$field || $field.length === 0) return null;
+    const type = ($field.attr('type') || '').toLowerCase();
+    const tag = ($field.prop('tagName') || '').toLowerCase();
+
+    if (type === 'checkbox') return $field.prop('checked');
+    if (tag === 'select') return $field.val();
+    return $field.val();
+}
+
+function _writeFieldValue($field, value) {
+    if (!$field || $field.length === 0) return false;
+    const type = ($field.attr('type') || '').toLowerCase();
+    const tag = ($field.prop('tagName') || '').toLowerCase();
+
+    if (type === 'checkbox') {
+        $field.prop('checked', !!value).trigger('change');
+        return true;
+    }
+    if (tag === 'select') {
+        $field.val(value).trigger('change');
+        if ($field.hasClass('select2-hidden-accessible')) {
+            $field.trigger('change.select2');
+        }
+        return true;
+    }
+    $field.val(value).trigger('input').trigger('change');
+    return true;
+}
+
+function _postKernelCode(kernelId, request_id, code, topic) {
+    const url = $CLARAMA_ROOT + $CLARAMA_ENVIRONMENTS_KERNEL_RUN + kernelId;
+    const payload = {
+        streams: [{
+            main: [{
+                type: 'request',
+                topic: topic || '',
+                request_id: request_id,
+                content: code
+            }]
+        }],
+        parameters: {}
+    };
+    return fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+}
+
+function handleElementMessage(dict, socket_div) {
+    const name = dict.name;
+    const action = dict.action;
+    const field = dict.field;
+    const request_id = dict.request_id;
+
+    const kernelId = socket_div.attr('task_kernel_id');
+    const topic = socket_div.attr('topic') || '';
+
+    if (!action) return;
+
+    // Actions that require a named root element
+    const $root = name ? _findElementRootByName(name) : null;
+
+    if (action === 'bind') {
+        // no-op for now; could highlight or verify presence
+        return;
+    }
+
+    if (action === 'set') {
+        if (!$root || $root.length === 0) return;
+        const $field = field ? $root.find("[name='" + field + "']").first() : $root.find('input,select,textarea').first();
+        _writeFieldValue($field, dict.value);
+        return;
+    }
+
+    if (action === 'get') {
+        if (!kernelId) {
+            console.warn('Element get: missing kernel id on socket div');
+            return;
+        }
+        if (!$root || $root.length === 0) return;
+        const $field = field ? $root.find("[name='" + field + "']").first() : $root.find('input,select,textarea').first();
+        const value = _readFieldValue($field);
+
+        _postKernelCode(kernelId, request_id, value, topic);
+        return;
+    }
+
+    if (action === 'list') {
+        if (!kernelId) {
+            console.warn('Element list: missing kernel id on socket div');
+            return;
+        }
+        // Find all elements with class 'clarama-field'
+        const names = [];
+        $('.clarama-field').each(function () {
+            const $el = $(this);
+            const n = $el.attr('data-element-name') || $el.attr('id') || $el.attr('name');
+            if (n) names.push(n);
+        });
+        const unique = Array.from(new Set(names));
+        _postKernelCode(kernelId, request_id, JSON.stringify(unique), topic);
+        return;
+    }
+}
+
 // On receipt of a websocket message from the server. The kernels will send messages of dicts
 // in which one of the keys, "type" indicates the type of message, which then correlates with the HTML template to use
 // to render that message
@@ -596,7 +716,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
     let message_event = socket_div.attr('onmessage');
 
     if (message_event !== undefined) {
-        //console.log("Message event: " + message_event);
+        console.log("Message event: " + message_event, dict);
         dict = window[message_event](dict, socket_url, webSocket, socket_div);
 
         if (dict === undefined)
@@ -615,6 +735,11 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 console.log("WEBSOCKET.js: Received task_interaction_resume message");
                 console.log(dict);
                 handleTaskInteractionResume(dict);
+            }
+
+            if (dict['class'] === 'element') {
+                handleElementMessage(dict, socket_div);
+                return;
             }
 
             if (dict['class'] === "layout") {
@@ -682,7 +807,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 let output_text = dict['values']['output'];
                 let step_id = dict['step_id'];
 
-                console.log("Template message received - Step ID:", step_id, "Output:", output_text);
+                console.log("Template message received - ", dict['type'], "Step ID:", step_id, "Output:", output_text);
 
                 // Extract task index from step_id (assuming format like "step_123")
                 let taskIndex = null;
