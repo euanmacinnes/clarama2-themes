@@ -121,10 +121,10 @@
                 <input id="dependency-file-input" type="text" class="form-control d-none"/>
                 <ul id="dependencies-list" class="list-group">
                     {% for d in deps %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span class="dep-text">{{ d }}</span>
-                            <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i
-                                    class="bi bi-x"></i></button>
+                        <li class="list-group-item d-flex align-items-center dep-item" draggable="true">
+                            <span class="dep-handle bi bi-grip-vertical me-2" title="Drag to reorder" style="cursor: grab;"></span>
+                            <span class="dep-text flex-grow-1">{{ d }}</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i class="bi bi-x"></i></button>
                         </li>
                     {% endfor %}
                 </ul>
@@ -725,7 +725,49 @@
             schedule_update_preview(false, 'columns edited');
         });
 
-        // Dependencies add/remove
+        // Enable drag-and-drop reordering for dependencies
+                function initDependencyDragAndDrop() {
+                    var $list = $("#dependencies-list");
+                    if (!$list.length) return;
+                    // delegate events for dynamically added items
+                    var dragSrcEl = null;
+                    var overAfter = false;
+                    $list.on('dragstart', 'li.dep-item', function(e) {
+                        dragSrcEl = this;
+                        this.classList.add('dragging');
+                        e.originalEvent.dataTransfer.effectAllowed = 'move';
+                        try { e.originalEvent.dataTransfer.setData('text/plain', 'drag'); } catch (ex) {}
+                    });
+                    $list.on('dragend', 'li.dep-item', function() {
+                        this.classList.remove('dragging');
+                        dragSrcEl = null;
+                    });
+                    $list.on('dragover', 'li.dep-item', function(e) {
+                        e.preventDefault(); // allow drop
+                        var rect = this.getBoundingClientRect();
+                        var midpoint = rect.top + rect.height/2;
+                        overAfter = (e.originalEvent.clientY > midpoint);
+                        this.classList.add('drag-over');
+                    });
+                    $list.on('dragleave', 'li.dep-item', function() {
+                        this.classList.remove('drag-over');
+                    });
+                    $list.on('drop', 'li.dep-item', function(e) {
+                        e.preventDefault();
+                        this.classList.remove('drag-over');
+                        if (!dragSrcEl || dragSrcEl === this) return;
+                        if (overAfter) {
+                            this.parentNode.insertBefore(dragSrcEl, this.nextSibling);
+                        } else {
+                            this.parentNode.insertBefore(dragSrcEl, this);
+                        }
+                        update_dependencies_json();
+                    });
+                }
+                // Initialize now and also after modal closes (in case list created later)
+                setTimeout(initDependencyDragAndDrop, 0);
+
+                // Dependencies add/remove
         $("#add-dependency").on('click', function () {
             var val = $("#dependency-file-input").val().trim();
             if (!val) return;
@@ -736,10 +778,11 @@
                 }
             });
             if (!exists) {
-                $("#dependencies-list").append(`<li class=\"list-group-item d-flex justify-content-between align-items-center\">
-                    <span class=\"dep-text\">${val}</span>
-                    <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-dep\"><i class=\"bi bi-x\"></i></button>
-                </li>`);
+                $("#dependencies-list").append(`<li class=\"list-group-item d-flex align-items-center dep-item\" draggable=\"true\">\
+                                    <span class=\"dep-handle bi bi-grip-vertical me-2\" title=\"Drag to reorder\" style=\"cursor: grab;\"></span>\
+                                    <span class=\"dep-text flex-grow-1\">${val}</span>\
+                                    <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-dep\"><i class=\"bi bi-x\"></i></button>\
+                                </li>`);
                 $("#dependency-file-input").val('');
                 update_dependencies_json();
             }
@@ -764,9 +807,10 @@
                 }
             });
             if (!exists) {
-                $("#dependencies-list").append(`<li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span class="dep-text">${val}</span>
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i class="bi bi-x"></i></button>
+                $("#dependencies-list").append(`<li class="list-group-item d-flex align-items-center dep-item" draggable="true">\
+                    <span class="dep-handle bi bi-grip-vertical me-2" title="Drag to reorder" style="cursor: grab;"></span>\
+                    <span class="dep-text flex-grow-1">${val}</span>\
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i class="bi bi-x"></i></button>\
                 </li>`);
                 update_dependencies_json();
             }
