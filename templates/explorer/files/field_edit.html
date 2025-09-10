@@ -1050,7 +1050,7 @@
     }
 
     function schedule_update_preview(markDepsChanged, label, scheduleTime) {
-        if (scheduleTime === undefined || scheduleTime === null) scheduleTime = 4000;
+        if (scheduleTime === undefined || scheduleTime === null) scheduleTime = 2000;
 
         if (scheduleTime > 0) {
             if (_updateTimer) {
@@ -1166,7 +1166,7 @@
                 }
             }
         }
-        
+
         // Now prepare main preview URL, but defer loading until dependencies are loaded
         var mainUrl = "{{ embedded_url(filename=file_url) }}"
             + "?type=" + encodeURIComponent(key)
