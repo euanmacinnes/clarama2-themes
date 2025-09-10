@@ -386,7 +386,9 @@
                     <input id="autocomplete" name="autocomplete" type="text" class="form-control clarama-field"
                            placeholder="on | off | email | username | name | organization | ..."
                            value="{{ get(field_config,'autocomplete','on') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                    <div class="form-text">HTML autocomplete attribute value. Use "off" to disable or a hint like "email".</div>
+                    <div class="form-text">HTML autocomplete attribute value. Use "off" to disable or a hint like
+                        "email".
+                    </div>
                 </div>
 
                 <div class="col">
@@ -1222,13 +1224,13 @@
                 clearTimeout(_updateTimer);
             }
             _updateTimer = setTimeout(function () {
-                flash(label + ":" + scheduleTime + " / " + markDepsChanged);
+                //flash(label + ":" + scheduleTime + " / " + markDepsChanged);
                 var flag = markDepsChanged;
                 _updateTimer = null;
                 update_preview(flag);
             }, scheduleTime);
         } else {
-            flash(label);
+            //flash(label);
             update_preview(markDepsChanged);
         }
 
