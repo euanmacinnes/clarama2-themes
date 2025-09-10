@@ -411,80 +411,135 @@
                     </button>
                 </div>
 
-                <!-- Axis titles and bounds -->
-                <div class="row g-2 align-items-center mt-2">
-                    <div class="col-12 fw-bold">Axes</div>
-                    <!-- X Axis -->
-                    <div class="col-md-2"><label class="form-label mb-0">X Title</label></div>
-                    <div class="col-md-4">
-                        <input type="text" class="form-control chart3d-axis-title-x" placeholder="X axis title"
-                               value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('x', '') }}{% endif %}">
-                    </div>
-                    <div class="col-md-2" style="text-align: right;"><label class="form-label mb-0"  >X Bounds</label></div>
-                    <div class="col-md-2"><input type="number" step="any" class="form-control chart3d-axis-min-x" placeholder="X Min"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('x') or [None, None])[0] or '' }}{% endif %}"></div>
-                    <div class="col-md-2"><input type="number" step="any" class="form-control chart3d-axis-max-x" placeholder="X Max"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('x') or [None, None])[1] or '' }}{% endif %}"></div>
+                <!-- Axis configuration with tabs -->
+                <div class="mt-2">
+                    <ul class="nav nav-tabs" id="chart3dAxisTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="axis-titles-tab" data-bs-toggle="tab" data-bs-target="#axis-titles" type="button" role="tab" aria-controls="axis-titles" aria-selected="true">Titles</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="axis-orig-bounds-tab" data-bs-toggle="tab" data-bs-target="#axis-orig-bounds" type="button" role="tab" aria-controls="axis-orig-bounds" aria-selected="false">Original Bounds</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="axis-graph-bounds-tab" data-bs-toggle="tab" data-bs-target="#axis-graph-bounds" type="button" role="tab" aria-controls="axis-graph-bounds" aria-selected="false">Graph Bounds</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content border-start border-end border-bottom p-3" id="chart3dAxisTabsContent">
+                        <!-- Titles Tab -->
+                        <div class="tab-pane fade show active" id="axis-titles" role="tabpanel" aria-labelledby="axis-titles-tab">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-12 fw-bold">Axis Titles</div>
+                                <!-- X Axis Title -->
+                                <div class="col-md-2"><label class="form-label mb-0">X Title</label></div>
+                                <div class="col-md-10">
+                                    <input type="text" class="form-control chart3d-axis-title-x" placeholder="X axis title"
+                                           value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('x', '') }}{% endif %}">
+                                </div>
+                                <!-- Y Axis Title -->
+                                <div class="col-md-2 mt-2"><label class="form-label mb-0">Y Title</label></div>
+                                <div class="col-md-10 mt-2">
+                                    <input type="text" class="form-control chart3d-axis-title-y" placeholder="Y axis title"
+                                           value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('y', '') }}{% endif %}">
+                                </div>
+                                <!-- Z Axis Title -->
+                                <div class="col-md-2 mt-2"><label class="form-label mb-0">Z Title</label></div>
+                                <div class="col-md-10 mt-2">
+                                    <input type="text" class="form-control chart3d-axis-title-z" placeholder="Z axis title"
+                                           value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('z', '') }}{% endif %}">
+                                </div>
+                            </div>
+                        </div>
 
-                    <!-- Y Axis -->
-                    <div class="col-md-2 mt-2"><label class="form-label mb-0">Y Title</label></div>
-                    <div class="col-md-4 mt-2">
-                        <input type="text" class="form-control chart3d-axis-title-y" placeholder="Y axis title"
-                               value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('y', '') }}{% endif %}">
-                    </div>
-                    <div class="col-md-2 mt-2" style="text-align: right;"><label class="form-label mb-0" style="text-align: right">Y Bounds</label></div>
-                    <div class="col-md-2 mt-2"><input type="number" step="any" class="form-control chart3d-axis-min-y" placeholder="Y Min"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('y') or [None, None])[0] or '' }}{% endif %}"></div>
-                    <div class="col-md-2 mt-2"><input type="number" step="any" class="form-control chart3d-axis-max-y" placeholder="Y Max"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('y') or [None, None])[1] or '' }}{% endif %}"></div>
+                        <!-- Original Bounds Tab -->
+                        <div class="tab-pane fade" id="axis-orig-bounds" role="tabpanel" aria-labelledby="axis-orig-bounds-tab">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-12 fw-bold">Original Bounds</div>
+                                <!-- X Axis -->
+                                <div class="col-md-2"><label class="form-label mb-0">X Bounds</label></div>
+                                <div class="col-md-5">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-min-x" placeholder="X Min"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('x') or [None, None])[0] or '' }}{% endif %}">
+                                        <span class="input-group-text">Max</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-max-x" placeholder="X Max"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('x') or [None, None])[1] or '' }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="col-md-5"></div>
+                                <!-- Y Axis -->
+                                <div class="col-md-2 mt-2"><label class="form-label mb-0">Y Bounds</label></div>
+                                <div class="col-md-5 mt-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-min-y" placeholder="Y Min"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('y') or [None, None])[0] or '' }}{% endif %}">
+                                        <span class="input-group-text">Max</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-max-y" placeholder="Y Max"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('y') or [None, None])[1] or '' }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="col-md-5 mt-2"></div>
+                                <!-- Z Axis -->
+                                <div class="col-md-2 mt-2"><label class="form-label mb-0">Z Bounds</label></div>
+                                <div class="col-md-5 mt-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-min-z" placeholder="Z Min"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('z') or [None, None])[0] or '' }}{% endif %}">
+                                        <span class="input-group-text">Max</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-max-z" placeholder="Z Max"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('z') or [None, None])[1] or '' }}{% endif %}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                    <!-- Z Axis -->
-                    <div class="col-md-2 mt-2"><label class="form-label mb-0">Z Title</label></div>
-                    <div class="col-md-4 mt-2">
-                        <input type="text" class="form-control chart3d-axis-title-z" placeholder="Z axis title"
-                               value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('z', '') }}{% endif %}">
+                        <!-- Graph Bounds Tab -->
+                        <div class="tab-pane fade" id="axis-graph-bounds" role="tabpanel" aria-labelledby="axis-graph-bounds-tab">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-12 fw-bold">Graph Bounds</div>
+                                <!-- X Axis Graph Bounds -->
+                                <div class="col-md-2"><label class="form-label mb-0">X Graph Bounds</label></div>
+                                <div class="col-md-5">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        <input type="number" step="any" class="form-control chart3d-graph-min-x" placeholder="X Graph Min"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('x') or [None, None])[0] or '' }}{% endif %}">
+                                        <span class="input-group-text">Max</span>
+                                        <input type="number" step="any" class="form-control chart3d-graph-max-x" placeholder="X Graph Max"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('x') or [None, None])[1] or '' }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="col-md-5"></div>
+                                <!-- Y Axis Graph Bounds -->
+                                <div class="col-md-2 mt-2"><label class="form-label mb-0">Y Graph Bounds</label></div>
+                                <div class="col-md-5 mt-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        <input type="number" step="any" class="form-control chart3d-graph-min-y" placeholder="Y Graph Min"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('y') or [None, None])[0] or '' }}{% endif %}">
+                                        <span class="input-group-text">Max</span>
+                                        <input type="number" step="any" class="form-control chart3d-graph-max-y" placeholder="Y Graph Max"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('y') or [None, None])[1] or '' }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="col-md-5 mt-2"></div>
+                                <!-- Z Axis Graph Bounds -->
+                                <div class="col-md-2 mt-2"><label class="form-label mb-0">Z Graph Bounds</label></div>
+                                <div class="col-md-5 mt-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        <input type="number" step="any" class="form-control chart3d-graph-min-z" placeholder="Z Graph Min"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('z') or [None, None])[0] or '' }}{% endif %}">
+                                        <span class="input-group-text">Max</span>
+                                        <input type="number" step="any" class="form-control chart3d-graph-max-z" placeholder="Z Graph Max"
+                                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('z') or [None, None])[1] or '' }}{% endif %}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-2 mt-2" style="text-align: right;"><label class="form-label mb-0"  style="text-align: right">Z Bounds</label></div>
-                    <div class="col-md-2 mt-2"><input type="number" step="any" class="form-control chart3d-axis-min-z" placeholder="Z Min"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('z') or [None, None])[0] or '' }}{% endif %}"></div>
-                    <div class="col-md-2 mt-2"><input type="number" step="any" class="form-control chart3d-axis-max-z" placeholder="Z Max"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('z') or [None, None])[1] or '' }}{% endif %}"></div>
-                </div>
-
-                <div class="row g-2 align-items-center mt-2">
-                    <div class="col-12 fw-bold">Graph Bounds</div>
-                    <!-- X Axis Graph Bounds -->
-                    <div class="col-md-2"><label class="form-label mb-0">X Graph</label></div>
-                    <div class="col-md-4">
-                        <div class="form-text text-light">Override display range (optional)</div>
-                    </div>
-                    <div class="col-md-2" style="text-align: right;"><label class="form-label mb-0">X Graph Bounds</label></div>
-                    <div class="col-md-2"><input type="number" step="any" class="form-control chart3d-graph-min-x" placeholder="X Graph Min"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('x') or [None, None])[0] or '' }}{% endif %}"></div>
-                    <div class="col-md-2"><input type="number" step="any" class="form-control chart3d-graph-max-x" placeholder="X Graph Max"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('x') or [None, None])[1] or '' }}{% endif %}"></div>
-
-                    <!-- Y Axis Graph Bounds -->
-                    <div class="col-md-2 mt-2"><label class="form-label mb-0">Y Graph</label></div>
-                    <div class="col-md-4 mt-2">
-                        <div class="form-text text-light">Override display range (optional)</div>
-                    </div>
-                    <div class="col-md-2 mt-2" style="text-align: right;"><label class="form-label mb-0">Y Graph Bounds</label></div>
-                    <div class="col-md-2 mt-2"><input type="number" step="any" class="form-control chart3d-graph-min-y" placeholder="Y Graph Min"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('y') or [None, None])[0] or '' }}{% endif %}"></div>
-                    <div class="col-md-2 mt-2"><input type="number" step="any" class="form-control chart3d-graph-max-y" placeholder="Y Graph Max"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('y') or [None, None])[1] or '' }}{% endif %}"></div>
-
-                    <!-- Z Axis Graph Bounds -->
-                    <div class="col-md-2 mt-2"><label class="form-label mb-0">Z Graph</label></div>
-                    <div class="col-md-4 mt-2">
-                        <div class="form-text text-light">Override display range (optional)</div>
-                    </div>
-                    <div class="col-md-2 mt-2" style="text-align: right;"><label class="form-label mb-0">Z Graph Bounds</label></div>
-                    <div class="col-md-2 mt-2"><input type="number" step="any" class="form-control chart3d-graph-min-z" placeholder="Z Graph Min"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('z') or [None, None])[0] or '' }}{% endif %}"></div>
-                    <div class="col-md-2 mt-2"><input type="number" step="any" class="form-control chart3d-graph-max-z" placeholder="Z Graph Max"
-                               value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('graph_bounds', {}).get('z') or [None, None])[1] or '' }}{% endif %}"></div>
                 </div>
 
                 <div class="row g-2 align-items-center mt-2">

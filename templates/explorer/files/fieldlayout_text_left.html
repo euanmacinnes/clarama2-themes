@@ -25,28 +25,39 @@
         // $('[data-bs-toggle="tooltip"]').tooltip();
 
         $('.resize-handle').each(function () {
-            const handle = this;
-            // console.log("handle", handle)
-            const resizableCol = document.getElementById(handle.getAttribute('data-target'));
-            // console.log("resizableCol", resizableCol)
-            const gridItem = resizableCol.closest('.grid-stack-item');
-            // console.log("gridItem", gridItem)
-            const gridItemElement = gridItem.getAttribute('gs-id');
-            // console.log("gridItemElement", gridItemElement)
+            if (this === undefined) return;
 
-            function disableGridStackDrag() {
-                if (gridItem) {
-                    // console.log("disableGridStackDrag")
-                    gridItem.gridstackNode?.el?.classList.remove('ui-draggable-dragging');
-                    gridItem.style.pointerEvents = 'none';
-                }
-            }
+            try {
+                const handle = this;
+                // console.log("handle", handle)
+                const resizableCol = document.getElementById(handle.getAttribute('data-target'));
+                // console.log("resizableCol", resizableCol)
+                const gridItem = resizableCol.closest('.grid-stack-item');
 
-            function enableGridStackDrag() {
-                if (gridItem) {
-                    // console.log("enableGridStackDrag")
-                    gridItem.style.pointerEvents = '';
+                if (gridItem === undefined)
+                    return;
+                // console.log("gridItem", gridItem)
+                const gridItemElement = gridItem.getAttribute('gs-id');
+
+                // console.log("gridItemElement", gridItemElement)
+
+                function disableGridStackDrag() {
+                    if (gridItem) {
+                        // console.log("disableGridStackDrag")
+                        gridItem.gridstackNode?.el?.classList.remove('ui-draggable-dragging');
+                        gridItem.style.pointerEvents = 'none';
+                    }
                 }
+
+                function enableGridStackDrag() {
+                    if (gridItem) {
+                        // console.log("enableGridStackDrag")
+                        gridItem.style.pointerEvents = '';
+                    }
+                }
+            } catch (e) {
+                console.warn("GRIDSTACK not found, resizing not supported");
+                return;
             }
 
             handle.addEventListener('mousedown', function (e) {

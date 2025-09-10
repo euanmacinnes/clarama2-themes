@@ -1,0 +1,15 @@
+{# Custom options for textarea fields #}
+<div class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label">Rows</label>
+    <input id="ta_rows" name="ta_rows" type="number" class="form-control clarama-field clarama-delay-field" value="{{ get(field_config,'rows','') }}">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Autosize</label>
+    <select id="ta_autosize" name="ta_autosize" class="form-select clarama-field clarama-delay-field">
+      {% set a = (get(field_config,'autosize','false')|string|lower) %}
+      <option value="false" {% if a=='false' %}selected{% endif %}>No</option>
+      <option value="true" {% if a=='true' %}selected{% endif %}>Yes</option>
+    </select>
+  </div>
+</div>
