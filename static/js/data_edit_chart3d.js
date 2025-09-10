@@ -12,41 +12,11 @@ window.exampleAxisConfig = {
     }
 };
 
-//
-// (function installChart3DOnce() {
-//     if (window.__chart3d_boot_installed) return;
-//     window.__chart3d_boot_installed = true;
-//
-//     const CANVAS_SELECTOR = '.chart3d-canvas-holder > canvas[id^="c_"]';
-//
-//     // Init canvases added later
-//     const mo = new MutationObserver((mutList) => {
-//         for (const m of mutList) {
-//             for (const n of m.addedNodes) {
-//                 if (!(n instanceof Element)) continue;
-//
-//                 if (n.matches && n.matches(CANVAS_SELECTOR) && !n.dataset.cubeInit) {
-//                     initCube(n, n.datasets, n.primitives, exampleAxisConfig); // no sample data; caller should supply datasets/primitives
-//                 }
-//                 n.querySelectorAll && n.querySelectorAll(CANVAS_SELECTOR).forEach((c) => {
-//                     if (!c.dataset.cubeInit) {
-//                         initCube(c, n.datasets, n.primitives, exampleAxisConfig); // no sample data; caller should supply datasets/primitives
-//                     }
-//                 });
-//             }
-//         }
-//     });
-//     mo.observe(document.documentElement, {childList: true, subtree: true});
-// })();
-
-
-// test just with the cube first
 
 // test with triangles, points and lines
 // then test with the different datasets 
 // (vertices would be the same, but the edges would be different)
 
-// optional uv and color
 // points (just the vertices)
 // lines (vertices + lines)
 // traingle (vertices + lines + uv map + color)
@@ -828,7 +798,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
 
                 const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
-                const edges = toFloat32(edgesRaw, ['x', 'y', 'z']); // positions for lines
+                const edges = toFloat32(edgesRaw, ['x1','y1','z1','x2','y2','z2']); // positions for lines
                 const uvs = toFloat32(uvRaw, ['u', 'v']);
                 const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
 
