@@ -31,7 +31,7 @@
             <h5 class="m-0">Field Preview</h5>
         </div>
         <div class="card-body">
-            <div id="dependencies-preview" class="mb-2" scheduled_time="4000" update_dependencies="true"></div>
+            <div id="dependencies-preview" class="mb-2"></div>
             <div id="list-columns-warning" class="alert alert-warning py-2 px-3 d-none" role="alert"
                  style="margin-bottom:8px;">
                 Preview note: For List fields, at least two columns must be supplied.
@@ -525,7 +525,7 @@
             }
             // Render custom options dynamically
             renderCustomPane(key);
-            schedule_update_preview(false, undefined, 'field type changed');
+            schedule_update_preview(false, 'field type changed', 0);
         });
 
         // Any field change (including dependency dropdowns rendered with .clarama-field) triggers preview refresh
@@ -542,14 +542,14 @@
                 }
             } catch (err) { /* ignore and fall through to update */
             }
-            schedule_update_preview(false, e, 'field form changed');
+            schedule_update_preview(false, 'field form changed');
         });
         // React to editor changes as well
         try {
             var queryEditor = ace.edit('field_data_query');
             queryEditor.session.on('change', function (e) {
                 // Editor is outside preview containers; safe to refresh
-                schedule_update_preview(false, undefined, 'query editor changed');
+                schedule_update_preview(false, 'query editor changed');
             });
             // Quick insert handler
             $(document).on('click', '#gfe_insert', function () {
@@ -666,7 +666,6 @@
             if (this.checked) {
                 $("#manual-data").show();
                 $("#remote-data").hide();
-                schedule_update_preview(false, undefined, 'data mode: manual');
             }
         });
         $("#data-mode-remote").on('change', function () {
@@ -686,7 +685,7 @@
         });
         $(document).on('click', '.remove-option', function () {
             $(this).closest('tr').remove();
-            schedule_update_preview(false, undefined, 'manual option removed');
+            schedule_update_preview(false, 'manual option removed');
         });
 
         // Custom columns add/remove
@@ -715,15 +714,15 @@
                 </td>
                 <td><button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-column\"><i class=\"bi bi-trash\"></i></button></td>
             </tr>`);
-            schedule_update_preview(false, undefined, 'column added');
+            schedule_update_preview(false, 'column added');
         });
         $(document).on('click', '.remove-column', function () {
             $(this).closest('tr').remove();
-            schedule_update_preview(false, undefined, 'column removed');
+            schedule_update_preview(false, 'column removed');
         });
         // React to edits in columns table to update preview/warning
         $(document).on('input change', '#custom-columns-table input, #custom-columns-table select', function () {
-            schedule_update_preview(false, undefined, 'columns edited');
+            schedule_update_preview(false, 'columns edited');
         });
 
         // Dependencies add/remove
@@ -779,7 +778,7 @@
                 arr.push($(this).text());
             });
             $("#dependencies-json").val(JSON.stringify(arr));
-            schedule_update_preview(true, undefined, 'dependencies list changed');
+            schedule_update_preview(true, 'dependencies list changed');
         }
 
         // Remote data preview: fetch via same API used by select2 and render with bootstrap-table below the editor
@@ -937,7 +936,7 @@
         });
 
         // Initialize dependencies json from server-rendered list, ensure hidden input matches list
-        update_dependencies_json();
+        // update_dependencies_json(); schedule_update_preview does this now
 
         // Populate dependent field listbox from dependencies
         function refreshDependentFieldList() {
@@ -983,11 +982,11 @@
             }, 0);
         });
         // Initial fill
-        setTimeout(refreshDependentFieldList, 50);
+        //setTimeout(refreshDependentFieldList, 50);
 
         // Initial render of custom pane and preview
         renderCustomPane(key);
-        schedule_update_preview(true, undefined, 'initial render');
+        schedule_update_preview(true, 'initial render', 0);
     });
 
     function build_data_json() {
@@ -1040,11 +1039,7 @@
     }
 
     // Debounced preview scheduler with configurable timing and dependency refresh behavior
-    // It reads attributes from the nearest container that has either id="preview" or id="dependencies-preview",
-    // or any ancestor with attributes: scheduled_time (milliseconds) and update_dependencies (true/false or 1/0/yes/no).
-    // Defaults: scheduled_time=4000, update_dependencies=true when markDepsChanged==true, else false.
     var _updateTimer = null;
-    var _depsChanged = false;
 
     function parseBoolAttr(val, defaultVal) {
         if (val === undefined || val === null || val === '') return defaultVal;
@@ -1054,73 +1049,24 @@
         return defaultVal;
     }
 
-    function schedule_update_preview(markDepsChanged, event, label) {
-        if (markDepsChanged === true) {
-            _depsChanged = true;
-        }
-        // Find context element from event (if provided) or fall back to main containers
-        var $ctx = null;
-        var $t = null;
-        try {
-            if (event && event.target) {
-                $t = $(event.target);
-                $ctx = $t.closest('[scheduled_time], [update_dependencies], #preview, #dependencies-preview');
-            }
-        } catch (e) { /* ignore */
-        }
-        if (!$ctx || !$ctx.length) {
-            $ctx = $('#preview');
-            if (!$ctx.length) {
-                $ctx = $('#dependencies-preview');
-            }
-        }
-        var scheduledTimeAttr = $ctx && $ctx.attr ? $ctx.attr('scheduled_time') : null;
-        var updateDepsAttr = $ctx && $ctx.attr ? $ctx.attr('update_dependencies') : null;
+    function schedule_update_preview(markDepsChanged, label, scheduleTime) {
+        if (scheduleTime === undefined || scheduleTime === null) scheduleTime = 4000;
 
-        var delayMs = 4000;
-        if (scheduledTimeAttr !== undefined && scheduledTimeAttr !== null && String(scheduledTimeAttr).trim() !== '') {
-            var parsed = parseInt(scheduledTimeAttr, 10);
-            if (!isNaN(parsed) && parsed >= 0) {
-                delayMs = parsed;
+        if (scheduleTime > 0) {
+            if (_updateTimer) {
+                clearTimeout(_updateTimer);
             }
-        }
-        var shouldRefreshDeps = _depsChanged; // base on accumulated flag
-        if (updateDepsAttr !== undefined && updateDepsAttr !== null) {
-            shouldRefreshDeps = parseBoolAttr(updateDepsAttr, shouldRefreshDeps);
+            _updateTimer = setTimeout(function () {
+                flash(label + ":" + scheduleTime + " / " + markDepsChanged);
+                var flag = markDepsChanged;
+                _updateTimer = null;
+                update_preview(flag);
+            }, scheduleTime);
+        } else {
+            flash(label);
+            update_preview(markDepsChanged);
         }
 
-        // Determine label to flash
-        try {
-            if (!label || String(label).trim() === '') {
-                // Try event target attributes
-                var auto = null;
-                if ($t && $t.length) {
-                    auto = $t.attr('data-update-name') || $t.attr('update_name') || $t.attr('name') || $t.attr('id') || $t.attr('class');
-                    if (!auto && event && event.type) {
-                        auto = 'event:' + event.type;
-                    }
-                }
-                if (!auto && $ctx && $ctx.length) {
-                    auto = $ctx.attr('id') || $ctx.attr('class') || 'preview';
-                }
-                label = auto || 'schedule_update_preview';
-            }
-            if (typeof flash === 'function') {
-                flash('Update scheduled: ' + label, 'info');
-            } else if (window && window.console) {
-                console.log('Update scheduled:', label);
-            }
-        } catch (e) { /* ignore flash errors */ }
-
-        if (_updateTimer) {
-            clearTimeout(_updateTimer);
-        }
-        _updateTimer = setTimeout(function () {
-            var flag = shouldRefreshDeps;
-            _depsChanged = false; // reset for next cycle
-            _updateTimer = null;
-            update_preview(flag);
-        }, delayMs);
     }
 
     function update_preview(depsChanged) {
@@ -1219,13 +1165,8 @@
                     depDivs.push('#' + depId);
                 }
             }
-        } else {
-            // Detect existing dependency preview blocks if present, to chain main preview load after them
-            $depsContainer.find('.clarama-post-embedded[id^="dep_preview_"]').each(function () {
-                depDivs.push('#' + $(this).attr('id'));
-            });
         }
-
+        
         // Now prepare main preview URL, but defer loading until dependencies are loaded
         var mainUrl = "{{ embedded_url(filename=file_url) }}"
             + "?type=" + encodeURIComponent(key)
