@@ -21,6 +21,13 @@
                        checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
                 <label class="form-check-label nowrap" for="readonly">Read-Only</label>
             </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
+                       type="checkbox" id="sticky" name="sticky"
+                        {% if get(field_config,'sticky','') | lower == 'true' %}
+                       checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
+                <label class="form-check-label nowrap" for="sticky">Sticky</label>
+            </div>
         </div>
         <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}" title="Save"></i>
     </div>
@@ -372,6 +379,14 @@
                            placeholder="regular expression (e.g., ^[A-Z]{3}-\\d{4}$)"
                            value="{{ get(field_config,'pattern','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
                     <div class="form-text">Optional input validation regex pattern.</div>
+                </div>
+
+                <div class="col">
+                    <label class="form-label" for="autocomplete">Autocomplete</label>
+                    <input id="autocomplete" name="autocomplete" type="text" class="form-control clarama-field"
+                           placeholder="on | off | email | username | name | organization | ..."
+                           value="{{ get(field_config,'autocomplete','on') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    <div class="form-text">HTML autocomplete attribute value. Use "off" to disable or a hint like "email".</div>
                 </div>
 
                 <div class="col">
@@ -1328,10 +1343,12 @@
             + "&minimum=" + encodeURIComponent($("#minimum").val())
             + "&readonly=" + encodeURIComponent($("#readonly").prop('checked'))
             + "&required=" + encodeURIComponent($("#required").prop('checked'))
+            + "&sticky=" + encodeURIComponent($("#sticky").prop('checked'))
             + "&step=" + encodeURIComponent($("#step").val())
             + "&spacing=" + encodeURIComponent($("#spacing").val())
             + "&filters=" + encodeURIComponent($("#filters").val() || '')
             + "&pattern=" + encodeURIComponent($("#pattern").val() || '')
+            + "&autocomplete=" + encodeURIComponent($("#autocomplete").val() || '')
             + "&suggestions=" + encodeURIComponent(($('#suggestions').val() || '').split(/\r?\n/).filter(s => s.trim().length > 0).join('|'))
             + "&data_text=" + encodeURIComponent(code);
 
@@ -1393,8 +1410,10 @@
             "spacing": $("#spacing").val(),
             "readonly": $("#readonly").prop('checked'),
             "required": $("#required").prop('checked'),
+            "sticky": $("#sticky").prop('checked'),
             "filters": $("#filters").val(),
             "pattern": $("#pattern").val(),
+            "autocomplete": $("#autocomplete").val(),
             "suggestions": (function () {
                 try {
                     return ($('#suggestions').val() || '').split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);

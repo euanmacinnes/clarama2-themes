@@ -9,6 +9,7 @@
                 size="{{ field_config['size'] or '4' }}"
                 {{ field_config | required }}
                 {{ field_config | readonly }}
+                {{ field_config | sticky }}
                 class="form-control clarama-field-select2 clarama-field clarama-select-field tooltip"
                 {% include theme("explorer/files/field_tooltip.html") %}
                 {% if field_config.get('data',{}).get('source') %}

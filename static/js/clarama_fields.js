@@ -696,7 +696,176 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
     }
 });
 
+function claramaSetCookie(name, value, days) {
+    try {
+        var expires = "";
+        if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days*24*60*60*1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + encodeURIComponent(value || '') + expires + "; path=/";
+    } catch (e) { /* ignore */ }
+}
+
+function claramaGetCookie(name) {
+    try {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for(var i=0;i < ca.length;i++) {
+            var c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1,c.length);
+            if (c.indexOf(nameEQ) == 0) return decodeURIComponent(c.substring(nameEQ.length,c.length));
+        }
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+function claramaDeleteCookie(name) {
+    try {
+        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    } catch (e) { /* ignore */ }
+}
+
+function claramaStickyKeyForField(fieldKey) {
+    try {
+        var url = String(window.location && (window.location.pathname + window.location.search)) || '';
+        var enc = encodeURIComponent(url);
+        return 'clarama_sticky_' + enc + '_' + fieldKey;
+    } catch (e) {
+        return 'clarama_sticky__' + fieldKey;
+    }
+}
+
+function initStickyFields(context) {
+    var root = context ? $(context) : $(document);
+    var fields = root.find('.clarama-field[data-sticky="true"]');
+
+    function isSelect2($e) {
+        try { return $e.hasClass('select2-hidden-accessible') || !!$e.data('select2'); } catch(e){ return false; }
+    }
+
+    function restoreSelect($el, saved) {
+        // Support legacy (string or array of strings) and new format (object or array of {id,text})
+        var selections = [];
+        try {
+            var parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                if (parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
+                    selections = parsed.map(function(o){ return {id: String(o.id), text: (o.text!=null? String(o.text): String(o.id))}; });
+                } else {
+                    selections = (parsed || []).map(function(v){ return {id: String(v), text: null}; });
+                }
+            } else if (parsed && typeof parsed === 'object') {
+                selections = [{id: String(parsed.id), text: (parsed.text!=null? String(parsed.text): String(parsed.id))}];
+            } else if (parsed != null) {
+                selections = [{id: String(parsed), text: null}];
+            }
+        } catch (e) {
+            // not JSON, treat as single id string
+            selections = saved ? [{id: String(saved), text: null}] : [];
+        }
+
+        if (selections.length === 0) return;
+
+        var multiple = $el.prop('multiple');
+        // Ensure options exist with correct text; add if missing
+        selections.forEach(function(sel){
+            if ($el.find('option[value="' + sel.id.replace(/"/g,'&quot;') + '"]').length === 0) {
+                var opt = new Option(sel.text || sel.id, sel.id, true, true);
+                $el.append(opt);
+            }
+        });
+        // Set values
+        var ids = selections.map(function(s){ return s.id; });
+        $el.val(multiple ? ids : ids[0]).trigger('change');
+    }
+
+    function persistSelect($el) {
+        var payload;
+        try {
+            if (isSelect2($el) && typeof $el.select2 === 'function') {
+                var data = $el.select2('data') || [];
+                if (!Array.isArray(data)) data = [data];
+                var ser = data.filter(Boolean).map(function(d){ return {id: String(d.id), text: String(d.text || '')}; });
+                if ($el.prop('multiple')) {
+                    payload = JSON.stringify(ser);
+                } else {
+                    payload = JSON.stringify(ser[0] || null);
+                }
+            } else {
+                var selected = $el.find('option:selected');
+                if ($el.prop('multiple')) {
+                    var arr = [];
+                    selected.each(function(){
+                        arr.push({id: String(this.value), text: String($(this).text() || '')});
+                    });
+                    payload = JSON.stringify(arr);
+                } else {
+                    var opt = selected[0];
+                    payload = opt ? JSON.stringify({id: String(opt.value), text: String($(opt).text() || '')}) : 'null';
+                }
+            }
+        } catch (e) {
+            // Fallback to ids only
+            var val = $el.val();
+            if ($el.prop('multiple')) {
+                try { payload = JSON.stringify(val || []); } catch(e2){ payload = '[]'; }
+            } else {
+                payload = String(val || '');
+            }
+        }
+        return payload;
+    }
+
+    fields.each(function() {
+        var $el = $(this);
+        // Skip passwords for safety
+        if (($el.attr('type')||'').toLowerCase() === 'password') return;
+        var fieldKey = ($el.attr('data-id') || $el.attr('name') || $el.attr('id') || '');
+        if (!fieldKey) return;
+        var key = claramaStickyKeyForField(fieldKey);
+        var legacyKey = 'clarama_sticky_' + fieldKey; // pre-URL cookies
+
+        // Restore (prefer URL-scoped cookie; fallback to legacy and migrate)
+        var saved = claramaGetCookie(key);
+        if ((saved === null || saved === undefined || saved === '') && legacyKey) {
+            var legacySaved = claramaGetCookie(legacyKey);
+            if (legacySaved !== null && legacySaved !== undefined && legacySaved !== '') {
+                saved = legacySaved;
+                // Migrate to new namespaced key
+                try { claramaSetCookie(key, legacySaved, 180); claramaDeleteCookie(legacyKey); } catch(e) {}
+            }
+        }
+
+        if (saved !== null && saved !== undefined && saved !== '') {
+            if ($el.is(':checkbox')) {
+                $el.prop('checked', saved === '1' || saved === 'true');
+            } else if ($el.is('select')) {
+                restoreSelect($el, saved);
+            } else {
+                $el.val(saved);
+            }
+        }
+
+        // Persist on change/input
+        var persist = function() {
+            var val;
+            if ($el.is(':checkbox')) {
+                val = $el.prop('checked') ? '1' : '0';
+            } else if ($el.is('select')) {
+                val = persistSelect($el);
+            } else {
+                val = $el.val();
+            }
+            claramaSetCookie(key, val, 180);
+        };
+        $el.on('change input', persist);
+    });
+}
+
 $(document).ready(function () {
     initializeCellNavigation();
+    try { initStickyFields(document); } catch (e) { console.log('Sticky init failed', e); }
 });
 

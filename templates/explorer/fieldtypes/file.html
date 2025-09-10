@@ -6,7 +6,8 @@
            fieldtype="file"
             {{ field_config | required }}
             {{ field_config | readonly }}
-           autocomplete="on"
+            {{ field_config | sticky }}
+           autocomplete="{{ get(field_config,'autocomplete','on') }}"
            placeholder="{{ get(field_config,'placeholder') }}"
            value="{{ field_value or get(field_config,'default','') }}"
             {% include theme("explorer/files/field_tooltip.html") %}

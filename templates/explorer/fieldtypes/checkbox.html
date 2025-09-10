@@ -7,6 +7,7 @@
                type="checkbox"
                 {{ field_config | required }}
                 {{ field_config | readonly }}
+                {{ field_config | sticky }}
                value="{{ field_value or get(field_config,'default','') }}"
                data-id="{{ field_id }}"
                name="{{ field_name }}"
