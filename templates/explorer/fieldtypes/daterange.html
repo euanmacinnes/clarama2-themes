@@ -9,7 +9,9 @@
            autocomplete="on"
            placeholder="{{ get(field_config,'placeholder','') }}"
            value="{{ field_value or get(field_config,'default','') }}"
-
+            {% if field_config.get('data',{}).get('source') %}
+            sourceurl="{{ field_config['data'] | datasource }}"
+            {% endif %}
             {% include theme("explorer/files/field_tooltip.html") %}
     />
 {% endblock %}

@@ -7,5 +7,8 @@
             {{ field_config | required }}
             {{ field_config | readonly }}
            value="{{ field_value or get(field_config,'default','') | safe }}"
+            {% if field_config.get('data',{}).get('source') %}
+            sourceurl="{{ field_config['data'] | datasource }}"
+            {% endif %}
     />
 {% endblock %}

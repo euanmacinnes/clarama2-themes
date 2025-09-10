@@ -13,6 +13,9 @@
            step="{{ get(field_config,'step','0.0000001') }}"
            min="{{ get(field_config,'minimum','0') }}"
            max="{{ get(field_config,'maximum','5') }}"
+            {% if field_config.get('data',{}).get('source') %}
+            sourceurl="{{ field_config['data'] | datasource }}"
+            {% endif %}
             {% include theme("explorer/files/field_tooltip.html") %}
     />
 {% endblock %}
