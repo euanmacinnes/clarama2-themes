@@ -118,7 +118,6 @@
                             class="bi bi-plus-lg"></i></button>
                 </div>
                 <label class="form-label">Dependencies (fields this field depends on)</label>
-                <input id="dependency-file-input" type="text" class="form-control d-none"/>
                 <ul id="dependencies-list" class="list-group">
                     {% for d in deps %}
                         <li class="list-group-item d-flex align-items-center dep-item" draggable="true">
@@ -822,6 +821,8 @@
                 arr.push($(this).text());
             });
             $("#dependencies-json").val(JSON.stringify(arr));
+            // Keep dependent field dropdown in sync with current dependencies
+            try { refreshDependentFieldList(); } catch (e) { /* ignore */ }
             schedule_update_preview(true, 'dependencies list changed', 300);
         }
 
@@ -1026,7 +1027,7 @@
             }, 0);
         });
         // Initial fill
-        //setTimeout(refreshDependentFieldList, 50);
+        setTimeout(refreshDependentFieldList, 50);
 
         // Initial render of custom pane and preview
         renderCustomPane(key);
