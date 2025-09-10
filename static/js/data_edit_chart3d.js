@@ -83,6 +83,25 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     overlay.style.zIndex = "2";
     wrap.appendChild(overlay);
     const ctx2d = overlay.getContext("2d");
+    // --- tooltip DIV (overlays canvas; pointer-through) -------------------------
+    const tip = document.createElement('div');
+    tip.className = 'chart3d-tooltip';
+    Object.assign(tip.style, {
+      position: 'absolute',
+      zIndex: '3',
+      left: '0px',
+      top: '0px',
+      pointerEvents: 'none',
+      background: 'rgba(0,0,0,0.75)',
+      color: '#fff',
+      padding: '4px 6px',
+      borderRadius: '6px',
+      font: '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+      transform: 'translate(8px, -12px)',
+      display: 'none'
+    });
+    wrap.appendChild(tip);
+
 
     // Style (Matplotlib-ish)
     const STYLE = {
@@ -648,6 +667,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     let dist = initDist, rotX = initRotX, rotY = initRotY;
     let dragging = false, lastX = 0, lastY = 0;
 
+    // Cached matrices/viewport for hover picking
+    let lastMVP = null, lastCssW = 0, lastCssH = 0;
+
     canvas.addEventListener("pointerdown", (e) => {
         dragging = true;
         lastX = e.clientX;
@@ -682,6 +704,67 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         dist = initDist;
         requestAnimationFrame(render);
     });
+    // --- hover picking ----------------------------------------------------------
+    function fmtTick(v) { return formatTick(v); }
+
+    canvas.addEventListener('pointermove', (e) => {
+        if (dragging || !lastMVP) { tip.style.display = 'none'; return; }
+
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        const dpr = window.devicePixelRatio || 1;
+        const pickR = 12 * dpr;
+        const pickR2 = pickR * pickR;
+
+        let best = null; // {o, idx, sx, sy, d2}
+
+        for (const o of compiled) {
+            if (o.modeGL !== gl.POINTS || !o.vertsN) continue;
+
+            // per-primitive transform
+            const pos = o.position || {x:0,y:0,z:0};
+            const rotD = o.rotationDeg || {x:0,y:0,z:0};
+            const toRad = d => (d||0) * Math.PI/180.0;
+            const Rxp = mat4RotateX(toRad(rotD.x));
+            const Ryp = mat4RotateY(toRad(rotD.y));
+            const Rzp = mat4RotateZ(toRad(rotD.z));
+            const Tp  = mat4Translate(pos.x||0, pos.y||0, pos.z||0);
+            const Mp  = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
+            const MVPp = mat4Mul(lastMVP, Mp);
+
+            const arr = o.vertsN;
+            for (let i = 0; i < arr.length; i += 3) {
+                const p = projectToScreen(arr[i], arr[i+1], arr[i+2], MVPp, lastCssW, lastCssH);
+                if (!p) continue;
+                const dx = p.x - mx, dy = p.y - my;
+                const d2 = dx*dx + dy*dy;
+                if (d2 <= pickR2 && (!best || d2 < best.d2)) best = {o, idx: i/3, sx: p.x, sy: p.y, d2};
+            }
+        }
+
+        if (!best) { tip.style.display = 'none'; return; }
+
+        const vx = best.o.vertsN[best.idx*3 + 0];
+        const vy = best.o.vertsN[best.idx*3 + 1];
+        const vz = best.o.vertsN[best.idx*3 + 2];
+
+        const lx = mapToLabel('x', vx);
+        const ly = mapToLabel('y', vy);
+        const lz = mapToLabel('z', vz);
+
+        tip.textContent = `(${fmtTick(lx)}, ${fmtTick(ly)}, ${fmtTick(lz)})`;
+        tip.style.left = `${best.sx}px`;
+        tip.style.top  = `${best.sy}px`;
+        tip.style.display = 'block';
+    });
+
+    // hide tooltip while user acts
+    canvas.addEventListener('pointerdown', () => { tip.style.display = 'none'; });
+    canvas.addEventListener('wheel', () => { tip.style.display = 'none'; }, {passive:true});
+    canvas.addEventListener('dblclick', () => { tip.style.display = 'none'; });
+
 
     // --- resize -------------------------------------------------------------
     const overlayCanvas = overlay; // alias
@@ -1084,6 +1167,8 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     // store transform directives from primitive (position and rotation in degrees)
                     position: prim.position || {x: 0, y: 0, z: 0},
                     rotationDeg: prim.rotationDeg || {x: 0, y: 0, z: 0},
+                    // CPU-side verts for hover picking (only for points)
+                    vertsN: (modeGL === gl.POINTS) ? vertsN : null,
                 });
             } catch (e) {
                 console.error('Error compiling primitive:', e);
@@ -1113,6 +1198,11 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         const Ry = mat4RotateY(rotY);
         const M = mat4Mul(Ry, Rx);
         const MVP = mat4Mul(mat4Mul(P, V), M);
+
+        // cache for hover picking
+        lastCssW = cssW;
+        lastCssH = cssH;
+        lastMVP  = MVP;
 
         // Grids (back/left/bottom panes)
         gl.useProgram(progLines);
