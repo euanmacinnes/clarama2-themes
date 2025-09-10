@@ -121,9 +121,11 @@
                 <ul id="dependencies-list" class="list-group">
                     {% for d in deps %}
                         <li class="list-group-item d-flex align-items-center dep-item" draggable="true">
-                            <span class="dep-handle bi bi-grip-vertical me-2" title="Drag to reorder" style="cursor: grab;"></span>
+                            <span class="dep-handle bi bi-grip-vertical me-2" title="Drag to reorder"
+                                  style="cursor: grab;"></span>
                             <span class="dep-text flex-grow-1">{{ d }}</span>
-                            <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i class="bi bi-x"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i
+                                    class="bi bi-x"></i></button>
                         </li>
                     {% endfor %}
                 </ul>
@@ -310,6 +312,20 @@
                                 <button type="button" class="btn btn-outline-primary" id="gfe_insert"><i
                                         class="bi bi-plus-lg me-1"></i>Insert
                                 </button>
+                            </div>
+                        </div>
+                        <div class="mt-2 border-top pt-2">
+                            <div class="row g-2 align-items-start">
+                                <div class="col-auto col-md-6">
+                                    <div class="small text-muted mb-1">Resultant Expression</div>
+                                    <div id="gfe_result_expr" class="form-control form-control-sm bg-light"
+                                         style="min-height: 36px;"></div>
+                                </div>
+                                <div class="col-1 col-md-6">
+                                    <div class="small text-muted mb-1">Resultant Value</div>
+                                    <div id="gfe_result_value" class="form-control form-control-sm bg-light"
+                                         style="min-height: 36px;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -580,6 +596,88 @@
                 }
             });
 
+            // Resultant Substitution preview (Global Fields box)
+            var _gfeTimer = null;
+
+            function buildGfeToken() {
+                var from = ($('#gfe_dep_field').find('option:selected').val() || $('#gfe_dep_field').val() || '').trim();
+                var layout = $('#gfe_layout').val() || '';
+                var to = ($('#gfe_to').val() || '').trim();
+                var ext = ($('#gfe_ext').val() || '').trim();
+                if (!from) return '';
+                var token = to ? (from.toLowerCase() + '=>' + to + (layout || '')) : (from.toLowerCase() + (layout || ''));
+                if (ext) token += ':' + ext;
+                return '[[ ' + token + ' ]]';
+            }
+
+            function gfeCollectValues() {
+                // Prefer global helper if available
+                if (typeof get_field_values === 'function') {
+                    try {
+                        return get_field_values({}, true, undefined) || {};
+                    } catch (e) {
+                    }
+                }
+                // Fallback: no values
+                return {};
+            }
+
+            function updateGfePreviewDebounced() {
+                if (_gfeTimer) clearTimeout(_gfeTimer);
+                _gfeTimer = setTimeout(updateGfePreview, 300);
+            }
+
+            function updateGfePreview() {
+                var expr = buildGfeToken();
+                var $expr = $('#gfe_result_expr');
+                var $val = $('#gfe_result_value');
+                if (!$expr.length || !$val.length) return;
+                if (!expr) {
+                    $expr.text('');
+                    $val.text('');
+                    return;
+                }
+                // Show expression immediately, and loading indicator for value
+                $expr.text(expr);
+                $val.text('…');
+                $.ajax({
+                    url: '/web/preview_global_field',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        expression: expr,
+                        fields: JSON.stringify(gfeCollectValues())
+                    },
+                    success: function (data) {
+                        try {
+                            var outExpr = (data && data.expression) != null ? data.expression : expr;
+                            var outRes = (data && data.result) != null ? data.result : '';
+                            $expr.text(String(outExpr));
+                            $val.text(String(outRes));
+                        } catch (e) {
+                            $val.text('error parsing response');
+                        }
+                    },
+                    error: function (xhr) {
+                        var msg = xhr && (xhr.responseText || xhr.statusText || xhr.status) || 'error';
+                        $val.text(String(msg));
+                    }
+                });
+            }
+
+            $(document).on('change input', '#gfe_dep_field, #gfe_to, #gfe_layout, #gfe_ext', function () {
+                updateGfePreviewDebounced();
+            });
+            // Also update when dependencies list changes, as it can change available values
+            $(document).on('click', '#add-dependency, .remove-dep', function () {
+                setTimeout(updateGfePreviewDebounced, 0);
+            });
+            $(document).on('keyup change', '#dependency-file-input', function () {
+                setTimeout(updateGfePreviewDebounced, 0);
+            });
+            // Initial preview
+            setTimeout(updateGfePreviewDebounced, 200);
+
             // When user clicks within a [[ ... ]] token, open the Global Field Editor modal
             {#queryEditor.container.addEventListener('mouseup', function () {#}
             {#     setTimeout(function () {#}
@@ -725,48 +823,52 @@
         });
 
         // Enable drag-and-drop reordering for dependencies
-                function initDependencyDragAndDrop() {
-                    var $list = $("#dependencies-list");
-                    if (!$list.length) return;
-                    // delegate events for dynamically added items
-                    var dragSrcEl = null;
-                    var overAfter = false;
-                    $list.on('dragstart', 'li.dep-item', function(e) {
-                        dragSrcEl = this;
-                        this.classList.add('dragging');
-                        e.originalEvent.dataTransfer.effectAllowed = 'move';
-                        try { e.originalEvent.dataTransfer.setData('text/plain', 'drag'); } catch (ex) {}
-                    });
-                    $list.on('dragend', 'li.dep-item', function() {
-                        this.classList.remove('dragging');
-                        dragSrcEl = null;
-                    });
-                    $list.on('dragover', 'li.dep-item', function(e) {
-                        e.preventDefault(); // allow drop
-                        var rect = this.getBoundingClientRect();
-                        var midpoint = rect.top + rect.height/2;
-                        overAfter = (e.originalEvent.clientY > midpoint);
-                        this.classList.add('drag-over');
-                    });
-                    $list.on('dragleave', 'li.dep-item', function() {
-                        this.classList.remove('drag-over');
-                    });
-                    $list.on('drop', 'li.dep-item', function(e) {
-                        e.preventDefault();
-                        this.classList.remove('drag-over');
-                        if (!dragSrcEl || dragSrcEl === this) return;
-                        if (overAfter) {
-                            this.parentNode.insertBefore(dragSrcEl, this.nextSibling);
-                        } else {
-                            this.parentNode.insertBefore(dragSrcEl, this);
-                        }
-                        update_dependencies_json();
-                    });
+        function initDependencyDragAndDrop() {
+            var $list = $("#dependencies-list");
+            if (!$list.length) return;
+            // delegate events for dynamically added items
+            var dragSrcEl = null;
+            var overAfter = false;
+            $list.on('dragstart', 'li.dep-item', function (e) {
+                dragSrcEl = this;
+                this.classList.add('dragging');
+                e.originalEvent.dataTransfer.effectAllowed = 'move';
+                try {
+                    e.originalEvent.dataTransfer.setData('text/plain', 'drag');
+                } catch (ex) {
                 }
-                // Initialize now and also after modal closes (in case list created later)
-                setTimeout(initDependencyDragAndDrop, 0);
+            });
+            $list.on('dragend', 'li.dep-item', function () {
+                this.classList.remove('dragging');
+                dragSrcEl = null;
+            });
+            $list.on('dragover', 'li.dep-item', function (e) {
+                e.preventDefault(); // allow drop
+                var rect = this.getBoundingClientRect();
+                var midpoint = rect.top + rect.height / 2;
+                overAfter = (e.originalEvent.clientY > midpoint);
+                this.classList.add('drag-over');
+            });
+            $list.on('dragleave', 'li.dep-item', function () {
+                this.classList.remove('drag-over');
+            });
+            $list.on('drop', 'li.dep-item', function (e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                if (!dragSrcEl || dragSrcEl === this) return;
+                if (overAfter) {
+                    this.parentNode.insertBefore(dragSrcEl, this.nextSibling);
+                } else {
+                    this.parentNode.insertBefore(dragSrcEl, this);
+                }
+                update_dependencies_json();
+            });
+        }
 
-                // Dependencies add/remove
+        // Initialize now and also after modal closes (in case list created later)
+        setTimeout(initDependencyDragAndDrop, 0);
+
+        // Dependencies add/remove
         $("#add-dependency").on('click', function () {
             var val = $("#dependency-file-input").val().trim();
             if (!val) return;
@@ -822,7 +924,10 @@
             });
             $("#dependencies-json").val(JSON.stringify(arr));
             // Keep dependent field dropdown in sync with current dependencies
-            try { refreshDependentFieldList(); } catch (e) { /* ignore */ }
+            try {
+                refreshDependentFieldList();
+            } catch (e) { /* ignore */
+            }
             schedule_update_preview(true, 'dependencies list changed', 300);
         }
 
