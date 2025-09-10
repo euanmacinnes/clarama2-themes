@@ -446,6 +446,35 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const axisLenY = axisHalfExtentFor('y');
     const axisLenZ = axisHalfExtentFor('z');
 
+    // --- normalize data coords -> internal [-L..+L] using LABEL_RANGE -----------
+    function hasFiniteLabelRange(axis) {
+        const r = LABEL_RANGE[axis];
+        return r && isFinite(r.min) && isFinite(r.max) && r.max !== r.min;
+    }
+
+    // Maps a single scalar value v on a given axis into [-L..+L]
+    function mapScalarToInternal(axis, v) {
+        const r = LABEL_RANGE[axis];
+        if (!hasFiniteLabelRange(axis)) return v;
+        const L = (axis === 'x') ? axisLenX : (axis === 'y') ? axisLenY : axisLenZ;
+        const span = (r.max - r.min) || 1e-6;
+        const scale = (2 * L) / span;
+        const offset = -L - r.min * scale;
+        return v * scale + offset;
+    }
+
+    // Accepts any Float32Array of triples [..., x, y, z, ...] and maps in-place
+    function normalizeXYZSeq(float32) {
+        if (!float32 || float32.length < 3) return float32;
+        const out = new Float32Array(float32.length);
+        for (let i = 0; i < float32.length; i += 3) {
+            out[i    ] = mapScalarToInternal('x', float32[i    ]);
+            out[i + 1] = mapScalarToInternal('y', float32[i + 1]);
+            out[i + 2] = mapScalarToInternal('z', float32[i + 2]);
+        }
+        return out;
+    }
+
     // Per-axis tick step and size with overrides from axisConfig if provided.
     function numOr(v, d) {
         const n = parseFloat(v);
@@ -918,6 +947,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 const uvs = toFloat32(uvRaw, ['u', 'v']);
                 const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
 
+                // Normalize positions so data ranges fit the axis cube
+                const vertsN = normalizeXYZSeq(verts);
+                const edgesN = normalizeXYZSeq(edges);
+
                 const name = prim.name || prim.id || 'obj';
 
                 // Determine mode
@@ -936,18 +969,19 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 let colorSize = 4;
                 let uniformColor = null;
 
-                const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, (mode === 'line' && edges) ? edges : verts);
+                const vboSource = (mode === 'line' && edgesN) ? edgesN : vertsN;
+                const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, vboSource);
                 let cbo = null, uvbo = null, ebo = null;
                 let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
                 let modeGL = gl.POINTS;
 
                 if (mode === 'point') {
                     // points use vertices
-                    if (!verts || verts.length < 3) {
+                    if (!vertsN || vertsN.length < 3) {
                         console.warn('Primitive skipped (no vertices):', name);
                         continue;
                     }
-                    countVerts = Math.floor(verts.length / 3);
+                    countVerts = Math.floor(vertsN.length / 3);
                     // Choose colors handling
                     if (cols && cols.length >= countVerts * 3) {
                         usesColorVary = true;
@@ -964,7 +998,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     modeGL = gl.POINTS;
                 } else if (mode === 'line') {
                     // lines use edges positions directly
-                    const lineData = edges || verts; // fallback to verts if edges missing (interpret as line strip pairs)
+                    const lineData = edgesN || vertsN; // fallback to verts if edges missing (interpret as line strip pairs)
                     if (!lineData || lineData.length < 6) {
                         console.warn('Primitive skipped (no edges/verts for lines):', name);
                         continue;
@@ -984,11 +1018,11 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     }
                     modeGL = gl.LINES;
                 } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh' || mode === 'trianglestrip' || mode === 'triangle_strip') {
-                    if (!verts || verts.length < 9) {
+                    if (!vertsN || vertsN.length < 9) {
                         console.warn('Primitive skipped (no triangle vertices):', name);
                         continue;
                     }
-                    countVerts = Math.floor(verts.length / 3);
+                    countVerts = Math.floor(vertsN.length / 3);
                     if (uvs && uvs.length >= (countVerts * 2)) {
                         // textured
                         usesTex = true;
