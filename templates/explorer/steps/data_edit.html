@@ -413,20 +413,20 @@
 
                 <!-- Axis configuration with tabs -->
                 <div class="mt-2">
-                    <ul class="nav nav-tabs" id="chart3dAxisTabs" role="tablist">
+                    <ul class="nav nav-tabs" id="chart3dAxisTabs_{{ loop_index }}" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="axis-titles-tab" data-bs-toggle="tab" data-bs-target="#axis-titles" type="button" role="tab" aria-controls="axis-titles" aria-selected="true">Titles</button>
+                            <button class="nav-link active" id="axis-titles-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-titles-{{ loop_index }}" type="button" role="tab" aria-controls="axis-titles-{{ loop_index }}" aria-selected="true">Titles</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="axis-orig-bounds-tab" data-bs-toggle="tab" data-bs-target="#axis-orig-bounds" type="button" role="tab" aria-controls="axis-orig-bounds" aria-selected="false">Original Bounds</button>
+                            <button class="nav-link" id="axis-orig-bounds-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-orig-bounds-{{ loop_index }}" type="button" role="tab" aria-controls="axis-orig-bounds-{{ loop_index }}" aria-selected="false">Original Bounds</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="axis-graph-bounds-tab" data-bs-toggle="tab" data-bs-target="#axis-graph-bounds" type="button" role="tab" aria-controls="axis-graph-bounds" aria-selected="false">Graph Bounds</button>
+                            <button class="nav-link" id="axis-graph-bounds-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-graph-bounds-{{ loop_index }}" type="button" role="tab" aria-controls="axis-graph-bounds-{{ loop_index }}" aria-selected="false">Graph Bounds</button>
                         </li>
                     </ul>
                     <div class="tab-content border-start border-end border-bottom p-3" id="chart3dAxisTabsContent">
                         <!-- Titles Tab -->
-                        <div class="tab-pane fade show active" id="axis-titles" role="tabpanel" aria-labelledby="axis-titles-tab">
+                        <div class="tab-pane fade show active" id="axis-titles-{{ loop_index }}" role="tabpanel" aria-labelledby="axis-titles-tab-{{ loop_index }}">
                             <div class="row g-2 align-items-center">
                                 <div class="col-12 fw-bold">Axis Titles</div>
                                 <!-- X Axis Title -->
@@ -451,7 +451,7 @@
                         </div>
 
                         <!-- Original Bounds Tab -->
-                        <div class="tab-pane fade" id="axis-orig-bounds" role="tabpanel" aria-labelledby="axis-orig-bounds-tab">
+                        <div class="tab-pane fade" id="axis-orig-bounds-{{ loop_index }}" role="tabpanel" aria-labelledby="axis-orig-bounds-tab-{{ loop_index }}">
                             <div class="row g-2 align-items-center">
                                 <div class="col-12 fw-bold">Original Bounds</div>
                                 <!-- X Axis -->
@@ -496,7 +496,7 @@
                         </div>
 
                         <!-- Graph Bounds Tab -->
-                        <div class="tab-pane fade" id="axis-graph-bounds" role="tabpanel" aria-labelledby="axis-graph-bounds-tab">
+                        <div class="tab-pane fade" id="axis-graph-bounds-{{ loop_index }}" role="tabpanel" aria-labelledby="axis-graph-bounds-tab-{{ loop_index }}">
                             <div class="row g-2 align-items-center">
                                 <div class="col-12 fw-bold">Graph Bounds</div>
                                 <!-- X Axis Graph Bounds -->
