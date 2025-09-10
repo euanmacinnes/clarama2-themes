@@ -1,245 +1,45 @@
-// Default datasets for the demo cube geometry moved outside initCube
-window.CUBE_DATA = window.CUBE_DATA || {
-    cubeVertices: new Float32Array([
-        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1,
-        -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1
-    ]),
-    cubeEdges: new Uint16Array([
-        0, 1, 1, 2, 2, 3, 3, 0,
-        4, 5, 5, 6, 6, 7, 7, 4,
-        0, 4, 1, 5, 2, 6, 3, 7
-    ]),
-    // 36 vertices (positions) for a cube [-1..+1], two triangles per face.
-    cubeTriPositions: new Float32Array([
-        // FRONT  (z = +1)
-        -1, -1, 1, 1, -1, 1, 1, 1, 1,
-        -1, -1, 1, 1, 1, 1, -1, 1, 1,
-
-        // BACK   (z = -1)
-        1, -1, -1, -1, -1, -1, -1, 1, -1,
-        1, -1, -1, -1, 1, -1, 1, 1, -1,
-
-        // LEFT   (x = -1)
-        -1, -1, -1, -1, 1, -1, -1, 1, 1,
-        -1, -1, -1, -1, 1, 1, -1, -1, 1,
-
-        // RIGHT  (x = +1)
-        1, -1, -1, 1, 1, -1, 1, 1, 1,
-        1, -1, -1, 1, 1, 1, 1, -1, 1,
-
-        // TOP    (y = +1)
-        -1, 1, -1, 1, 1, -1, 1, 1, 1,
-        -1, 1, -1, 1, 1, 1, -1, 1, 1,
-
-        // BOTTOM (y = -1)
-        -1, -1, -1, 1, -1, -1, 1, -1, 1,
-        -1, -1, -1, 1, -1, 1, -1, -1, 1,
-    ]),
-    // Matching per-vertex UVs (each face is a neat [0..1] square)
-    cubeTriUVs: new Float32Array([
-        // FRONT
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // BACK
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // LEFT
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // RIGHT
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // TOP
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // BOTTOM
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-    ]),
-    // Per-vertex RGBA colors for the 12 cube triangles (6 faces x 2 tris x 3 verts)
-    // Each face uses a distinct color; colors are repeated per vertex
-    cubeTriColors: new Float32Array([
-        // FRONT (red)
-        1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
-        1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
-
-        // BACK (green)
-        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-
-        // LEFT (blue)
-        0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1,
-        0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1,
-
-        // RIGHT (yellow)
-        1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1,
-        1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1,
-
-        // TOP (magenta)
-        1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1,
-        1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1,
-
-        // BOTTOM (cyan)
-        0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,
-        0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,
-    ]),
-};
-
 window.exampleAxisConfig = {
     titleX: 'Longitude (°)',
     titleY: 'Latitude (°)',
     titleZ: 'Altitude (km)',
     minX: -18, maxX: 18,
-    minY: -9,  maxY: 9,
-    z: { title: 'Altitude (km)', min: 0, max: 10 },
+    minY: -9, maxY: 9,
+    z: {title: 'Altitude (km)', min: 0, max: 10},
     ticks: {
-        x: { step: 6, format: (v) => v.toFixed(0) },
-        y: { step: 3, format: (v) => v.toFixed(0) },
-        z: { step: 5, format: (v) => v.toFixed(0) }
+        x: {step: 6, format: (v) => v.toFixed(0)},
+        y: {step: 3, format: (v) => v.toFixed(0)},
+        z: {step: 5, format: (v) => v.toFixed(0)}
     }
 };
 
-// Build an example line primitive: Mobius strip edge scaled to 10x5x3
-(function () {
-    function generateMobiusPoints(samples, R, w, vConst) {
-        const pts = [];
-        const TWO_PI = Math.PI * 2;
-        const maxT = 2 * TWO_PI; // 0..4π to close edge for v=const
-        for (let i = 0; i < samples; i++) {
-            const t = maxT * (i / samples);
-            const ct = Math.cos(t), st = Math.sin(t);
-            const c2 = Math.cos(t / 2), s2 = Math.sin(t / 2);
-            const v = vConst;
-            const x = (R + v * c2) * ct;
-            const y = (R + v * c2) * st;
-            const z = v * s2;
-            pts.push([x, y, z]);
-        }
-        return pts;
-    }
+//
+// (function installChart3DOnce() {
+//     if (window.__chart3d_boot_installed) return;
+//     window.__chart3d_boot_installed = true;
+//
+//     const CANVAS_SELECTOR = '.chart3d-canvas-holder > canvas[id^="c_"]';
+//
+//     // Init canvases added later
+//     const mo = new MutationObserver((mutList) => {
+//         for (const m of mutList) {
+//             for (const n of m.addedNodes) {
+//                 if (!(n instanceof Element)) continue;
+//
+//                 if (n.matches && n.matches(CANVAS_SELECTOR) && !n.dataset.cubeInit) {
+//                     initCube(n, n.datasets, n.primitives, exampleAxisConfig); // no sample data; caller should supply datasets/primitives
+//                 }
+//                 n.querySelectorAll && n.querySelectorAll(CANVAS_SELECTOR).forEach((c) => {
+//                     if (!c.dataset.cubeInit) {
+//                         initCube(c, n.datasets, n.primitives, exampleAxisConfig); // no sample data; caller should supply datasets/primitives
+//                     }
+//                 });
+//             }
+//         }
+//     });
+//     mo.observe(document.documentElement, {childList: true, subtree: true});
+// })();
 
-    function scaleAndCenter(pts, target) {
-        let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-        for (const p of pts) {
-            if (p[0] < minX) minX = p[0];
-            if (p[0] > maxX) maxX = p[0];
-            if (p[1] < minY) minY = p[1];
-            if (p[1] > maxY) maxY = p[1];
-            if (p[2] < minZ) minZ = p[2];
-            if (p[2] > maxZ) maxZ = p[2];
-        }
-        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
-        const sx = maxX - minX || 1, sy = maxY - minY || 1, sz = maxZ - minZ || 1;
-        const tx = target[0] / sx, ty = target[1] / sy, tz = target[2] / sz;
-        for (const p of pts) {
-            p[0] = (p[0] - cx) * tx;
-            p[1] = (p[1] - cy) * ty;
-            p[2] = (p[2] - cz) * tz;
-        }
-        return pts;
-    }
 
-    function toLinePairs(pts) {
-        const out = [];
-        for (let i = 0; i < pts.length - 1; i++) {
-            const a = pts[i], b = pts[i + 1];
-            out.push(a[0], a[1], a[2], b[0], b[1], b[2]);
-        }
-        // close loop
-        const a = pts[pts.length - 1], b = pts[0];
-        out.push(a[0], a[1], a[2], b[0], b[1], b[2]);
-        return new Float32Array(out);
-    }
-
-    const samples = 600;
-    const R = 2.0, w = 0.7; // base before scaling
-    const vConst = w; // edge line on the strip
-    let pts = generateMobiusPoints(samples, R, w, vConst);
-    pts = scaleAndCenter(pts, [10, 5, 3]);
-    CUBE_DATA.mobiusLineEdges = toLinePairs(pts);
-})();
-
-// Define default primitives that reference the datasets by name so generalized renderer can draw them
-window.CHART3D_DEFAULT_PRIMITIVES = window.CHART3D_DEFAULT_PRIMITIVES || [
-    // Render cube corners as points
-    {name: 'Cube Points', vertices: 'cubeVertices', mode: 'point'},
-    // Render the 12 textured triangles that make the cube faces
-    {
-        name: 'Cube Triangles',
-        vertices: 'cubeTriPositions',
-        uv: 'cubeTriUVs',
-        mode: 'triangle',
-        textureURL: 'https://images.pexels.com/photos/129733/pexels-photo-129733.jpeg?_gl=1*ank8ph*_ga*MzI5MTE5MDI0LjE3NTcwODUyMDk.*_ga_8JE65Q40S6*czE3NTcwODUyMDkkbzEkZzEkdDE3NTcwODUyMTEkajU4JGwwJGgw'
-    },
-    // Third cube primitive: per-vertex colours (no texture)
-    {
-        name: 'Cube Triangles (per-vertex colours)',
-        vertices: 'cubeTriPositions',
-        colors: 'cubeTriColors',
-        mode: 'triangle',
-        position: {x: -3, y: -1, z: 2},
-        rotationDeg: {x: 0, y: 45, z: -30},
-    },
-    // Second example primitive demonstrating per-primitive position and rotation (degrees)
-    {
-        name: 'Cube Triangles (offset + rotated)',
-        vertices: 'cubeTriPositions',
-        uv: 'cubeTriUVs',
-        mode: 'triangle',
-        // translate by +3 on X, -1 on Y, +0 on Z (world units)
-        position: {x: 3, y: -1, z: 0},
-        // rotate 30° around X and 45° around Y
-        rotationDeg: {x: 30, y: 45, z: 0},
-        textureURL: 'https://images.pexels.com/photos/129733/pexels-photo-129733.jpeg?_gl=1*ank8ph*_ga*MzI5MTE5MDI0LjE3NTcwODUyMDk.*_ga_8JE65Q40S6*czE3NTcwODUyMDkkbzEkZzEkdDE3NTcwODUyMTEkajU4JGwwJGgw'
-    },
-    // Example line primitive: Mobius strip edge scaled to 10x5x3
-    {
-        name: 'Mobius Strip Line (10x5x3)',
-        edges: 'mobiusLineEdges',
-        mode: 'line',
-        uniformColor: [0.15, 0.6, 0.2, 1.0]
-    }
-];
-
-(function installChart3DOnce() {
-    if (window.__chart3d_boot_installed) return;
-    window.__chart3d_boot_installed = true;
-  
-    const CANVAS_SELECTOR = '.chart3d-canvas-holder > canvas[id^="c_"]';
-  
-    
-  
-    // Init canvases added later
-    const mo = new MutationObserver((mutList) => {
-        for (const m of mutList) {
-            for (const n of m.addedNodes) {
-            if (!(n instanceof Element)) continue;
-    
-            if (n.matches && n.matches(CANVAS_SELECTOR) && !n.dataset.cubeInit) {
-                initCube(n, window.CUBE_DATA, window.CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
-            }
-            n.querySelectorAll && n.querySelectorAll(CANVAS_SELECTOR).forEach((c) => {
-                if (!c.dataset.cubeInit) {
-                initCube(c, window.CUBE_DATA, window.CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
-                }
-            });
-            }
-        }
-    });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-})();
-  
-
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-} else {
-    boot();
-}
 // test just with the cube first
 
 // test with triangles, points and lines
@@ -258,6 +58,9 @@ if (document.readyState === "loading") {
 // Per-canvas setup (generalized datasets + primitives)
 // ------------------------------------------------------------
 function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
+    flash("initCube");
+    console.log("initCube DATASETS", datasets);
+    console.log("initCube PRIMITIVES", primitives);
     canvas.dataset.cubeInit = "1";
 
     const gl = canvas.getContext("webgl", {antialias: true, preserveDrawingBuffer: true});
@@ -300,6 +103,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const wrap = canvas.closest('.chart3d-canvas-holder') || canvas.parentElement || document.body;
     if (getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
     const overlay = document.createElement("canvas");
+    overlay.name = "UI-overlay";
     overlay.style.position = "absolute";
     overlay.style.left = "0";
     overlay.style.top = "0";
@@ -326,9 +130,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
     // Axis titles (from axisConfig or data-* if present)
     const AXIS_TITLE = {
-        x: (axisConfig.titleX || (axisConfig.x && axisConfig.x.title) || canvas.dataset.axisX || "X"),
-        y: (axisConfig.titleY || (axisConfig.y && axisConfig.y.title) || canvas.dataset.axisY || "Y"),
-        z: (axisConfig.titleZ || (axisConfig.z && axisConfig.z.title) || canvas.dataset.axisZ || "Z")
+        x: ((axisConfig.titles && axisConfig.titles.x) || "X"),
+        y: ((axisConfig.titles && axisConfig.titles.y) || "Y"),
+        z: ((axisConfig.titles && axisConfig.titles.z) || "Z")
     };
 
     // Axis ranges (min/max) from axisConfig or data-*
@@ -337,30 +141,48 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         return isFinite(n) ? n : null;
     }
 
-    const AXIS_RANGE = {
+    // Separate ranges:
+    // - GRAPH_RANGE controls the physical size of the rendered axes (cube extent)
+    // - LABEL_RANGE controls the numeric values written on the axes (tick labels)
+    const GRAPH_RANGE = {
         x: {
-            min: (axisConfig.minX ?? (axisConfig.x && axisConfig.x.min) ?? parseNum(canvas.dataset.axisXMin)),
-            max: (axisConfig.maxX ?? (axisConfig.x && axisConfig.x.max) ?? parseNum(canvas.dataset.axisXMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.x && axisConfig.graph_bounds.x[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.x && axisConfig.graph_bounds.x[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[1]) ?? undefined,
         },
         y: {
-            min: (axisConfig.minY ?? (axisConfig.y && axisConfig.y.min) ?? parseNum(canvas.dataset.axisYMin)),
-            max: (axisConfig.maxY ?? (axisConfig.y && axisConfig.y.max) ?? parseNum(canvas.dataset.axisYMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.y && axisConfig.graph_bounds.y[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.y && axisConfig.graph_bounds.y[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[1]) ?? undefined,
         },
         z: {
-            min: (axisConfig.minZ ?? (axisConfig.z && axisConfig.z.min) ?? parseNum(canvas.dataset.axisZMin)),
-            max: (axisConfig.maxZ ?? (axisConfig.z && axisConfig.z.max) ?? parseNum(canvas.dataset.axisZMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.z && axisConfig.graph_bounds.z[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.z && axisConfig.graph_bounds.z[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[1]) ?? undefined,
         }
     };
 
-    function hasRange(axis) {
-        const r = AXIS_RANGE[axis];
+    const LABEL_RANGE = {
+        x: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[1]) ?? undefined,
+        },
+        y: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[1]) ?? undefined,
+        },
+        z: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[1]) ?? undefined,
+        }
+    };
+
+    function hasLabelRange(axis) {
+        const r = LABEL_RANGE[axis];
         return r && typeof r.min === 'number' && typeof r.max === 'number' && r.max !== r.min;
     }
 
     function mapToLabel(axis, t) {
-        // Map internal coordinate t in [-Laxis, Laxis] to [min,max] if provided for that axis
-        if (!hasRange(axis)) return t;
-        const r = AXIS_RANGE[axis];
+        // Map internal coordinate t in [-Laxis, Laxis] to [min,max] from LABEL_RANGE if provided
+        if (!hasLabelRange(axis)) return t;
+        const r = LABEL_RANGE[axis];
         const Laxis = axis === 'x' ? axisLenX : (axis === 'y' ? axisLenY : axisLenZ);
         const u = (t + Laxis) / (2 * Laxis); // 0..1
         return r.min + u * (r.max - r.min);
@@ -481,13 +303,13 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         u_tex: gl.getUniformLocation(progTrisTex, "u_tex"),
     };
 
-    // Axis half-extent per axis. If AXIS_RANGE provides numeric min/max, fit [-L,L] to [min,max]
-    // and choose L = max(|min|, |max|) so that 0 is always visible and proportions remain reasonable.
-    // Fallback to 3.0 when no range is provided.
+    // Axis half-extent per axis. If GRAPH_RANGE provides numeric min/max, fit [-L,L] to [min,max]
+    // and choose L = (max - min)/2 for physical size of the cube. Fallback to 3.0 when no range is provided.
+    // Note: LABEL_RANGE controls tick label values separately.
     const defaultAxisLen = 3.0;
 
     function axisHalfExtentFor(axis) {
-        const r = AXIS_RANGE[axis];
+        const r = GRAPH_RANGE[axis];
         if (r && typeof r.min === 'number' && typeof r.max === 'number') {
             const span = r.max - r.min;
             const L = Math.abs(span) / 2;
@@ -729,7 +551,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     canvas.style.width = '100%';
     canvas.style.height = '100%';
     canvas.style.display = 'block';
-    
+
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
     window.addEventListener("resize", resize);
@@ -900,66 +722,79 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         return checkerTex;
     }
 
-    // Helper: normalize data array from various shapes to a flat Float32Array
-    function toFloat32(data, componentsExpected) {
-        if (!data) return null;
-        // If already a typed array
-        if (data instanceof Float32Array) return data;
-        if (Array.isArray(data) && data.length > 0) {
-            // If flat array of numbers
-            if (typeof data[0] === 'number') return new Float32Array(data);
-            // If array of arrays: flatten
-            if (Array.isArray(data[0])) {
-                const out = new Float32Array(data.length * data[0].length);
-                let k = 0;
-                for (const row of data) {
-                    for (const v of row) out[k++] = +v;
+    // Helper: convert df_to_dict-like data using specified column names into a flat Float32Array
+    // New signature: toFloat32(data, columnNamesOrCount)
+    // - If columnNamesOrCount is an array or string -> treat as requested column names
+    // - If it's a number -> legacy behavior (componentsExpected) using generic inference
+    function toFloat32(data, columnNamesOrCount) {
+        if (!data) {
+            return null;
+        }
+
+        // Helper: coerce to finite number, default 0
+        const num = (v) => {
+            const n = +v;
+            return Number.isFinite(n) ? n : 0;
+        };
+
+        // If caller passed column names, attempt df-dict path first
+        let requestedCols = null;
+        if (Array.isArray(columnNamesOrCount)) {
+            requestedCols = columnNamesOrCount;
+        } else if (typeof columnNamesOrCount === 'string') {
+            requestedCols = [columnNamesOrCount];
+        }
+
+        // df_to_dict-like object: {cols:[...], orientation:'byrow'|'bycol', rows:[...]}
+        if (requestedCols && typeof data === 'object' && !Array.isArray(data)) {
+            const cols = data.cols || data.columns;
+            const orientation = ((data.orientation || data.orient || 'byrow') + '').toLowerCase();
+            const rows = data.rows || data.data || data.values;
+            if (Array.isArray(cols) && Array.isArray(rows)) {
+                // Build column index map (case-insensitive match fallback)
+                const colIndex = new Map();
+                for (let i = 0; i < cols.length; i++) {
+                    const name = String(cols[i]);
+                    colIndex.set(name, i);
+                    colIndex.set(name.toLowerCase(), i);
                 }
-                return out;
-            }
-            // If array of objects with x,y,z or u,v or r,g,b,a
-            if (typeof data[0] === 'object') {
-                const keysXYZ = ['x', 'y', 'z'];
-                const keysXYZU = ['X', 'Y', 'Z'];
-                const keysUV = ['u', 'v'];
-                const keysUVU = ['U', 'V'];
-                const keysRGB = ['r', 'g', 'b', 'a'];
-                const keysRGBU = ['R', 'G', 'B', 'A'];
+                const idxs = [];
+                for (const rc of requestedCols) {
+                    const exact = colIndex.get(rc);
+                    const ci = (exact !== undefined) ? exact : colIndex.get(String(rc).toLowerCase());
+                    if (ci === undefined) {
+                        console.warn('toFloat32: missing column', rc);
+                        return null;
+                    }
+                    idxs.push(ci);
+                }
+
                 const out = [];
-                for (const row of data) {
-                    let used = false;
-                    if (!used && row && keysXYZ.every(k => k in row)) {
-                        out.push(+row.x, +row.y, +row.z);
-                        used = true;
+                if (orientation === 'byrow' || orientation === 'table' || orientation === 'json' || orientation === '') {
+                    for (let r = 0; r < rows.length; r++) {
+                        const row = rows[r];
+                        if (!Array.isArray(row)) continue;
+                        for (let k = 0; k < idxs.length; k++) {
+                            out.push(num(row[idxs[k]]));
+                        }
                     }
-                    if (!used && row && keysXYZU.every(k => k in row)) {
-                        out.push(+row.X, +row.Y, +row.Z);
-                        used = true;
+                } else if (orientation === 'bycol' || orientation === 'chart') {
+                    const maxLen = rows.reduce((m, col) => Math.max(m, Array.isArray(col) ? col.length : 0), 0);
+                    for (let r = 0; r < maxLen; r++) {
+                        for (let k = 0; k < idxs.length; k++) {
+                            const colArr = rows[idxs[k]];
+                            const v = Array.isArray(colArr) ? colArr[r] : undefined;
+                            out.push(num(v));
+                        }
                     }
-                    if (!used && row && keysUV.every(k => k in row)) {
-                        out.push(+row.u, +row.v);
-                        used = true;
-                    }
-                    if (!used && row && keysUVU.every(k => k in row)) {
-                        out.push(+row.U, +row.V);
-                        used = true;
-                    }
-                    if (!used && row && keysRGB.every(k => k in row)) {
-                        out.push(+row.r, +row.g, +row.b, +(row.a ?? 1));
-                        used = true;
-                    }
-                    if (!used && row && keysRGBU.every(k => k in row)) {
-                        out.push(+row.R, +row.G, +row.B, +(row.A ?? 1));
-                        used = true;
-                    }
-                    if (!used) {
-                        // fallback: push all numeric values in property order
-                        for (const v of Object.values(row)) if (typeof v === 'number') out.push(+v);
-                    }
+                } else {
+                    console.warn('toFloat32: unknown orientation', orientation);
+                    return null;
                 }
                 return new Float32Array(out);
             }
         }
+        flash("Unknown dataset format");
         return null;
     }
 
@@ -978,26 +813,29 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     // Build compiled objects from datasets + primitives
     try {
         const getDS = (name) => {
-            if (!name) return null;
+            if (name === '' || name === undefined) {
+                return null
+            }
+
             const raw = datasets[name];
             return raw;
         };
         for (const prim of (primitives || [])) {
             try {
-                const vertsRaw = getDS(prim.vertices);
-                const edgesRaw = getDS(prim.edges);
-                const uvRaw = getDS(prim.uv || prim.uvs);
-                const colRaw = getDS(prim.color || prim.colour || prim.colors);
+                const vertsRaw = getDS(prim['obj-vertices']);
+                const edgesRaw = getDS(prim['obj-edges']);
+                const uvRaw = getDS(prim['obj-uv']);
+                const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
 
-                const verts = toFloat32(vertsRaw, 3);
-                const edges = toFloat32(edgesRaw, 3); // positions for lines
-                const uvs = toFloat32(uvRaw, 2);
-                const cols = toFloat32(colRaw);
+                const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
+                const edges = toFloat32(edgesRaw, ['x', 'y', 'z']); // positions for lines
+                const uvs = toFloat32(uvRaw, ['u', 'v']);
+                const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
 
                 const name = prim.name || prim.id || 'obj';
 
                 // Determine mode
-                let mode = prim.mode || prim.primitive; // 'point' | 'line' | 'triangle'
+                let mode = prim['obj-primitive']; // 'point' | 'line' | 'triangle'
                 if (!mode) {
                     if (edges && edges.length >= 6) mode = 'line';
                     else if (verts && (verts.length % 9 === 0)) mode = 'triangle';
@@ -1093,9 +931,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 }
 
                 // If this primitive uses texturing and provides a texture URL, load it now (fallback to checker while loading)
-                let textureUrl = prim.textureUrl || prim.texture || prim.textureURL;
+                let textureUrl = prim['obj-texture-absolute'];
                 let initialTexture = checkerTex;
                 if (usesTex && textureUrl) {
+                    flash("Loading texture " + textureUrl);
                     initialTexture = getOrLoadTexture(textureUrl, (tex) => {
                         // after load, update the compiled object's texture reference
                         const obj = compiled.find(x => x.name === name);
@@ -1283,4 +1122,67 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         render();
     });
 }
+
 if (!window.initCube) window.initCube = initCube;
+
+// Convert a df_to_dict output to an array of row objects
+// Accepts shapes like: {cols:[...], orientation:'byrow'|'bycol', rows:[...]}
+// Returns array of objects [{col1: v11, col2: v12, ...}, ...]
+function dfDictToArrayOfDicts(obj) {
+    try {
+        if (!obj || typeof obj !== 'object') return null;
+
+        // If already an array of plain objects, pass through
+        if (Array.isArray(obj) && obj.length > 0 && typeof obj[0] === 'object' && !Array.isArray(obj[0])) {
+            return obj;
+        }
+
+        const cols = obj.cols || obj.columns;
+        const orientation = (obj.orientation || obj.orient || '').toLowerCase();
+        const rows = obj.rows || obj.data || obj.values;
+
+        if (!Array.isArray(cols) || !Array.isArray(rows)) return null;
+        if (cols.length === 0) return [];
+
+        const out = [];
+        if (orientation === 'byrow' || orientation === 'table' || orientation === 'json' || orientation === '') {
+            // rows: array of arrays matching columns
+            for (let i = 0; i < rows.length; i++) {
+                const r = rows[i];
+                if (!Array.isArray(r)) continue;
+                const o = {};
+                for (let c = 0; c < cols.length; c++) o[cols[c]] = r[c];
+                out.push(o);
+            }
+            return out;
+        }
+        if (orientation === 'bycol' || orientation === 'chart') {
+            // rows: array per column
+            const n = rows.length;
+            // Build by column; align by row index
+            const maxLen = rows.reduce((m, col) => Math.max(m, Array.isArray(col) ? col.length : 0), 0);
+            for (let i = 0; i < maxLen; i++) {
+                const o = {};
+                for (let c = 0; c < cols.length; c++) {
+                    const colArr = rows[c];
+                    o[cols[c]] = Array.isArray(colArr) ? colArr[i] : undefined;
+                }
+                out.push(o);
+            }
+            return out;
+        }
+
+        // Fallback: if rows look like objects with column keys, normalize
+        if (rows.length > 0 && typeof rows[0] === 'object' && !Array.isArray(rows[0])) {
+            return rows;
+        }
+
+        return null;
+    } catch (e) {
+        console.warn('dfDictToArrayOfDicts failed:', e);
+        return null;
+    }
+}
+
+// Expose globally for other modules to use
+if (!window.dfDictToArrayOfDicts) window.dfDictToArrayOfDicts = dfDictToArrayOfDicts;

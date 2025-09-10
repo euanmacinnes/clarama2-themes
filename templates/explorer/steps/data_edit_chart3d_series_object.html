@@ -7,68 +7,88 @@
 <li class="chart3d-series-objects">
     <div class="list-group-item d-flex row gx-2 align-items-center">
         <!-- vertices -->
-        <div class="grid5-col-1">
+        <div class="grid6-col-1">
             <select id="obj-vertices{{ loop_index }}_{{ series_index }}" class="form-control obj-vertices">
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-vertices'] and tab_id|string == sobj['obj-vertices']|string %}selected{% endif %}>
+                            {% if sobj['obj-vertices'] is defined and tab_id|string == sobj['obj-vertices']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}
             </select>
         </div>
-        <!-- edges -->
-        <div class="grid5-col-1">
+        <!-- edges (optional) -->
+        <div class="grid6-col-1">
             <select id="obj-edges{{ loop_index }}_{{ series_index }}" class="form-control obj-edges">
+                <option value="" {% if sobj['obj-edges'] is not defined or sobj['obj-edges'] in ['', 'none'] %}selected{% endif %}
+                >— none —
+                </option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-edges'] and tab_id|string == sobj['obj-edges']|string %}selected{% endif %}>
+                            {% if sobj['obj-edges'] is defined and tab_id|string == sobj['obj-edges']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}
             </select>
         </div>
         <!-- uv (optional) -->
-        <div class="grid5-col-1">
+        <div class="grid6-col-1">
             {% set uv_val = sobj.get('obj-uv') if sobj is defined else '' %}
             <select id="obj-uv{{ loop_index }}_{{ series_index }}" class="form-control obj-uv">
-                <option value="" {% if not sobj['obj-uv'] or sobj['obj-uv'] in ['', 'none'] %}selected{% endif %}>— none —</option>
+                <option value="" {% if sobj['obj-uv'] is not defined or sobj['obj-uv'] in ['', 'none'] %}selected{% endif %}>— none
+                    —
+                </option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-uv'] and tab_id|string == sobj['obj-uv']|string %}selected{% endif %}>
+                            {% if sobj['obj-uv'] is defined and tab_id|string == sobj['obj-uv']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}
             </select>
         </div>
         <!-- colour -->
-        <div class="grid5-col-1">
+        <div class="grid6-col-1">
             {% set col_val = sobj.get('obj-colour') if sobj is defined else '' %}
             <select id="obj-colour{{ loop_index }}_{{ series_index }}" class="form-control obj-colour">
-                <option value="" {% if not sobj['obj-colour'] or sobj['obj-colour'] in ['', 'none'] %}selected{% endif %}>— none —</option>
+                <option value=""
+                        {% if sobj['obj-colour'] is not defined or sobj['obj-colour'] in ['', 'none'] %}selected{% endif %}>— none
+                    —
+                </option>
                 {% for tab in tabs %}
                     {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
                     {% set has_source = tab.source and tab.source.strip() %}
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     <option value="{{ tab_id }}"
-                            {% if sobj['obj-colour'] and tab_id|string == sobj['obj-colour']|string %}selected{% endif %}>
+                            {% if sobj['obj-colour'] is defined and tab_id|string == sobj['obj-colour']|string %}selected{% endif %}>
                         {{ filename }}
                     </option>
                 {% endfor %}
             </select>
         </div>
+        <!-- texture (file path) -->
+        <div class="grid6-col-1">
+            <div class="input-group">
+                <input type="text" id="obj-texture{{ loop_index }}_{{ series_index }}" class="form-control obj-texture browse-field" placeholder="Texture path" value="{% if sobj['obj-texture'] is defined %}{{ sobj['obj-texture'] }}{% endif %}">
+                <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                        data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                        inputId="obj-texture{{ loop_index }}_{{ series_index }}" filters="*.png|*.jpg|*.jpeg|*.bmp|*.gif|*.webp|*.tga">
+                    <i class="bi bi-folder2-open"></i>
+                </button>
+            </div>
+        </div>
         <!-- primitive -->
-        <div class="grid5-col-1">
-            <select id="obj-primitive{{ loop_index }}_{{ series_index }}" class="form-control obj-primitive" title="Type"
+        <div class="grid6-col-1">
+            <select id="obj-primitive{{ loop_index }}_{{ series_index }}" class="form-control obj-primitive"
+                    title="Type"
                     data-toggle="tooltip">>
                 <option {{ selected("point",sobj['obj-primitive']) }} id="point">Point</option>
                 <option {{ selected("line",sobj['obj-primitive']) }} id="line">Line</option>
