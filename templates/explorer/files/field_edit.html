@@ -390,7 +390,7 @@
                     </div>
                 </div>
                 <div class="col" id="filters_group"
-                     style="display: {% if get(field_config,'type','')=='c2file' %}block{% else %}none{% endif %};">
+                     style="display: {% if get(field_config,'type','') in ['c2file','browse'] %}block{% else %}none{% endif %};">
                     <label class="form-label">Filters (for Browse File)</label>
                     <input id="filters" name="filters" type="text" class="form-control clarama-field"
                            placeholder="e.g., *.field.yaml|*.task.yaml|*.source.yaml|*.csv"
@@ -532,8 +532,8 @@
             $(this).addClass("clicked btn-primary").removeClass("btn-light");
             // Toggle custom mode availability for list type
 
-            // Show/Hide filters field for c2file type
-            if (key === 'c2file') {
+            // Show/Hide filters field for browse-like types (c2file, browse)
+            if (key === 'c2file' || key === 'browse') {
                 $('#filters_group').show();
             } else {
                 $('#filters_group').hide();
