@@ -1,0 +1,44 @@
+{# Renders a single stream section (header + collapsible body) with inline rename and toolbar #}
+{# Required vars: internal_topic, file_url, stream (name), steps (array), is_first (bool optional) #}
+{% set is_first = is_first if is_first is defined else false %}
+<div class="accordion-item stream-toolbar-container">
+    <h2 class="accordion-header" id="panelsStayOpen-heading{{ stream }}">
+        <button class="accordion-button {% if not is_first %}collapsed{% endif %} d-flex align-items-center justify-content-between"
+                type="button"
+                data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapse{{ stream }}"
+                aria-expanded="{{ 'true' if is_first else 'false' }}"
+                aria-controls="panelsStayOpen-collapse{{ stream }}">
+            <div class="d-flex align-items-center flex-grow-1 stream-toolbar stream-title"
+                 data-stream="{{ stream }}">
+                <i class="me-2">Stream </i>
+                <span class="stream-title-text stream-toolbar-button {% if stream == 'main' %}fw-bold{% endif %}">{{ stream }}</span>
+                <input class="form-control form-control-sm stream-title-input" type="text" value="{{ stream }}"
+                       style="display:none; max-width: 200px;">
+
+                <i class="btn btn-outline-primary stream-insert-below stream-toolbar-button bi bi-plus-lg"
+                   title="Insert new stream below"></i>
+                {% if stream != 'main' %}
+                    <i class="btn btn-outline-danger stream-delete stream-toolbar-button bi bi-trash"
+                       title="Delete this stream "></i>
+                {% endif %}
+            </div>
+        </button>
+    </h2>
+    <div id="panelsStayOpen-collapse{{ stream }}" class="accordion-collapse {% if is_first %}show{% endif %}"
+         aria-labelledby="panelsStayOpen-heading{{ stream }}">
+        <div class="accordion-body" style="padding:0">
+            <ul id="stream_{{ stream }}" class="clarama-sortable-color container-fluid stream"
+                stream="{{ stream }}"
+                stream-file="{{ file_url | washed }}"
+                stream-name="{{ (internal_topic ~ '_stream_' ~ stream ~ '_step') }}">
+
+                {% for step in steps %}
+                    {% with task_step = step, task_index=loop.index, task_last = loop.last, stream=stream, task_topic=internal_topic %}
+                        {% include theme("explorer/files/_cell.html") %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+            {% include theme("explorer/files/_cell_insert_new.html") %}
+        </div>
+    </div>
+</div>
