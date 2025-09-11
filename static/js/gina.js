@@ -552,7 +552,6 @@ document.addEventListener("DOMContentLoaded", () => {
         checkDocking();
     }
 
-
     function openGina() {
         mainContent?.classList.add("hidden");
         ginaContainer.classList.add("active", "mode-floating");

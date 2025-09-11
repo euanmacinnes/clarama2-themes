@@ -386,12 +386,17 @@
     });
 
     document.addEventListener("keydown", function (e) {
-        const savebutton = document.getElementById("save")
+        const saveButton = document.getElementById("save")
             || document.getElementById("markdown_save")
             || document.getElementById("content_editor_raw_save");
-        if ((e.ctrlKey || e.metaKey) && e.key === "s" && savebutton) {
+        if ((e.ctrlKey || e.metaKey) && e.key === "s" && saveButton) {
             e.preventDefault();
-            savebutton.click();
+            saveButton.click();
+        }
+        const ginaButton = document.getElementById("gina-button");
+        if (e.ctrlKey && e.shiftKey) { // Ctrl+Shift to toggle GINA
+            e.preventDefault();
+            ginaButton.click();
         }
     });
 
