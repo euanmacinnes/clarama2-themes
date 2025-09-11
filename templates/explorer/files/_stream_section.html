@@ -1,6 +1,6 @@
 {# Renders a single stream section (header + collapsible body) with inline rename and toolbar #}
 {# Required vars: internal_topic, file_url, stream (name), steps (array), is_first (bool optional) #}
-{% set is_first = is_first if is_first is defined else false %}
+{% set is_first = is_first if is_first is defined else true %}
 <div class="accordion-item stream-toolbar-container">
     <h2 class="accordion-header" id="panelsStayOpen-heading{{ stream }}">
         <button class="accordion-button {% if not is_first %}collapsed{% endif %} d-flex align-items-center justify-content-between"
@@ -24,7 +24,7 @@
             </div>
         </button>
     </h2>
-    <div id="panelsStayOpen-collapse{{ stream }}" class="accordion-collapse {% if is_first %}show{% endif %}"
+    <div id="panelsStayOpen-collapse{{ stream }}" class="accordion-collapse collapse {% if is_first %}show{% endif %}"
          aria-labelledby="panelsStayOpen-heading{{ stream }}">
         <div class="accordion-body" style="padding:0">
             <ul id="stream_{{ stream }}" class="clarama-sortable-color container-fluid stream"
