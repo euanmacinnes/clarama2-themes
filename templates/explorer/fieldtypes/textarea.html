@@ -4,12 +4,16 @@
     <textarea data-id="{{ field_id }}"
             {{ field_config | required }}
             {{ field_config | readonly }}
+            {{ field_config | sticky }}
               name="{{ field_name }}" type="text"
               fieldtype="html"
               class="form-control clarama-field clarama-delay-field"
-              autocomplete="on"
+              autocomplete="{{ get(field_config,'autocomplete','on') }}"
               rows="{{ get(field_config,'rows',5) }}"
               cols="{{ get(field_config,'cols') }}"
+            {% if field_config.get('data',{}).get('source') %}
+              sourceurl="{{ field_config['data'] | datasource }}"
+            {% endif %}
               placeholder="{{ get(field_config,'placeholder') }}"
             {% include theme("explorer/files/field_tooltip.html") %}
     >

@@ -75,6 +75,7 @@ function perform_interact(field, args = {}) {
 
                         switch (linked_type) {
                             case ".task":
+                                try { claramaSaveStickyCookies(closestGrid); } catch(e) { console.log('Sticky flush failed on interact run', e); }
                                 field_values['clarama_var_run'] = 'True'
                                 reload(linked_element, field_values);
                                 break;

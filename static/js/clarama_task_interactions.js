@@ -11,6 +11,7 @@ function task_run(parent) {
 
         if (check_fields_valid(closestGrid)) {
             console.log("RUNNING");
+            try { claramaSaveStickyCookies(closestGrid); } catch(e) { console.log('Sticky flush failed on run', e); }
             // Get only the field values, not the full field definitions, text or code
 
             socket_div = $(this).attr("socket")

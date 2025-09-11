@@ -9,6 +9,7 @@
                 size="{{ field_config['size'] or '4' }}"
                 {{ field_config | required }}
                 {{ field_config | readonly }}
+                {{ field_config | sticky }}
                 class="form-control clarama-field-select2 clarama-field clarama-select-field"
                 {% include theme("explorer/files/field_tooltip.html") %}
                 {% if field_config.get('data',{}).get('source') %}
@@ -23,7 +24,8 @@
             {% endif %}
             {%- for item in field_config.get('data',{}).get('options',[]) or [] -%}
                 {% if item is mapping %}
-                    <option value="{{ item['id'] }}" {% if field_config.get("default") and item['id'] in field_config["default"] %}
+                    <option value="{{ item['id'] }}"
+                            {% if field_config.get("default") and item['id'] in field_config["default"] %}
                             selected="selected" {% endif %}>{{ item['value'] }}</option>
                 {% else %}
                     <option value="{{ item }}" {% if field_config.get("default") and item in field_config["default"] %}

@@ -3,7 +3,7 @@
 {% block content %}
     <input data-id="{{ field_id }}" {{ required }} name="{{ field_name }}" type="button"
            class="btn btn-primary form-control clarama-field clarama-button-field"
-           autocomplete="on"
+           autocomplete="{{ get(field_config,'autocomplete','off') }}"
            fieldtype="html"
            placeholder="{{ get(field_config,'placeholder') }}"
            value="{{ field_value or get(field_config,'default','') }}"

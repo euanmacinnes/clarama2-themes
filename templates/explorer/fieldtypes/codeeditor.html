@@ -8,7 +8,11 @@
          fieldtype="aceeditor"
             {{ field_config | required }}
             {{ field_config | readonly }}
+            {{ field_config | sticky }}
          style="min-height:{{ get(field_config,'min-height','0') }} ;height: 100%"
+            {% if field_config.get('data',{}).get('source') %}
+         sourceurl="{{ field_config['data'] | datasource }}"
+            {% endif %}
             {% include theme("explorer/files/field_tooltip.html") %}
     >{{ field_value or get(field_config,'default','') | unsafe }}</div>
 

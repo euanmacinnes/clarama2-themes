@@ -18,6 +18,7 @@
                 style="background: none;"
                 {{ field_config | required }}
                 {{ field_config | readonly }}
+                {{ field_config | sticky }}
                 {% include theme("explorer/files/field_tooltip.html") %}>
             <img id="img_{{ field_id }}"
                  src="{{ static(state_options[current_state % max_states]) }}"
@@ -27,25 +28,25 @@
         </button>
 
         {% if max_states > 1 %}
-        <script>
-            function cycleState_{{ field_id }}() {
-                const btn = document.getElementById("{{ field_id }}");
-                const img = document.getElementById("img_{{ field_id }}");
-                
-                const maxStates = parseInt(btn.dataset.maxStates);
-                const stateOptions = {{ state_options | tojson | safe }};
+            <script>
+                function cycleState_{{ field_id }}() {
+                    const btn = document.getElementById("{{ field_id }}");
+                    const img = document.getElementById("img_{{ field_id }}");
 
-                let state = parseInt(btn.dataset.state);
-                if (isNaN(state)) state = 0;
+                    const maxStates = parseInt(btn.dataset.maxStates);
+                    const stateOptions = {{ state_options | tojson | safe }};
 
-                const next = (state + 1) % maxStates;
-                btn.dataset.state = next;
-                btn.value = next;
+                    let state = parseInt(btn.dataset.state);
+                    if (isNaN(state)) state = 0;
 
-                img.src = "{{ static('') }}" + stateOptions[next];
-                img.alt = "State " + next;
-            }
-        </script>
+                    const next = (state + 1) % maxStates;
+                    btn.dataset.state = next;
+                    btn.value = next;
+
+                    img.src = "{{ static('') }}" + stateOptions[next];
+                    img.alt = "State " + next;
+                }
+            </script>
         {% endif %}
     {% endif %}
 {% endblock %}
