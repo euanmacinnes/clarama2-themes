@@ -591,6 +591,46 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     gl.bindBuffer(gl.ARRAY_BUFFER, boxBuf);
     gl.bufferData(gl.ARRAY_BUFFER, boxEdges, gl.STATIC_DRAW);
 
+    // --- tiny vec/quat helpers ----------------------------------
+    function v3(x=0,y=0,z=0){ return new Float32Array([x,y,z]); }
+    function v3dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+    function v3cross(a,b){ return v3(a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]); }
+    function v3len(a){ return Math.hypot(a[0],a[1],a[2]); }
+    function v3norm(a){ const L=v3len(a)||1; return v3(a[0]/L,a[1]/L,a[2]/L); }
+
+    function quatIdentity(){ return new Float32Array([0,0,0,1]); } // [x,y,z,w]
+    function quatMul(a,b){
+        const ax=a[0], ay=a[1], az=a[2], aw=a[3];
+        const bx=b[0], by=b[1], bz=b[2], bw=b[3];
+        return new Float32Array([
+            aw*bx + ax*bw + ay*bz - az*by,
+            aw*by - ax*bz + ay*bw + az*bx,
+            aw*bz + ax*by - ay*bx + az*bw,
+            aw*bw - ax*bx - ay*by - az*bz
+        ]);
+    }
+    
+    function quatNormalize(q){
+        const L=Math.hypot(q[0],q[1],q[2],q[3])||1;
+        return new Float32Array([q[0]/L,q[1]/L,q[2]/L,q[3]/L]);
+    }
+
+    function quatFromAxisAngle(axis, angle){
+        const a=v3norm(axis), s=Math.sin(angle/2);
+        return new Float32Array([a[0]*s, a[1]*s, a[2]*s, Math.cos(angle/2)]);
+    }
+
+    function mat4FromQuat(q){
+        const x=q[0], y=q[1], z=q[2], w=q[3];
+        const xx=x*x, yy=y*y, zz=z*z, xy=x*y, xz=x*z, yz=y*z, wx=w*x, wy=w*y, wz=w*z;
+        const m=new Float32Array(16);
+        m[0]=1-2*(yy+zz); m[4]=2*(xy- wz); m[8 ]=2*(xz+wy); m[12]=0;
+        m[1]=2*(xy+wz);   m[5]=1-2*(xx+zz); m[9 ]=2*(yz-wx); m[13]=0;
+        m[2]=2*(xz-wy);   m[6]=2*(yz+wx);   m[10]=1-2*(xx+yy); m[14]=0;
+        m[3]=0;           m[7]=0;           m[11]=0;          m[15]=1;
+        return m;
+    }
+
     // --- matrices -----------------------------------------------------------
     function mat4Identity() {
         const m = new Float32Array(16);
@@ -662,32 +702,60 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // --- interaction --------------------------------------------------------
-    const initDist = 30.0, initRotX = 0, initRotY = 0; // the initial rotation upon loading
-    let dist = initDist, rotX = initRotX, rotY = initRotY;
-    let dragging = false, lastX = 0, lastY = 0;
+    const initDist = 30.0;
+    let dist = initDist;
+    let dragging = false;
+
+    // current orientation as a quaternion
+    let qOrient = quatIdentity();
+
+    // last arcball vector under the cursor while dragging
+    let lastArc = null;
+
+    // Map a pointer event to an arcball vector on the unit sphere in view space
+    function arcballVecFromEvent(e){
+        const rect = canvas.getBoundingClientRect();
+        // normalised device coords in [-1, 1]
+        const x = ( (e.clientX - rect.left)  / rect.width  ) * 2 - 1;
+        const y = ( (rect.bottom - e.clientY) / rect.height ) * 2 - 1; // invert Y
+        // project (x,y) onto a unit sphere (trackball)
+        const r2 = x*x + y*y;
+        const z = r2 <= 1 ? Math.sqrt(1 - r2) : 0;
+        const v = v3(x, y, z);
+        // normalise (important when outside the unit circle)
+        return v3norm(v);
+    }
 
     // Cached matrices/viewport for hover picking
     let lastMVP = null, lastCssW = 0, lastCssH = 0;
 
     canvas.addEventListener("pointerdown", (e) => {
         dragging = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
+        lastArc = arcballVecFromEvent(e);
         canvas.setPointerCapture(e.pointerId);
     });
+    
     canvas.addEventListener("pointermove", (e) => {
         if (!dragging) return;
-        const rect = canvas.getBoundingClientRect();
-        rotY += (e.clientX - lastX) / Math.max(1, rect.width) * Math.PI;
-        rotX += (e.clientY - lastY) / Math.max(1, rect.height) * Math.PI;
-        rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
-        lastX = e.clientX;
-        lastY = e.clientY;
+        const cur = arcballVecFromEvent(e);
+        // rotation between lastArc -> cur
+        const axis = v3cross(lastArc, cur);
+        const dot  = Math.min(1, Math.max(-1, v3dot(lastArc, cur)));
+        const angle = Math.acos(dot); // radians
+        
+        if (v3len(axis) > 1e-6 && angle > 1e-6) {
+            const dq = quatFromAxisAngle(axis, angle);
+            qOrient = quatNormalize(quatMul(dq, qOrient));
+        }
+        lastArc = cur;
         requestAnimationFrame(render);
     });
+    
     window.addEventListener("pointerup", () => {
         dragging = false;
+        lastArc = null;
     });
+
     canvas.addEventListener("wheel", (e) => {
         const zoomGesture = e.ctrlKey || e.metaKey;
         if (!zoomGesture) return;
@@ -697,12 +765,13 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         dist = Math.max(2.0, dist * s);
         requestAnimationFrame(render);
     }, {passive: false});
+
     canvas.addEventListener("dblclick", () => {
-        rotX = initRotX;
-        rotY = initRotY;
+        qOrient = quatIdentity();
         dist = initDist;
         requestAnimationFrame(render);
     });
+
     // --- hover picking ----------------------------------------------------------
     function fmtTick(v) { return formatTick(v); }
 
@@ -1008,173 +1077,165 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // Build compiled objects from datasets + primitives
-    try {
-        const getDS = (name) => {
-            if (name === '' || name === undefined) {
-                return null
-            }
-
-            const raw = datasets[name];
-            return raw;
-        };
-        for (const prim of (primitives || [])) {
-            try {
-                const vertsRaw = getDS(prim['obj-vertices']);
-                const edgesRaw = getDS(prim['obj-edges']);
-                const uvRaw = getDS(prim['obj-uv']);
-                const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
-
-                const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
-                const edges = toFloat32(edgesRaw, ['x1','y1','z1','x2','y2','z2']); // positions for lines
-                const uvs = toFloat32(uvRaw, ['u', 'v']);
-                const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
-
-                // Normalize positions so data ranges fit the axis cube
-                const vertsN = normalizeXYZSeq(verts);
-                const edgesN = normalizeXYZSeq(edges);
-
-                const name = prim.name || prim.id || 'obj';
-
-                // Determine mode
-                let mode = prim['obj-primitive']; // 'point' | 'line' | 'triangle'
-                if (!mode) {
-                    if (edges && edges.length >= 6) mode = 'line';
-                    else if (verts && (verts.length % 9 === 0)) mode = 'triangle';
-                    else mode = 'point';
-                }
-
-                let program = null;
-                let locations = null;
-                let usesColorVary = false;
-                let usesUniformColor = false;
-                let usesTex = false;
-                let colorSize = 4;
-                let uniformColor = null;
-
-                const vboSource = (mode === 'line' && edgesN) ? edgesN : vertsN;
-                const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, vboSource);
-                let cbo = null, uvbo = null, ebo = null;
-                let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
-                let modeGL = gl.POINTS;
-
-                if (mode === 'point') {
-                    // points use vertices
-                    if (!vertsN || vertsN.length < 3) {
-                        console.warn('Primitive skipped (no vertices):', name);
-                        continue;
-                    }
-                    countVerts = Math.floor(vertsN.length / 3);
-                    // Choose colors handling
-                    if (cols && cols.length >= countVerts * 3) {
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progPointsVary;
-                        locations = locColor.points;
-                    } else {
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.point;
-                        program = progPoints;
-                        locations = loc.points;
-                    }
-                    modeGL = gl.POINTS;
-                } else if (mode === 'line') {
-                    // lines use edges positions directly
-                    const lineData = edgesN || vertsN; // fallback to verts if edges missing (interpret as line strip pairs)
-                    if (!lineData || lineData.length < 6) {
-                        console.warn('Primitive skipped (no edges/verts for lines):', name);
-                        continue;
-                    }
-                    countVerts = Math.floor(lineData.length / 3);
-                    if (cols && cols.length >= countVerts * 3) {
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progLinesVary;
-                        locations = locColor.lines;
-                    } else {
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.cube;
-                        program = progLines;
-                        locations = loc.lines;
-                    }
-                    modeGL = gl.LINES;
-                } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh' || mode === 'trianglestrip' || mode === 'triangle_strip') {
-                    if (!vertsN || vertsN.length < 9) {
-                        console.warn('Primitive skipped (no triangle vertices):', name);
-                        continue;
-                    }
-                    countVerts = Math.floor(vertsN.length / 3);
-                    if (uvs && uvs.length >= (countVerts * 2)) {
-                        // textured
-                        usesTex = true;
-                        uvbo = createBufferAndUpload(gl.ARRAY_BUFFER, uvs);
-                        program = progTrisTex;
-                        locations = locTex;
-                    } else if (cols && cols.length >= countVerts * 3) {
-                        // per-vertex color
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progTrisVary;
-                        locations = locColor.tris;
-                    } else {
-                        // uniform color
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.cube;
-                        program = progTris;
-                        locations = loc.tris;
-                    }
-                    // Select WebGL draw mode: TRIANGLES for lists, TRIANGLE_STRIP if requested
-                    modeGL = (mode === 'trianglestrip' || mode === 'triangle_strip') ? gl.TRIANGLE_STRIP : gl.TRIANGLES;
-                } else {
-                    console.warn('Unknown primitive mode, skipping:', mode);
-                    continue;
-                }
-
-                // If this primitive uses texturing and provides a texture URL, load it now
-                let textureUrl = prim['obj-texture-absolute'];
-                let initialTexture;
-                if (usesTex && textureUrl) {
-                    flash("Loading texture " + textureUrl);
-                    initialTexture = getOrLoadTexture(textureUrl, (tex) => {
-                        // after load, update the compiled object's texture reference
-                        const obj = compiled.find(x => x.name === name);
-                        if (obj) obj.texture = tex;
-                    });
-                }
-
-                compiled.push({
-                    name,
-                    program,
-                    locations,
-                    vbo,
-                    cbo,
-                    uvbo,
-                    ebo,
-                    colorSize,
-                    usesColorVary,
-                    usesUniformColor,
-                    uniformColor,
-                    usesTex,
-                    texture: initialTexture,
-                    hasIndices: false,
-                    countVerts,
-                    countElems,
-                    indexType,
-                    modeGL,
-                    // store transform directives from primitive (position and rotation in degrees)
-                    position: prim.position || {x: 0, y: 0, z: 0},
-                    rotationDeg: prim.rotationDeg || {x: 0, y: 0, z: 0},
-                    // CPU-side verts for hover picking (only for points)
-                    vertsN: (modeGL === gl.POINTS) ? vertsN : null,
-                });
-            } catch (e) {
-                console.error('Error compiling primitive:', e);
-            }
+    const getDS = (name) => {
+        if (name === '' || name === undefined) {
+            return null
         }
-    } catch (e) {
-        console.error('Failed to build primitives:', e);
+
+        const raw = datasets[name];
+        return raw;
+    };
+    for (const prim of (primitives || [])) {
+        const vertsRaw = getDS(prim['obj-vertices']);
+        const edgesRaw = getDS(prim['obj-edges']);
+        const uvRaw = getDS(prim['obj-uv']);
+        const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
+
+        const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
+        const edges = toFloat32(edgesRaw, ['x1','y1','z1','x2','y2','z2']); // positions for lines
+        const uvs = toFloat32(uvRaw, ['u', 'v']);
+        const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
+
+        // Normalize positions so data ranges fit the axis cube
+        const vertsN = normalizeXYZSeq(verts);
+        const edgesN = normalizeXYZSeq(edges);
+
+        const name = prim.name || prim.id || 'obj';
+
+        // Determine mode
+        let mode = prim['obj-primitive']; // 'point' | 'line' | 'triangle'
+        if (!mode) {
+            if (edges && edges.length >= 6) mode = 'line';
+            else if (verts && (verts.length % 9 === 0)) mode = 'triangle';
+            else mode = 'point';
+        }
+
+        let program = null;
+        let locations = null;
+        let usesColorVary = false;
+        let usesUniformColor = false;
+        let usesTex = false;
+        let colorSize = 4;
+        let uniformColor = null;
+
+        const vboSource = (mode === 'line' && edgesN) ? edgesN : vertsN;
+        const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, vboSource);
+        let cbo = null, uvbo = null, ebo = null;
+        let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
+        let modeGL = gl.POINTS;
+
+        if (mode === 'point') {
+            // points use vertices
+            if (!vertsN || vertsN.length < 3) {
+                console.warn('Primitive skipped (no vertices):', name);
+                continue;
+            }
+            countVerts = Math.floor(vertsN.length / 3);
+            // Choose colors handling
+            if (cols && cols.length >= countVerts * 3) {
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progPointsVary;
+                locations = locColor.points;
+            } else {
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.point;
+                program = progPoints;
+                locations = loc.points;
+            }
+            modeGL = gl.POINTS;
+        } else if (mode === 'line') {
+            // lines use edges positions directly
+            const lineData = edgesN || vertsN; // fallback to verts if edges missing (interpret as line strip pairs)
+            if (!lineData || lineData.length < 6) {
+                console.warn('Primitive skipped (no edges/verts for lines):', name);
+                continue;
+            }
+            countVerts = Math.floor(lineData.length / 3);
+            if (cols && cols.length >= countVerts * 3) {
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progLinesVary;
+                locations = locColor.lines;
+            } else {
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.cube;
+                program = progLines;
+                locations = loc.lines;
+            }
+            modeGL = gl.LINES;
+        } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh' || mode === 'trianglestrip' || mode === 'triangle_strip') {
+            if (!vertsN || vertsN.length < 9) {
+                console.warn('Primitive skipped (no triangle vertices):', name);
+                continue;
+            }
+            countVerts = Math.floor(vertsN.length / 3);
+            if (uvs && uvs.length >= (countVerts * 2)) {
+                // textured
+                usesTex = true;
+                uvbo = createBufferAndUpload(gl.ARRAY_BUFFER, uvs);
+                program = progTrisTex;
+                locations = locTex;
+            } else if (cols && cols.length >= countVerts * 3) {
+                // per-vertex color
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progTrisVary;
+                locations = locColor.tris;
+            } else {
+                // uniform color
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.cube;
+                program = progTris;
+                locations = loc.tris;
+            }
+            // Select WebGL draw mode: TRIANGLES for lists, TRIANGLE_STRIP if requested
+            modeGL = (mode === 'trianglestrip' || mode === 'triangle_strip') ? gl.TRIANGLE_STRIP : gl.TRIANGLES;
+        } else {
+            console.warn('Unknown primitive mode, skipping:', mode);
+            continue;
+        }
+
+        // If this primitive uses texturing and provides a texture URL, load it now
+        let textureUrl = prim['obj-texture-absolute'];
+        let initialTexture;
+        if (usesTex && textureUrl) {
+            flash("Loading texture " + textureUrl);
+            initialTexture = getOrLoadTexture(textureUrl, (tex) => {
+                // after load, update the compiled object's texture reference
+                const obj = compiled.find(x => x.name === name);
+                if (obj) obj.texture = tex;
+            });
+        }
+
+        compiled.push({
+            name,
+            program,
+            locations,
+            vbo,
+            cbo,
+            uvbo,
+            ebo,
+            colorSize,
+            usesColorVary,
+            usesUniformColor,
+            uniformColor,
+            usesTex,
+            texture: initialTexture,
+            hasIndices: false,
+            countVerts,
+            countElems,
+            indexType,
+            modeGL,
+            // store transform directives from primitive (position and rotation in degrees)
+            position: prim.position || {x: 0, y: 0, z: 0},
+            rotationDeg: prim.rotationDeg || {x: 0, y: 0, z: 0},
+            // CPU-side verts for hover picking (only for points)
+            vertsN: (modeGL === gl.POINTS) ? vertsN : null,
+        });
     }
 
     // ---------- render -------------------------------------------------------
@@ -1193,9 +1254,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
         const P = mat4Perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100.0);
         const V = mat4Translate(0, 0, -dist);
-        const Rx = mat4RotateX(rotX);
-        const Ry = mat4RotateY(rotY);
-        const M = mat4Mul(Ry, Rx);
+        const M = mat4FromQuat(qOrient);
         const MVP = mat4Mul(mat4Mul(P, V), M);
 
         // cache for hover picking
@@ -1245,7 +1304,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             const Mp = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
             const MVPp = mat4Mul(MVP, Mp);
 
-            // common: MVP (per primitive)
             if (o.locations.u_mvp) gl.uniformMatrix4fv(o.locations.u_mvp, false, MVPp);
 
             // attributes
