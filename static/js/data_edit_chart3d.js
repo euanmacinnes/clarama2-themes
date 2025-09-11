@@ -164,123 +164,122 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     };
 
     // ---- Auto axis range from vertex data (expand by ±5 using only X/Y/Z) ----
-    (function applyAutoAxisRange(){
-        try {
-            const readDS = (n) => (n ? datasets[n] : null);
+    function applyAutoAxisRange(){
+        const readDS = (n) => (n ? datasets[n] : null);
 
-            // Scan a df_to_dict-like dataset for columns exactly x,y,z (case-insensitive)
-            function scanXYZ(df){
-                if (!df || typeof df !== 'object') return null;
-                const cols = df.cols || df.columns;
-                const rows = df.rows || df.data || df.values;
-                const orient = String(df.orientation || df.orient || 'byrow').toLowerCase();
-                if (!Array.isArray(cols) || !Array.isArray(rows)) return null;
+        // Scan a df_to_dict-like dataset for columns exactly x,y,z (case-insensitive)
+        function scanXYZ(df){
+            if (!df || typeof df !== 'object') return null;
+            const cols = df.cols || df.columns;
+            const rows = df.rows || df.data || df.values;
+            const orient = String(df.orientation || df.orient || 'byrow').toLowerCase();
+            if (!Array.isArray(cols) || !Array.isArray(rows)) return null;
 
-                // Build CI map for exact x,y,z
-                const ci = new Map();
-                for (let i = 0; i < cols.length; i++) {
-                    const name = String(cols[i]).trim();
-                    ci.set(name, i);
-                    ci.set(name.toLowerCase(), i);
-                }
-                const ix = ci.get('x') ?? ci.get('X');
-                const iy = ci.get('y') ?? ci.get('Y');
-                const iz = ci.get('z') ?? ci.get('Z');
-                if (ix == null || iy == null || iz == null) return null; // require x,y,z
-
-                const num = (v) => { const n = +v; return Number.isFinite(n) ? n : null; };
-
-                const mm = {
-                    x: {min: +Infinity, max: -Infinity},
-                    y: {min: +Infinity, max: -Infinity},
-                    z: {min: +Infinity, max: -Infinity},
-                };
-
-                if (orient === 'byrow' || orient === 'table' || orient === 'json' || orient === '') {
-                    for (const r of rows) {
-                        if (!Array.isArray(r)) continue;
-                        const vx = num(r[ix]), vy = num(r[iy]), vz = num(r[iz]);
-                        if (vx != null) { if (vx < mm.x.min) mm.x.min = vx; if (vx > mm.x.max) mm.x.max = vx; }
-                        if (vy != null) { if (vy < mm.y.min) mm.y.min = vy; if (vy > mm.y.max) mm.y.max = vy; }
-                        if (vz != null) { if (vz < mm.z.min) mm.z.min = vz; if (vz > mm.z.max) mm.z.max = vz; }
-                    }
-                } else if (orient === 'bycol' || orient === 'chart') {
-                    const cx = rows[ix] || [], cy = rows[iy] || [], cz = rows[iz] || [];
-                    const L = Math.max(cx.length, cy.length, cz.length);
-                    for (let i = 0; i < L; i++) {
-                        const vx = num(cx[i]), vy = num(cy[i]), vz = num(cz[i]);
-                        if (vx != null) { if (vx < mm.x.min) mm.x.min = vx; if (vx > mm.x.max) mm.x.max = vx; }
-                        if (vy != null) { if (vy < mm.y.min) mm.y.min = vy; if (vy > mm.y.max) mm.y.max = vy; }
-                        if (vz != null) { if (vz < mm.z.min) mm.z.min = vz; if (vz > mm.z.max) mm.z.max = vz; }
-                    }
-                } else {
-                    return null;
-                }
-
-                if (!Number.isFinite(mm.x.min) || !Number.isFinite(mm.x.max) ||
-                    !Number.isFinite(mm.y.min) || !Number.isFinite(mm.y.max) ||
-                    !Number.isFinite(mm.z.min) || !Number.isFinite(mm.z.max)) {
-                    return null;
-                }
-                return mm;
+            const ci = new Map();
+            for (let i = 0; i < cols.length; i++) {
+                const name = String(cols[i]).trim();
+                ci.set(name, i);
+                ci.set(name.toLowerCase(), i);
             }
+            const ix = ci.get('x') ?? ci.get('X');
+            const iy = ci.get('y') ?? ci.get('Y');
+            const iz = ci.get('z') ?? ci.get('Z');
+            if (ix == null || iy == null || iz == null) return null; // require x,y,z
 
-            // 1) Try aggregating from primitives' obj-vertices
-            const agg = { x:{min:+Infinity,max:-Infinity}, y:{min:+Infinity,max:-Infinity}, z:{min:+Infinity,max:-Infinity} };
-            const updateAgg = (mm) => {
-                if (!mm) return;
-                if (mm.x.min < agg.x.min) agg.x.min = mm.x.min;
-                if (mm.x.max > agg.x.max) agg.x.max = mm.x.max;
-                if (mm.y.min < agg.y.min) agg.y.min = mm.y.min;
-                if (mm.y.max > agg.y.max) agg.y.max = mm.y.max;
-                if (mm.z.min < agg.z.min) agg.z.min = mm.z.min;
-                if (mm.z.max > agg.z.max) agg.z.max = mm.z.max;
+            const num = (v) => { const n = +v; return Number.isFinite(n) ? n : null; };
+
+            const mm = {
+                x: {min: +Infinity, max: -Infinity},
+                y: {min: +Infinity, max: -Infinity},
+                z: {min: +Infinity, max: -Infinity},
             };
 
-            let found = false;
-            for (const prim of (primitives || [])) {
-                const mm = scanXYZ(readDS(prim['obj-vertices']));
+            if (orient === 'byrow' || orient === 'table' || orient === 'json' || orient === '') {
+                for (const r of rows) {
+                    if (!Array.isArray(r)) continue;
+                    const vx = num(r[ix]), vy = num(r[iy]), vz = num(r[iz]);
+                    if (vx != null) { if (vx < mm.x.min) mm.x.min = vx; if (vx > mm.x.max) mm.x.max = vx; }
+                    if (vy != null) { if (vy < mm.y.min) mm.y.min = vy; if (vy > mm.y.max) mm.y.max = vy; }
+                    if (vz != null) { if (vz < mm.z.min) mm.z.min = vz; if (vz > mm.z.max) mm.z.max = vz; }
+                }
+            } else if (orient === 'bycol' || orient === 'chart') {
+                const cx = rows[ix] || [], cy = rows[iy] || [], cz = rows[iz] || [];
+                const L = Math.max(cx.length, cy.length, cz.length);
+                for (let i = 0; i < L; i++) {
+                    const vx = num(cx[i]), vy = num(cy[i]), vz = num(cz[i]);
+                    if (vx != null) { if (vx < mm.x.min) mm.x.min = vx; if (vx > mm.x.max) mm.x.max = vx; }
+                    if (vy != null) { if (vy < mm.y.min) mm.y.min = vy; if (vy > mm.y.max) mm.y.max = vy; }
+                    if (vz != null) { if (vz < mm.z.min) mm.z.min = vz; if (vz > mm.z.max) mm.z.max = vz; }
+                }
+            } else {
+                return null;
+            }
+
+            if (!Number.isFinite(mm.x.min) || !Number.isFinite(mm.x.max) ||
+                !Number.isFinite(mm.y.min) || !Number.isFinite(mm.y.max) ||
+                !Number.isFinite(mm.z.min) || !Number.isFinite(mm.z.max)) {
+                return null;
+            }
+            return mm;
+        }
+
+        // 1) Try aggregating from primitives' obj-vertices
+        const agg = { x:{min:+Infinity,max:-Infinity}, y:{min:+Infinity,max:-Infinity}, z:{min:+Infinity,max:-Infinity} };
+        const updateAgg = (mm) => {
+            if (!mm) return;
+            if (mm.x.min < agg.x.min) agg.x.min = mm.x.min;
+            if (mm.x.max > agg.x.max) agg.x.max = mm.x.max;
+            if (mm.y.min < agg.y.min) agg.y.min = mm.y.min;
+            if (mm.y.max > agg.y.max) agg.y.max = mm.y.max;
+            if (mm.z.min < agg.z.min) agg.z.min = mm.z.min;
+            if (mm.z.max > agg.z.max) agg.z.max = mm.z.max;
+        };
+
+        let found = false;
+        for (const prim of (primitives || [])) {
+            const mm = scanXYZ(readDS(prim['obj-vertices']));
+            if (mm) { updateAgg(mm); found = true; }
+        }
+        if (!found) {
+            for (const key of Object.keys(datasets || {})) {
+                const mm = scanXYZ(datasets[key]);
                 if (mm) { updateAgg(mm); found = true; }
             }
-
-            // 2) Fallback: if nothing from primitives, scan *all* datasets for an x/y/z table
-            if (!found) {
-                for (const key of Object.keys(datasets || {})) {
-                    const mm = scanXYZ(datasets[key]);
-                    if (mm) { updateAgg(mm); found = true; }
-                }
-            }
-
-            if (!found) return;
-
-            const margin = 5;
-            const auto = {
-                x: {min: agg.x.min - margin, max: agg.x.max + margin},
-                y: {min: agg.y.min - margin, max: agg.y.max + margin},
-                z: {min: agg.z.min - margin, max: agg.z.max + margin},
-            };
-
-            // Apply to GRAPH_RANGE if missing
-            for (const axis of ['x','y','z']) {
-                const g = GRAPH_RANGE[axis] || (GRAPH_RANGE[axis] = {});
-                if (!(typeof g.min === 'number' && isFinite(g.min))) g.min = auto[axis].min;
-                if (!(typeof g.max === 'number' && isFinite(g.max))) g.max = auto[axis].max;
-            }
-
-            // Apply to LABEL_RANGE if not provided or degenerate
-            for (const axis of ['x','y','z']) {
-                const r = LABEL_RANGE[axis] || (LABEL_RANGE[axis] = {});
-                const provided = (typeof r.min==='number' && typeof r.max==='number' &&
-                                isFinite(r.min) && isFinite(r.max) && r.max !== r.min);
-                if (!provided) { r.min = auto[axis].min; r.max = auto[axis].max; }
-            }
-
-            // helpful debug
-            console.log('Auto-bounds done. GRAPH_RANGE:', GRAPH_RANGE, 'LABEL_RANGE:', LABEL_RANGE);
-        } catch (e) {
-            console.warn('Auto axis range failed:', e);
         }
-    })();
+        if (!found) return;
+
+        const margin = 5;
+
+        function snapWhole(min, max) {
+            let lo = Math.floor(min);
+            let hi = Math.ceil(max);
+            if (lo === hi) { lo -= 1; hi += 1; } // avoid degenerate range
+            return {min: lo, max: hi};
+        }
+
+        const auto = {
+            x: snapWhole(agg.x.min - margin, agg.x.max + margin),
+            y: snapWhole(agg.y.min - margin, agg.y.max + margin),
+            z: snapWhole(agg.z.min - margin, agg.z.max + margin),
+        };
+
+        // Apply to GRAPH_RANGE if missing
+        for (const axis of ['x','y','z']) {
+            const g = GRAPH_RANGE[axis] || (GRAPH_RANGE[axis] = {});
+            if (!(typeof g.min === 'number' && isFinite(g.min))) g.min = auto[axis].min;
+            if (!(typeof g.max === 'number' && isFinite(g.max))) g.max = auto[axis].max;
+        }
+
+        // Apply to LABEL_RANGE if not provided/degenerate
+        for (const axis of ['x','y','z']) {
+            const r = LABEL_RANGE[axis] || (LABEL_RANGE[axis] = {});
+            const provided = (typeof r.min==='number' && typeof r.max==='number' &&
+                            isFinite(r.min) && isFinite(r.max) && r.max !== r.min);
+            if (!provided) { r.min = auto[axis].min; r.max = auto[axis].max; }
+        }
+    }
+
+    applyAutoAxisRange();
 
     function hasLabelRange(axis) {
         const r = LABEL_RANGE[axis];
