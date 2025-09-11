@@ -103,41 +103,11 @@
     </div>
 
     <div class="accordion" id="accordionStreams">
-        <div class="accordion-item">
-            {% for streamslist in streams %}
-                {% for stream, steps in streamslist.items() %}
-                    <h2 class="accordion-header" id="panelsStayOpen-heading{{ stream }}">
-                        <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapse{{ stream }}"
-                                aria-expanded="true" aria-controls="panelsStayOpen-collapse{{ stream }}">
-                            <i>{{ stream }}</i>&nbsp;Stream
-                        </button>
-                    </h2>
-                    <div id="panelsStayOpen-collapse{{ stream }}"
-                         class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
-                         aria-labelledby="panelsStayOpen-heading{{ stream }}">
-                        <div class="accordion-body" style="padding:0">
-                            <ul id="stream_{{ stream }}" class="clarama-sortable-color container-fluid stream"
-                                stream="{{ stream }}"
-                                stream-file="{{ file_url | washed }}"
-                                stream-name="{{ (internal_topic ~ '_stream_' ~ stream ~ '_step') }}">
-
-                                {% for step in steps %}
-                                    {% with task_step = step, task_index=loop.index, task_last = loop.last, stream=stream,
-                        task_topic=internal_topic %}
-                                        {% include theme("explorer/files/_cell.html") %}
-                                    {% endwith %}
-
-                                {% endfor %}
-
-                            </ul>
-
-                            {% include theme("explorer/files/_cell_insert_new.html") %}
-                        </div>
-                    </div>
-                {% endfor %}
+        {% for streamslist in streams %}
+            {% for stream, steps in streamslist.items() %}
+                {% include theme("explorer/files/_stream_section.html") with context %}
             {% endfor %}
-        </div>
+        {% endfor %}
     </div>
 </form>
 
@@ -168,4 +138,25 @@
 {% include theme("explorer/files/file_changes_prompt_template.html") %}
 {% include theme("explorer/files/_grid_edit.html") %}
 {% include theme("explorer/files/task_response_templates.html") %}
+
+<!-- Delete Stream Confirmation Modal -->
+<div class="modal fade" id="confirmDeleteStreamModal" tabindex="-1" aria-labelledby="confirmDeleteStreamLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteStreamLabel">Delete Stream</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete the stream <strong class="stream-name"></strong>? This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteStreamBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ static( filename='js/clarama_streams.js') }}" type="text/javascript"></script>
 {% include theme("web/file_footer.html") %}
