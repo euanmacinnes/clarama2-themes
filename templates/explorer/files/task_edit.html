@@ -26,9 +26,9 @@
                     <button id="save" type="button" class="btn btn-secondary clarama-task clarama-task-save"
                             url="{{ file_url }}" title="save"><i
                             class="bi bi-floppy"></i></button>
-                    <button id="stop" type="button" class="btn btn-secondary clarama-task clarama-task-stop"
-                            title="stop"><i
-                            class="bi bi-stop-fill"></i></button>
+                    <button id="publish" type="button" class="btn btn-secondary clarama-task clarama-task-publish"
+                            title="publish as .ai.yaml"><i
+                            class="bi bi-upload"></i></button>
                     <button id="editrun" type="button" class="btn btn-secondary kernel-play-button clarama-task-editrun"
                             socket="edit_socket" kill="False" title="play"><i
                             class="bi bi-play-fill h3"></i></button>
@@ -153,6 +153,31 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-danger" id="confirmDeleteStreamBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Publish Modal -->
+<div class="modal fade" id="publishModal" tabindex="-1" aria-labelledby="publishModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="publishModalLabel">Publish Task as .ai.yaml</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+            <label for="publishFileName" class="form-label">Filename</label>
+            <input type="text" class="form-control" id="publishFileName" placeholder="example.ai.yaml" />
+            <div class="form-text">File will be saved relative to the task's current folder.</div>
+        </div>
+        <label class="form-label">Preview (.ai.yaml)</label>
+        <pre id="publishPreview" class="bg-light p-2 border" style="white-space: pre-wrap; max-height: 50vh; overflow:auto;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmPublishBtn">Publish</button>
       </div>
     </div>
   </div>

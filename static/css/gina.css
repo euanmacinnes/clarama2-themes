@@ -15,16 +15,16 @@
     height: auto;
     max-height: none;
     width: 75vw;
-    max-width: 1000px;
+    max-width: 1500px;
 
     /* look & feel */
     padding: 18px;
     border-radius: 16px;
     background: rgba(6, 5, 5, 0.257);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 
     /* behavior */
     overflow: hidden;
@@ -58,14 +58,15 @@
     font-size: 180%;
     font-weight: 600;
     letter-spacing: 0.4px;
-    color: rgba(255,255,255,0.92);
-    text-shadow: 0 2px 18px rgba(0,0,0,0.45);
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
 
     opacity: 0.92;
     transition: opacity .35s ease, transform .35s ease;
     transform: translateY(var(--splash-shift, 0));
     z-index: 3;
 }
+
 .gina-splash.hide {
     opacity: 0;
     transform: translateY(calc(var(--splash-shift, 0) - 6px));
@@ -80,7 +81,9 @@
 }
 
 /* Controls */
-.gina-controls { margin: 10px 0; }
+.gina-controls {
+    margin: 10px 0;
+}
 
 .gina-button {
     padding-right: inherit;
@@ -112,19 +115,21 @@
     flex: 0 0 auto;
     padding-top: 8px;
     margin-top: 8px;
-    border-top: 1px dashed rgba(255,255,255,0.18);
+    border-top: 1px dashed rgba(255, 255, 255, 0.18);
 }
 
-.gina-conversations .gina-block + .gina-block { 
-    margin-top: 18px; 
+.gina-conversations .gina-block + .gina-block {
+    margin-top: 18px;
 }
 
-.gina-latest .gina-block { 
-    margin-top: 8px; 
+.gina-latest .gina-block {
+    margin-top: 8px;
 }
 
 /* === Input + Mic + Send === */
-.gina-input-wrapper { position: relative; }
+.gina-input-wrapper {
+    position: relative;
+}
 
 /* Mic (left) */
 .gina-mic-container {
@@ -144,25 +149,47 @@
     height: 36px;
     border: none;
     border-radius: 50%;
-    background: rgba(255,255,255,0.18);
+    background: rgba(255, 255, 255, 0.18);
     color: #fff;
     cursor: pointer;
     transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
     backdrop-filter: blur(6px);
 }
-.gina-mic-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
-.gina-mic-btn:active { transform: translateY(0); }
-.gina-mic-btn:disabled { opacity: .6; cursor: not-allowed; }
-.gina-mic-btn i { font-size: 1.05rem; }
+
+.gina-mic-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.gina-mic-btn:active {
+    transform: translateY(0);
+}
+
+.gina-mic-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.gina-mic-btn i {
+    font-size: 1.05rem;
+}
+
 .gina-mic-btn.recording {
     background: rgba(255, 40, 40, 0.4);
     box-shadow: 0 0 0 6px rgba(255, 40, 40, 0.15);
     animation: gina-pulse 1.6s ease-in-out infinite;
 }
+
 @keyframes gina-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(255, 40, 40, 0.25); }
-    70% { box-shadow: 0 0 0 12px rgba(255, 40, 40, 0.05); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 40, 40, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 40, 40, 0.25);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(255, 40, 40, 0.05);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 40, 40, 0);
+    }
 }
 
 .gina-input {
@@ -181,79 +208,201 @@
 
     border: none;
     border-radius: 12px;
-    background-color: rgba(255,255,255,0.15);
+    background-color: rgba(255, 255, 255, 0.15);
     color: #fff;
     outline: none;
     backdrop-filter: blur(4px);
     transition: background-color 0.3s, box-shadow 0.3s, max-height 0.2s ease;
-    box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.2);
 }
 
-.gina-input::placeholder { 
+.gina-input::placeholder {
     line-height: inherit;
-    color: rgba(255,255,255,0.6); 
+    color: rgba(255, 255, 255, 0.6);
 }
 
-.gina-input.expanded { max-height: none !important; overflow-y: hidden !important; }
-.gina-input.locked   { background-color: rgba(255,255,255,0.1); cursor: not-allowed; opacity: 0.7; }
-.gina-input:focus:not(.locked) { background-color: rgba(255,255,255,0.25); box-shadow: 0 0 8px rgba(0,255,255,0.6); }
+.gina-input.expanded {
+    max-height: none !important;
+    overflow-y: hidden !important;
+}
+
+.gina-input.locked {
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.gina-input:focus:not(.locked) {
+    background-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+}
 
 .gina-send-container {
-    position: absolute; 
-    bottom: 12px; 
+    position: absolute;
+    bottom: 12px;
     right: 7px;
-    opacity: 0; 
+    opacity: 0;
     transform: translateX(20px);
-    pointer-events: none; 
+    pointer-events: none;
     transition: all 0.3s ease;
 }
-.gina-send-container.show { opacity: 1; transform: translateX(0); pointer-events: auto; }
+
+.gina-send-container.show {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
 .gina-send-btn {
     scale: 0.9;
-    display: flex; 
-    align-items: center; 
+    display: flex;
+    align-items: center;
     gap: 8px;
     padding: 8px 14px;
-    background: rgba(150,150,150,0.308); 
+    background: rgba(150, 150, 150, 0.308);
     color: white;
-    border: none; 
+    border: none;
     border-radius: 25px;
-    font-size: .6rem; 
-    font-weight: 500; 
+    font-size: .6rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all .3s ease; 
-    box-shadow: 0 4px 15px rgba(0,153,247,0.3);
+    transition: all .3s ease;
+    box-shadow: 0 4px 15px rgba(0, 153, 247, 0.3);
     backdrop-filter: blur(10px);
 }
-.gina-send-btn:hover   { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,153,247,0.4); background: linear-gradient(135deg,#00b7ff76,#0098f782); }
-.gina-send-btn:active  { transform: translateY(0); }
-.gina-send-btn:disabled{ opacity: .5; cursor: not-allowed; transform: none!important; }
-.gina-send-btn i { font-size: 1.1rem; }
+
+.gina-send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 153, 247, 0.4);
+    background: linear-gradient(135deg, #00b7ff76, #0098f782);
+}
+
+.gina-send-btn:active {
+    transform: translateY(0);
+}
+
+.gina-send-btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.gina-send-btn i {
+    font-size: 1.1rem;
+}
 
 /* === Output area === */
-.gina-output-container { margin-top: 6px; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.08); color:#fff; }
-.gina-output           { padding: 14px 18px; color:#fff; min-height: 40px; font-family: inherit; font-size: 1rem; line-height: 1.5; background: rgba(255,255,255,0.05); }
-.gina-output.loading   { display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); }
-.gina-output.loading::after { content: ''; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: rgba(255,255,255,0.8); border-radius: 50%; animation: spin 1s linear infinite; margin-left: 10px; }
-@keyframes spin { to { transform: rotate(360deg);} }
+.gina-output-container {
+    margin-top: 6px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.gina-output {
+    padding: 14px 18px;
+    color: #fff;
+    min-height: 40px;
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.gina-output.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.gina-output.loading::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 
 /* === Bubbles & alignment === */
-.gina-block.chat-mode .gina-input-wrapper.finalized { 
-    display: flex; 
-    justify-content: flex-end; 
-    padding: 0 10px; 
+.gina-block.chat-mode .gina-input-wrapper.finalized {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 10px;
     min-width: 0;
 }
-.gina-msg { box-sizing: border-box; display:inline-block; width:fit-content; max-width:70%; padding:12px 14px; line-height:1.5; font-size:1rem; border-radius:14px; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; }
-.gina-msg.user { margin-left:auto; background: linear-gradient(135deg, rgba(0,183,255,0.35), rgba(0,152,247,0.38)); color:#fff; border-top-right-radius:6px; }
-.gina-block.chat-mode .gina-output-container { background:transparent; padding:0; border-radius:0; margin-top:8px; display:flex; justify-content:flex-start; }
-.gina-block.chat-mode .gina-output { display:inline-block; width:fit-content; max-width:70%; background: rgba(255,255,255,0.12); color:#fff; border-radius:14px; border-top-left-radius:6px; padding:12px 14px; margin-right:auto; white-space:pre-wrap; }
-.gina-input-wrapper.finalized .gina-msg.user { margin-top:2px; }
-.gina-block.chat-mode .gina-output { margin-top:6px; }
 
-#main-content { opacity:1; transition:opacity .4s ease; }
+.gina-msg {
+    box-sizing: border-box;
+    display: inline-block;
+    width: fit-content;
+    max-width: 70%;
+    padding: 12px 14px;
+    line-height: 1.5;
+    font-size: 1rem;
+    border-radius: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
 
-#main-content.hidden { opacity:0; pointer-events:none; transition:opacity .4s ease; }
+.gina-msg.user {
+    margin-left: auto;
+    background: linear-gradient(135deg, rgba(0, 183, 255, 0.35), rgba(0, 152, 247, 0.38));
+    color: #fff;
+    border-top-right-radius: 6px;
+}
+
+.gina-block.chat-mode .gina-output-container {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.gina-block.chat-mode .gina-output {
+    display: inline-block;
+    width: fit-content;
+    max-width: 70%;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-radius: 14px;
+    border-top-left-radius: 6px;
+    padding: 12px 14px;
+    margin-right: auto;
+    white-space: pre-wrap;
+}
+
+.gina-input-wrapper.finalized .gina-msg.user {
+    margin-top: 2px;
+}
+
+.gina-block.chat-mode .gina-output {
+    margin-top: 6px;
+}
+
+#main-content {
+    opacity: 1;
+    transition: opacity .4s ease;
+}
+
+#main-content.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .4s ease;
+}
 
 #main-content.hidden.collapsed {
     display: none !important;
@@ -264,19 +413,20 @@
     flex: 0 0 0 !important;
 }
 
-.gina-button-group { 
-    display: flex; 
-    align-items: center; 
-    gap: 8px; 
-    transition: all .3s ease; 
+.gina-button-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all .3s ease;
 }
 
 .gina-button-group.gina-active .gina-recent-btn {
     color: white;
-    opacity: 1; 
-    transform: translateX(0); 
-    pointer-events: auto; 
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
 }
+
 .gina-recent-btn {
     color: white;
     opacity: 0;
@@ -284,23 +434,28 @@
     pointer-events: none;
     transition: all .3s ease;
 }
+
 .gina-recent-btn:hover {
     color: #ccc; /* grey icon on hover */
 }
+
 .recent-convo-dropdown {
-    background-color: #2a2a2a !important; 
+    background-color: #2a2a2a !important;
     color: white;
     border: none;
     border-radius: 8px;
     padding: 0;
 }
+
 .recent-convo-dropdown .dropdown-item {
     color: white;
     padding: 10px 16px;
 }
+
 .recent-convo-dropdown .dropdown-item:hover {
     background-color: #494949;
 }
+
 .recent-convo-dropdown .dropdown-header {
     font-size: 1rem;
     font-weight: 600;

@@ -11,7 +11,11 @@ function task_run(parent) {
 
         if (check_fields_valid(closestGrid)) {
             console.log("RUNNING");
-            try { claramaSaveStickyCookies(closestGrid); } catch(e) { console.log('Sticky flush failed on run', e); }
+            try {
+                claramaSaveStickyCookies(closestGrid);
+            } catch (e) {
+                console.log('Sticky flush failed on run', e);
+            }
             // Get only the field values, not the full field definitions, text or code
 
             socket_div = $(this).attr("socket")
@@ -78,6 +82,75 @@ function task_edit_run(parent) {
 }
 
 // This function is called by the user when they click on a Save button
+function task_publish(parent) {
+    parent.find("#publish").click(function () {
+        try {
+            let taskPath = $("#edit_socket").attr("task");
+            if (!taskPath) {
+                flash("No task file path found to publish", "danger");
+                return;
+            }
+            // Collect task and field info
+            get_fields(true, true, (task_registry) => {
+                // Build preview via backend
+                $.ajax({
+                    type: 'POST',
+                    url: '/content/publish/' + taskPath,
+                    datatype: 'json',
+                    contentType: 'application/json',
+                    data: JSON.stringify({task: task_registry}),
+                    success: function (res) {
+                        if (res && res.success) {
+                            let suggested = res.filename || (taskPath.replace(/\.task\.yaml$/i, '') + '.ai.yaml');
+                            $("#publishFileName").val(suggested);
+                            $("#publishPreview").text(res.yaml || '');
+                            const modal = new bootstrap.Modal(document.getElementById('publishModal'));
+                            modal.show();
+                            $("#confirmPublishBtn").off('click').on('click', function () {
+                                let fname = $("#publishFileName").val();
+                                let yaml = $("#publishPreview").text();
+                                if (!fname || !yaml) {
+                                    flash('Missing filename or content', 'danger');
+                                    return;
+                                }
+                                // Save using existing content save route
+                                $.ajax({
+                                    type: 'POST',
+                                    url: '/content/raw/' + fname,
+                                    datatype: 'json',
+                                    contentType: 'application/json',
+                                    data: JSON.stringify({edited_content: yaml}),
+                                    success: function (saveres) {
+                                        if (saveres && (saveres.data === 'ok' || saveres.success)) {
+                                            flash('Published ' + fname, 'success');
+                                            modal.hide();
+                                        } else {
+                                            flash('Failed to save: ' + (saveres && (saveres.error || saveres.message) || 'unknown'), 'danger');
+                                        }
+                                    },
+                                    error: function (e) {
+                                        console.error(e);
+                                        flash("Error saving file", 'danger');
+                                    }
+                                });
+                            });
+                        } else {
+                            flash('Could not build publish preview: ' + (res && (res.error || res.message) || 'unknown'), 'danger');
+                        }
+                    },
+                    error: function (e) {
+                        console.error(e);
+                        flash('Error generating publish preview', 'danger');
+                    }
+                });
+            });
+        } catch (e) {
+            console.error(e);
+            flash('Unexpected error during publish', 'danger');
+        }
+    });
+}
+
 function task_save(parent) {
     parent.find("#save").click(function () {
         console.log("SAVING");

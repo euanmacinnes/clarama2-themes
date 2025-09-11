@@ -29,6 +29,7 @@ function enable_interactions(parent, reload = false, runtask = false) {
     var task_parent = parent.find('.clarama-task')
     task_run(task_parent);
     task_save(task_parent);
+    task_publish(task_parent);
     task_edit_run(task_parent);
     task_parent.find('.clarama-websocket').enablesocket();
 
