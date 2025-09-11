@@ -97,24 +97,26 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                 // Images ![alt](url)
                 t = t.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, alt, url, title) => {
                     const u = sanitizeUrl(url);
-                    const a = esc(alt);
-                    const ti = title ? ` title=\"${esc(title)}\"` : '';
+                    // alt and title are already escaped by the initial esc(s)
+                    const a = alt;
+                    const ti = title ? ` title=\"${title}\"` : '';
                     return `<img src="${u}" alt="${a}"${ti}>`;
                 });
                 // Links [text](url)
                 t = t.replace(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, txt, url, title) => {
                     const u = sanitizeUrl(url);
-                    const ti = title ? ` title=\"${esc(title)}\"` : '';
-                    return `<a href="${u}" target="_blank" rel="noopener"${ti}>${esc(txt)}</a>`;
+                    const ti = title ? ` title=\"${title}\"` : '';
+                    // txt is already escaped; don't escape again to avoid double-encoding
+                    return `<a href="${u}" target="_blank" rel="noopener"${ti}>${txt}</a>`;
                 });
                 // Inline code `code`
                 t = t.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
                 // Bold **text** or __text__
-                t = t.replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, (m, a, b) => `<strong>${esc(a || b)}</strong>`);
+                t = t.replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, (m, a, b) => `<strong>${(a || b)}</strong>`);
                 // Italic *text* or _text_
-                t = t.replace(/\*(?!\*)([^*]+)\*|_([^_]+)_/g, (m, a, b) => `<em>${esc(a || b)}</em>`);
+                t = t.replace(/\*(?!\*)([^*]+)\*|_([^_]+)_/g, (m, a, b) => `<em>${(a || b)}</em>`);
                 // Strikethrough ~~text~~
-                t = t.replace(/~~([^~]+)~~/g, (m, s) => `<del>${esc(s)}</del>`);
+                t = t.replace(/~~([^~]+)~~/g, (m, s) => `<del>${s}</del>`);
                 return t;
             };
 
