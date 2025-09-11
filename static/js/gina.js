@@ -38,12 +38,11 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         if (!hasProcessing) {
             if (window.__ginaWelcomeShown) return;
             window.__ginaWelcomeShown = true;
-            window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+            __ginaSetInputsEnabled(true, "Type your question.");
             return;
         }
 
         let block =
-            (window.__ginaGetActiveBlock && window.__ginaGetActiveBlock()) ||
             container?.querySelector("#gina-latest .gina-block.processing") ||
             container?.querySelector("#gina-conversations .gina-block.processing") ||
             container?.querySelector("#gina-latest .gina-block.chat-mode");
@@ -110,20 +109,14 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
 
             if (isFinalizedUserTurn) {
                 block.classList.remove("processing");
-                window.__ginaClearProcessingGuard && window.__ginaClearProcessingGuard();
-                window.__ginaSetProcessingState && window.__ginaSetProcessingState(false);
+                window.__ginaClearProcessingGuard();
+                window.__ginaSetProcessingState(false);
 
-                // Clear the active reference before moving it away
-                if (window.__ginaGetActiveBlock && block === window.__ginaGetActiveBlock()) {
-                    window.__ginaSetActiveBlock && window.__ginaSetActiveBlock(null);
-                    window.__ginaActiveTurnId = null;
-                }
-
-                window.__ginaMoveBlockToHistory && window.__ginaMoveBlockToHistory(block);
-                window.__ginaSpawnNext && window.__ginaSpawnNext();
+                window.__ginaMoveBlockToHistory(block);
+                window.__ginaSpawnNext();
             } else {
                 // Welcome/system message — keep the composer in place
-                window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+                window.__ginaSetInputsEnabled(true, "Type your question.");
             }
         }
 
@@ -134,13 +127,9 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
     // 3) Error → show error bubble and continue flow
     if (dict && dict["class"] === "message" && dict["type"] === "task_step_exception") {
         const container = document.getElementById("gina-chat-container");
-        const block = (window.__ginaGetActiveBlock && window.__ginaGetActiveBlock()) ||
-            container?.querySelector("#gina-latest .gina-block.processing");
+        const block = container?.querySelector("#gina-latest .gina-block.processing");
         const msg = (dict.values && dict.values.error) ? String(dict.values.error) : "An error occurred.";
-        window.__ginaFinalizeBlockAfterError && window.__ginaFinalizeBlockAfterError(block, msg);
-        // Clear the active reference on error too
-        window.__ginaSetActiveBlock && window.__ginaSetActiveBlock(null);
-        window.__ginaActiveTurnId = null;
+        window.__ginaFinalizeBlockAfterError(block, msg);
         return;
     }
 
@@ -180,6 +169,7 @@ function runQuestionThroughKernel(questionText, forBlock) {
             success: function (data) {
                 if (data && data["data"] === "ok") {
                     // WebSocket will deliver the response
+                    console.log('GINA user input: ', questionText);
                     return;
                 }
                 const err = (data && data["error"]) ? data["error"] : "An error occurred while processing your question.";
@@ -523,6 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function resetConversation() {
         // Stop any voice capture
         stopListening();
+        runQuestionThroughKernel('/reset'); // reset the session
 
         historyHost.innerHTML = "";
         latestHost.innerHTML = "";
