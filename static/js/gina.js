@@ -591,7 +591,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.__ginaHandshakeSent = true;
                 window.waitingForAiUserInput = true;
                 window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(false, "GINA is getting ready...");
-                runQuestionThroughKernel("/init");
+                runQuestionThroughKernel("/init\nmodel: gemma3:4b");
             }
             const open = ginaContainer.classList.contains("active");
             if (!open) {
