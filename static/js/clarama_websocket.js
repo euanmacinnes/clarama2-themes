@@ -697,6 +697,26 @@ function handleElementMessage(dict, socket_div) {
     }
 }
 
+// Simple global stream dispatcher to allow components to receive raw stream frames via the central websocket
+window.ClaramaStream = window.ClaramaStream || (function(){
+    const handlers = {}; // topic -> Set<function>
+    function register(topic, fn){
+        const t = topic || '*';
+        if(!handlers[t]) handlers[t] = new Set();
+        handlers[t].add(fn);
+        return function unregister(){ try{ handlers[t].delete(fn); }catch(e){} }
+    }
+    function dispatch(topic, msg){
+        const t = topic || '*';
+        const hs = handlers[t];
+        if(hs){ hs.forEach(fn=>{ try{ fn(msg, t); }catch(e){ console.error('Stream handler error', e); } }); }
+        // Also dispatch to wildcard handlers
+        const ws = handlers['*'];
+        if(ws && t !== '*'){ ws.forEach(fn=>{ try{ fn(msg, t); }catch(e){} }); }
+    }
+    return { register, dispatch };
+})();
+
 // On receipt of a websocket message from the server. The kernels will send messages of dicts
 // in which one of the keys, "type" indicates the type of message, which then correlates with the HTML template to use
 // to render that message
@@ -955,6 +975,16 @@ function onMessage(event, socket_url, webSocket, socket_div) {
     } else if ('progress' in dict) {
         $('#task_progress_' + dict['stream']).attr('aria-valuenow', dict['step_number']);
     } else {
+        // Attempt to route raw stream frames (start/chunk/end/error) through ClaramaStream
+        try{
+            const t = (socket_div && socket_div.attr) ? (socket_div.attr('topic') || '') : '';
+            if(dict && typeof dict === 'object' && (dict.type === 'start' || dict.type === 'chunk' || dict.type === 'end' || dict.type === 'error')){
+                if(window.ClaramaStream && typeof window.ClaramaStream.dispatch === 'function'){
+                    window.ClaramaStream.dispatch(t, dict);
+                    return;
+                }
+            }
+        }catch(e){ /* fallthrough to log */ }
         console.log("CLARAMA_WEBSOCKET.js: WTF was this: " + dict);
     }
 
