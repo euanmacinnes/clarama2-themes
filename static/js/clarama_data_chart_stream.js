@@ -144,199 +144,267 @@
 
     function bChartStream(chart_id, options){
         if(!global.Chart){ console.error('Chart.js not found'); }
-        const topic = options && options.topic; if(!topic) throw new Error('bChartStream requires options.topic');
+        const singleTopic = options && options.topic;
+        const sourceTopicsOpt = options && options.source_topics; // array aligned to series-groups OR map {series_tab: topic}
+        if(!singleTopic && !sourceTopicsOpt) throw new Error('bChartStream requires options.topic or options.source_topics');
 
         const canvas = document.getElementById(chart_id);
         const ctx = canvas.getContext('2d');
-        let chart = null; let cols = [];
+        let chart = null;
 
-        // dynamic pushing function configured on start
-        let pushRows = function(rows){};
+        // Track multiple topic registrations and per-topic state
+        const registrations = []; // list of unregister fns
+        const topicStates = new Map(); // topic -> { cols, assembler, sgIndex, pushRows }
 
-        // current topic registration
-        let unregister = null;
-        let currentTopic = topic;
+        // Shared datasets across topics
+        const datasets = [];
+        const datasetIndexByKey = new Map();
 
-        function restartStream(newTopic){
-            try{ if(unregister){ unregister(); unregister = null; } }catch(e){}
-            currentTopic = newTopic;
-            // reset datasets
-            if(chart){
-                for(const ds of chart.data.datasets){ ds.data = []; }
-                chart.update('none');
-            }
-            // re-register
-            if(window.ClaramaStream && window.ClaramaStream.register){ unregister = window.ClaramaStream.register(currentTopic, onMessageFrame); }
+        // Helpers from initial config (may be overridden by start frame chart config)
+        const baseChartCfg = options.chart || {};
+        const xaxisTypeDefault = baseChartCfg['xaxis-type'] || options.xaxisType || 'time';
+        const legendDefault = baseChartCfg['legend'];
+        const annotationsDefault = baseChartCfg['annotations'] || baseChartCfg['chart-annotations'];
+        const seriesFormatsDefault = baseChartCfg['series-formats'] || [];
+        const seriesGroupsDefault = Array.isArray(baseChartCfg['series-groups']) ? baseChartCfg['series-groups'] : [];
+        const chartTypeDefault = options.chart_type || baseChartCfg['chart-type'] || 'line';
+        const chartOptionsOverrideDefault = options.chart_options || baseChartCfg['chart-options'] || {};
+
+        function ensureDataset(key, baseLabel, baseColorIndex){
+            if(datasetIndexByKey.has(key)) return datasetIndexByKey.get(key);
+            const color = defaultColors[datasets.length % defaultColors.length];
+            const ds = { id: key, label: baseLabel || key, data: [], borderColor: color, backgroundColor: color, fill: false, pointRadius: 3, tension: 0.1 };
+            // Use default formats initially; will also look at start-provided formats below
+            ChartSeriesFormat(ds, seriesFormatsDefault, datasets.length);
+            datasets.push(ds);
+            const idx = datasets.length - 1;
+            datasetIndexByKey.set(key, idx);
+            return idx;
         }
 
-        const assembler = new ClaramaStreamAssembler((rows)=>{
-            if(!chart) return;
-            pushRows(rows);
-            chart.update('none');
-        });
+        // Heuristic: detect if a value should be converted to a Date
+        function toDateMaybe(val){
+            if(val === null || val === undefined) return val;
+            if(val instanceof Date) return val;
+            // Strings: try ISO or Date.parse-able
+            if(typeof val === 'string'){
+                // Quick reject for empty or obviously non-date short strings
+                if(val.length < 4) return val;
+                const t = Date.parse(val);
+                if(!isNaN(t)) return new Date(t);
+                return val;
+            }
+            // Numbers: treat as epoch seconds/millis
+            if(typeof val === 'number' && isFinite(val)){
+                if(val > 1e12) return new Date(val);            // ms since epoch
+                if(val > 1e9) return new Date(val * 1000);      // sec since epoch
+                return val;
+            }
+            return val;
+        }
 
-        function onMessageFrame(msg){
-            const type = msg && msg.type; if(!type) return;
-            if(type === 'start'){
-                cols = Array.isArray(msg.cols) ? msg.cols : [];
-                const startInfo = msg.info || {};
-                const startChartCfg = startInfo.chart || options.chart || {};
+        function buildPushRowsForGroup(topic, cols, sg, globalFormats, isTimeScale){
+            // Determine indices
+            const x_name = sg['series-x'] || cols[0];
+            const y_name = sg['series-y'] || cols[1];
+            const s_name = sg['series-s'];
+            const l_name = sg['series-l'];
+            const tab_no = (sg['series-tab'] !== undefined && sg['series-tab'] !== null) ? sg['series-tab'] : 0;
 
-                // x-axis handling
-                const xaxisType = startChartCfg['xaxis-type'] || options.xaxisType || 'time';
-                const x_scale_type = axis_type_map[xaxisType] || 'time';
-                const isTime = x_scale_type === 'time';
+            const xi = cols.indexOf(x_name);
+            const yi = cols.indexOf(y_name);
+            const si = s_name ? cols.indexOf(s_name) : -1;
+            const li = l_name ? cols.indexOf(l_name) : -1;
 
-                // legend display
-                const legend_display = startChartCfg['legend'] === undefined ? true : (startChartCfg['legend'] !== 'Off');
+            // Determine if x column name suggests a date/time
+            const nameImpliesDate = (x_name||'').toString().match(/date|time|timestamp|dt|ts/i) !== null;
 
-                // annotations (Chart.js annotation plugin expected to be registered externally if used)
-                const annotations = startChartCfg['annotations'] || startChartCfg['chart-annotations'] || undefined;
+            // Pre-create single-series dataset if no series-s
+            if(si < 0 && yi >= 0){ ensureDataset(`d${tab_no}:${y_name}`, `${y_name} [${tab_no}]`, 0); }
 
-                // aspect ratio handling
-                let aspect_ratio = startChartCfg['aspect_ratio'];
-                let maintain = false;
-                if(isNaN(aspect_ratio) || !aspect_ratio){ aspect_ratio = 2.5; maintain = true; }
-
-                // series formats
-                const series_formats = startChartCfg['series-formats'] || [];
-
-                // Determine building mode: series-groups or simple y_cols
-                const series_groups = Array.isArray(startChartCfg['series-groups']) ? startChartCfg['series-groups'] : [];
-
-                // Prepare datasets container
-                const datasets = [];
-                const datasetIndexByKey = new Map(); // for dynamic creation per series value
-
-                function ensureDataset(key, baseLabel, baseColorIndex){
-                    if(datasetIndexByKey.has(key)) return datasetIndexByKey.get(key);
-                    const color = defaultColors[datasets.length % defaultColors.length];
-                    const ds = { id: key, label: baseLabel || key, data: [], borderColor: color, backgroundColor: color, fill: false, pointRadius: 3, tension: 0.1 };
-                    ChartSeriesFormat(ds, series_formats, datasets.length);
-                    datasets.push(ds);
-                    const idx = datasets.length - 1;
-                    datasetIndexByKey.set(key, idx);
-                    return idx;
-                }
-
-                if(series_groups.length > 0){
-                    const sg = series_groups[0] || {};
-                    const x_name = sg['series-x'] || cols[0];
-                    const y_name = sg['series-y'] || cols[1];
-                    const s_name = sg['series-s'];
-                    const l_name = sg['series-l'];
-
-                    const xi = cols.indexOf(x_name);
-                    const yi = cols.indexOf(y_name);
-                    const si = s_name ? cols.indexOf(s_name) : -1;
-                    const li = l_name ? cols.indexOf(l_name) : -1;
-
-                    if(si < 0 && yi >= 0){ ensureDataset(y_name, y_name, 0); }
-
-                    pushRows = function(rows){
-                        for(const r of rows){
-                            const xv = xi >= 0 ? r[xi] : r[0];
-                            if(yi >= 0){
-                                if(si >= 0){
-                                    const kval = r[si];
-                                    const lbl = (li >= 0 ? r[li] : `${y_name}:${kval}`);
-                                    const key = `${y_name}::${kval}`;
-                                    const idx = ensureDataset(key, lbl);
-                                    chart.data.datasets[idx].data.push({ x: xv, y: r[yi] });
-                                } else {
-                                    const idx = ensureDataset(y_name, y_name);
-                                    chart.data.datasets[idx].data.push({ x: xv, y: r[yi] });
-                                }
-                            }
+            return function pushRows(rows){
+                if(!chart) return;
+                for(const r of rows){
+                    let xv = xi >= 0 ? r[xi] : r[0];
+                    if(isTimeScale || nameImpliesDate){ xv = toDateMaybe(xv); }
+                    if(yi >= 0){
+                        if(si >= 0){
+                            const kval = r[si];
+                            const lbl = (li >= 0 ? r[li] : `${y_name}:${kval} [${tab_no}]`);
+                            const key = `d${tab_no}:${y_name}::${kval}`;
+                            const idx = ensureDataset(key, lbl);
+                            chart.data.datasets[idx].data.push({ x: xv, y: r[yi] });
+                        } else {
+                            const key = `d${tab_no}:${y_name}`;
+                            const idx = ensureDataset(key, `${y_name} [${tab_no}]`);
+                            chart.data.datasets[idx].data.push({ x: xv, y: r[yi] });
                         }
-                    };
-                } else {
-                    const x_col_name = options.x_col;
-                    const y_cols = options.y_cols || cols.filter((c,i)=> i!== (x_col_name ? cols.indexOf(x_col_name) : 0));
-                    const x_index = x_col_name ? cols.indexOf(x_col_name) : 0;
-                    const y_indexes = y_cols.map(c=> cols.indexOf(c)).filter(i=> i>=0);
-                    for(let i=0;i<y_cols.length;i++){ ensureDataset(y_cols[i], y_cols[i], i); }
-                    pushRows = function(rows){
-                        for(const r of rows){
-                            const xv = r[x_index];
-                            for(let i=0;i<y_indexes.length;i++){
-                                const yi = y_indexes[i];
-                                const key = y_cols[i];
-                                const idx = ensureDataset(key, key, i);
-                                chart.data.datasets[idx].data.push({ x: xv, y: r[yi] });
-                            }
-                        }
-                    };
-                }
-
-                const data = { datasets };
-                const baseOptions = {
-                    parsing: true,
-                    maintainAspectRatio: maintain,
-                    aspectRatio: aspect_ratio,
-                    scales: {
-                        x: { type: x_scale_type, time: x_scale_type === 'time' ? { unit: 'auto' } : undefined },
-                        y: { type: 'linear', beginAtZero: false }
-                    },
-                    plugins: { 
-                        legend: { display: legend_display },
-                        zoom: isTime ? {
-                            pan: { enabled: true, mode: 'x', modifierKey: 'ctrl' },
-                            zoom: {
-                                wheel: { enabled: true, modifierKey: 'ctrl' },
-                                drag: { enabled: true, borderColor: 'rgb(54, 162, 235)', borderWidth: 1, backgroundColor: 'rgba(54, 162, 235, 0.3)' },
-                                mode: 'x',
-                                onZoomComplete: ({chart}) => {
-                                    try{
-                                        const scale = chart.scales.x;
-                                        const min = scale.min; const max = scale.max;
-                                        if(min==null || max==null) return;
-                                        const rangeMs = (new Date(max)).valueOf() - (new Date(min)).valueOf();
-                                        const widthPx = canvas.clientWidth || canvas.width || 800;
-                                        const { stepMs, unitName, targetPoints } = computeTimeStep(rangeMs, widthPx);
-                                        const detail = { start: new Date(min), end: new Date(max), startISO: new Date(min).toISOString(), endISO: new Date(max).toISOString(), rangeMs, widthPx, stepMs, unitName, targetPoints, restartStream };
-                                        const evt = new CustomEvent('clarama:zoom-range', { detail });
-                                        canvas.dispatchEvent(evt);
-                                        if(options && typeof options.onZoomRefetch === 'function'){ options.onZoomRefetch(detail); }
-                                    }catch(e){ console.error('zoom compute failed', e); }
-                                },
-                                onZoomReset: ({chart}) => {
-                                    try{
-                                        const evt = new CustomEvent('clarama:zoom-reset', { detail: { restartStream } });
-                                        canvas.dispatchEvent(evt);
-                                        if(options && typeof options.onZoomReset === 'function') options.onZoomReset({ restartStream });
-                                    }catch(e){}
-                                }
-                            }
-                        } : undefined
                     }
-                };
-                if(annotations){
-                    baseOptions.plugins = baseOptions.plugins || {};
-                    baseOptions.plugins.annotation = baseOptions.plugins.annotation || {};
-                    baseOptions.plugins.annotation.annotations = annotations;
                 }
-                const chart_type = options.chart_type || startChartCfg['chart-type'] || 'line';
-                const chart_options_override = options.chart_options || startChartCfg['chart-options'] || {};
-
-                const cfg = { type: chart_type, data, options: Object.assign({}, baseOptions, chart_options_override) };
-
-                if(chart){ chart.destroy(); }
-                chart = new Chart(ctx, cfg);
-                assembler.reset();
-                if(options && options.onopen) options.onopen();
-            } else if (type === 'chunk'){
-                assembler.onChunk(msg);
-            } else if (type === 'end'){
-                if(options && options.onend) options.onend(msg);
-            } else if (type === 'error'){
-                console.error('Stream error', msg.error || msg);
-                if(options && options.onerror) options.onerror(msg);
             }
         }
 
-        // register first listener
-        if(window.ClaramaStream && window.ClaramaStream.register){ unregister = window.ClaramaStream.register(currentTopic, onMessageFrame); }
+        function initChartIfNeeded(startChartCfg){
+            if(chart) return;
+            const xaxisType = startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time';
+            const x_scale_type = axis_type_map[xaxisType] || 'time';
+            const isTime = x_scale_type === 'time';
+            const legend_display = (startChartCfg['legend'] === undefined) ? (legendDefault === undefined ? true : (legendDefault !== 'Off')) : (startChartCfg['legend'] !== 'Off');
+            const annotations = startChartCfg['annotations'] || startChartCfg['chart-annotations'] || annotationsDefault;
+            let aspect_ratio = startChartCfg['aspect_ratio'] || baseChartCfg['aspect_ratio'];
+            let maintain = false; if(isNaN(aspect_ratio) || !aspect_ratio){ aspect_ratio = 2.5; maintain = true; }
+
+            const data = { datasets };
+            const baseOptions = {
+                parsing: true,
+                maintainAspectRatio: maintain,
+                aspectRatio: aspect_ratio,
+                scales: {
+                    x: { type: x_scale_type, time: x_scale_type === 'time' ? { unit: 'auto' } : undefined },
+                    y: { type: 'linear', beginAtZero: false }
+                },
+                plugins: {
+                    legend: { display: legend_display },
+                    zoom: isTime ? {
+                        pan: { enabled: true, mode: 'x', modifierKey: 'ctrl' },
+                        zoom: {
+                            wheel: { enabled: true, modifierKey: 'ctrl' },
+                            drag: { enabled: true, borderColor: 'rgb(54, 162, 235)', borderWidth: 1, backgroundColor: 'rgba(54, 162, 235, 0.3)' },
+                            mode: 'x',
+                            onZoomComplete: ({chart}) => {
+                                try{
+                                    const scale = chart.scales.x;
+                                    const min = scale.min; const max = scale.max;
+                                    if(min==null || max==null) return;
+                                    const rangeMs = (new Date(max)).valueOf() - (new Date(min)).valueOf();
+                                    const widthPx = canvas.clientWidth || canvas.width || 800;
+                                    const { stepMs, unitName, targetPoints } = computeTimeStep(rangeMs, widthPx);
+                                    const detail = { start: new Date(min), end: new Date(max), startISO: new Date(min).toISOString(), endISO: new Date(max).toISOString(), rangeMs, widthPx, stepMs, unitName, targetPoints, restartStream };
+                                    const evt = new CustomEvent('clarama:zoom-range', { detail });
+                                    canvas.dispatchEvent(evt);
+                                    if(options && typeof options.onZoomRefetch === 'function'){ options.onZoomRefetch(detail); }
+                                }catch(e){ console.error('zoom compute failed', e); }
+                            },
+                            onZoomReset: ({chart}) => {
+                                try{
+                                    const evt = new CustomEvent('clarama:zoom-reset', { detail: { restartStream } });
+                                    canvas.dispatchEvent(evt);
+                                    if(options && typeof options.onZoomReset === 'function') options.onZoomReset({ restartStream });
+                                }catch(e){}
+                            }
+                        }
+                    } : undefined
+                }
+            };
+            if(annotations){
+                baseOptions.plugins = baseOptions.plugins || {};
+                baseOptions.plugins.annotation = baseOptions.plugins.annotation || {};
+                baseOptions.plugins.annotation.annotations = annotations;
+            }
+            const chart_type = startChartCfg['chart-type'] || chartTypeDefault;
+            const chart_options_override = startChartCfg['chart-options'] || chartOptionsOverrideDefault;
+            const cfg = { type: chart_type, data, options: Object.assign({}, baseOptions, chart_options_override) };
+            chart = new Chart(ctx, cfg);
+        }
+
+        function onMessageFrameFactory(boundTopic, sgIndex){
+            return function onMessageFrame(msg){
+                const type = msg && msg.type; if(!type) return;
+                let state = topicStates.get(boundTopic);
+                if(!state){
+                    state = { cols: [], assembler: null, sgIndex: sgIndex, pushRows: function(){} };
+                    topicStates.set(boundTopic, state);
+                }
+                if(type === 'start'){
+                    state.cols = Array.isArray(msg.cols) ? msg.cols : [];
+                    const startInfo = msg.info || {};
+                    const startChartCfg = startInfo.chart || baseChartCfg || {};
+                    const series_groups = Array.isArray(startChartCfg['series-groups']) ? startChartCfg['series-groups'] : seriesGroupsDefault;
+
+                    // Resolve which series-group to use: prefer bound sgIndex, else info.group/index, else 0
+                    let useIndex = (typeof state.sgIndex === 'number') ? state.sgIndex : (typeof startInfo.group === 'number' ? startInfo.group : 0);
+                    if(useIndex < 0) useIndex = 0;
+                    const sg = series_groups[useIndex] || series_groups[0] || {};
+
+                    // Init chart (first start only)
+                    initChartIfNeeded(startChartCfg);
+
+                    // Build pusher for this topic/group
+                    const xType = (startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time');
+                    const xScale = axis_type_map[xType] || 'time';
+                    const isTimeScale = (xScale === 'time');
+                    state.pushRows = buildPushRowsForGroup(boundTopic, state.cols, sg, startChartCfg['series-formats'] || seriesFormatsDefault, isTimeScale);
+
+                    // Fresh assembler per topic
+                    state.assembler = new ClaramaStreamAssembler((rows)=>{
+                        state.pushRows(rows);
+                        if(chart) chart.update('none');
+                    });
+
+                    if(options && options.onopen) try{ options.onopen({topic: boundTopic, group: useIndex}); }catch(e){}
+                } else if (type === 'chunk'){
+                    if(state && state.assembler){ state.assembler.onChunk(msg); }
+                } else if (type === 'end'){
+                    if(options && options.onend) try{ options.onend(Object.assign({topic: boundTopic}, msg)); }catch(e){}
+                } else if (type === 'error'){
+                    console.error('Stream error', msg.error || msg);
+                    if(options && options.onerror) try{ options.onerror(Object.assign({topic: boundTopic}, msg)); }catch(e){}
+                }
+            }
+        }
+
+        function registerTopic(topic, sgIndex){
+            if(!window.ClaramaStream || !window.ClaramaStream.register) return null;
+            const unregister = window.ClaramaStream.register(topic, onMessageFrameFactory(topic, sgIndex));
+            registrations.push(unregister);
+            return unregister;
+        }
+
+        function resolveTopicMapping(){
+            const mapping = [];
+            // If array provided, align with series-groups order indexes
+            if(Array.isArray(sourceTopicsOpt)){
+                for(let i=0;i<sourceTopicsOpt.length;i++){
+                    const t = sourceTopicsOpt[i]; if(!t) continue;
+                    mapping.push({ topic: t, group: i });
+                }
+                return mapping;
+            }
+            // If object map provided (series-tab -> topic)
+            if(sourceTopicsOpt && typeof sourceTopicsOpt === 'object'){
+                const entries = Object.entries(sourceTopicsOpt);
+                for(const [k,v] of entries){
+                    const idx = Number(k); if(!isNaN(idx)) mapping.push({ topic: v, group: idx });
+                }
+                return mapping;
+            }
+            // Fallback: single topic bound to group 0
+            if(singleTopic){ return [{ topic: singleTopic, group: 0 }]; }
+            return mapping;
+        }
+
+        function restartStream(newTopics){
+            // newTopics may be string (single) or same structure as source_topics
+            try{ registrations.forEach(u=>{ try{ u(); }catch(e){} }); }catch(e){}
+            registrations.length = 0;
+            topicStates.clear();
+            // Reset datasets data
+            if(chart){ for(const ds of datasets){ ds.data = []; } chart.update('none'); }
+
+            let binding;
+            if(typeof newTopics === 'string'){ binding = [{ topic: newTopics, group: 0 }]; }
+            else if(Array.isArray(newTopics) || (newTopics && typeof newTopics==='object')){
+                binding = (function(st){ sourceTopicsOpt = st; return resolveTopicMapping(); })(newTopics);
+            } else {
+                binding = resolveTopicMapping();
+            }
+            binding.forEach(({topic, group})=> registerTopic(topic, group));
+        }
+
+        // Initial registration(s)
+        let binding = resolveTopicMapping();
+        if(binding.length === 0 && singleTopic){ binding = [{topic: singleTopic, group: 0}]; }
+        binding.forEach(({topic, group})=> registerTopic(topic, group));
 
         // expose chart and helpers for external access
         if(!global.__claramaCharts) global.__claramaCharts = {};
@@ -344,7 +412,7 @@
         if(!global.__claramaStreamRestart) global.__claramaStreamRestart = {};
         global.__claramaStreamRestart[chart_id] = restartStream;
 
-        return { restartStream, stop: function(){ if(unregister){ unregister(); unregister=null; } } };
+        return { restartStream, stop: function(){ try{ registrations.forEach(u=>{ try{ u(); }catch(e){} }); }catch(e){} } };
     }
 
     global.bChartStream = bChartStream;
