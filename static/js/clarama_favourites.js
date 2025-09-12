@@ -141,14 +141,87 @@ function stripExtension(nameOrPath) {
     return dot > 0 ? base.slice(0, dot) : base;
 }
 
+function initFavCarousel(carousel) {
+    const viewport = carousel.querySelector('.fav-viewport');
+    const track    = carousel.querySelector('.fav-track');
+    const prevBtn  = carousel.querySelector('.fav-prev');
+    const nextBtn  = carousel.querySelector('.fav-next');
+
+    const page = () => Math.max(1, viewport.clientWidth); // scroll one viewport width
+
+    const onPrev = () => {
+        viewport.scrollBy({ left: -page(), behavior: 'smooth' });
+    };
+    const onNext = () => {
+        viewport.scrollBy({ left: page(), behavior: 'smooth' });
+    };
+
+    prevBtn.addEventListener('click', onPrev);
+    nextBtn.addEventListener('click', onNext);
+
+    // Update nav state on scroll/resize/content changes
+    const onScroll = () => updateFavCarouselNavState(carousel);
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+
+    // Keyboard support (focus the viewport to use ←/→)
+    viewport.tabIndex = 0;
+    viewport.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); onPrev(); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); onNext(); }
+    });
+
+    // Wheel support (trackpads)
+    viewport.addEventListener('wheel', (e) => {
+        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        if (delta) {
+            e.preventDefault();
+            viewport.scrollLeft += delta;
+        }
+    }, { passive: false });
+
+    // Observe size & content
+    const ro = new ResizeObserver(() => updateFavCarouselNavState(carousel));
+    ro.observe(viewport);
+    const mo = new MutationObserver(() => updateFavCarouselNavState(carousel));
+    mo.observe(track, { childList: true, subtree: false });
+
+    // Initial state
+    requestAnimationFrame(() => updateFavCarouselNavState(carousel));
+    carousel._favObservers = { ro, mo }; // (optional) keep refs if you later need to disconnect
+}
+
+function updateFavCarouselNavState(carousel) {
+    const viewport = carousel.querySelector('.fav-viewport');
+    const prevBtn  = carousel.querySelector('.fav-prev');
+    const nextBtn  = carousel.querySelector('.fav-next');
+  
+    const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+    const hasOverflow = maxScroll > 0;
+  
+    // Show/hide arrows & fades only when needed
+    carousel.classList.toggle('has-overflow', hasOverflow);
+    prevBtn.hidden = nextBtn.hidden = !hasOverflow;   // also hides from screen readers
+  
+    if (!hasOverflow) return;  // nothing else to do
+  
+    const x = Math.round(viewport.scrollLeft);
+    const atStart = x <= 0;
+    const atEnd   = x >= (maxScroll - 1);
+  
+    prevBtn.disabled = atStart;
+    nextBtn.disabled = atEnd;
+}  
+
 /* --------------------- UI renderers --------------------- */
 
 function render_home_favorites() {
     const grid = document.getElementById('roles-grid');
     if (!grid || !Array.isArray(favoriteFiles)) return;
 
-    // Clear existing fav cards + separator
+    // Clear existing fav content (raw cards + previous carousel + separator)
     grid.querySelectorAll('a.role-wrapper.is-fav').forEach(n => n.remove());
+    const oldCarousel = grid.querySelector('.fav-carousel');
+    if (oldCarousel) oldCarousel.remove();
     const oldSep = grid.querySelector('.fav-role-separator');
     if (oldSep) oldSep.remove();
 
@@ -158,32 +231,62 @@ function render_home_favorites() {
         return;
     }
 
+    // Build the carousel shell
+    const carousel = document.createElement('div');
+    carousel.className = 'fav-carousel';
+    carousel.setAttribute('role', 'region');
+    carousel.setAttribute('aria-label', 'Favourite items');
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'fav-nav fav-prev';
+    prevBtn.type = 'button';
+    prevBtn.innerHTML = '<i class="bi bi-chevron-left" aria-hidden="true"></i><span class="visually-hidden">Previous</span>';
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'fav-nav fav-next';
+    nextBtn.type = 'button';
+    nextBtn.innerHTML = '<i class="bi bi-chevron-right" aria-hidden="true"></i><span class="visually-hidden">Next</span>';
+
+    const viewport = document.createElement('div');
+    viewport.className = 'fav-viewport';
+
+    const track = document.createElement('div');
+    track.className = 'fav-track';
+
+    viewport.appendChild(track);
+    carousel.appendChild(prevBtn);
+    carousel.appendChild(viewport);
+    carousel.appendChild(nextBtn);
+
+    // Card template (keeps your star left + icon + text layout)
     const favTemplate = ({ name, url, icon, type, idx }) => `
         <a href="${url}"
-            class="d-flex role-wrapper is-fav m-3 text-decoration-none anim-in"
-            style="min-width: 18rem; max-width: 48rem; width: fit-content; --stagger-index:${idx};"
-            title="${url}">
+           class="d-flex role-wrapper is-fav text-decoration-none anim-in"
+           style="min-width: 18rem; max-width: 48rem; width: fit-content; --stagger-index:${idx};"
+           title="${url}">
             <div class="clickable-card card align-items-center shadow-lg p-4 flex-grow-1 fav-card">
 
                 <i class="bi bi-star-fill text-warning fav-toggle"
-                role="button" aria-label="Unfavourite"
-                data-name="${name}"
-                data-url="${url}"
-                data-icon="${icon}"
-                data-type="${type}"></i>
+                   role="button" aria-label="Unfavourite"
+                   data-name="${name}"
+                   data-url="${url}"
+                   data-icon="${icon}"
+                   data-type="${type}"></i>
 
                 <i class="bi ${icon} fs-2 p-0 fav-icon"></i>
 
                 <p class="card-text fav-type">${type}</p>
 
                 <div class="card-body text-center w-100 d-flex flex-column py-2">
-                <h5 class="card-title d-flex align-items-center justify-content-center gap-2">
-                    <span>${stripExtension(name)}</span>
-                </h5>
+                    <h5 class="card-title d-flex align-items-center justify-content-center gap-2">
+                        <span>${stripExtension(name)}</span>
+                    </h5>
                 </div>
             </div>
-        </a>`.trim();
+        </a>
+    `.trim();
 
+    // Fill the track
     const html = favs.map((row, idx) => favTemplate({
         name: row[0],
         url: row[1],
@@ -191,10 +294,13 @@ function render_home_favorites() {
         type: row[3] === 'file' ? getFileTypeLabel(row[1]) : row[3],
         idx
     })).join('');
+    track.insertAdjacentHTML('beforeend', html);
 
-    grid.insertAdjacentHTML('afterbegin', html);
+    // Insert carousel at the top of the grid
+    grid.insertAdjacentElement('afterbegin', carousel);
     ensureSeparator(grid, true);
 
+    // Existing star/unfavourite delegation (works inside carousel too)
     if (!grid.dataset.favDelegated) {
         grid.addEventListener('click', (e) => {
             const star = e.target.closest('.fav-toggle');
@@ -218,6 +324,7 @@ function render_home_favorites() {
                         ensureSeparator(grid, false);
                     }
                     recalcStaggerDelays(grid);
+                    updateFavCarouselNavState(carousel); // keep arrows correct
                 });
             }
 
@@ -226,6 +333,8 @@ function render_home_favorites() {
         grid.dataset.favDelegated = '1';
     }
 
+    // Carousel wiring
+    initFavCarousel(carousel);
     recalcStaggerDelays(grid);
 }
 
