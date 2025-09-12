@@ -41,7 +41,7 @@ function enable_interactions(parent, reload = false, runtask = false) {
 
     cell_insert_step(parent);
     cell_delete_step(parent);
-    cell_toggle_debug_view(parent);
+    cell_toggle_insights_view(parent);
 
     var fields = parent.find('.clarama-field');
 

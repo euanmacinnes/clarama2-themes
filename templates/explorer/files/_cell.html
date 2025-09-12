@@ -17,10 +17,10 @@
                             <i class="fs-5 bi bi-play-fill"></i>
                         </button>
                         {% if task_step['type'] != "data" %}
-                            <button type="button" class="btn celleditdebug p-1" data-bs-toggle="tooltip"
-                                    data-bs-placement="bottom" title="Debug (Ctrl-\\)"
+                            <button type="button" class="btn celleditinsights p-1" data-bs-toggle="tooltip"
+                                    data-bs-placement="bottom" title="Insights (Ctrl-\\)"
                                     data-task-index="{{ task_index }}">
-                                <i class="fs-5 bi bi-bug-fill"></i>
+                                <i class="fs-5 bi bi-lightbulb"></i>
                             </button>
                         {% endif %}
                     </div>
@@ -82,7 +82,7 @@
                 </div>
                 <!-- Right Half -->
                 <div class="col-6 right-content d-none" id="right_content_{{ task_index }}">
-                    {% include theme("explorer/files/_cell_debugger.html") %}
+                    {% include theme("explorer/files/_cell_insights.html") %}
                 </div>
             </div>
             <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>

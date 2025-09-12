@@ -822,9 +822,9 @@ function onMessage(event, socket_url, webSocket, socket_div) {
 
                 if (taskIndex && output_text !== undefined) {
                     // Check for console callback first
-                    let consoleCallbackKey = 'cell_debugger_console_callback_' + taskIndex;
-                    let variablesCallbackKey = 'cell_debugger_variables_callback_' + taskIndex;
-                    let generalCallbackKey = 'cell_debugger_callback_' + taskIndex;
+                    let consoleCallbackKey = 'cell_insights_console_callback_' + taskIndex;
+                    let variablesCallbackKey = 'cell_insights_variables_callback_' + taskIndex;
+                    let generalCallbackKey = 'cell_insights_callback_' + taskIndex;
 
                     if (typeof window[consoleCallbackKey] === "function") {
                         console.log("Found console callback, calling with output:", output_text);
@@ -832,7 +832,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                             window[consoleCallbackKey](output_text);
                             delete window[consoleCallbackKey];
                         } catch (e) {
-                            console.error("Error calling console debugger callback:", e);
+                            console.error("Error calling console insights callback:", e);
                         }
                     } else if (typeof window[variablesCallbackKey] === "function") {
                         console.log("Found variables callback, calling with output:", output_text);
@@ -840,7 +840,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                             window[variablesCallbackKey](output_text);
                             delete window[variablesCallbackKey];
                         } catch (e) {
-                            console.error("Error calling variables debugger callback:", e);
+                            console.error("Error calling variables insights callback:", e);
                         }
                     } else if (typeof window[generalCallbackKey] === "function") {
                         console.log("Found general callback, calling with output:", output_text);
@@ -848,19 +848,19 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                             window[generalCallbackKey](output_text);
                             delete window[generalCallbackKey];
                         } catch (e) {
-                            console.error("Error calling general debugger callback:", e);
+                            console.error("Error calling general insights callback:", e);
                         }
                     } else {
-                        let debuggerCallbacks = Object.keys(window).filter(key => key.startsWith('cell_debugger_callback_'));
-                        console.log("Available debugger callbacks:", debuggerCallbacks);
+                        let insightsCallbacks = Object.keys(window).filter(key => key.startsWith('cell_insights_callback_'));
+                        console.log("Available insights callbacks:", insightsCallbacks);
 
-                        if (debuggerCallbacks.length === 1) {
-                            console.log("Using single available callback:", debuggerCallbacks[0]);
+                        if (insightsCallbacks.length === 1) {
+                            console.log("Using single available callback:", insightsCallbacks[0]);
                             try {
-                                window[debuggerCallbacks[0]](output_text);
-                                delete window[debuggerCallbacks[0]];
+                                window[insightsCallbacks[0]](output_text);
+                                delete window[insightsCallbacks[0]];
                             } catch (e) {
-                                console.error("Error calling single debugger callback:", e);
+                                console.error("Error calling single insights callback:", e);
                             }
                         } else {
                             console.log("No callback found, trying direct population for task:", taskIndex);

@@ -63,7 +63,7 @@ function sortUpdate(panelList) {
         $(this).attr('step', newStep);
         
         if (oldStep !== newStep) {
-            updateDebuggerIds($(this), oldStep, newStep);
+            updateInsightsIds($(this), oldStep, newStep);
         }
     });
 
@@ -85,13 +85,13 @@ function sortUpdate(panelList) {
     reinitializeConsoleHandlers(panelList);
 }
 
-function updateDebuggerIds(cellElement, oldStep, newStep) {
-    console.log(`Updating debugger IDs from ${oldStep} to ${newStep} for cell:`, cellElement);
+function updateInsightsIds(cellElement, oldStep, newStep) {
+    console.log(`Updating Insights IDs from ${oldStep} to ${newStep} for cell:`, cellElement);
     
-    // Update debugger container ID
-    var debuggerContainer = cellElement.find(`#debugger_${oldStep}`);
-    if (debuggerContainer.length) {
-        debuggerContainer.attr('id', `debugger_${newStep}`);
+    // Update Insights container ID
+    var InsightsContainer = cellElement.find(`#Insights_${oldStep}`);
+    if (InsightsContainer.length) {
+        InsightsContainer.attr('id', `Insights_${newStep}`);
     }
     
     // Update left and right content IDs
@@ -143,10 +143,10 @@ function updateDebuggerIds(cellElement, oldStep, newStep) {
         }
     }
     
-    // Update debug button data-task-index
-    var debugButton = cellElement.find('.celleditdebug');
-    if (debugButton.length) {
-        debugButton.attr('data-task-index', newStep);
+    // Update insights button data-task-index
+    var insightsButton = cellElement.find('.celleditinsights');
+    if (insightsButton.length) {
+        insightsButton.attr('data-task-index', newStep);
     }
     
     // Update execute button data-task-index
@@ -177,14 +177,14 @@ function updateDebuggerIds(cellElement, oldStep, newStep) {
     });
     
     // Move any existing callback functions to the new step index
-    if (window[`cell_debugger_variables_callback_${oldStep}`]) {
-        window[`cell_debugger_variables_callback_${newStep}`] = window[`cell_debugger_variables_callback_${oldStep}`];
-        window[`cell_debugger_variables_callback_${oldStep}`] = null;
+    if (window[`cell_Insights_variables_callback_${oldStep}`]) {
+        window[`cell_Insights_variables_callback_${newStep}`] = window[`cell_Insights_variables_callback_${oldStep}`];
+        window[`cell_Insights_variables_callback_${oldStep}`] = null;
     }
     
-    if (window[`cell_debugger_callback_${oldStep}`]) {
-        window[`cell_debugger_callback_${newStep}`] = window[`cell_debugger_callback_${oldStep}`];
-        window[`cell_debugger_callback_${oldStep}`] = null;
+    if (window[`cell_Insights_callback_${oldStep}`]) {
+        window[`cell_Insights_callback_${newStep}`] = window[`cell_Insights_callback_${oldStep}`];
+        window[`cell_Insights_callback_${oldStep}`] = null;
     }
     
     // Clean up any execution flags

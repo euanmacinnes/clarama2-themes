@@ -1,19 +1,20 @@
-<div id="debugger_{{ task_index }}" class="cell-debugger">
+<div id="insights_{{ task_index }}" class="cell-insights">
     <div class="card h-100">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">
-                <i class="bi bi-bug-fill me-2"></i>
-                Debugger
+                <i class="bi bi-lightbulb me-2"></i>
+                <!-- <i class="bi bi-lightbulb-off me-2"></i>  when the insights is hidden -->
+                Insights
             </h6>
         </div>
-        <div class="card-body debugger-content p-0 d-flex flex-column">
+        <div class="card-body insights-content p-0 d-flex flex-column">
             <!-- Variables List -->
-            <div class="debugger-variables flex-grow-1 overflow-auto">
+            <div class="insights-variables flex-grow-1 overflow-auto">
                 <div class="p-3">
                     <h6 class="mb-2">Variables</h6>
                     <div class="variables-list" id="variables_{{ task_index }}">
                         <div class="text-muted d-flex align-items-center">
-                            <div class="spinner-border spinner-border-sm me-2 d-none debug-spinner" role="status">
+                            <div class="spinner-border spinner-border-sm me-2 d-none insights-spinner" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
@@ -21,7 +22,7 @@
                 </div>
             </div>
             <!-- Console -->
-            <div class="debugger-console border-top bg-light">
+            <div class="insights-console border-top bg-light">
                 <div class="p-2">
                     <div class="input-group">
                         <input type="text" class="form-control console-input" 

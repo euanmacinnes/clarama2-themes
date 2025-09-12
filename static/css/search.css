@@ -39,8 +39,12 @@
     transition: box-shadow .2s ease-out, outline .2s ease-out;
 }
 
+.fav-toggle {
+    scale: 1.4;
+}
+
 .fav-toggle:hover {
-    scale: 1.1;
+    scale: 1.6;
 }
 
 .card {
@@ -54,6 +58,62 @@
 .fav-card {
     background-color:rgba(0, 0, 0, 0.204);
     color: white;
+    display: grid;
+    grid-template-columns: auto 2.5rem 1fr;
+    grid-template-rows: 1fr min-content min-content 1fr;
+    align-items: center;
+    column-gap: .75rem;
+}
+
+.fav-card > i {
+    flex: 0 0 auto;
+    width: 2.25rem;
+    text-align: center;
+}
+
+.fav-card > .fav-icon {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: center;
+    line-height: 1;
+    margin-bottom: 0;
+}
+
+.fav-card > .fav-type,
+.fav-card > .card-text {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: center;
+    font-size: .95rem;
+    text-align: center;
+}
+
+.fav-card .card-body {
+    grid-column: 3;
+    grid-row: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+}
+
+.fav-card .card-text {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.fav-card > .fav-toggle {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: center;
+    text-align: center;
+    line-height: 1;
+}
+
+.fav-card .card-title span {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .__administrator {

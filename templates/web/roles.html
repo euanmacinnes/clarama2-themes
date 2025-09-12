@@ -17,38 +17,6 @@
     {{ role_tree_list | tojson }}
 </script>
 
-<!-- <div id="clarama-role-tree-list" class="d-none" aria-hidden="true">
-    {% for v in role_tree_list.items() %}
-        <div>{{ v }}</div>
-    {% endfor %}
-</div> -->
-
-<!-- <div id="clarama-role-tree-list">
-    {% for k, v in role_tree_list.items() %}
-        <div id="{{ k|lower }}" class="level1">Level 1 {{ k }}
-            {% if v['dict_type'] == 'folder' %}
-                {% for k2, v2 in v['role_children'].items() %}
-                    <div id="{{ k2|lower }}" class="level2">&nbsp;&nbsp;Level 2 {{ k2 }} 
-                        {% if v2['dict_type'] == 'folder' %}
-                            {% for k3, v3 in v2['role_children'].items() %}
-                                <div id="{{ k3|lower }}" class="level3">&nbsp;&nbsp;&nbsp;Level 3 {{ k3 }}
-                                    {% if v3['dict_type'] == 'node' %}
-                                            <div id="{{ k3|lower }}" class="level3_card">&nbsp;&nbsp;&nbsp;Level 3 Card: {{ v3['role_card']['card']['title'] }} {{ v3['role_card']['role_path'] }}</div>
-                                    {% endif %}
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <div id="{{ k2|lower }}" class="level2_card">&nbsp;&nbsp;Level 2 Card: {{ v2['role_card']['card']['title'] }} {{ v2['role_card']['role_path'] }}</div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div id="{{ k1|lower }}" class="level1_card">Level 1 Card {{ v['role_card']['card']['title'] }} {{ v['role_card']['role_path'] }}</div>
-            {% endif%}
-        </div>
-    {% endfor %}
-</div> -->
-
 <div class="row flex-column flex-lg-row p-0 m-0 flex-grow-1 w-100">
     <div class="container col-12 my-2 py-4">
         

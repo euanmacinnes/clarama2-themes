@@ -160,22 +160,26 @@ function render_home_favorites() {
 
     const favTemplate = ({ name, url, icon, type, idx }) => `
         <a href="${url}"
-           class="d-flex role-wrapper is-fav m-3 text-decoration-none anim-in"
-           style="width: 21rem; --stagger-index:${idx};"
-           title="${url}">
+            class="d-flex role-wrapper is-fav m-3 text-decoration-none anim-in"
+            style="min-width: 18rem; max-width: 48rem; width: fit-content; --stagger-index:${idx};"
+            title="${url}">
             <div class="clickable-card card align-items-center shadow-lg p-4 flex-grow-1 fav-card">
-                <i class="bi ${icon} fs-2 p-0"></i>
+
+                <i class="bi bi-star-fill text-warning fav-toggle"
+                role="button" aria-label="Unfavourite"
+                data-name="${name}"
+                data-url="${url}"
+                data-icon="${icon}"
+                data-type="${type}"></i>
+
+                <i class="bi ${icon} fs-2 p-0 fav-icon"></i>
+
+                <p class="card-text fav-type">${type}</p>
+
                 <div class="card-body text-center w-100 d-flex flex-column py-2">
-                    <h5 class="card-title d-flex align-items-center justify-content-center gap-2">
-                        <i class="bi bi-star-fill text-warning fav-toggle"
-                           role="button" aria-label="Unfavourite"
-                           data-name="${name}"
-                           data-url="${url}"
-                           data-icon="${icon}"
-                           data-type="${type}"></i>
-                        <span>${stripExtension(name)}</span>
-                    </h5>
-                    <p class="card-text">${type}</p>
+                <h5 class="card-title d-flex align-items-center justify-content-center gap-2">
+                    <span>${stripExtension(name)}</span>
+                </h5>
                 </div>
             </div>
         </a>`.trim();
