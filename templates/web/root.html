@@ -394,7 +394,7 @@
             saveButton.click();
         }
         const ginaButton = document.getElementById("gina-button");
-        if (e.ctrlKey && e.shiftKey) { // Ctrl+Shift to toggle GINA
+        if ((e.ctrlKey || e.metaKey) && e.key === "g" && ginaButton) { // Ctrl+g to toggle GINA
             e.preventDefault();
             ginaButton.click();
         }
