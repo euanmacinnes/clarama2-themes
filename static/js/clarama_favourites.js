@@ -163,14 +163,6 @@ function initFavCarousel(carousel) {
     const onScroll = () => updateFavCarouselNavState(carousel);
     viewport.addEventListener('scroll', onScroll, { passive: true });
 
-    // Keyboard support (focus the viewport to use ←/→)
-    viewport.tabIndex = 0;
-    viewport.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft')  { e.preventDefault(); onPrev(); }
-        if (e.key === 'ArrowRight') { e.preventDefault(); onNext(); }
-    });
-
-    // Wheel support (trackpads)
     viewport.addEventListener('wheel', (e) => {
         const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
         if (delta) {
@@ -187,7 +179,6 @@ function initFavCarousel(carousel) {
 
     // Initial state
     requestAnimationFrame(() => updateFavCarouselNavState(carousel));
-    carousel._favObservers = { ro, mo }; // (optional) keep refs if you later need to disconnect
 }
 
 function updateFavCarouselNavState(carousel) {
@@ -200,7 +191,7 @@ function updateFavCarouselNavState(carousel) {
   
     // Show/hide arrows & fades only when needed
     carousel.classList.toggle('has-overflow', hasOverflow);
-    prevBtn.hidden = nextBtn.hidden = !hasOverflow;   // also hides from screen readers
+    prevBtn.hidden = nextBtn.hidden = !hasOverflow;
   
     if (!hasOverflow) return;  // nothing else to do
   
