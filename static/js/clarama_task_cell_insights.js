@@ -1,14 +1,14 @@
 // ========================================
-// DEBUGGER FUNCTIONS
+// INSIGHTS FUNCTIONS
 // ========================================
 
 /**
- * Sets up debug behavior for a task registry
+ * Sets up insight behavior for a task registry
  * @param {Object} task_registry - The task registry object
  * @param {string} code_command - The code to execute
  * @param {Object} field_registry - The field registry object
  */
-function set_debug_behaviour(task_registry, code_command, field_registry) {
+function set_insight_behaviour(task_registry, code_command, field_registry) {
     task_registry['streams'][0]['main'][0]['type'] = 'code';
     task_registry['streams'][0]['main'][0]['content'] = code_command;
     task_registry['streams'][0]['main'][0]['clear'] = false;
@@ -16,24 +16,24 @@ function set_debug_behaviour(task_registry, code_command, field_registry) {
 }
 
 /**
- * Executes the main cell debugger to list variables
+ * Executes the main cell insights to list variables
  * @param {jQuery} cell_button - The cell button element
  * @param {Function} outputCallback - Optional callback for output
  */
-function cell_debugger_run(cell_button, outputCallback) {    
+function cell_insights_run(cell_button, outputCallback) {    
     const taskIndex = cell_button.attr('step') || cell_button.attr('data-task-index');
     const shownIndex = cell_button.closest('li.clarama-cell-item').find('button.step-label').text().trim();
     
     // Prevent multiple simultaneous runs
-    const runningKey = `cell_debugger_running_${taskIndex}`;
+    const runningKey = `cell_insights_running_${taskIndex}`;
     if (window[runningKey]) {
-        console.log("Cell debugger already running for task", taskIndex);
+        console.log("Cell insights already running for task", taskIndex);
         return;
     }
     window[runningKey] = true;
     
-    window['cell_debugger_variables_callback_' + taskIndex] = function(output) {
-        console.log("Variables debugger callback received output for task", taskIndex, ":", output);
+    window['cell_insights_variables_callback_' + taskIndex] = function(output) {
+        console.log("Variables insights callback received output for task", taskIndex, ":", output);
         populateVariablesList(output, taskIndex, false);
         
         if (outputCallback) {
@@ -46,7 +46,7 @@ function cell_debugger_run(cell_button, outputCallback) {
 
     get_field_values({}, true, function (field_registry) {
         const task_registry = get_cell_fields(cell_button);
-        set_debug_behaviour(task_registry, 'print(list(locals().keys()));', field_registry);
+        set_insight_behaviour(task_registry, 'print(list(locals().keys()));', field_registry);
         const socket_div = $("#edit_socket");
         
         field_registry['clarama_task_kill'] = false;
@@ -62,24 +62,24 @@ function cell_debugger_run(cell_button, outputCallback) {
             data: JSON.stringify(task_registry),
             success: function(data) {
                 if (data['data'] == 'ok') {
-                    console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was successful for task', shownIndex);
-                    flash(`Cell ${shownIndex} debug toggled on`, "success");
+                    console.log('CLARAMA_TASK_CELL_insights.js: insight submission was successful for task', shownIndex);
+                    flash(`Cell ${shownIndex} insight toggled on`, "success");
                 } else {
-                    console.log('CLARAMA_TASK_CELL_DEBUGGER.js: Debug submission was not successful for task', taskIndex);
+                    console.log('CLARAMA_TASK_CELL_insights.js: insight submission was not successful for task', taskIndex);
                     const variablesList = $('#variables_' + taskIndex);
                     variablesList.html('<div class="text-danger p-3">Error loading variables: ' + data['error'] + '</div>');
-                    flash("Couldn't run debug content: " + data['error'], "danger");
-                    window['cell_debugger_variables_callback_' + taskIndex] = null;
+                    flash("Couldn't run insight content: " + data['error'], "danger");
+                    window['cell_insights_variables_callback_' + taskIndex] = null;
                     delete window[runningKey];
                 }
             },
             error: function(data) {
-                console.log('An error occurred in debug run for task', taskIndex);
+                console.log('An error occurred in insight run for task', taskIndex);
                 console.log(data);
                 const variablesList = $('#variables_' + taskIndex);
                 variablesList.html('<div class="text-danger p-3">Error loading variables</div>');
-                flash("Couldn't run debug content, access denied", "danger");
-                window['cell_debugger_variables_callback_' + taskIndex] = null;
+                flash("Couldn't run insight content, access denied", "danger");
+                window['cell_insights_variables_callback_' + taskIndex] = null;
                 delete window[runningKey];
             }
         });
@@ -87,11 +87,11 @@ function cell_debugger_run(cell_button, outputCallback) {
 }
 
 /**
- * Runs Python code from the debug console input
+ * Runs Python code from the insight console input
  * @param {string} taskIndex - The task index
  * @param {string} code - The Python code to execute (optional, will get from input if not provided)
  */
-function debug_console_run(taskIndex, code) {
+function insight_console_run(taskIndex, code) {
     const cellElement = $(`li.clarama-cell-item[step="${taskIndex}"]`);
     if (!cellElement.length) {
         console.error("Cell element not found for task index", taskIndex);
@@ -134,7 +134,7 @@ function debug_console_run(taskIndex, code) {
     window[executionKey] = true;
     
     // Use the current task index for the callback function name
-    window[`cell_debugger_callback_${currentTaskIndex}`] = function(output) {
+    window[`cell_insights_callback_${currentTaskIndex}`] = function(output) {
         console.log("Console callback received output for task", currentTaskIndex, ":", output);
         
         let consoleOutput = document.getElementById(`console_output_${currentTaskIndex}`);
@@ -152,7 +152,7 @@ function debug_console_run(taskIndex, code) {
 
     get_field_values({}, true, function(field_registry) {
         const task_registry = get_cell_fields(cellElement);
-        set_debug_behaviour(task_registry, code, field_registry);
+        set_insight_behaviour(task_registry, code, field_registry);
         
         const socket_div = $("#edit_socket");
         field_registry['clarama_task_kill'] = false;
@@ -173,13 +173,13 @@ function debug_console_run(taskIndex, code) {
                     console.log('Console code submitted successfully for task', currentTaskIndex);
                 } else {
                     console.log('Console execution was not successful for task', currentTaskIndex);
-                    delete window[`cell_debugger_callback_${currentTaskIndex}`];
+                    delete window[`cell_insights_callback_${currentTaskIndex}`];
                     delete window[executionKey];
                 }
             },
             error: function(error) {
                 flash("Console execution failed: access denied", "danger");
-                delete window[`cell_debugger_callback_${currentTaskIndex}`];
+                delete window[`cell_insights_callback_${currentTaskIndex}`];
                 delete window[executionKey];
             }
         });
@@ -212,11 +212,11 @@ function inspectVariable(varName, taskIndex) {
         window[inspectionKey] = true;
     
         // Clean up any existing callback
-        if (window[`cell_debugger_callback_${currentTaskIndex}`]) {
-            delete window[`cell_debugger_callback_${currentTaskIndex}`];
+        if (window[`cell_insights_callback_${currentTaskIndex}`]) {
+            delete window[`cell_insights_callback_${currentTaskIndex}`];
         }
     
-        window[`cell_debugger_callback_${currentTaskIndex}`] = function(output) {
+        window[`cell_insights_callback_${currentTaskIndex}`] = function(output) {
             delete window[inspectionKey];
         };
     
@@ -251,7 +251,7 @@ except Exception as e:
         print(f"Could not display variable '${varName}'")
 `;
 
-            set_debug_behaviour(task_registry, codeChecker, field_registry);
+            set_insight_behaviour(task_registry, codeChecker, field_registry);
     
             const socket_div = $("#edit_socket");
             const task_kernel_id = socket_div.attr("task_kernel_id");
@@ -266,14 +266,14 @@ except Exception as e:
                 success: function(data) {
                     if (data['data'] !== 'ok') {
                         console.log('Variable inspection was not successful for task', currentTaskIndex);
-                        delete window[`cell_debugger_callback_${currentTaskIndex}`];
+                        delete window[`cell_insights_callback_${currentTaskIndex}`];
                         delete window[inspectionKey];
                     }
                 },
                 error: function(error) {
                     console.log("InspectVariable AJAX error for task", currentTaskIndex, ":", error);
                     flash("Couldn't inspect variable", "danger");
-                    delete window[`cell_debugger_callback_${currentTaskIndex}`];
+                    delete window[`cell_insights_callback_${currentTaskIndex}`];
                     delete window[inspectionKey];
                 }
             });
@@ -345,7 +345,7 @@ function createVariableButton(varName, taskIndex) {
         task_index: taskIndex
     });
     
-    button.setAttribute("url", `/template/render/explorer/files/_cell_debugger_variable_button?${params.toString()}`);
+    button.setAttribute("url", `/template/render/explorer/files/_cell_insights_variable_button?${params.toString()}`);
     return button;
 }
 

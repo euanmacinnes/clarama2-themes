@@ -15,11 +15,11 @@
     flex: 1;
 }
 
-.cell-debugger {
+.cell-insights {
     height: 100%;
 }
 
-.cell-debugger {
+.cell-insights {
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -29,7 +29,7 @@
     margin-top: 10px;
 }
 
-.debugger-content {
+.insights-content {
     padding: 15px;
     height: 100%;
     overflow-y: auto;
@@ -53,16 +53,16 @@
     opacity: 1;
 }
 
-.celleditdebug.active {
+.celleditinsight.active {
     background-color: #007bff !important;
     color: white !important;
 }
 
-.celleditdebug.active i {
+.celleditinsight.active i {
     color: white !important;
 }
 
-.debugger-variables {
+.insights-variables {
     border-bottom: 1px solid #dee2e6;
     flex: 1;
     display: flex;
@@ -71,7 +71,7 @@
     min-height: 0;
 }
 
-.debugger-variables > div {
+.insights-variables > div {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -133,7 +133,7 @@
 }
 
 /* Console section stays at bottom with fixed height */
-.debugger-console {
+.insights-console {
     background-color: #000000 !important;
     border-top: 1px solid #333333 !important;
     color: #ffffff;
@@ -174,23 +174,23 @@
     color: #888888 !important;
 }
 
-.debugger-console .input-group .btn {
+.insights-console .input-group .btn {
     background-color: #333333 !important;
     border-color: #333333 !important;
     color: #ffffff !important;
 }
 
-.debugger-console .input-group .btn:hover {
+.insights-console .input-group .btn:hover {
     background-color: #555555 !important;
     border-color: #555555 !important;
 }
 
-.debugger-console .input-group .btn:focus {
+.insights-console .input-group .btn:focus {
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
 }
 
-.debugger-variables .text-muted,
-.debugger-variables .text-danger {
+.insights-variables .text-muted,
+.insights-variables .text-danger {
     display: flex;
     align-items: center;
     justify-content: center;

@@ -1,7 +1,7 @@
 /**
  * Clarama Cell Interactions JS - Functions for handling user interactions with cells
  * @fileoverview This file provides functions to handle various interactions with cells
- * in the Clarama interface, including running cells, toggling the cell debugger,
+ * in the Clarama interface, including running cells, toggling the cell insights,
  * inserting and deleting steps, copy and pasting cells, clearing the outputs of the cells,
  * setting output types, and navigating between cells.
  */
@@ -17,18 +17,18 @@ let currentContextCell = null;
 window.copiedCellData = null;
 
 /**
- * Closes all currently open debuggers
- * @description Finds all open debuggers and closes them
+ * Closes all currently open insights
+ * @description Finds all open insights and closes them
  */
-function closeAllDebuggers() {
-    // Find all cells that have debuggers (both static and dynamic)
-    $('[id^="debugger_"]').each(function () {
-        var debuggerDiv = $(this);
-        var debuggerId = debuggerDiv.attr('id');
-        var taskIndex = debuggerId.replace('debugger_', '');
+function closeAllinsights() {
+    // Find all cells that have insights (both static and dynamic)
+    $('[id^="insights_"]').each(function () {
+        var insightsDiv = $(this);
+        var insightsId = insightsDiv.attr('id');
+        var taskIndex = insightsId.replace('insights_', '');
 
         // Find the parent cell - try multiple selectors to catch dynamically added cells
-        var cellItem = debuggerDiv.closest('.clarama-cell-item');
+        var cellItem = insightsDiv.closest('.clarama-cell-item');
         if (!cellItem.length) {
             // Fallback: try to find by step attribute
             cellItem = $(`li.clarama-cell-item[step="${taskIndex}"]`);
@@ -39,21 +39,21 @@ function closeAllDebuggers() {
         }
 
         if (!cellItem.length) {
-            console.warn("Could not find cell item for debugger", taskIndex);
+            console.warn("Could not find cell item for insights", taskIndex);
             return;
         }
 
         var leftContent = cellItem.find(`#left_content_${taskIndex}`);
         var rightContent = cellItem.find(`#right_content_${taskIndex}`);
-        var debugButton = cellItem.find('.celleditdebug');
+        var insightsButton = cellItem.find('.celleditinsights');
 
-        // Only process if the debugger is currently open
+        // Only process if the insights is currently open
         if (rightContent.length > 0 && !rightContent.hasClass('d-none')) {
             leftContent.removeClass('col-6').addClass('col-6');
             rightContent.addClass('d-none');
 
-            debugButton.removeClass('btn-warning');
-            debugButton.attr('title', 'Debug (Ctrl-\\)');
+            insightsButton.removeClass('btn-warning');
+            insightsButton.attr('title', 'insights (Ctrl-\\)');
 
             var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
             if (isNotificationCell) {
@@ -64,12 +64,12 @@ function closeAllDebuggers() {
                 }
             }
 
-            // Clean up any debugger-specific callbacks
-            if (window[`cell_debugger_variables_callback_${taskIndex}`]) {
-                window[`cell_debugger_variables_callback_${taskIndex}`] = null;
+            // Clean up any insights-specific callbacks
+            if (window[`cell_insights_variables_callback_${taskIndex}`]) {
+                window[`cell_insights_variables_callback_${taskIndex}`] = null;
             }
-            if (window[`cell_debugger_callback_${taskIndex}`]) {
-                window[`cell_debugger_callback_${taskIndex}`] = null;
+            if (window[`cell_insights_callback_${taskIndex}`]) {
+                window[`cell_insights_callback_${taskIndex}`] = null;
             }
         }
     });
@@ -84,11 +84,11 @@ function cell_edit_run(parent) {
     parent.find(".celleditrun").click(function () {
         var cell_button = $(this).closest('.clarama-cell-item');
         var taskIndex = cell_button.attr('step');
-        var hasDebuggerOpen = !cell_button.find('#right_content_' + taskIndex).hasClass('d-none');
+        var hasinsightsOpen = !cell_button.find('#right_content_' + taskIndex).hasClass('d-none');
         cell_item_run(cell_button);
 
-        if (hasDebuggerOpen) {
-            closeAllDebuggers();
+        if (hasinsightsOpen) {
+            closeAllinsights();
 
             setTimeout(function () {
                 var currentStep = parseInt(taskIndex);
@@ -96,8 +96,8 @@ function cell_edit_run(parent) {
                     var nextCell = $("li.clarama-cell-item[step='" + (currentStep + 1) + "']");
                     if (nextCell.length) {
                         var nextTaskIndex = nextCell.attr('step');
-                        if (nextCell.find('.celleditdebug').length > 0) {
-                            openDebugger(nextCell, nextTaskIndex);
+                        if (nextCell.find('.celleditinsights').length > 0) {
+                            openinsights(nextCell, nextTaskIndex);
                         }
 
                         // Focus on the next cell's editor
@@ -115,21 +115,21 @@ function cell_edit_run(parent) {
 }
 
 /**
- * Initialize debugger for new cells
+ * Initialize insights for new cells
  * @param {jQuery} newElement - The newly created cell element
  */
-function initializeNewCellDebugger(newElement) {
+function initializeNewCellinsights(newElement) {
     enable_interactions(newElement);
-    cell_toggle_debug_view(newElement);
+    cell_toggle_insights_view(newElement);
 
     var taskIndex = newElement.attr('step') || newElement.attr('data-task-index');
 
     if (taskIndex) {
         setupConsoleHandlers(newElement, taskIndex);
 
-        var debugButton = newElement.find('.celleditdebug');
-        if (debugButton.length) {
-            debugButton.attr('data-task-index', taskIndex);
+        var insightsButton = newElement.find('.celleditinsights');
+        if (insightsButton.length) {
+            insightsButton.attr('data-task-index', taskIndex);
         }
 
         var consoleInput = newElement.find('.console-input');
@@ -161,7 +161,7 @@ function setupConsoleHandlers(cellElement, taskIndex) {
             if (e.which == 13) { // Enter key
                 const currentCell = $(this).closest('.clarama-cell-item');
                 const currentTaskIdx = currentCell.attr('step') || currentCell.attr('data-task-index');
-                debug_console_run(currentTaskIdx);
+                insights_console_run(currentTaskIdx);
             }
         });
 
@@ -174,7 +174,7 @@ function setupConsoleHandlers(cellElement, taskIndex) {
         executeButton.on('click.console', function () {
             const currentCell = $(this).closest('.clarama-cell-item');
             const currentTaskIdx = currentCell.attr('step') || currentCell.attr('data-task-index');
-            debug_console_run(currentTaskIdx);
+            insights_console_run(currentTaskIdx);
         });
 
         executeButton.attr('data-task-index', taskIndex);
@@ -209,7 +209,7 @@ function cell_insert_step(parent) {
                     step_stream.append($new_element);
 
                     sortUpdate(step_stream);
-                    initializeNewCellDebugger($new_element);
+                    initializeNewCellinsights($new_element);
                 });
         } else {
             console.log('cell_insert_step: insert above existing cell');
@@ -245,23 +245,23 @@ function cell_insert_step(parent) {
                     }
 
                     sortUpdate(step_stream);
-                    initializeNewCellDebugger($new_element);
+                    initializeNewCellinsights($new_element);
                 });
         }
     });
 }
 
 /**
- * Opens debugger for a specific cell
- * @param {jQuery} cellItem - The cell item to open debugger for
+ * Opens insights for a specific cell
+ * @param {jQuery} cellItem - The cell item to open insights for
  * @param {string} taskIndex - The task index of the cell
  */
-function openDebugger(cellItem, taskIndex) {
-    closeAllDebuggers();
+function openinsights(cellItem, taskIndex) {
+    closeAllinsights();
 
     var leftContent = cellItem.find('#left_content_' + taskIndex);
     var rightContent = cellItem.find('#right_content_' + taskIndex);
-    var debugButton = cellItem.find('.celleditdebug');
+    var insightsButton = cellItem.find('.celleditinsights');
     var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
     var notificationContents = null;
 
@@ -272,8 +272,8 @@ function openDebugger(cellItem, taskIndex) {
     leftContent.removeClass('col-6').addClass('col-6');
     rightContent.removeClass('d-none');
 
-    debugButton.addClass('btn-warning');
-    debugButton.attr('title', 'Hide Debug (Ctrl-\\)');
+    insightsButton.addClass('btn-warning');
+    insightsButton.attr('title', 'Hide insights (Ctrl-\\)');
 
     if (isNotificationCell && notificationContents && notificationContents.length > 0) {
         notificationContents.removeClass('row');
@@ -282,7 +282,7 @@ function openDebugger(cellItem, taskIndex) {
 
     setupConsoleHandlers(cellItem, taskIndex);
 
-    cell_debugger_run(cellItem, function (output_text) {
+    cell_insights_run(cellItem, function (output_text) {
         var taskIndex = cellItem.attr('step') || cellItem.attr('data-task-index');
         populateVariablesList(output_text, taskIndex);
     });
@@ -302,45 +302,45 @@ function cell_delete_step(parent) {
         var taskIndex = step_parent.attr('step') || step_parent.attr('data-task-index');
 
         if (taskIndex) {
-            if (window[`cell_debugger_variables_callback_${taskIndex}`]) {
-                window[`cell_debugger_variables_callback_${taskIndex}`] = null;
+            if (window[`cell_insights_variables_callback_${taskIndex}`]) {
+                window[`cell_insights_variables_callback_${taskIndex}`] = null;
             }
-            if (window[`cell_debugger_callback_${taskIndex}`]) {
-                window[`cell_debugger_callback_${taskIndex}`] = null;
+            if (window[`cell_insights_callback_${taskIndex}`]) {
+                window[`cell_insights_callback_${taskIndex}`] = null;
             }
         }
 
         var step_stream = step_parent.parents(".stream");
         step_parent.remove();
         sortUpdate(step_stream);
-        closeAllDebuggers();
+        closeAllinsights();
     });
 }
 
 /**
- * Sets up handlers for toggling debug view
+ * Sets up handlers for toggling insights view
  * @param {jQuery} parent - jQuery object representing the parent container
- * @description Attaches click event handlers to debug buttons and toggles
- * the visibility of the debug panel (right content area). Only one debugger
+ * @description Attaches click event handlers to insights buttons and toggles
+ * the visibility of the insights panel (right content area). Only one insights
  * can be open at a time.
  */
-function cell_toggle_debug_view(parent) {
-    parent.find(".celleditdebug").off('click.debug');
-    parent.find(".celleditdebug").on("click.debug", function () {
-        var debugButton = $(this);
-        var cellItem = debugButton.closest('.clarama-cell-item');
+function cell_toggle_insights_view(parent) {
+    parent.find(".celleditinsights").off('click.insights');
+    parent.find(".celleditinsights").on("click.insights", function () {
+        var insightsButton = $(this);
+        var cellItem = insightsButton.closest('.clarama-cell-item');
 
-        var taskIndex = debugButton.attr('data-task-index') ||
+        var taskIndex = insightsButton.attr('data-task-index') ||
             cellItem.attr('step') ||
             cellItem.attr('data-task-index');
 
         var rightContent = cellItem.find('#right_content_' + taskIndex);
-        var isThisDebuggerOpen = !rightContent.hasClass('d-none');
+        var isThisinsightsOpen = !rightContent.hasClass('d-none');
 
-        if (isThisDebuggerOpen) {
-            closeAllDebuggers();
+        if (isThisinsightsOpen) {
+            closeAllinsights();
         } else {
-            openDebugger(cellItem, taskIndex);
+            openinsights(cellItem, taskIndex);
         }
     });
 }
@@ -678,7 +678,7 @@ function taskCellPaste() {
             currentContextCell.after($new_element);
 
             sortUpdate(targetStream);
-            initializeNewCellDebugger($new_element);
+            initializeNewCellinsights($new_element);
 
             if (window.copiedCellData.loopIterable) {
                 const loopInput = $new_element.find('.loop-iterable');

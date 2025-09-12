@@ -239,12 +239,12 @@ function get_fields(fields, cell, field_submit) {
         field_submit(registry);
 }
 
-function toggleDebugForCurrentCell(cell) {
+function toggleInsightsForCurrentCell(cell) {
     if (!cell) return false;
 
     const $cell = $(cell);
-    const debugButton = $cell.find('.celleditdebug').first();
-    debugButton.click();
+    const insightsButton = $cell.find('.celleditinsights').first();
+    insightsButton.click();
 }
 
 /**
@@ -393,13 +393,13 @@ function initializeCellNavigation() {
         return false;
     }
 
-    function toggleDebugForCurrentCell(cell) {
+    function toggleinsightsForCurrentCell(cell) {
         if (!cell) return false;
 
         const $cell = $(cell);
-        const debugButton = $cell.find('.celleditdebug').first();
-        if (debugButton.length > 0) {
-            debugButton.click();
+        const insightsButton = $cell.find('.celleditinsights').first();
+        if (insightsButton.length > 0) {
+            insightsButton.click();
             return true;
         }
         return false;
@@ -436,14 +436,14 @@ function initializeCellNavigation() {
             }
         }
 
-        // Ctrl+\ : Toggle debug for current cell
+        // Ctrl+\ : Toggle insights for current cell
         if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
             e.preventDefault();
 
             const currentCell = getCurrentCell();
             if (!currentCell) return;
 
-            toggleDebugForCurrentCell(currentCell);
+            toggleinsightsForCurrentCell(currentCell);
         }
     });
 }
@@ -676,22 +676,22 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
             const aceEditor = ace.edit(editor.attr('id'));
 
             // Remove any existing command to avoid duplicates
-            aceEditor.commands.removeCommand('toggleDebug');
+            aceEditor.commands.removeCommand('toggleinsights');
 
-            // Add the debug toggle command to ACE editor
+            // Add the insights toggle command to ACE editor
             aceEditor.commands.addCommand({
-                name: 'toggleDebug',
+                name: 'toggleinsights',
                 bindKey: {win: 'Ctrl-\\', mac: 'Cmd-\\'},
                 exec: function (editor) {
                     const editorElement = $(editor.container);
                     const currentCell = editorElement.closest('.clarama-cell-item')[0];
                     if (currentCell) {
-                        toggleDebugForCurrentCell(currentCell);
+                        toggleinsightsForCurrentCell(currentCell);
                     }
                 }
             });
         } catch (e) {
-            console.log('Could not bind debug shortcut to ACE editor:', e);
+            console.log('Could not bind insights shortcut to ACE editor:', e);
         }
     }
 });
