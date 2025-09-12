@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Clarama Streaming Demo (Table + Chart)</title>
+    <!-- CDN libs for standalone use -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.css">
+    <style>
+        body {
+            padding: 1rem;
+        }
+
+        .section {
+            margin-top: 1rem;
+        }
+
+        .code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .small-note {
+            color: #666;
+            font-size: .9rem;
+        }
+
+        .card + .card {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Clarama Streaming Components Demo</h1>
+    <p class="small-note">
+        This standalone page demonstrates the streaming table and chart components using either simulated data
+        or a live Clarama backend. For live tests you must run Clarama locally and provide a valid token and base URL.
+    </p>
+
+    <div class="card">
+        <div class="card-header">Runtime Settings</div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="baseUrl" class="form-label">CLARAMA Root (base URL)</label>
+                    <input id="baseUrl" class="form-control" value="http://127.0.0.1:5000"
+                           placeholder="http://localhost:5000"/>
+                    <div class="form-text">Your Clarama server base. Example: http://localhost:5000</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="authToken" class="form-label">Authorization Token (Bearer)</label>
+                    <input id="authToken" class="form-control"
+                           value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHAiOiJjbGFyYW1hMi4wIiwiZG4iOiIxIiwidXNlcm5hbWUiOiIxIiwiZGF0YSI6e30sImRhdGVfY3JlYXRlZCI6MTc1NzY5NjU4ODAwMCwiZGF0ZV9leHBpcmVzIjoxNzU3NzgyOTg4MDAwfQ.YpB47rDorCSYYE0Qf9IV3BHehbv5rL1ri_3QTN0LZf8"
+                           placeholder="paste token here"/>
+                    <div class="form-text">Provide a valid Clarama token. For dev, use a dummy or internal token if
+                        configured.
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="topic" class="form-label">Websocket Topic</label>
+                    <input id="topic" class="form-control" value="stream_demo_jobs"/>
+                    <div class="form-text">Topic used to route stream frames.</div>
+                </div>
+            </div>
+            <div class="row g-3 align-items-end mt-2">
+                <div class="col-md-6">
+                    <label for="sourceFile" class="form-label">SQL Source File</label>
+                    <input id="sourceFile" class="form-control"
+                           value="System/Data/Sources/clarama instance postgres.source.yaml"/>
+                    <div class="form-text">Path to your SQL .source.yaml (relative to content root).</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="sqlQuery" class="form-label">SQL Query (Jobs)</label>
+                    <input id="sqlQuery" class="form-control code"
+                           value="select uuid, status, date_created, runs_executed from jobs order by date_created desc limit 200"/>
+                    <div class="form-text">Adjust fields to match your jobs schema if different.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Streaming Table</div>
+        <div class="card-body">
+            <div class="mb-2">
+                <button id="btnSimTable" class="btn btn-secondary">Simulate Stream (Table)</button>
+                <button id="btnLiveTable" class="btn btn-primary">Start Live Stream (Table)</button>
+            </div>
+            <table id="jobsTable" data-classes="table table-striped" data-pagination="true" data-page-size="10"></table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Streaming Chart</div>
+        <div class="card-body">
+            <div class="mb-2">
+                <button id="btnSimChart" class="btn btn-secondary">Simulate Stream (Chart)</button>
+                <button id="btnLiveChart" class="btn btn-primary">Start Live Stream (Chart)</button>
+            </div>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label for="xCol" class="form-label">X Column</label>
+                    <input id="xCol" class="form-control" value="date_created"/>
+                </div>
+                <div class="col-md-8">
+                    <label for="yCols" class="form-label">Y Columns (comma separated)</label>
+                    <input id="yCols" class="form-control" value="runs_executed"/>
+                </div>
+            </div>
+            <canvas id="jobsChart" height="220"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Notes</div>
+        <div class="card-body">
+            <ul>
+                <li>Simulated mode generates frames locally and dispatches through ClaramaStream without any backend.
+                </li>
+                <li>Live mode requires a running Clarama instance. The page will:
+                    <ol>
+                        <li>Register a single WebSocket via /web/sockets/subscribe/ using the configured base URL.</li>
+                        <li>Trigger /data/execute/stream_query/&lt;sourcefile&gt; with Authorization: Bearer &lt;token&gt;.</li>
+                    </ol>
+                </li>
+                <li>Dummy tokens: For a quick smoke test where security is relaxed, you can use a development token or a
+                    test user token.
+                    This page simply sets the Authorization header on the data/execute call; your server must accept it.
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden elements expected by clarama_websocket.js -->
+<div id="currentUser" username="emacinnes" style="display:none;"></div>
+<div id="edit_socket" topic="stream_demo_jobs" style="display:none;"></div>
+
+<!-- JS libs -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.umd.min.js"></script>
+
+<!-- Project JS (relative paths) -->
+<script src="../js/clarama_websocket.js"></script>
+<script src="../js/clarama_data_table_stream.js"></script>
+<script src="../js/clarama_data_chart_stream.js"></script>
+
+<script>
+    // Minimal globals often defined by Clarama templates
+    window.$CLARAMA_ROOT = '';
+    window.$CLARAMA_WEBSOCKET_REGISTER = '/web/sockets/subscribe/?topic='; // appended to baseUrl
+    window.$CLARAMA_WEBSOCKET_DYNAMIC = 'False'; // let clarama_websocket derive ws from document origin if needed
+
+    // Utility: Generate synthetic jobs rows
+    function generateJobsRows(n) {
+        const rows = [];
+        const now = Date.now();
+        for (let i = 0; i < n; i++) {
+            const ts = new Date(now - i * 3600 * 1000); // hourly back
+            rows.push([
+                cryptoRandomUuid(),
+                ['pending', 'scheduled', 'queued', 'running', 'error', 'successful'][i % 6],
+                ts.toISOString(),
+                Math.floor(Math.random() * 10)
+            ]);
+        }
+        return rows;
+    }
+
+    function cryptoRandomUuid() {
+        // Simple fallback UUID v4-ish
+        const s = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+        return s;
+    }
+
+    function simulateStream(topic, cols, rows, chunkSize) {
+        chunkSize = chunkSize || 25;
+        if (!window.ClaramaStream) {
+            console.error('ClaramaStream not available');
+            return;
+        }
+        // start
+        window.ClaramaStream.dispatch(topic, {
+            type: 'start',
+            orientation: 'byrow',
+            cols: cols,
+            info: {query: 'SIMULATED'}
+        });
+        // chunks (intentionally shuffle two chunks to demonstrate re-order handling)
+        const chunks = [];
+        for (let i = 0; i < rows.length; i += chunkSize) {
+            chunks.push(rows.slice(i, i + chunkSize));
+        }
+        for (let i = 0; i < chunks.length; i++) {
+            const payload = {type: 'chunk', chunk_no: i, rows: chunks[i]};
+            // randomly delay slightly; swap order for i==1 occasionally
+            const delay = 10 + Math.random() * 100;
+            setTimeout(() => {
+                window.ClaramaStream.dispatch(topic, payload);
+            }, delay + (i === 1 ? 100 : 0));
+        }
+        // end
+        setTimeout(() => {
+            window.ClaramaStream.dispatch(topic, {type: 'end', last_chunk_no: chunks.length - 1});
+        }, 300);
+    }
+
+    function startLiveStream(isChart) {
+        const base = document.getElementById('baseUrl').value.trim();
+        const token = document.getElementById('authToken').value.trim();
+        const topic = document.getElementById('topic').value.trim() || 'stream_demo_jobs';
+        const sourceFile = document.getElementById('sourceFile').value.trim();
+        const query = document.getElementById('sqlQuery').value.trim();
+
+        if (!base) {
+            alert('Please provide the Clarama base URL');
+            return;
+        }
+        if (!token) {
+            alert('Please provide an Authorization token');
+            return;
+        }
+
+        window.$CLARAMA_ROOT = base; // used by clarama_websocket.js
+
+        // Update hidden socket div topic
+        const socketDiv = $('#edit_socket');
+        socketDiv.attr('topic', topic);
+
+        // Start/ensure websocket
+        try {
+            run_socket(socketDiv, false, false);
+        } catch (e) {
+            console.warn('run_socket not available or failed', e);
+        }
+
+        // Trigger data/execute/stream_query on the selected source file
+        const url = base + '/data/execute/stream_query/' + encodeURIComponent(sourceFile);
+        const body = {query: query, topic: topic, chunk_size: 200};
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(body)
+        }).then(r => r.json()).then(j => {
+            console.log('stream_query response', j);
+        }).catch(err => {
+            console.error('stream_query call failed', err);
+            alert('Failed to call stream_query: ' + err);
+        });
+    }
+
+    $(function () {
+        const topicInput = $('#topic');
+
+        // Wire table instance
+        let tableInstance = null;
+        $('#btnSimTable').on('click', function () {
+            const topic = topicInput.val() || 'stream_demo_jobs';
+            const handle = window.bTableStream('jobsTable', {topic});
+            tableInstance = handle;
+            const cols = ['uuid', 'status', 'date_created', 'runs_executed'];
+            const rows = generateJobsRows(300);
+            simulateStream(topic, cols, rows, 40);
+        });
+        $('#btnLiveTable').on('click', function () {
+            const topic = topicInput.val() || 'stream_demo_jobs';
+            const handle = window.bTableStream('jobsTable', {topic});
+            tableInstance = handle;
+            startLiveStream(false);
+        });
+
+        // Wire chart instance
+        let chartInstance = null;
+        $('#btnSimChart').on('click', function () {
+            const topic = topicInput.val() || 'stream_demo_jobs';
+            const x_col = $('#xCol').val().trim() || 'date_created';
+            const y_cols = $('#yCols').val().split(',').map(s => s.trim()).filter(Boolean);
+            const handle = window.bChartStream('jobsChart', {
+                topic,
+                x_col: x_col,
+                y_cols: y_cols,
+                chart_type: 'line',
+                chart_options: {}
+            });
+            chartInstance = handle;
+            const cols = ['uuid', 'status', 'date_created', 'runs_executed'];
+            const rows = generateJobsRows(300);
+            simulateStream(topic, cols, rows, 40);
+        });
+        $('#btnLiveChart').on('click', function () {
+            const topic = topicInput.val() || 'stream_demo_jobs';
+            const x_col = $('#xCol').val().trim() || 'date_created';
+            const y_cols = $('#yCols').val().split(',').map(s => s.trim()).filter(Boolean);
+            const handle = window.bChartStream('jobsChart', {
+                topic,
+                x_col: x_col,
+                y_cols: y_cols,
+                chart_type: 'line',
+                chart_options: {}
+            });
+            chartInstance = handle;
+            startLiveStream(true);
+        });
+    });
+</script>
+</body>
+</html>
