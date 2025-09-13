@@ -256,6 +256,7 @@ function get_data_cell(cell) {
             'obj-colour': (colVal && colVal !== 'none') ? colVal : '',                              // colour
             'obj-texture': $(this).find('.obj-texture').val() || '',                                // texture file path
             'obj-primitive': $(this).find('.obj-primitive').find('option:selected').attr('id'),     // primitive
+            'transform-matrix': $(this).find('.obj-transform-matrix').val() || ''                   // transform matrix variable name
         };
         console.log(srs);
         chart3d_series_objs.push(srs);

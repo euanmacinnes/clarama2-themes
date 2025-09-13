@@ -174,6 +174,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         }
     };
 
+    console.log(GRAPH_RANGE);
+    console.log(LABEL_RANGE);
+
     function hasLabelRange(axis) {
         const r = LABEL_RANGE[axis];
         return r && typeof r.min === 'number' && typeof r.max === 'number' && r.max !== r.min;
@@ -490,8 +493,47 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         return m;
     }
 
+    // Build a 4x4 matrix that maps original data space (orig_bounds) to graph space (graph_bounds)
+    function buildBoundsMatrix(axisCfg) {
+        try {
+            const ob = (axisCfg && axisCfg.orig_bounds) || {};
+            const gb = (axisCfg && axisCfg.graph_bounds) || {x: [-3, 3], y: [-3, 3], z: [-3, 3]};
+            const m = mat4Identity();
+            const axes = ['x', 'y', 'z'];
+            const diagIdx = [0, 5, 10]; // x, y, z scale positions
+            const trIdx = [12, 13, 14]; // x, y, z translation positions
+            for (let i = 0; i < 3; i++) {
+                const ax = axes[i];
+                const o = ob && Array.isArray(ob[ax]) ? ob[ax] : [undefined, undefined];
+                const g = gb && Array.isArray(gb[ax]) ? gb[ax] : [-3, 3];
+                const omin = Number(o[0]);
+                const omax = Number(o[1]);
+                const gmin = Number(g[0]);
+                const gmax = Number(g[1]);
+                let s = 1, t = 0;
+                if (Number.isFinite(omin) && Number.isFinite(omax) && omin !== omax && Number.isFinite(gmin) && Number.isFinite(gmax)) {
+                    s = (gmax - gmin) / (omax - omin);
+                    t = gmin - omin * s;
+                } else if (Number.isFinite(gmin) && Number.isFinite(gmax)) {
+                    // Degenerate data range: collapse to midpoint of target range
+                    s = 0;
+                    t = (gmin + gmax) / 2;
+                }
+                m[diagIdx[i]] = s;
+                m[trIdx[i]] = t;
+            }
+            return m;
+        } catch (e) {
+            console.warn('buildBoundsMatrix failed, using identity:', e);
+            return mat4Identity();
+        }
+    }
+
+    // Global bounds transform used for all primitives: maps orig_bounds → graph_bounds
+    const M_bounds = buildBoundsMatrix(axisConfig || {});
+
     // --- interaction --------------------------------------------------------
-    const initDist = 30.0, initRotX = 0, initRotY = 0; // the initial rotation upon loading
+    const initDist = 14.0, initRotX = 0.3, initRotY = -0.3; // the initial rotation upon loading
     let dist = initDist, rotX = initRotX, rotY = initRotY;
     let dragging = false, lastX = 0, lastY = 0;
 
@@ -519,7 +561,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         if (!zoomGesture) return;
 
         e.preventDefault();
-        const s = Math.exp(e.deltaY * 0.005);
+        const s = Math.exp(e.deltaY * 0.001);
         dist = Math.max(2.0, dist * s);
         requestAnimationFrame(render);
     }, {passive: false});
@@ -810,6 +852,65 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         return (maxIndex <= 255) ? gl.UNSIGNED_BYTE : (maxIndex <= 65535 ? gl.UNSIGNED_SHORT : gl.UNSIGNED_INT);
     }
 
+    // Extract integer index arrays from df_to_dict-like dataset given column names
+    function toIndices(data, cols) {
+        if (!data || !cols || cols.length === 0) return null;
+        const colsMeta = data.cols || data.columns;
+        const orientation = ((data.orientation || data.orient || 'byrow') + '').toLowerCase();
+        const rows = data.rows || data.data || data.values;
+        if (!Array.isArray(colsMeta) || !Array.isArray(rows)) return null;
+        const colIndex = new Map();
+        for (let i = 0; i < colsMeta.length; i++) {
+            const name = String(colsMeta[i]);
+            colIndex.set(name, i);
+            colIndex.set(name.toLowerCase(), i);
+        }
+        const idxs = [];
+        for (const c of cols) {
+            const exact = colIndex.get(c);
+            const ci = (exact !== undefined) ? exact : colIndex.get(String(c).toLowerCase());
+            if (ci === undefined) return null;
+            idxs.push(ci);
+        }
+        const out = [];
+        if (orientation === 'byrow' || orientation === 'table' || orientation === 'json' || orientation === '') {
+            for (let r = 0; r < rows.length; r++) {
+                const row = rows[r];
+                if (!Array.isArray(row)) continue;
+                for (let k = 0; k < idxs.length; k++) {
+                    const v = +row[idxs[k]];
+                    out.push(Number.isFinite(v) ? v : 0);
+                }
+            }
+        } else if (orientation === 'bycol' || orientation === 'chart') {
+            const maxLen = rows.reduce((m, col) => Math.max(m, Array.isArray(col) ? col.length : 0), 0);
+            for (let r = 0; r < maxLen; r++) {
+                for (let k = 0; k < idxs.length; k++) {
+                    const colArr = rows[idxs[k]];
+                    const v = Array.isArray(colArr) ? +colArr[r] : 0;
+                    out.push(Number.isFinite(v) ? v : 0);
+                }
+            }
+        } else {
+            return null;
+        }
+        // choose index type based on max
+        let maxIndex = 0;
+        for (let i = 0; i < out.length; i++) if (out[i] > maxIndex) maxIndex = out[i];
+        const use32 = (maxIndex > 65535);
+        return use32 ? new Uint32Array(out) : (maxIndex > 255 ? new Uint16Array(out) : new Uint8Array(out));
+    }
+
+    // Extract a single numeric column (e.g., 'strip') as Int32Array
+    function toIntColumn(data, colName) {
+        if (!data || !colName) return null;
+        const arr = toFloat32(data, [colName]);
+        if (!arr) return null;
+        const out = new Int32Array(arr.length);
+        for (let i = 0; i < arr.length; i++) out[i] = Math.trunc(arr[i]);
+        return out;
+    }
+
     // Build compiled objects from datasets + primitives
     try {
         const getDS = (name) => {
@@ -828,7 +929,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
 
                 const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
-                const edges = toFloat32(edgesRaw, ['x', 'y', 'z']); // positions for lines
+                // New: interpret edges dataset as indices to save data
+                const indicesLine = edgesRaw ? toIndices(edgesRaw, ['i0', 'i1']) : null; // for LINES
+                const indicesTri = edgesRaw ? toIndices(edgesRaw, ['i0', 'i1', 'i2']) : null; // for TRIANGLES
+                const indicesLineStrip = edgesRaw ? toIndices(edgesRaw, ['i']) : null; // for LINE_STRIP per strip order
+                const stripIds = edgesRaw ? toIntColumn(edgesRaw, 'strip') : null;
+                const edgesPos = edgesRaw ? toFloat32(edgesRaw, ['x', 'y', 'z']) : null; // legacy positions for lines
                 const uvs = toFloat32(uvRaw, ['u', 'v']);
                 const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
 
@@ -837,8 +943,8 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 // Determine mode
                 let mode = prim['obj-primitive']; // 'point' | 'line' | 'triangle'
                 if (!mode) {
-                    if (edges && edges.length >= 6) mode = 'line';
-                    else if (verts && (verts.length % 9 === 0)) mode = 'triangle';
+                    if (indicesLine && indicesLine.length >= 2) mode = 'line';
+                    else if (indicesTri && indicesTri.length >= 3) mode = 'triangle';
                     else mode = 'point';
                 }
 
@@ -850,10 +956,17 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 let colorSize = 4;
                 let uniformColor = null;
 
-                const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, (mode === 'line' && edges) ? edges : verts);
+                const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, verts);
                 let cbo = null, uvbo = null, ebo = null;
                 let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
                 let modeGL = gl.POINTS;
+
+                function detectIndexType(idxArr) {
+                    if (!idxArr) return gl.UNSIGNED_SHORT;
+                    if (idxArr instanceof Uint32Array) return gl.UNSIGNED_INT;
+                    if (idxArr instanceof Uint16Array) return gl.UNSIGNED_SHORT;
+                    return gl.UNSIGNED_BYTE;
+                }
 
                 if (mode === 'point') {
                     // points use vertices
@@ -877,26 +990,106 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     }
                     modeGL = gl.POINTS;
                 } else if (mode === 'line') {
-                    // lines use edges positions directly
-                    const lineData = edges || verts; // fallback to verts if edges missing (interpret as line strip pairs)
-                    if (!lineData || lineData.length < 6) {
-                        console.warn('Primitive skipped (no edges/verts for lines):', name);
+                    // lines: prefer index-based draw if provided
+                    if (indicesLine && indicesLine.length >= 2) {
+                        ebo = createBufferAndUpload(gl.ELEMENT_ARRAY_BUFFER, indicesLine);
+                        indexType = detectIndexType(indicesLine);
+                        countElems = indicesLine.length;
+                        if (cols && verts) {
+                            usesColorVary = false;
+                        }
+                        // choose shader
+                        if (cols && cols.length >= (verts ? (verts.length / 3) * 3 : 0)) {
+                            usesColorVary = true;
+                            colorSize = (cols.length % 4 === 0) ? 4 : 3;
+                            cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                            program = progLinesVary;
+                            locations = locColor.lines;
+                        } else {
+                            usesUniformColor = true;
+                            uniformColor = prim.uniformColor || STYLE.cube;
+                            program = progLines;
+                            locations = loc.lines;
+                        }
+                        modeGL = gl.LINES;
+                    } else {
+                        // legacy: use edgesPos or verts as direct positions
+                        const lineData = edgesPos || verts;
+                        if (!lineData || lineData.length < 6) {
+                            console.warn('Primitive skipped (no edges/verts for lines):', name);
+                            continue;
+                        }
+                        // upload legacy positions into vbo instead
+                        if (edgesPos) {
+                            gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+                            gl.bufferData(gl.ARRAY_BUFFER, edgesPos, gl.STATIC_DRAW);
+                        }
+                        countVerts = Math.floor(lineData.length / 3);
+                        if (cols && cols.length >= countVerts * 3) {
+                            usesColorVary = true;
+                            colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                            cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                            program = progLinesVary;
+                            locations = locColor.lines;
+                        } else {
+                            usesUniformColor = true;
+                            uniformColor = prim.uniformColor || STYLE.cube;
+                            program = progLines;
+                            locations = loc.lines;
+                        }
+                        modeGL = gl.LINES;
+                    }
+                } else if (mode === 'line_strip') {
+                    // Build one or more line strips from indicesLineStrip, grouped by stripIds if present
+                    if (!indicesLineStrip || indicesLineStrip.length < 2) {
+                        console.warn('Primitive skipped (no indices for line_strip):', name);
                         continue;
                     }
-                    countVerts = Math.floor(lineData.length / 3);
-                    if (cols && cols.length >= countVerts * 3) {
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progLinesVary;
-                        locations = locColor.lines;
+                    // Group indices by strip id if available
+                    const stripsMap = new Map();
+                    if (stripIds && stripIds.length === indicesLineStrip.length) {
+                        for (let i = 0; i < stripIds.length; i++) {
+                            const s = stripIds[i];
+                            if (!stripsMap.has(s)) stripsMap.set(s, []);
+                            stripsMap.get(s).push(indicesLineStrip[i]);
+                        }
                     } else {
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.cube;
-                        program = progLines;
-                        locations = loc.lines;
+                        stripsMap.set(0, Array.from(indicesLineStrip));
                     }
-                    modeGL = gl.LINES;
+                    // For each strip, push a compiled object and continue to next prim (skip single push below)
+                    for (const [sid, arr] of stripsMap.entries()) {
+                        const idxArr = (arr instanceof Uint8Array || arr instanceof Uint16Array || arr instanceof Uint32Array) ? arr : (function () {
+                            // choose type based on max
+                            let maxI = 0;
+                            for (let k = 0; k < arr.length; k++) if (arr[k] > maxI) maxI = arr[k];
+                            if (maxI > 65535) return new Uint32Array(arr); else if (maxI > 255) return new Uint16Array(arr); else return new Uint8Array(arr);
+                        })();
+                        compiled.push({
+                            name: name + '_strip_' + sid,
+                            program: progLines,
+                            locations: loc.lines,
+                            vbo,
+                            cbo: null,
+                            uvbo: null,
+                            ebo: createBufferAndUpload(gl.ELEMENT_ARRAY_BUFFER, idxArr),
+                            colorSize: 4,
+                            usesColorVary: false,
+                            usesUniformColor: true,
+                            uniformColor: prim.uniformColor || STYLE.cube,
+                            usesTex: false,
+                            texture: null,
+                            hasIndices: true,
+                            countVerts: Math.floor((verts ? verts.length : 0) / 3),
+                            countElems: idxArr.length,
+                            indexType: detectIndexType(idxArr),
+                            modeGL: gl.LINE_STRIP,
+                            transformMatrix: (function () {
+                                const tm = prim['transform-matrix-data'];
+                                return (Array.isArray(tm) && tm.length === 16) ? tm : null;
+                            })(),
+                        });
+                    }
+                    continue; // handled
                 } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh' || mode === 'trianglestrip' || mode === 'triangle_strip') {
                     if (!verts || verts.length < 9) {
                         console.warn('Primitive skipped (no triangle vertices):', name);
@@ -923,8 +1116,15 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                         program = progTris;
                         locations = loc.tris;
                     }
-                    // Select WebGL draw mode: TRIANGLES for lists, TRIANGLE_STRIP if requested
-                    modeGL = (mode === 'trianglestrip' || mode === 'triangle_strip') ? gl.TRIANGLE_STRIP : gl.TRIANGLES;
+                    // Indices if provided (for TRIANGLES). For triangle_strip, drawArrays without indices.
+                    if (indicesTri && !(mode === 'trianglestrip' || mode === 'triangle_strip')) {
+                        ebo = createBufferAndUpload(gl.ELEMENT_ARRAY_BUFFER, indicesTri);
+                        indexType = detectIndexType(indicesTri);
+                        countElems = indicesTri.length;
+                        modeGL = gl.TRIANGLES;
+                    } else {
+                        modeGL = (mode === 'trianglestrip' || mode === 'triangle_strip') ? gl.TRIANGLE_STRIP : gl.TRIANGLES;
+                    }
                 } else {
                     console.warn('Unknown primitive mode, skipping:', mode);
                     continue;
@@ -956,14 +1156,16 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     uniformColor,
                     usesTex,
                     texture: initialTexture,
-                    hasIndices: false,
+                    hasIndices: !!ebo,
                     countVerts,
                     countElems,
                     indexType,
                     modeGL,
-                    // store transform directives from primitive (position and rotation in degrees)
-                    position: prim.position || {x: 0, y: 0, z: 0},
-                    rotationDeg: prim.rotationDeg || {x: 0, y: 0, z: 0},
+                    // transformation matrix (4x4) if provided; otherwise identity will be used at render time
+                    transformMatrix: (function () {
+                        const tm = prim['transform-matrix-data'];
+                        return (Array.isArray(tm) && tm.length === 16) ? tm : null;
+                    })(),
                 });
             } catch (e) {
                 console.error('Error compiling primitive:', e);
@@ -1024,17 +1226,8 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         for (const o of compiled) {
             gl.useProgram(o.program);
 
-            // compute per-primitive transform (position + rotation in degrees)
-            const pos = o.position || {x: 0, y: 0, z: 0};
-            const rotD = o.rotationDeg || {x: 0, y: 0, z: 0};
-            const toRad = (d) => (d || 0) * Math.PI / 180.0;
-            const Rxp = mat4RotateX(toRad(rotD.x));
-            const Ryp = mat4RotateY(toRad(rotD.y));
-            const Rzp = mat4RotateZ(toRad(rotD.z));
-            const Tp = mat4Translate(pos.x || 0, pos.y || 0, pos.z || 0);
-            // Model for primitive: Translate * Rz * Ry * Rx
-            const Mp = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
-            const MVPp = mat4Mul(MVP, Mp);
+            // Compute global bounds transform (orig_bounds → graph_bounds) and apply to all primitives
+            const MVPp = mat4Mul(MVP, M_bounds);
 
             // common: MVP (per primitive)
             if (o.locations.u_mvp) gl.uniformMatrix4fv(o.locations.u_mvp, false, MVPp);
