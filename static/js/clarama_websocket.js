@@ -754,7 +754,7 @@ window.ClaramaStream = window.ClaramaStream || (function () {
  */
 function onMessage(event, socket_url, webSocket, socket_div) {
     let dict = JSON.parse(event.data);
-    console.log("WEBSOCKET.js: onMessage " + dict['class']);
+    //console.log("WEBSOCKET.js: onMessage " + dict['class']);
 
     let message_event = socket_div.attr('onmessage');
 
