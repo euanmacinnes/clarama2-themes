@@ -10,11 +10,13 @@
  *
  * Server stream frames expected (byrow orientation):
  *  - { type: 'start', cols: [...], info: {query, resultset?} }
- *  - { type: 'chunk', chunk_no: N, rows: [[...], ...] }
- *  - { type: 'end', last_chunk_no?: N }
- *  - { type: 'error', error: '...' }
+ *  - { type: 'chunk', chunk_no: N, rows: [[...], ...], resultset?: N }
+ *  - { type: 'end', last_chunk_no?: N, resultset?: N }
+ *  - { type: 'error', error: '...', resultset?: N }
  *
  * Chunks can arrive out of order; we buffer by chunk_no and flush in-order.
+ * 
+ * Multiple resultsets are supported with tabs - each resultset gets its own tab.
  */
 
 (function(global){
@@ -71,33 +73,172 @@
         const topic = options && options.topic;
         if(!topic) throw new Error('bTableStream requires options.topic');
 
-        const $table = $('#' + table_id);
-        let headings = [];
-        const assembler = new ClaramaStreamAssembler((rows)=>{
-            if(!headings || headings.length === 0) return; // not started yet
-            const dicts = rowsToDicts(rows, headings);
-            try{ $table.bootstrapTable('append', dicts); }
-            catch(e){ console.error('bootstrapTable append failed', e); }
-        });
+        const $container = $('#' + table_id);
+
+        // Track resultsets and their tables
+        const resultsets = new Map(); // resultset index -> {headings, assembler, $table}
+        let hasMultipleResultsets = false;
+        let tabsCreated = false;
+
+        // Create a new table for a resultset
+        function createTableForResultset(resultsetIndex, headings) {
+            // Create a unique ID for this resultset's table
+            const tableId = `${table_id}_rs${resultsetIndex}`;
+
+            // If this is the first resultset, use the original container
+            // Otherwise, create a new div for this resultset's table
+            let $table;
+            if (resultsets.size === 0 && !tabsCreated) {
+                $table = $container;
+            } else {
+                // If we haven't created tabs yet but now have multiple resultsets, create the tab structure
+                if (!tabsCreated) {
+                    createTabStructure();
+                }
+
+                // Check if tab already exists
+                if ($(`#tab_${tableId}`).length === 0) {
+                    // Add a new tab
+                    const $tabLink = $(`<li class="nav-item"><a class="nav-link" id="tab_${tableId}_link" data-toggle="tab" href="#tab_${tableId}" role="tab">Resultset ${resultsetIndex}</a></li>`);
+                    $container.find('.nav-tabs').append($tabLink);
+
+                    // Add a new tab content
+                    const $tabContent = $(`<div class="tab-pane fade" id="tab_${tableId}" role="tabpanel"></div>`);
+                    $container.find('.tab-content').append($tabContent);
+
+                    // Create a table inside the tab content
+                    $tabContent.append(`<table id="${tableId}"></table>`);
+                    $table = $(`#${tableId}`);
+
+                    // If this is the second resultset (first tab creation), make the first tab active
+                    if (resultsets.size === 1) {
+                        $container.find('.nav-tabs .nav-link').first().addClass('active');
+                        $container.find('.tab-content .tab-pane').first().addClass('show active');
+                    }
+                } else {
+                    $table = $(`#${tableId}`);
+                }
+            }
+
+            // Create an assembler for this resultset
+            const assembler = new ClaramaStreamAssembler((rows) => {
+                if (!headings || headings.length === 0) return; // not started yet
+                const dicts = rowsToDicts(rows, headings);
+                try { $table.bootstrapTable('append', dicts); }
+                catch (e) { console.error('bootstrapTable append failed', e); }
+            });
+
+            // Initialize the bootstrap table
+            const table_columns = headings.map(col => ({ field: col, title: col, sortable: true }));
+            try {
+                $table.bootstrapTable('destroy').bootstrapTable({
+                    exportDataType: 'all', exportTypes: ['json', 'xml', 'csv', 'txt', 'excel', 'pdf'],
+                    columns: table_columns, data: [],
+                    onClickRow: function (row, $element, field) {
+                        if (typeof perform_interact === 'function') { perform_interact($table, { row, field }); }
+                    }
+                });
+            } catch (e) { console.error('bootstrapTable init failed', e); }
+
+            // Store the resultset info
+            resultsets.set(resultsetIndex, { headings, assembler, $table });
+
+            return { headings, assembler, $table };
+        }
+
+        // Create the tab structure for multiple resultsets
+        function createTabStructure() {
+            // Save the original table
+            const $originalTable = $container.clone();
+
+            // Clear the container and add tab structure
+            $container.empty();
+            $container.append(`
+                <ul class="nav nav-tabs" role="tablist"></ul>
+                <div class="tab-content"></div>
+            `);
+
+            // If we already have a resultset, move it to the first tab
+            if (resultsets.size === 1) {
+                const firstResultset = resultsets.get(0);
+                if (firstResultset) {
+                    const firstTableId = `${table_id}_rs0`;
+
+                    // Create the first tab
+                    const $tabLink = $(`<li class="nav-item"><a class="nav-link active" id="tab_${firstTableId}_link" data-toggle="tab" href="#tab_${firstTableId}" role="tab">Resultset 0</a></li>`);
+                    $container.find('.nav-tabs').append($tabLink);
+
+                    // Create the first tab content with the original table
+                    const $tabContent = $(`<div class="tab-pane fade show active" id="tab_${firstTableId}" role="tabpanel"></div>`);
+                    $container.find('.tab-content').append($tabContent);
+
+                    // Move the original table to the tab content
+                    $tabContent.append($originalTable);
+
+                    // Update the reference in the resultset
+                    firstResultset.$table = $(`#${table_id}`);
+                }
+            }
+
+            tabsCreated = true;
+        }
 
         function onFrame(msg){
             const type = msg && msg.type; if(!type) return;
+
+            // Get resultset index from the message or info
+            let resultsetIndex = 0;
+            try {
+                if (msg.resultset !== undefined) {
+                    resultsetIndex = Number(msg.resultset);
+                } else if (msg.info && msg.info.resultset !== undefined) {
+                    resultsetIndex = Number(msg.info.resultset);
+                }
+            } catch (e) {
+                resultsetIndex = 0;
+            }
+
+            // Track if we have multiple resultsets
+            if (resultsetIndex > 0 && !hasMultipleResultsets) {
+                hasMultipleResultsets = true;
+            }
+
+            // Get or create the resultset data
+            let resultsetData = resultsets.get(resultsetIndex);
+
             if(type === 'start'){
-                headings = msg.cols || [];
-                assembler.reset();
-                const table_columns = headings.map(col => ({ field: col, title: col, sortable: true }));
-                try{
-                    $table.bootstrapTable('destroy').bootstrapTable({
-                        exportDataType: 'all', exportTypes: ['json','xml','csv','txt','excel','pdf'],
-                        columns: table_columns, data: [],
-                        onClickRow: function(row, $element, field){
-                            if(typeof perform_interact === 'function'){ perform_interact($table, { row, field }); }
-                        }
-                    });
-                    if(options && options.onopen) options.onopen();
-                }catch(e){ console.error('bootstrapTable init failed', e); }
+                const headings = msg.cols || [];
+
+                // Create or reset the resultset
+                if (resultsetData) {
+                    resultsetData.headings = headings;
+                    resultsetData.assembler.reset();
+
+                    // Reinitialize the table
+                    const table_columns = headings.map(col => ({ field: col, title: col, sortable: true }));
+                    try {
+                        resultsetData.$table.bootstrapTable('destroy').bootstrapTable({
+                            exportDataType: 'all', exportTypes: ['json', 'xml', 'csv', 'txt', 'excel', 'pdf'],
+                            columns: table_columns, data: [],
+                            onClickRow: function (row, $element, field) {
+                                if (typeof perform_interact === 'function') { perform_interact(resultsetData.$table, { row, field }); }
+                            }
+                        });
+                    } catch (e) { console.error('bootstrapTable init failed', e); }
+                } else {
+                    // Create a new resultset
+                    resultsetData = createTableForResultset(resultsetIndex, headings);
+                }
+
+                if(options && options.onopen) options.onopen(msg);
             } else if(type === 'chunk'){
-                assembler.onChunk(msg);
+                // Create resultset if it doesn't exist (shouldn't happen, but just in case)
+                if (!resultsetData) {
+                    console.warn(`Received chunk for resultset ${resultsetIndex} without start frame`);
+                    return;
+                }
+
+                resultsetData.assembler.onChunk(msg);
             } else if(type === 'end'){
                 if(options && options.onend) options.onend(msg);
             } else if(type === 'error'){
@@ -108,8 +249,18 @@
 
         const unregister = (window.ClaramaStream && window.ClaramaStream.register) ? window.ClaramaStream.register(topic, onFrame) : function(){};
 
-        // return an API to allow caller to stop listening
-        return { stop: unregister };
+        // return an API to allow caller to stop listening and access resultset info
+        return { 
+            stop: unregister,
+            getResultsets: () => Array.from(resultsets.keys()),
+            hasMultipleResultsets: () => hasMultipleResultsets,
+            activateTab: (resultsetIndex) => {
+                if (tabsCreated) {
+                    const tableId = `${table_id}_rs${resultsetIndex}`;
+                    $(`#tab_${tableId}_link`).tab('show');
+                }
+            }
+        };
     }
 
     // expose
