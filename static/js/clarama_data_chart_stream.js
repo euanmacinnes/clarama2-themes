@@ -126,6 +126,53 @@
         'category_bulk': 'category'
     };
 
+    function getAxisScaleType(axisId) {
+        try {
+            if (!chart || !chart.options || !chart.options.scales) return undefined;
+            const key = axisId || 'y';
+            const sc = chart.options.scales[key];
+            return sc && sc.type;
+        } catch (e) { return undefined; }
+    }
+
+    function isLogScaleForDataset(ds) {
+        const axisId = ds && ds.yAxisID ? ds.yAxisID : 'y';
+        return getAxisScaleType(axisId) === 'logarithmic';
+    }
+
+    function ensureCategoryLabel(label) {
+        if (!chart) return -1;
+        const data = chart.data || (chart.data = {});
+        const labels = data.labels || (data.labels = []);
+        let idx = labels.indexOf(label);
+        if (idx === -1) {
+            labels.push(label);
+            idx = labels.length - 1;
+            // pad all datasets to new labels length - ensure matching x for each index
+            const dsets = data.datasets || [];
+            for (const ds of dsets) {
+                while (ds.data.length < labels.length) {
+                    const l = labels[ds.data.length];
+                    ds.data.push({x: l, y: null});
+                }
+            }
+        }
+        return idx;
+    }
+
+    function setDatasetValueAt(ds, catIdx, label, y, lval, zval) {
+        if (!chart) return;
+        const labels = chart.data.labels || [];
+        while (ds.data.length < labels.length) {
+            const l = labels[ds.data.length];
+            ds.data.push({x: l, y: null});
+        }
+        const pt = {x: label, y: y};
+        if (lval !== undefined) pt.l = lval;
+        if (zval !== undefined) pt.r = Number(zval);
+        ds.data[catIdx] = pt;
+    }
+
     // Compute an optimal time step for the current zoom range and canvas width
     function computeTimeStep(rangeMs, widthPx) {
         const targetPoints = Math.max(50, Math.min(1000, Math.floor(widthPx / 3))); // aim ~1 point per 3px
@@ -344,10 +391,19 @@
                             } else if (axisId) {
                                 ds.yAxisID = axisId;
                             }
-                            const point = {x: xv, y: r[yi]};
-                            if (li >= 0) point.l = r[li];
-                            if (zi >= 0) point.r = Number(r[zi]);
-                            ds.data.push(point);
+                            let yv = r[yi];
+                            if (isLogScaleForDataset(ds) && !(yv > 0)) yv = null;
+                            const catMode = chart && (chart._claramaXAxisTypeName === 'category_grouped' || chart._claramaXAxisTypeName === 'category_bulk');
+                            if (catMode) {
+                                const catLabel = String(xv);
+                                const catIdx = ensureCategoryLabel(catLabel);
+                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li>=0?r[li]:undefined), (zi>=0?r[zi]:undefined));
+                            } else {
+                                const point = {x: xv, y: yv};
+                                if (li >= 0) point.l = r[li];
+                                if (zi >= 0) point.r = Number(r[zi]);
+                                ds.data.push(point);
+                            }
                         } else if (si >= 0) {
                             const kval = r[si];
                             const lbl = (li >= 0 ? r[li] : `${y_name}:${kval} [${tab_no}]`);
@@ -361,10 +417,19 @@
                             } else if (axisId) {
                                 ds.yAxisID = axisId;
                             }
-                            const point = {x: xv, y: r[yi]};
-                            if (li >= 0) point.l = r[li];
-                            if (zi >= 0) point.r = Number(r[zi]);
-                            ds.data.push(point);
+                            let yv = r[yi];
+                            if (isLogScaleForDataset(ds) && !(yv > 0)) yv = null;
+                            const catMode = chart && (chart._claramaXAxisTypeName === 'category_grouped' || chart._claramaXAxisTypeName === 'category_bulk');
+                            if (catMode) {
+                                const catLabel = String(xv);
+                                const catIdx = ensureCategoryLabel(catLabel);
+                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li>=0?r[li]:undefined), (zi>=0?r[zi]:undefined));
+                            } else {
+                                const point = {x: xv, y: yv};
+                                if (li >= 0) point.l = r[li];
+                                if (zi >= 0) point.r = Number(r[zi]);
+                                ds.data.push(point);
+                            }
                         } else {
                             const key = `d${tab_no}:${y_name}`;
                             const idx = ensureDataset(key, `${y_name} [${tab_no}]`, undefined, globalFormats, group_series_type);
@@ -376,17 +441,26 @@
                             } else if (axisId) {
                                 ds.yAxisID = axisId;
                             }
-                            const point = {x: xv, y: r[yi]};
-                            if (li >= 0) point.l = r[li];
-                            if (zi >= 0) point.r = Number(r[zi]);
-                            ds.data.push(point);
+                            let yv = r[yi];
+                            if (isLogScaleForDataset(ds) && !(yv > 0)) yv = null;
+                            const catMode = chart && (chart._claramaXAxisTypeName === 'category_grouped' || chart._claramaXAxisTypeName === 'category_bulk');
+                            if (catMode) {
+                                const catLabel = String(xv);
+                                const catIdx = ensureCategoryLabel(catLabel);
+                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li>=0?r[li]:undefined), (zi>=0?r[zi]:undefined));
+                            } else {
+                                const point = {x: xv, y: yv};
+                                if (li >= 0) point.l = r[li];
+                                if (zi >= 0) point.r = Number(r[zi]);
+                                ds.data.push(point);
+                            }
                         }
                     }
                 }
             }
         }
 
-        function initChartIfNeeded(startChartCfg, xScaleOverride) {
+        function initChartIfNeeded(startChartCfg, xScaleOverride, xAxisTypeName) {
             if (chart) return;
             const xaxisType = startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time';
             const cfgScale = axis_type_map[xaxisType] || 'time';
@@ -402,7 +476,11 @@
             }
 
             const data = {datasets};
+            // Persist axis type name for downstream logic (e.g., category_grouped/bulk behaviors)
+            try { chart && (chart._claramaXAxisTypeName = xAxisTypeName || (startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time')); } catch (e) {}
+            try { if (xAxisTypeName === 'category_grouped' || xAxisTypeName === 'category_bulk' || xaxisType === 'category_grouped' || xaxisType === 'category_bulk') { if (!data.labels) data.labels = []; } } catch (e) {}
             const baseOptions = {
+                // Enable index-based parsing for category alignment when labels are provided
                 parsing: true,
                 maintainAspectRatio: maintain,
                 aspectRatio: aspect_ratio,
@@ -484,6 +562,10 @@
             }
             const chart_type = startChartCfg['chart-type'] || chartTypeDefault;
             const chart_options_override = startChartCfg['chart-options'] || chartOptionsOverrideDefault;
+            // Merge predefined scales from startChartCfg if provided (enables predefined custom y-axes)
+            if (startChartCfg && startChartCfg.scales && typeof startChartCfg.scales === 'object') {
+                baseOptions.scales = Object.assign({}, baseOptions.scales, startChartCfg.scales);
+            }
             const cfg = {type: chart_type, data, options: Object.assign({}, baseOptions, chart_options_override)};
             chart = new Chart(ctx, cfg);
         }
@@ -530,8 +612,10 @@
                         }
                     }
 
+                    const xTypeNameCfg = (startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time');
+
                     // Init chart (first start only) with derived scale
-                    initChartIfNeeded(startChartCfg, xScaleDerived);
+                    initChartIfNeeded(startChartCfg, xScaleDerived, xTypeNameCfg);
 
                     // Build pusher for this topic/group using the same scale decision
                     const isTimeScale = (xScaleDerived === 'time');

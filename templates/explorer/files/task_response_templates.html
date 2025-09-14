@@ -471,6 +471,15 @@
                 }
 
                 // Trigger backend to start publishing (non-blocking): support multiple fetch URLs
+                function __claramaDecodeBodyMaybe(b){
+                    try{
+                        if(!b || b === 'None') return undefined;
+                        // Body is base64-encoded JSON string
+                        return atob(b);
+                    }catch(e){
+                        try{ return decodeURIComponent(escape(atob(b))); }catch(ex){ return b; }
+                    }
+                }
                 const headersBase = {'Content-Type': 'application/json'};
                 try { headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization']; } catch(e){}
                 let fetchedAny = false;
@@ -481,7 +490,7 @@
                             arr.forEach(req => {
                                 if(req && req.url){
                                     const m = (req.method && req.method !== 'None') ? req.method : 'POST';
-                                    const b = (req.body && req.body !== 'None') ? req.body : undefined;
+                                    const b = (req.body && req.body !== 'None') ? __claramaDecodeBodyMaybe(req.body) : undefined;
                                     fetch(req.url, {method: m, headers: headersBase, body: b}).catch(err=>console.error('Stream trigger fetch failed', err));
                                     fetchedAny = true;
                                 }
@@ -490,7 +499,7 @@
                     }
                 } catch(e){ console.warn('Invalid urls JSON', e); }
                 if (!fetchedAny && fetchUrl && fetchUrl !== 'None') {
-                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: fetchBody})
+                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: __claramaDecodeBodyMaybe(fetchBody)})
                         .then(function () { })
                         .catch(function (err) { console.error('Stream trigger fetch failed', err); });
                 }
@@ -562,6 +571,14 @@
                 const fetchUrlsRaw = `{urls_content}`; // optional JSON array of {url, method, body}
 
                 // If URL(s) provided, call them to trigger the backend to start publishing to the topic.
+                function __claramaDecodeBodyMaybe(b){
+                    try{
+                        if(!b || b === 'None') return undefined;
+                        return atob(b);
+                    }catch(e){
+                        try{ return decodeURIComponent(escape(atob(b))); }catch(ex){ return b; }
+                    }
+                }
                 const headersBase = {'Content-Type': 'application/json'};
                 try { headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization']; } catch(e){}
                 let fetchedAny = false;
@@ -572,7 +589,7 @@
                             arr.forEach(req => {
                                 if(req && req.url){
                                     const m = (req.method && req.method !== 'None') ? req.method : 'POST';
-                                    const b = (req.body && req.body !== 'None') ? req.body : undefined;
+                                    const b = (req.body && req.body !== 'None') ? __claramaDecodeBodyMaybe(req.body) : undefined;
                                     fetch(req.url, {method: m, headers: headersBase, body: b}).catch(err=>console.error('Stream trigger fetch failed', err));
                                     fetchedAny = true;
                                 }
@@ -581,7 +598,7 @@
                     }
                 } catch(e){ console.warn('Invalid urls JSON', e); }
                 if (!fetchedAny && fetchUrl && fetchUrl !== 'None') {
-                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: fetchBody})
+                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: __claramaDecodeBodyMaybe(fetchBody)})
                         .then(function (resp) { /* no-op */ })
                         .catch(function (err) { console.error('Stream trigger fetch failed', err); });
                 }
