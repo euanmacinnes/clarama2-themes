@@ -437,6 +437,73 @@
     </div>
 </template>
 
+<!-- Streaming Chart Template: initializes bChartStream and can trigger a backend fetch to start the stream -->
+<template id="task_step_result_chart_stream" target_class="cell-results">
+    <div class="container-fluid position-relative tight" style="height: 100%">
+        <div id="{chart_id_content}-holder" style="min-width: 100px; width:100%; height:100%; position: relative; "
+             class="chart-canvas-holder">
+            <canvas id="c_{chart_id_content}" class="no-drag" width="100%"></canvas>
+        </div>
+    </div>
+    <script>
+        (function () {
+            try {
+                const chartId = 'c_{chart_id_content}';
+                const topic = '{topic_content}'; // optional single topic
+                const topicsRaw = `{topics_content}`; // optional JSON array/object mapping
+                const fetchUrl = '{url_content}';
+                const fetchMethod = ('{method_content}' && '{method_content}' !== 'None') ? '{method_content}' : 'POST';
+                const fetchBodyRaw = '{body_content}';
+                const fetchBody = (fetchBodyRaw && fetchBodyRaw !== 'None') ? fetchBodyRaw : undefined;
+                const baseChartCfgRaw = `{chart_config_content}`; // JSON string
+                let sourceTopics = undefined;
+                try {
+                    if (topicsRaw && topicsRaw !== 'None' && topicsRaw !== '') sourceTopics = JSON.parse(topicsRaw);
+                } catch (e) {
+                    console.warn('Invalid topics JSON', e);
+                }
+                let baseChartCfg = undefined;
+                try {
+                    if (baseChartCfgRaw && baseChartCfgRaw !== 'None' && baseChartCfgRaw !== '') baseChartCfg = JSON.parse(baseChartCfgRaw);
+                } catch (e) {
+                    console.warn('Invalid chart config JSON', e);
+                }
+
+                // Trigger backend to start publishing (non-blocking)
+                if (fetchUrl && fetchUrl !== 'None') {
+                    const headers = {'Content-Type': 'application/json'};
+                    try {
+                        headers['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headers['Authorization'];
+                    } catch (e) {
+                    }
+                    fetch(fetchUrl, {method: fetchMethod, headers: headers, body: fetchBody})
+                        .then(function () {
+                        })
+                        .catch(function (err) {
+                            console.error('Stream trigger fetch failed', err);
+                        });
+                }
+
+                // Initialize streaming chart
+                if (window.bChartStream) {
+                    const opts = {topic: topic, source_topics: sourceTopics, chart: baseChartCfg};
+                    window.bChartStream(chartId, opts);
+                } else {
+                    console.error('bChartStream is not available on window');
+                }
+            } catch (e) {
+                console.error('bChartStream template init error', e);
+            }
+        })();
+
+        $(window).resize(function () {
+            $('#c_{chart_id_content}').height($('#c_{chart_id_content}').width() / 1.7);
+        });
+        $(document).ready(() => {
+            $('#c_{chart_id_content}').height($('#c_{chart_id_content}').width() / 1.7);
+        });
+    </script>
+</template>
 
 <!-- Streaming Bootstrap Table Template: initializes bTableStream and can trigger a backend fetch to start the stream -->
 <template id="task_step_result_bootstraptable_stream" target_class="cell-results">
