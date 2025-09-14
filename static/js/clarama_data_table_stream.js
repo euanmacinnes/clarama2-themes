@@ -74,6 +74,7 @@
         if(!topic) throw new Error('bTableStream requires options.topic');
 
         const $container = $('#' + table_id);
+        let $tabsRoot = null; // wrapper that will hold tabs and tab-content when needed
 
         // Track resultsets and their tables
         const resultsets = new Map(); // resultset index -> {headings, assembler, $table}
@@ -96,15 +97,19 @@
                     createTabStructure();
                 }
 
+                // Ensure we have a tabs root to append into
+                const $navTabs = $tabsRoot ? $tabsRoot.find('.nav-tabs') : $();
+                const $tabContentWrap = $tabsRoot ? $tabsRoot.find('.tab-content') : $();
+
                 // Check if tab already exists
                 if ($(`#tab_${tableId}`).length === 0) {
                     // Add a new tab
                     const $tabLink = $(`<li class="nav-item"><a class="nav-link" id="tab_${tableId}_link" data-toggle="tab" href="#tab_${tableId}" role="tab">Resultset ${resultsetIndex}</a></li>`);
-                    $container.find('.nav-tabs').append($tabLink);
+                    $navTabs.append($tabLink);
 
                     // Add a new tab content
                     const $tabContent = $(`<div class="tab-pane fade" id="tab_${tableId}" role="tabpanel"></div>`);
-                    $container.find('.tab-content').append($tabContent);
+                    $tabContentWrap.append($tabContent);
 
                     // Create a table inside the tab content
                     $tabContent.append(`<table id="${tableId}"></table>`);
@@ -112,8 +117,8 @@
 
                     // If this is the second resultset (first tab creation), make the first tab active
                     if (resultsets.size === 1) {
-                        $container.find('.nav-tabs .nav-link').first().addClass('active');
-                        $container.find('.tab-content .tab-pane').first().addClass('show active');
+                        $navTabs.find('.nav-link').first().addClass('active');
+                        $tabContentWrap.find('.tab-pane').first().addClass('show active');
                     }
                 } else {
                     $table = $(`#${tableId}`);
@@ -148,17 +153,19 @@
 
         // Create the tab structure for multiple resultsets
         function createTabStructure() {
-            // Save the original table
-            const $originalTable = $container.clone();
-
-            // Clear the container and add tab structure
-            $container.empty();
-            $container.append(`
+            // The container is a <table>. We need to create an external wrapper to host tabs.
+            const $tableEl = $container; // original table element
+            
+            // Build a wrapper just before the table and then move the table into the first tab-pane
+            $tabsRoot = $('<div class="clarama-resultset-tabs"></div>');
+            $tableEl.before($tabsRoot);
+            
+            $tabsRoot.append(`
                 <ul class="nav nav-tabs" role="tablist"></ul>
                 <div class="tab-content"></div>
             `);
 
-            // If we already have a resultset, move it to the first tab
+            // If we already have a resultset (0), move it to the first tab
             if (resultsets.size === 1) {
                 const firstResultset = resultsets.get(0);
                 if (firstResultset) {
@@ -166,16 +173,16 @@
 
                     // Create the first tab
                     const $tabLink = $(`<li class="nav-item"><a class="nav-link active" id="tab_${firstTableId}_link" data-toggle="tab" href="#tab_${firstTableId}" role="tab">Resultset 0</a></li>`);
-                    $container.find('.nav-tabs').append($tabLink);
+                    $tabsRoot.find('.nav-tabs').append($tabLink);
 
                     // Create the first tab content with the original table
                     const $tabContent = $(`<div class="tab-pane fade show active" id="tab_${firstTableId}" role="tabpanel"></div>`);
-                    $container.find('.tab-content').append($tabContent);
+                    $tabsRoot.find('.tab-content').append($tabContent);
 
-                    // Move the original table to the tab content
-                    $tabContent.append($originalTable);
+                    // Move the original table element into the tab content
+                    $tabContent.append($tableEl);
 
-                    // Update the reference in the resultset
+                    // Update the reference in the resultset to the now-moved table
                     firstResultset.$table = $(`#${table_id}`);
                 }
             }

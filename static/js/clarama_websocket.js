@@ -1009,7 +1009,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
             }
         } catch (e) { /* fallthrough to log */
         }
-        console.log("CLARAMA_WEBSOCKET.js: WTF was this: " + dict);
+        console.log("CLARAMA_WEBSOCKET.js: WTF was this: ", dict);
     }
 
     //console.log(task_active_socket);

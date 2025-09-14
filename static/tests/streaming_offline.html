@@ -51,7 +51,7 @@
                 <div class="col-md-4">
                     <label for="authToken" class="form-label">Authorization Token (Bearer)</label>
                     <input id="authToken" class="form-control"
-                           value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHAiOiJjbGFyYW1hMi4wIiwiZG4iOiIxIiwidXNlcm5hbWUiOiIxIiwiZGF0YSI6e30sImRhdGVfY3JlYXRlZCI6MTc1NzY5NjU4ODAwMCwiZGF0ZV9leHBpcmVzIjoxNzU3NzgyOTg4MDAwfQ.YpB47rDorCSYYE0Qf9IV3BHehbv5rL1ri_3QTN0LZf8"
+                           value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHAiOiJjbGFyYW1hMi4wIiwiZG4iOiIzNjUiLCJ1c2VybmFtZSI6IjM2NSIsImRhdGEiOnt9LCJkYXRlX2NyZWF0ZWQiOjE3NTc4NjI5NDUwMDAsImRhdGVfZXhwaXJlcyI6MTc4OTM5ODk0NTAwMH0.ppMAEOOxtAwVNlDuvWCt27FE52yBcYNergWD-ztzSAo"
                            placeholder="paste token here"/>
                     <div class="form-text">Provide a valid Clarama token. For dev, use a dummy or internal token if
                         configured.
@@ -73,7 +73,7 @@
                 <div class="col-md-6">
                     <label for="sqlQuery" class="form-label">SQL Query (Jobs)</label>
                     <input id="sqlQuery" class="form-control code"
-                           value="select uuid, status, date_created, runs_executed from jobs order by date_created desc limit 200"/>
+                           value="select status,count(*) from jobs group by status"/>
                     <div class="form-text">Adjust fields to match your jobs schema if different.</div>
                 </div>
             </div>
@@ -187,10 +187,22 @@
             return;
         }
         // start
+        const datatypes = (function(cs){
+            try{
+                return cs.map(c=>{
+                    const lc = String(c).toLowerCase();
+                    if(lc.includes('date') || lc.includes('time') || lc.includes('ts')) return 'datetime';
+                    if(lc.includes('uuid') || lc.endsWith('id')) return 'uuid';
+                    if(lc.includes('count') || lc.includes('runs') || lc.includes('num')) return 'integer';
+                    return 'string';
+                });
+            }catch(e){ return undefined; }
+        })(cols);
         window.ClaramaStream.dispatch(topic, {
             type: 'start',
             orientation: 'byrow',
             cols: cols,
+            datatypes: datatypes,
             info: {query: 'SIMULATED'}
         });
         // chunks (intentionally shuffle two chunks to demonstrate re-order handling)

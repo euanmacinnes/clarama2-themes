@@ -244,10 +244,11 @@
             }
         }
 
-        function initChartIfNeeded(startChartCfg){
+        function initChartIfNeeded(startChartCfg, xScaleOverride){
             if(chart) return;
             const xaxisType = startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time';
-            const x_scale_type = axis_type_map[xaxisType] || 'time';
+            const cfgScale = axis_type_map[xaxisType] || 'time';
+            const x_scale_type = xScaleOverride || cfgScale;
             const isTime = x_scale_type === 'time';
             const legend_display = (startChartCfg['legend'] === undefined) ? (legendDefault === undefined ? true : (legendDefault !== 'Off')) : (startChartCfg['legend'] !== 'Off');
             const annotations = startChartCfg['annotations'] || startChartCfg['chart-annotations'] || annotationsDefault;
@@ -326,13 +327,30 @@
                     if(useIndex < 0) useIndex = 0;
                     const sg = series_groups[useIndex] || series_groups[0] || {};
 
-                    // Init chart (first start only)
-                    initChartIfNeeded(startChartCfg);
+                    // Determine x scale using optional datatypes from stream start
+                    const dtypes = Array.isArray(msg.datatypes) ? msg.datatypes.map(v => (v==null?null:String(v).toLowerCase())) : null;
+                    const x_name = sg['series-x'] || state.cols[0];
+                    const xi = state.cols.indexOf(x_name);
+                    const nameImpliesDate = (x_name||'').toString().match(/date|time|timestamp|dt|ts/i) !== null;
+                    const timeTypes = new Set(['date','datetime','time','timestamp']);
+                    let xScaleDerived = null;
+                    if(dtypes && xi >= 0 && xi < dtypes.length){
+                        const t = dtypes[xi];
+                        if(timeTypes.has(t)) xScaleDerived = 'time'; else xScaleDerived = 'category';
+                    } else {
+                        // Fallback to config or name heuristic
+                        if(nameImpliesDate) xScaleDerived = 'time';
+                        else {
+                            const xTypeCfg = (startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time');
+                            xScaleDerived = axis_type_map[xTypeCfg] || 'time';
+                        }
+                    }
 
-                    // Build pusher for this topic/group
-                    const xType = (startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time');
-                    const xScale = axis_type_map[xType] || 'time';
-                    const isTimeScale = (xScale === 'time');
+                    // Init chart (first start only) with derived scale
+                    initChartIfNeeded(startChartCfg, xScaleDerived);
+
+                    // Build pusher for this topic/group using the same scale decision
+                    const isTimeScale = (xScaleDerived === 'time');
                     state.pushRows = buildPushRowsForGroup(boundTopic, state.cols, sg, startChartCfg['series-formats'] || seriesFormatsDefault, isTimeScale);
 
                     // Fresh assembler per topic
