@@ -745,7 +745,7 @@ window.ClaramaStream = window.ClaramaStream || (function () {
 // Fixed section of onMessage function in CLARAMA_WEBSOCKET.js
 
 /**
- * WebSocket onmessage handler. Routes messages by class/type and updates UI accordingly.
+ * WebSocket onmessage handler. Routes messages by class/type Pand updates UI accordingly.
  * Handles: ping, layout, alerts, template(s), charts/tables, task progress, and resume events.
  *
  * @param {MessageEvent} event
