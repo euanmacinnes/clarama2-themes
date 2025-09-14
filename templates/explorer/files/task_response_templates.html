@@ -455,6 +455,7 @@
                 const fetchMethod = ('{method_content}' && '{method_content}' !== 'None') ? '{method_content}' : 'POST';
                 const fetchBodyRaw = '{body_content}';
                 const fetchBody = (fetchBodyRaw && fetchBodyRaw !== 'None') ? fetchBodyRaw : undefined;
+                const fetchUrlsRaw = `{urls_content}`; // optional JSON array of {url, method, body}
                 const baseChartCfgRaw = `{chart_config_content}`; // JSON string
                 let sourceTopics = undefined;
                 try {
@@ -469,19 +470,29 @@
                     console.warn('Invalid chart config JSON', e);
                 }
 
-                // Trigger backend to start publishing (non-blocking)
-                if (fetchUrl && fetchUrl !== 'None') {
-                    const headers = {'Content-Type': 'application/json'};
-                    try {
-                        headers['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headers['Authorization'];
-                    } catch (e) {
+                // Trigger backend to start publishing (non-blocking): support multiple fetch URLs
+                const headersBase = {'Content-Type': 'application/json'};
+                try { headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization']; } catch(e){}
+                let fetchedAny = false;
+                try {
+                    if (fetchUrlsRaw && fetchUrlsRaw !== 'None' && fetchUrlsRaw !== ''){
+                        const arr = JSON.parse(fetchUrlsRaw);
+                        if (Array.isArray(arr)){
+                            arr.forEach(req => {
+                                if(req && req.url){
+                                    const m = (req.method && req.method !== 'None') ? req.method : 'POST';
+                                    const b = (req.body && req.body !== 'None') ? req.body : undefined;
+                                    fetch(req.url, {method: m, headers: headersBase, body: b}).catch(err=>console.error('Stream trigger fetch failed', err));
+                                    fetchedAny = true;
+                                }
+                            });
+                        }
                     }
-                    fetch(fetchUrl, {method: fetchMethod, headers: headers, body: fetchBody})
-                        .then(function () {
-                        })
-                        .catch(function (err) {
-                            console.error('Stream trigger fetch failed', err);
-                        });
+                } catch(e){ console.warn('Invalid urls JSON', e); }
+                if (!fetchedAny && fetchUrl && fetchUrl !== 'None') {
+                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: fetchBody})
+                        .then(function () { })
+                        .catch(function (err) { console.error('Stream trigger fetch failed', err); });
                 }
 
                 // Initialize streaming chart
@@ -548,20 +559,31 @@
                 const fetchMethod = ('{method_content}' && '{method_content}' !== 'None') ? '{method_content}' : 'POST';
                 const fetchBodyRaw = '{body_content}';
                 const fetchBody = (fetchBodyRaw && fetchBodyRaw !== 'None') ? fetchBodyRaw : undefined;
+                const fetchUrlsRaw = `{urls_content}`; // optional JSON array of {url, method, body}
 
-                // If a URL is provided, call it to trigger the backend to start publishing to the topic.
-                if (fetchUrl && fetchUrl !== 'None') {
-                    const headers = {'Content-Type': 'application/json'};
-                    try {
-                        headers['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headers['Authorization'];
-                    } catch (e) {
+                // If URL(s) provided, call them to trigger the backend to start publishing to the topic.
+                const headersBase = {'Content-Type': 'application/json'};
+                try { headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization']; } catch(e){}
+                let fetchedAny = false;
+                try {
+                    if (fetchUrlsRaw && fetchUrlsRaw !== 'None' && fetchUrlsRaw !== ''){
+                        const arr = JSON.parse(fetchUrlsRaw);
+                        if (Array.isArray(arr)){
+                            arr.forEach(req => {
+                                if(req && req.url){
+                                    const m = (req.method && req.method !== 'None') ? req.method : 'POST';
+                                    const b = (req.body && req.body !== 'None') ? req.body : undefined;
+                                    fetch(req.url, {method: m, headers: headersBase, body: b}).catch(err=>console.error('Stream trigger fetch failed', err));
+                                    fetchedAny = true;
+                                }
+                            });
+                        }
                     }
-                    fetch(fetchUrl, {method: fetchMethod, headers: headers, body: fetchBody})
-                        .then(function (resp) { /* no-op */
-                        })
-                        .catch(function (err) {
-                            console.error('Stream trigger fetch failed', err);
-                        });
+                } catch(e){ console.warn('Invalid urls JSON', e); }
+                if (!fetchedAny && fetchUrl && fetchUrl !== 'None') {
+                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: fetchBody})
+                        .then(function (resp) { /* no-op */ })
+                        .catch(function (err) { console.error('Stream trigger fetch failed', err); });
                 }
 
                 // Initialize streaming table subscription
