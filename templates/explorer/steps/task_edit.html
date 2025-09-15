@@ -1,5 +1,5 @@
 <div class="clarama-cell-content" celltype="task" dataid="{{ loop_index }}">
-    <div class="bg-info rounded text-light" style="padding: 5px">
+    <div class="rounded text-light" style="padding: 5px">
         <div class="rounded text-light row">
             <div class="btn-group col align-items-center">
                 <div class="input-group">
@@ -8,7 +8,7 @@
                            class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus"
                            placeholder="Task Filename" aria-label="Task relative filename"
                            value="{{ task }}">
-                    <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                    <button type="button" class="gridbrowsefile"
                             data-bs-toggle="modal" data-bs-target="#browseFileModal"
                             inputId="task_step_{{ loop_index }}_task" filters="*.task.yaml">
                         <i class="bi bi-folder2-open"></i>

@@ -48,7 +48,7 @@
 
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
     <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
-        <div class="bg-info rounded-top text-light px-2" style="padding-top: .25rem !important;">
+        <div class="bg-c2-light rounded-top text-light px-2" style="padding-top: .25rem !important;">
 
             <!-- Toggle buttons -->
             <div class="d-flex flex-wrap align-items-center">
@@ -59,7 +59,7 @@
                                     data-bs-target="#collapseTableOptions_{{ loop_index }}"
                                     aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
                                     aria-controls="collapseTableOptions_{{ loop_index }}"
-                                    class="btn {% if output=='table' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    class="btn {% if output=='table' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
                                 <i class="bi bi-table"></i>
                             </button>
@@ -67,7 +67,7 @@
                                     data-bs-target="#collapseChartOptions_{{ loop_index }}"
                                     aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
                                     aria-controls="collapseChartOptions_{{ loop_index }}"
-                                    class="btn rounded-0 {% if output=='chart' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    class="btn rounded-0 {% if output=='chart' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
                                 <i class="bi bi-graph-up-arrow"></i>
                             </button>
@@ -75,12 +75,12 @@
                                     data-bs-target="#collapseChart3dOptions_{{ loop_index }}"
                                     aria-expanded="{% if output=='chart3d' %}true{% else %}false{% endif %}"
                                     aria-controls="collapseChart3dOptions_{{ loop_index }}"
-                                    class="btn rounded-0 {% if output=='chart3d' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    class="btn rounded-0 {% if output=='chart3d' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart3d', '{{ loop_index }}');">
                                 <i class="bi bi-box"></i>
                             </button>
                             <button id="task_step_{{ loop_index }}_code" type="button" title="data query"
-                                    class="btn {% if output=='code' %}btn-primary{% else %}btn-secondary{% endif %}"
+                                    class="btn {% if output=='code' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'code', '{{ loop_index }}');">
                                 <i class="bi bi-code"></i>
                             </button>
@@ -126,7 +126,7 @@
     </div>
 
     <div id="collapseTableOptions_{{ loop_index }}"
-         class="accordion-collapse collapse bg-dark text-light {% if output=='table' %}show{% endif %}">
+         class="accordion-collapse collapse bg-cell-config {% if output=='table' %}show{% endif %}">
         <div class="accordion-body" aria-labelledby="table" style="padding: 8px;">
             <div class="container-fluid">
                 <div class="d-flex align-items-center my-3">
@@ -207,7 +207,7 @@
                            class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus table-slate"
                            placeholder="Row Rendering as Slate Filename" aria-label="Table styling relative filename"
                            value="{{ table['slate'] }}">
-                    <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                    <button type="button" class="gridbrowsefile"
                             data-bs-toggle="modal" data-bs-target="#browseFileModal"
                             inputId="task_step_{{ loop_index }}_table_slate_source" filters="*.slate.yaml">
                         <i class="bi bi-folder2-open"></i>
@@ -228,7 +228,7 @@
     </div>
     <input id="task_step_{{ loop_index }}_output" type="hidden" value="{{ output or 'table' }}">
     <div id="collapseChartOptions_{{ loop_index }}"
-         class="accordion-collapse collapse bg-dark text-light {% if output=='chart' %}show{% endif %}">
+         class="accordion-collapse collapse bg-cell-config {% if output=='chart' %}show{% endif %}">
         <div class="accordion-body" aria-labelledby="chart" style="padding: 8px;">
             <div class="container-fluid">
                 <div class="d-flex align-items-center my-3">
@@ -382,7 +382,7 @@
     </div>
     <!-- 3D CHART -->
     <div id="collapseChart3dOptions_{{ loop_index }}"
-         class="accordion-collapse collapse bg-dark text-light {% if output=='chart3d' %}show{% endif %}">
+         class="accordion-collapse collapse bg-cell-config {% if output=='chart3d' %}show{% endif %}">
         <div class="accordion-body" aria-labelledby="chart3d" style="padding: 8px;">
             <div class="container-fluid">
                 <div class="d-flex align-items-center my-3">

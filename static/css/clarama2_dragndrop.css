@@ -1,3 +1,129 @@
+body {
+  font-family: 'Inter', 'Montserrat', sans-serif;
+  background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+  color: #222;
+  transition: all 0.3s ease;
+}
+
+.navbar {
+  backdrop-filter: blur(10px);
+  background-color: rgba(255,255,255,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.bg-cell-config {
+    background-color: #e8e8e8;
+    border-color: #6af;
+    border-width: 4px;
+    border-style: solid;
+}
+
+.border-cell-config {
+    background-color: #e8e8e8;
+}
+
+.ace-editor {
+    background-color: #ffffff !important;
+}
+.card {
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+  box-shadow: 0 12px 20px rgba(0,0,0,0.14);
+}
+
+button.btn {
+  border-radius: 8px;
+}
+
+.gridbrowsefile {
+    background-color: #e8e8e8;
+    border-color: #6af;
+    border-width: 2px;
+    border-style: solid;
+    padding-left: 0.5rem; /* Or a similar unit like 8px depending on the framework's configuration */
+    padding-right: 0.5rem; /* Or a similar unit like 8px depending on the framework's configuration */
+}
+
+.gridbrowsefile:hover {
+  box-shadow: 0 8px 16px rgba(0.2,0.5,1,0.6);
+  background-color: #37f;
+     color: white;
+    font-variation-settings: 'wght' 900;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.clarama-cell-content {
+    background-color: #6af;
+    border-width: 4px;
+    border-radius: 6px;
+}
+
+.btn-c2 {
+  background-color: #15d;
+  color: lightgray;
+    font-variation-settings: 'wght' 400;
+}
+
+button.btn-c2:hover {
+  box-shadow: 0 8px 16px rgba(0.2,0.5,1,0.6);
+  background-color: #37f;
+     color: white;
+    font-variation-settings: 'wght' 900;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+button.btn-c2-play:hover {
+  box-shadow: 0 8px 16px rgba(0.2,1,0.5,0.6);
+  background-color: #3f7;
+    border-color: #0b3;
+    font-variation-settings: 'wght' 900;
+}
+
+.col-step-bar {
+    width: 6%
+}
+
+.bg-c2 {
+  background-color: #15d;
+    border-color: #04c;
+}
+
+.bg-c2-light {
+  background-color: #6af;
+    border-color: #04c;
+}
+
+
+
+.btn-c2-play {
+  background-color: #1d5;
+    border-color: #0c4;
+    font-variation-settings: 'wght' 400;
+  color: white;
+}
+
+.task-step-bar {
+    padding: 8px !important;
+}
+
+.radial-tl {
+    border-top-left-radius: 6px;
+}
+
+.radial-bl {
+    border-bottom-left-radius: 6px;
+}
+
+
+.btn-c2-secondary {
+  background-color: #555;
+  color: white;
+}
+
+
 .MJXp-math { font-size: 1.5em !important; }
 
 .pre_response {
@@ -14,6 +140,47 @@
 .close-tab:hover {
     color: #f8162d;
 }
+
+.toolbar-container {
+  position: relative;
+  height: 4px; /* Height of the hover line */
+  margin: 1rem 0;
+}
+
+.hover-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: white;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.hover-line:hover {
+  background-color: #007bff;
+  box-shadow: 0 0 8px #007bff;
+}
+
+.floating-toolbar {
+  display: none;
+  position: absolute;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.floating-toolbar.visible {
+  display: block;
+}
+
+.invisible-hr {
+  visibility: hidden;
+  margin: 0;
+}
+
 
 .clarama-checkbox {
     padding-left: 12px;

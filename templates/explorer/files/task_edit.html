@@ -14,8 +14,8 @@
 <form>
     <div class="container-fluid bg-light">
         <div class="row" style="padding: 0">
-            <div class="cell-panel bg-secondary text-light">
-                <button type="button" class="btn btn-secondary">Execution</button>
+            <div class="col-step-bar bg-secondary task-step-bar radial-tl text-light">
+                Execution
             </div>
             <div class="col">
                 <div class="row">
@@ -23,26 +23,27 @@
             </div>
             <div class="col-auto">
                 <ul class="btn-group clarama-task" role="group" aria-label="task_functions">
-                    <button id="save" type="button" class="btn btn-secondary clarama-task clarama-task-save"
+                    <button id="save" type="button" class="btn btn-c2 clarama-task clarama-task-save"
                             url="{{ file_url }}" title="save"><i
                             class="bi bi-floppy"></i></button>
-                    <button id="publish" type="button" class="btn btn-secondary clarama-task clarama-task-publish"
+                    <button id="publish" type="button" class="btn btn-c2 clarama-task clarama-task-publish"
                             title="publish as .ai.yaml"><i
                             class="bi bi-upload"></i></button>
-                    <button id="editrun" type="button" class="btn btn-secondary kernel-play-button clarama-task-editrun"
+                    <button id="editrun" type="button"
+                            class="btn btn-c2-play kernel-play-button clarama-task-editrun"
                             socket="edit_socket" kill="False" title="play"><i
                             class="bi bi-play-fill h3"></i></button>
-                    <button type="button" class="btn btn-info" id="edit-kernel-status" data-bs-toggle="tooltip"
+                    <button type="button" class="btn btn-c2" id="edit-kernel-status" data-bs-toggle="tooltip"
                             data-bs-placement="bottom"
                             title="Unique Kernel ID within the Environment"> Loading...
                     </button>
-                    <button type="button" class="btn btn-info" id="kernel_memory_free" data-bs-toggle="tooltip"
+                    <button type="button" class="btn btn-c2" id="kernel_memory_free" data-bs-toggle="tooltip"
                             data-bs-placement="bottom"
                             title="% of RAM free in the environment. Includes ALL tasks running here">..
                     </button>
                     <button id="environment" aria-haspopup="true" aria-expanded="false"
                             type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
-                            class="btn btn-info environment dropdown-toggle">..
+                            class="btn btn-c2 environment dropdown-toggle">..
                     </button>
                     <ul class="dropdown-menu bg-light shadow-lg" aria-labelledby="environment">
                         <li>
@@ -81,9 +82,14 @@
             </div>
         </div>
         <div class="row">
+<<<<<<< HEAD
             <div class="cell-panel bg-secondary text-light">
                 <hr/>
                 <button type="button" class="btn btn-secondary">Parameters</button>
+=======
+            <div class="col-step-bar task-step-bar bg-secondary text-light" style="padding: 0">
+                Parameters
+>>>>>>> refs/remotes/origin/main
             </div>
             <div class="col mb-3" style="padding: 0">
                 <hr/>
@@ -140,47 +146,49 @@
 {% include theme("explorer/files/task_response_templates.html") %}
 
 <!-- Delete Stream Confirmation Modal -->
-<div class="modal fade" id="confirmDeleteStreamModal" tabindex="-1" aria-labelledby="confirmDeleteStreamLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="confirmDeleteStreamLabel">Delete Stream</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        Are you sure you want to delete the stream <strong class="stream-name"></strong>? This action cannot be undone.
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteStreamBtn">Delete</button>
-      </div>
+<div class="modal fade" id="confirmDeleteStreamModal" tabindex="-1" aria-labelledby="confirmDeleteStreamLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteStreamLabel">Delete Stream</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the stream <strong class="stream-name"></strong>? This action cannot be
+                undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteStreamBtn">Delete</button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <!-- Publish Modal -->
 <div class="modal fade" id="publishModal" tabindex="-1" aria-labelledby="publishModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="publishModalLabel">Publish Task as .ai.yaml</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-            <label for="publishFileName" class="form-label">Filename</label>
-            <input type="text" class="form-control" id="publishFileName" placeholder="example.ai.yaml" />
-            <div class="form-text">File will be saved relative to the task's current folder.</div>
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="publishModalLabel">Publish Task as .ai.yaml</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="publishFileName" class="form-label">Filename</label>
+                    <input type="text" class="form-control" id="publishFileName" placeholder="example.ai.yaml"/>
+                    <div class="form-text">File will be saved relative to the task's current folder.</div>
+                </div>
+                <label class="form-label">Preview (.ai.yaml)</label>
+                <div id="publishPreviewEditor" class="border" style="height: 50vh; width: 100%;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-c2" id="confirmPublishBtn">Publish</button>
+            </div>
         </div>
-        <label class="form-label">Preview (.ai.yaml)</label>
-        <div id="publishPreviewEditor" class="border" style="height: 50vh; width: 100%;"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="confirmPublishBtn">Publish</button>
-      </div>
     </div>
-  </div>
 </div>
 
 <script src="{{ static( filename='js/clarama_streams.js') }}" type="text/javascript"></script>
