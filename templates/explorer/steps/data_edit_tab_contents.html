@@ -1,16 +1,16 @@
-<div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }}"
+<div class="tab-content-block tab-pane bg-cell-config tab-content-block-{{ loop_index }}_{{ tab_id }}"
      id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
      data-tab-id="{{ tab_id }}"
      style="display: block;"> {# Ensure it's always block #}
 
     <!-- Input source file -->
-    <div class="border border-3 border-info">
-        <div class="input-group w-100 border-1 border-bottom border-info">
+    <div class="border-cell-config">
+        <div class="input-group w-100 border-bottom">
             <input id="task_step_{{ loop_index }}_source_{{ tab_id }}" type="text"
-                   class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus source-input-field"
+                   class="form-control rounded-0 removeInputFocus source-input-field"
                    placeholder="Data Source Filename" aria-label="Data source relative filename"
                    value="{{ source }}">
-            <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+            <button type="button" class="gridbrowsefile"
                     data-bs-toggle="modal" data-bs-target="#browseFileModal"
                     inputId="task_step_{{ loop_index }}_source_{{ tab_id }}" filters="*.source.yaml|*.csv|*.xlsx">
                 <i class="bi bi-folder2-open"></i>

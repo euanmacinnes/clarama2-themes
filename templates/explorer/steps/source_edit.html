@@ -1,5 +1,5 @@
 <div class="clarama-cell-content" celltype="source" dataid="{{ loop_index }}">
-    <div class="bg-info rounded text-light" style="padding: 5px">
+    <div class="rounded text-light" style="padding: 5px">
         <div class="rounded text-light row">
             <div class="btn-group col align-items-center">
                 <!-- <button type="button" class="gridbrowsefile border border-0 bg-white input-group align-items-center" data-bs-toggle="modal" data-bs-target="#browseFileModal" inputId="task_step_{{ loop_index }}_source" filters="*.source.yaml|*.csv|*.xlsx">
@@ -16,7 +16,7 @@
                            class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus"
                            placeholder="Data Source Filename" aria-label="Data source relative filename"
                            value="{{ source }}">
-                    <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                    <button type="button" class="gridbrowsefile"
                             data-bs-toggle="modal" data-bs-target="#browseFileModal"
                             inputId="task_step_{{ loop_index }}_source" filters="*.source.yaml|*.csv|*.xlsx">
                         <i class="bi bi-folder2-open"></i>

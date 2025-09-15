@@ -1,3 +1,34 @@
+function toolbar_interactions(toolbar) {
+    toolbar.find(".toolbar-container").each(function () {
+        const $container = $(this);
+        const $hoverLine = $container.find('.hover-line');
+        const $toolbar = $container.find('.floating-toolbar');
+
+        $hoverLine.on('click', function (e) {
+            const rect = $hoverLine[0].getBoundingClientRect();
+            const scrollTop = $(window).scrollTop();
+
+            // Position toolbar right above the line
+            $toolbar.css({
+                top: rect.top + scrollTop - $toolbar.outerHeight() - 5,
+                left: e.clientX - ($toolbar.outerWidth() / 2)
+            });
+
+            $toolbar.toggleClass('visible');
+        });
+
+        // Hide toolbar when clicking outside
+        $(document).on('click', function (e) {
+            if (!$toolbar.is(e.target) &&
+                !$toolbar.has(e.target).length &&
+                !$hoverLine.is(e.target)) {
+                $toolbar.removeClass('visible');
+            }
+        });
+    });
+
+}
+
 function enable_interactions(parent, reload = false, runtask = false) {
     console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class"));
 
@@ -25,6 +56,7 @@ function enable_interactions(parent, reload = false, runtask = false) {
         ]
     });
 
+    toolbar_interactions(parent);
 
     var task_parent = parent.find('.clarama-task')
     task_run(task_parent);

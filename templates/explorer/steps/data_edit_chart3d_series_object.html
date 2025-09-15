@@ -103,7 +103,7 @@
                 <input type="text" id="obj-texture{{ loop_index }}_{{ series_index }}"
                        class="form-control obj-texture browse-field" placeholder="Texture path"
                        value="{% if sobj['obj-texture'] is defined %}{{ sobj['obj-texture'] }}{% endif %}">
-                <button type="button" class="gridbrowsefile border border-start-0 border-light-subtle bg-white px-2"
+                <button type="button" class="gridbrowsefile"
                         data-bs-toggle="modal" data-bs-target="#browseFileModal"
                         inputId="obj-texture{{ loop_index }}_{{ series_index }}"
                         filters="*.png|*.jpg|*.jpeg|*.bmp|*.gif|*.webp|*.tga">
