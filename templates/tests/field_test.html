@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+    {% with page_title="Field Test" %}
+        {% include theme("web/common_header.html") %}
+    {% endwith %}
+</head>
+<body class="bg-light">
+<div class="container py-3">
+    <h1 class="h3">Clarama Field Test (Themed)</h1>
+    {% set yaml = request.args.get('yaml', 'Help/Samples/Fields/Date Range.field.yaml') %}
+    <p class="text-muted">Testing field YAML: <code>{{ yaml }}</code></p>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Instance A</div>
+                <div class="card-body">
+                    <div id="fieldA" class="clarama-post-embedded"
+                         url="{{ embedded_url(filename=yaml) }}?clarama_layout=tight&fieldname=fieldA"
+                         autorun="true"></div>
+                    <div class="mt-2">
+                        <button id="btnAGet" class="btn btn-sm btn-primary">get_field_values (A)</button>
+                        <pre id="outA" class="mt-2 small bg-body p-2 border rounded" style="min-height:80px"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Instance B</div>
+                <div class="card-body">
+                    <div id="fieldB" class="clarama-post-embedded"
+                         url="{{ embedded_url(filename=yaml) }}?clarama_layout=tight&fieldname=fieldB"
+                         autorun="true"></div>
+                    <div class="mt-2">
+                        <button id="btnBGet" class="btn btn-sm btn-primary">get_field_values (B)</button>
+                        <pre id="outB" class="mt-2 small bg-body p-2 border rounded" style="min-height:80px"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-3">
+        Use the controls of each field to test dynamic load, defaults, interactions and saving. Click the buttons to
+        call get_field_values for each instance separately and verify values are captured without conflicts.
+    </div>
+</div>
+
+<script>
+    // Ensure interactions are enabled and embedded content is loaded
+    $(function(){
+        try{ enable_interactions($(document.body), true, true); }catch(e){ console.warn('enable_interactions failed', e); }
+        function capture(containerSel, outSel){
+            try{
+                const $container = $(containerSel);
+                const vals = get_field_values({}, false, function(){} , $container);
+                $(outSel).text(JSON.stringify(vals, null, 2));
+            }catch(e){ $(outSel).text('Error: ' + e); }
+        }
+        $('#btnAGet').on('click', function(){ capture('#fieldA', '#outA'); });
+        $('#btnBGet').on('click', function(){ capture('#fieldB', '#outB'); });
+    });
+</script>
+</body>
+</html>

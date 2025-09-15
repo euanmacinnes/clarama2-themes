@@ -86,7 +86,7 @@ window.onerror = function (message, source, lineno, colno, error) {
 
         // Attempt to fetch and log the exact source code line where the error occurred
         if (source && typeof lineno === 'number' && lineno > 0) {
-            fetch(source, { cache: 'no-store' })
+            fetch(source, {cache: 'no-store'})
                 .then(r => r.ok ? r.text() : Promise.reject(new Error("Failed to fetch source: " + r.status)))
                 .then(txt => {
                     const lines = txt.split(/\r?\n/);
@@ -299,7 +299,13 @@ $.fn.load_post = function (onfinished, args, json) {
                                     parent = embedded.parent();
                                     embedded.replaceWith(html);
                                     enable_interactions(parent);
-                                    try { if (typeof initStickyFields === 'function') { initStickyFields(parent); } } catch(e) { console.log('Sticky init failed (replaceable)', e); }
+                                    try {
+                                        if (typeof initStickyFields === 'function') {
+                                            initStickyFields(parent);
+                                        }
+                                    } catch (e) {
+                                        console.log('Sticky init failed (replaceable)', e);
+                                    }
                                 } else {
                                     console.log("INTERACTIONS " + embedded.attr("id") + ': ' + final_url);
                                     console.log({html: html});
@@ -308,7 +314,13 @@ $.fn.load_post = function (onfinished, args, json) {
                                         embedded.html(html).promise()
                                             .done(function () {
                                                 enable_interactions(embedded);
-                                                try { if (typeof initStickyFields === 'function') { initStickyFields(embedded); } } catch(e) { console.log('Sticky init failed (post)', e); }
+                                                try {
+                                                    if (typeof initStickyFields === 'function') {
+                                                        initStickyFields(embedded);
+                                                    }
+                                                } catch (e) {
+                                                    console.log('Sticky init failed (post)', e);
+                                                }
                                             });
                                     } catch (err) {
                                         console.error("Error loading html in " + embedded.attr("id"));
@@ -449,7 +461,13 @@ $.fn.load = function (onfinished, args) {
                                 embedded.html(html).promise()
                                     .done(function () {
                                         enable_interactions(embedded);
-                                        try { if (typeof initStickyFields === 'function') { initStickyFields(embedded); } } catch(e) { console.log('Sticky init failed (get)', e); }
+                                        try {
+                                            if (typeof initStickyFields === 'function') {
+                                                initStickyFields(embedded);
+                                            }
+                                        } catch (e) {
+                                            console.log('Sticky init failed (get)', e);
+                                        }
                                     });
                             } catch (err) {
                                 embedded.html('<p>Clarama Embedded Error : ' + err.message + '</p>');

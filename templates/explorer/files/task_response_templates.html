@@ -436,3 +436,198 @@
         </div>
     </div>
 </template>
+
+<!-- Streaming Chart Template: initializes bChartStream and can trigger a backend fetch to start the stream -->
+<template id="task_step_result_chart_stream" target_class="cell-results">
+    <div class="container-fluid position-relative tight" style="height: 100%">
+        <div id="{chart_id_content}-holder" style="min-width: 100px; width:100%; height:100%; position: relative; "
+             class="chart-canvas-holder">
+            <canvas id="c_{chart_id_content}" class="no-drag" width="100%"></canvas>
+        </div>
+    </div>
+    <script>
+        (function () {
+            try {
+                const chartId = 'c_{chart_id_content}';
+                const topic = '{topic_content}'; // optional single topic
+                const topicsRaw = `{topics_content}`; // optional JSON array/object mapping
+                const fetchUrl = '{url_content}';
+                const fetchMethod = ('{method_content}' && '{method_content}' !== 'None') ? '{method_content}' : 'POST';
+                const fetchBodyRaw = '{body_content}';
+                const fetchBody = (fetchBodyRaw && fetchBodyRaw !== 'None') ? fetchBodyRaw : undefined;
+                const fetchUrlsRaw = `{urls_content}`; // optional JSON array of {url, method, body}
+                const baseChartCfgRaw = `{chart_config_content}`; // JSON string
+                let sourceTopics = undefined;
+                try {
+                    if (topicsRaw && topicsRaw !== 'None' && topicsRaw !== '') sourceTopics = JSON.parse(topicsRaw);
+                } catch (e) {
+                    console.warn('Invalid topics JSON', e);
+                }
+                let baseChartCfg = undefined;
+                try {
+                    if (baseChartCfgRaw && baseChartCfgRaw !== 'None' && baseChartCfgRaw !== '') baseChartCfg = JSON.parse(baseChartCfgRaw);
+                } catch (e) {
+                    console.warn('Invalid chart config JSON', e);
+                }
+
+                // Trigger backend to start publishing (non-blocking): support multiple fetch URLs
+                function __claramaDecodeBodyMaybe(b){
+                    try{
+                        if(!b || b === 'None') return undefined;
+                        // Body is base64-encoded JSON string
+                        return atob(b);
+                    }catch(e){
+                        try{ return decodeURIComponent(escape(atob(b))); }catch(ex){ return b; }
+                    }
+                }
+                const headersBase = {'Content-Type': 'application/json'};
+                try { headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization']; } catch(e){}
+                let fetchedAny = false;
+                try {
+                    if (fetchUrlsRaw && fetchUrlsRaw !== 'None' && fetchUrlsRaw !== ''){
+                        const arr = JSON.parse(fetchUrlsRaw);
+                        if (Array.isArray(arr)){
+                            arr.forEach(req => {
+                                if(req && req.url){
+                                    const m = (req.method && req.method !== 'None') ? req.method : 'POST';
+                                    const b = (req.body && req.body !== 'None') ? __claramaDecodeBodyMaybe(req.body) : undefined;
+                                    fetch(req.url, {method: m, headers: headersBase, body: b}).catch(err=>console.error('Stream trigger fetch failed', err));
+                                    fetchedAny = true;
+                                }
+                            });
+                        }
+                    }
+                } catch(e){ console.warn('Invalid urls JSON', e); }
+                if (!fetchedAny && fetchUrl && fetchUrl !== 'None') {
+                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: __claramaDecodeBodyMaybe(fetchBody)})
+                        .then(function () { })
+                        .catch(function (err) { console.error('Stream trigger fetch failed', err); });
+                }
+
+                // Initialize streaming chart
+                if (window.bChartStream) {
+                    const opts = {topic: topic, source_topics: sourceTopics, chart: baseChartCfg};
+                    window.bChartStream(chartId, opts);
+                } else {
+                    console.error('bChartStream is not available on window');
+                }
+            } catch (e) {
+                console.error('bChartStream template init error', e);
+            }
+        })();
+
+        $(window).resize(function () {
+            $('#c_{chart_id_content}').height($('#c_{chart_id_content}').width() / 1.7);
+        });
+        $(document).ready(() => {
+            $('#c_{chart_id_content}').height($('#c_{chart_id_content}').width() / 1.7);
+        });
+    </script>
+</template>
+
+<!-- Streaming Bootstrap Table Template: initializes bTableStream and can trigger a backend fetch to start the stream -->
+<template id="task_step_result_bootstraptable_stream" target_class="cell-results">
+    <div class="tight" style="overflow: auto; height: 100%">
+        <nav class="navbar navbar-expand-lg table-{style_content}-header table-header"
+             style="display: {display_content}">
+            <ul class="navbar-nav table-header-nav-bar">
+                <li class="nav-item table-header-nav-item">
+                    {title_content}
+                </li>
+                <li class="nav-item table-header-nav-item">
+                    <div class="nav-link buttons-toolbar-{table_id_content} table-header-nav-toolbar"></div>
+                </li>
+            </ul>
+        </nav>
+        <table id="{table_id_content}"
+               data-show-columns="false"
+               data-filter-control="{filter_content}"
+               data-click-to-select="true"
+               data-checkbox="{checkbox_content}"
+               data-id-field="{id_content}"
+               data-show-footer="{footer_content}"
+               data-show-columns-toggle-all="true"
+               data-show-pagination-switch="false"
+               data-show-export="{export_content}"
+               data-pagination="{pagination_content}"
+               data-multiple-select-row="{multiselect_row_content}"
+               data-buttons-toolbar=".buttons-toolbar-{table_id_content}"
+               data-page-size="{pagesize_content}"
+               data-sortable="{sortable_content}"
+               data-search="{search_content}"
+               data-export-options="{exportTypes: ['json', 'xml', 'csv', 'txt', 'sql', 'excel', 'pdf']}"
+               class="table table-hover table-{style_content}"></table>
+    </div>
+
+    <script>
+        (function () {
+            try {
+                const tableId = '{table_id_content}';
+                const topic = '{topic_content}';
+                const fetchUrl = '{url_content}';
+                const fetchMethod = ('{method_content}' && '{method_content}' !== 'None') ? '{method_content}' : 'POST';
+                const fetchBodyRaw = '{body_content}';
+                const fetchBody = (fetchBodyRaw && fetchBodyRaw !== 'None') ? fetchBodyRaw : undefined;
+                const fetchUrlsRaw = `{urls_content}`; // optional JSON array of {url, method, body}
+
+                // If URL(s) provided, call them to trigger the backend to start publishing to the topic.
+                function __claramaDecodeBodyMaybe(b){
+                    try{
+                        if(!b || b === 'None') return undefined;
+                        return atob(b);
+                    }catch(e){
+                        try{ return decodeURIComponent(escape(atob(b))); }catch(ex){ return b; }
+                    }
+                }
+                const headersBase = {'Content-Type': 'application/json'};
+                try { headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization']; } catch(e){}
+                let fetchedAny = false;
+                try {
+                    if (fetchUrlsRaw && fetchUrlsRaw !== 'None' && fetchUrlsRaw !== ''){
+                        const arr = JSON.parse(fetchUrlsRaw);
+                        if (Array.isArray(arr)){
+                            arr.forEach(req => {
+                                if(req && req.url){
+                                    const m = (req.method && req.method !== 'None') ? req.method : 'POST';
+                                    const b = (req.body && req.body !== 'None') ? __claramaDecodeBodyMaybe(req.body) : undefined;
+                                    fetch(req.url, {method: m, headers: headersBase, body: b}).catch(err=>console.error('Stream trigger fetch failed', err));
+                                    fetchedAny = true;
+                                }
+                            });
+                        }
+                    }
+                } catch(e){ console.warn('Invalid urls JSON', e); }
+                if (!fetchedAny && fetchUrl && fetchUrl !== 'None') {
+                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: __claramaDecodeBodyMaybe(fetchBody)})
+                        .then(function (resp) { /* no-op */ })
+                        .catch(function (err) { console.error('Stream trigger fetch failed', err); });
+                }
+
+                // Initialize streaming table subscription
+                if (window.bTableStream) {
+                    window.bTableStream(tableId, {topic: topic});
+                } else {
+                    console.error('bTableStream is not available on window');
+                }
+            } catch (e) {
+                console.error('bTableStream template init error', e);
+            }
+        })();
+
+        window.customViewFormatter = data => {
+            const template = $('#slateRowTemplate').html()
+            let view = ''
+
+            $.each(data, function (i, row) {
+                let encoded_row = btoa(JSON.stringify({record: row}))
+                let grid_id = encodeURIComponent('{tableslate_content}_' + i);
+                view += template.replaceAll('%ROW%', encoded_row)
+                    .replaceAll('%SLATE%', '{tableslate_content}')
+                    .replaceAll('%GRID_ID%', grid_id)
+                    .replaceAll('%ROW_NUMBER%', i + 1)
+            })
+
+            return `${view}`
+        }
+    </script>
+</template>

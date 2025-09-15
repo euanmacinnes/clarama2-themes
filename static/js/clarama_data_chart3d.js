@@ -22,7 +22,7 @@ function bChart3d(chart_id, chart_data) {
     var axisConfig = {
         titles: axisCfg['titles'] || {},
         orig_bounds: axisCfg['orig_bounds'] || {},
-        graph_bounds: axisCfg['graph_bounds'] || axisCfg['orig_bounds'] || {}
+        graph_bounds: {x: [-3, 3], y: [-3, 3], z: [-3, 3]}
     };
 
     console.log('bChart3d axisConfig: ', axisConfig);
