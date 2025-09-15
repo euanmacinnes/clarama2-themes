@@ -12,48 +12,15 @@ window.exampleAxisConfig = {
     }
 };
 
-<<<<<<< HEAD
-//
-// (function installChart3DOnce() {
-//     if (window.__chart3d_boot_installed) return;
-//     window.__chart3d_boot_installed = true;
-//
-//     const CANVAS_SELECTOR = '.chart3d-canvas-holder > canvas[id^="c_"]';
-//
-//     // Init canvases added later
-//     const mo = new MutationObserver((mutList) => {
-//         for (const m of mutList) {
-//             for (const n of m.addedNodes) {
-//                 if (!(n instanceof Element)) continue;
-//
-//                 if (n.matches && n.matches(CANVAS_SELECTOR) && !n.dataset.cubeInit) {
-//                     initCube(n, n.datasets, n.primitives, exampleAxisConfig); // no sample data; caller should supply datasets/primitives
-//                 }
-//                 n.querySelectorAll && n.querySelectorAll(CANVAS_SELECTOR).forEach((c) => {
-//                     if (!c.dataset.cubeInit) {
-//                         initCube(c, n.datasets, n.primitives, exampleAxisConfig); // no sample data; caller should supply datasets/primitives
-//                     }
-//                 });
-//             }
-//         }
-//     });
-//     mo.observe(document.documentElement, {childList: true, subtree: true});
-// })();
-
-
-// test just with the cube first
 
 // test with triangles, points and lines
-// then test with the different datasets 
+// then test with the different datasets
 // (vertices would be the same, but the edges would be different)
 
-// optional uv and color
 // points (just the vertices)
 // lines (vertices + lines)
 // traingle (vertices + lines + uv map + color)
 
-=======
->>>>>>> long
 // ------------------------------------------------------------
 // Per-canvas setup
 // ------------------------------------------------------------
@@ -116,6 +83,25 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     overlay.style.zIndex = "2";
     wrap.appendChild(overlay);
     const ctx2d = overlay.getContext("2d");
+    // --- tooltip DIV (overlays canvas; pointer-through) -------------------------
+    const tip = document.createElement('div');
+    tip.className = 'chart3d-tooltip';
+    Object.assign(tip.style, {
+        position: 'absolute',
+        zIndex: '3',
+        left: '0px',
+        top: '0px',
+        pointerEvents: 'none',
+        background: 'rgba(0,0,0,0.75)',
+        color: '#fff',
+        padding: '4px 6px',
+        borderRadius: '6px',
+        font: '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+        transform: 'translate(8px, -12px)',
+        display: 'none'
+    });
+    wrap.appendChild(tip);
+
 
     // Style (Matplotlib-ish)
     const STYLE = {
@@ -177,8 +163,160 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         }
     };
 
-    console.log(GRAPH_RANGE);
-    console.log(LABEL_RANGE);
+    // ---- Auto axis range from vertex data (expand by ±5 using only X/Y/Z) ----
+    function applyAutoAxisRange() {
+        const readDS = (n) => (n ? datasets[n] : null);
+
+        // Scan a df_to_dict-like dataset for columns exactly x,y,z (case-insensitive)
+        function scanXYZ(df) {
+            if (!df || typeof df !== 'object') return null;
+            const cols = df.cols || df.columns;
+            const rows = df.rows || df.data || df.values;
+            const orient = String(df.orientation || df.orient || 'byrow').toLowerCase();
+            if (!Array.isArray(cols) || !Array.isArray(rows)) return null;
+
+            const ci = new Map();
+            for (let i = 0; i < cols.length; i++) {
+                const name = String(cols[i]).trim();
+                ci.set(name, i);
+                ci.set(name.toLowerCase(), i);
+            }
+            const ix = ci.get('x') ?? ci.get('X');
+            const iy = ci.get('y') ?? ci.get('Y');
+            const iz = ci.get('z') ?? ci.get('Z');
+            if (ix == null || iy == null || iz == null) return null; // require x,y,z
+
+            const num = (v) => {
+                const n = +v;
+                return Number.isFinite(n) ? n : null;
+            };
+
+            const mm = {
+                x: {min: +Infinity, max: -Infinity},
+                y: {min: +Infinity, max: -Infinity},
+                z: {min: +Infinity, max: -Infinity},
+            };
+
+            if (orient === 'byrow' || orient === 'table' || orient === 'json' || orient === '') {
+                for (const r of rows) {
+                    if (!Array.isArray(r)) continue;
+                    const vx = num(r[ix]), vy = num(r[iy]), vz = num(r[iz]);
+                    if (vx != null) {
+                        if (vx < mm.x.min) mm.x.min = vx;
+                        if (vx > mm.x.max) mm.x.max = vx;
+                    }
+                    if (vy != null) {
+                        if (vy < mm.y.min) mm.y.min = vy;
+                        if (vy > mm.y.max) mm.y.max = vy;
+                    }
+                    if (vz != null) {
+                        if (vz < mm.z.min) mm.z.min = vz;
+                        if (vz > mm.z.max) mm.z.max = vz;
+                    }
+                }
+            } else if (orient === 'bycol' || orient === 'chart') {
+                const cx = rows[ix] || [], cy = rows[iy] || [], cz = rows[iz] || [];
+                const L = Math.max(cx.length, cy.length, cz.length);
+                for (let i = 0; i < L; i++) {
+                    const vx = num(cx[i]), vy = num(cy[i]), vz = num(cz[i]);
+                    if (vx != null) {
+                        if (vx < mm.x.min) mm.x.min = vx;
+                        if (vx > mm.x.max) mm.x.max = vx;
+                    }
+                    if (vy != null) {
+                        if (vy < mm.y.min) mm.y.min = vy;
+                        if (vy > mm.y.max) mm.y.max = vy;
+                    }
+                    if (vz != null) {
+                        if (vz < mm.z.min) mm.z.min = vz;
+                        if (vz > mm.z.max) mm.z.max = vz;
+                    }
+                }
+            } else {
+                return null;
+            }
+
+            if (!Number.isFinite(mm.x.min) || !Number.isFinite(mm.x.max) ||
+                !Number.isFinite(mm.y.min) || !Number.isFinite(mm.y.max) ||
+                !Number.isFinite(mm.z.min) || !Number.isFinite(mm.z.max)) {
+                return null;
+            }
+            return mm;
+        }
+
+        // 1) Try aggregating from primitives' obj-vertices
+        const agg = {
+            x: {min: +Infinity, max: -Infinity},
+            y: {min: +Infinity, max: -Infinity},
+            z: {min: +Infinity, max: -Infinity}
+        };
+        const updateAgg = (mm) => {
+            if (!mm) return;
+            if (mm.x.min < agg.x.min) agg.x.min = mm.x.min;
+            if (mm.x.max > agg.x.max) agg.x.max = mm.x.max;
+            if (mm.y.min < agg.y.min) agg.y.min = mm.y.min;
+            if (mm.y.max > agg.y.max) agg.y.max = mm.y.max;
+            if (mm.z.min < agg.z.min) agg.z.min = mm.z.min;
+            if (mm.z.max > agg.z.max) agg.z.max = mm.z.max;
+        };
+
+        let found = false;
+        for (const prim of (primitives || [])) {
+            const mm = scanXYZ(readDS(prim['obj-vertices']));
+            if (mm) {
+                updateAgg(mm);
+                found = true;
+            }
+        }
+        if (!found) {
+            for (const key of Object.keys(datasets || {})) {
+                const mm = scanXYZ(datasets[key]);
+                if (mm) {
+                    updateAgg(mm);
+                    found = true;
+                }
+            }
+        }
+        if (!found) return;
+
+        const margin = 5;
+
+        function snapWhole(min, max) {
+            let lo = Math.floor(min);
+            let hi = Math.ceil(max);
+            if (lo === hi) {
+                lo -= 1;
+                hi += 1;
+            } // avoid degenerate range
+            return {min: lo, max: hi};
+        }
+
+        const auto = {
+            x: snapWhole(agg.x.min - margin, agg.x.max + margin),
+            y: snapWhole(agg.y.min - margin, agg.y.max + margin),
+            z: snapWhole(agg.z.min - margin, agg.z.max + margin),
+        };
+
+        // Apply to GRAPH_RANGE if missing
+        for (const axis of ['x', 'y', 'z']) {
+            const g = GRAPH_RANGE[axis] || (GRAPH_RANGE[axis] = {});
+            if (!(typeof g.min === 'number' && isFinite(g.min))) g.min = auto[axis].min;
+            if (!(typeof g.max === 'number' && isFinite(g.max))) g.max = auto[axis].max;
+        }
+
+        // Apply to LABEL_RANGE if not provided/degenerate
+        for (const axis of ['x', 'y', 'z']) {
+            const r = LABEL_RANGE[axis] || (LABEL_RANGE[axis] = {});
+            const provided = (typeof r.min === 'number' && typeof r.max === 'number' &&
+                isFinite(r.min) && isFinite(r.max) && r.max !== r.min);
+            if (!provided) {
+                r.min = auto[axis].min;
+                r.max = auto[axis].max;
+            }
+        }
+    }
+
+    applyAutoAxisRange();
 
     function hasLabelRange(axis) {
         const r = LABEL_RANGE[axis];
@@ -302,6 +440,38 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         }
     `;
     const progTrisTex = prog(vsPosUV, fsTex);
+    // --- programs (textured triangles with per-vertex color) ---
+    const vsPosUVColor = `
+        attribute vec3 a_position;
+        attribute vec2 a_uv;
+        attribute vec4 a_color;
+        varying vec2 v_uv;
+        varying vec4 v_color;
+        uniform mat4 u_mvp;
+        void main(){
+            gl_Position = u_mvp * vec4(a_position, 1.0);
+            v_uv = a_uv;
+            v_color = a_color;
+        }
+    `;
+    const fsTexColor = `
+        precision mediump float;
+        varying vec2 v_uv;
+        varying vec4 v_color;
+        uniform sampler2D u_tex;
+        void main(){
+            gl_FragColor = texture2D(u_tex, v_uv) * v_color;
+        }
+    `;
+    const progTrisTexColor = prog(vsPosUVColor, fsTexColor);
+    const locTexColor = {
+        a_position: gl.getAttribLocation(progTrisTexColor, "a_position"),
+        a_uv: gl.getAttribLocation(progTrisTexColor, "a_uv"),
+        a_color: gl.getAttribLocation(progTrisTexColor, "a_color"),
+        u_mvp: gl.getUniformLocation(progTrisTexColor, "u_mvp"),
+        u_tex: gl.getUniformLocation(progTrisTexColor, "u_tex"),
+    };
+
     const locTex = {
         a_position: gl.getAttribLocation(progTrisTex, "a_position"),
         a_uv: gl.getAttribLocation(progTrisTex, "a_uv"),
@@ -315,18 +485,50 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const defaultAxisLen = 3.0;
 
     function axisHalfExtentFor(axis) {
-        const r = GRAPH_RANGE[axis];
-        if (r && typeof r.min === 'number' && typeof r.max === 'number') {
-            const span = r.max - r.min;
-            const L = Math.abs(span) / 2;
-            return (L > 0 && isFinite(L)) ? L : defaultAxisLen;
-        }
-        return defaultAxisLen;
+        const spanFrom = (r) =>
+            r && typeof r.min === 'number' && typeof r.max === 'number' &&
+            isFinite(r.min) && isFinite(r.max) && r.max !== r.min
+                ? Math.abs(r.max - r.min) / 2
+                : null;
+
+        // Prefer GRAPH_RANGE; if missing/degenerate, use LABEL_RANGE; else default
+        const g = GRAPH_RANGE[axis];
+        const l = LABEL_RANGE[axis];
+        return spanFrom(g) ?? spanFrom(l) ?? defaultAxisLen;
     }
 
     const axisLenX = axisHalfExtentFor('x');
     const axisLenY = axisHalfExtentFor('y');
     const axisLenZ = axisHalfExtentFor('z');
+
+    // --- normalize data coords -> internal [-L..+L] using LABEL_RANGE -----------
+    function hasFiniteLabelRange(axis) {
+        const r = LABEL_RANGE[axis];
+        return r && isFinite(r.min) && isFinite(r.max) && r.max !== r.min;
+    }
+
+    // Maps a single scalar value v on a given axis into [-L..+L]
+    function mapScalarToInternal(axis, v) {
+        const r = LABEL_RANGE[axis];
+        if (!hasFiniteLabelRange(axis)) return v;
+        const L = (axis === 'x') ? axisLenX : (axis === 'y') ? axisLenY : axisLenZ;
+        const span = (r.max - r.min) || 1e-6;
+        const scale = (2 * L) / span;
+        const offset = -L - r.min * scale;
+        return v * scale + offset;
+    }
+
+    // Accepts any Float32Array of triples [..., x, y, z, ...] and maps in-place
+    function normalizeXYZSeq(float32) {
+        if (!float32 || float32.length < 3) return float32;
+        const out = new Float32Array(float32.length);
+        for (let i = 0; i < float32.length; i += 3) {
+            out[i] = mapScalarToInternal('x', float32[i]);
+            out[i + 1] = mapScalarToInternal('y', float32[i + 1]);
+            out[i + 2] = mapScalarToInternal('z', float32[i + 2]);
+        }
+        return out;
+    }
 
     // Per-axis tick step and size with overrides from axisConfig if provided.
     function numOr(v, d) {
@@ -426,6 +628,76 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     gl.bindBuffer(gl.ARRAY_BUFFER, boxBuf);
     gl.bufferData(gl.ARRAY_BUFFER, boxEdges, gl.STATIC_DRAW);
 
+    // --- tiny vec/quat helpers ----------------------------------
+    function v3(x = 0, y = 0, z = 0) {
+        return new Float32Array([x, y, z]);
+    }
+
+    function v3dot(a, b) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    }
+
+    function v3cross(a, b) {
+        return v3(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]);
+    }
+
+    function v3len(a) {
+        return Math.hypot(a[0], a[1], a[2]);
+    }
+
+    function v3norm(a) {
+        const L = v3len(a) || 1;
+        return v3(a[0] / L, a[1] / L, a[2] / L);
+    }
+
+    function quatIdentity() {
+        return new Float32Array([0, 0, 0, 1]);
+    } // [x,y,z,w]
+    function quatMul(a, b) {
+        const ax = a[0], ay = a[1], az = a[2], aw = a[3];
+        const bx = b[0], by = b[1], bz = b[2], bw = b[3];
+        return new Float32Array([
+            aw * bx + ax * bw + ay * bz - az * by,
+            aw * by - ax * bz + ay * bw + az * bx,
+            aw * bz + ax * by - ay * bx + az * bw,
+            aw * bw - ax * bx - ay * by - az * bz
+        ]);
+    }
+
+    function quatNormalize(q) {
+        const L = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+        return new Float32Array([q[0] / L, q[1] / L, q[2] / L, q[3] / L]);
+    }
+
+    function quatFromAxisAngle(axis, angle) {
+        const a = v3norm(axis), s = Math.sin(angle / 2);
+        return new Float32Array([a[0] * s, a[1] * s, a[2] * s, Math.cos(angle / 2)]);
+    }
+
+    function mat4FromQuat(q) {
+        const x = q[0], y = q[1], z = q[2], w = q[3];
+        const xx = x * x, yy = y * y, zz = z * z, xy = x * y, xz = x * z, yz = y * z, wx = w * x, wy = w * y,
+            wz = w * z;
+        const m = new Float32Array(16);
+        m[0] = 1 - 2 * (yy + zz);
+        m[4] = 2 * (xy - wz);
+        m[8] = 2 * (xz + wy);
+        m[12] = 0;
+        m[1] = 2 * (xy + wz);
+        m[5] = 1 - 2 * (xx + zz);
+        m[9] = 2 * (yz - wx);
+        m[13] = 0;
+        m[2] = 2 * (xz - wy);
+        m[6] = 2 * (yz + wx);
+        m[10] = 1 - 2 * (xx + yy);
+        m[14] = 0;
+        m[3] = 0;
+        m[7] = 0;
+        m[11] = 0;
+        m[15] = 1;
+        return m;
+    }
+
     // --- matrices -----------------------------------------------------------
     function mat4Identity() {
         const m = new Float32Array(16);
@@ -496,84 +768,152 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         return m;
     }
 
-    // Build a 4x4 matrix that maps original data space (orig_bounds) to graph space (graph_bounds)
-    function buildBoundsMatrix(axisCfg) {
-        try {
-            const ob = (axisCfg && axisCfg.orig_bounds) || {};
-            const gb = (axisCfg && axisCfg.graph_bounds) || {x: [-3, 3], y: [-3, 3], z: [-3, 3]};
-            const m = mat4Identity();
-            const axes = ['x', 'y', 'z'];
-            const diagIdx = [0, 5, 10]; // x, y, z scale positions
-            const trIdx = [12, 13, 14]; // x, y, z translation positions
-            for (let i = 0; i < 3; i++) {
-                const ax = axes[i];
-                const o = ob && Array.isArray(ob[ax]) ? ob[ax] : [undefined, undefined];
-                const g = gb && Array.isArray(gb[ax]) ? gb[ax] : [-3, 3];
-                const omin = Number(o[0]);
-                const omax = Number(o[1]);
-                const gmin = Number(g[0]);
-                const gmax = Number(g[1]);
-                let s = 1, t = 0;
-                if (Number.isFinite(omin) && Number.isFinite(omax) && omin !== omax && Number.isFinite(gmin) && Number.isFinite(gmax)) {
-                    s = (gmax - gmin) / (omax - omin);
-                    t = gmin - omin * s;
-                } else if (Number.isFinite(gmin) && Number.isFinite(gmax)) {
-                    // Degenerate data range: collapse to midpoint of target range
-                    s = 0;
-                    t = (gmin + gmax) / 2;
-                }
-                m[diagIdx[i]] = s;
-                m[trIdx[i]] = t;
-            }
-            return m;
-        } catch (e) {
-            console.warn('buildBoundsMatrix failed, using identity:', e);
-            return mat4Identity();
-        }
+    // --- interaction --------------------------------------------------------
+    const initDist = 30.0;
+    let dist = initDist;
+    let dragging = false;
+
+    // current orientation as a quaternion
+    let qOrient = quatIdentity();
+
+    // last arcball vector under the cursor while dragging
+    let lastArc = null;
+
+    // Map a pointer event to an arcball vector on the unit sphere in view space
+    function arcballVecFromEvent(e) {
+        const rect = canvas.getBoundingClientRect();
+        // normalised device coords in [-1, 1]
+        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = ((rect.bottom - e.clientY) / rect.height) * 2 - 1; // invert Y
+        // project (x,y) onto a unit sphere (trackball)
+        const r2 = x * x + y * y;
+        const z = r2 <= 1 ? Math.sqrt(1 - r2) : 0;
+        const v = v3(x, y, z);
+        // normalise (important when outside the unit circle)
+        return v3norm(v);
     }
 
-    // Global bounds transform used for all primitives: maps orig_bounds → graph_bounds
-    const M_bounds = buildBoundsMatrix(axisConfig || {});
-
-    // --- interaction --------------------------------------------------------
-    const initDist = 14.0, initRotX = 0.3, initRotY = -0.3; // the initial rotation upon loading
-    let dist = initDist, rotX = initRotX, rotY = initRotY;
-    let dragging = false, lastX = 0, lastY = 0;
+    // Cached matrices/viewport for hover picking
+    let lastMVP = null, lastCssW = 0, lastCssH = 0;
 
     canvas.addEventListener("pointerdown", (e) => {
         dragging = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
+        lastArc = arcballVecFromEvent(e);
         canvas.setPointerCapture(e.pointerId);
     });
+
     canvas.addEventListener("pointermove", (e) => {
         if (!dragging) return;
-        const rect = canvas.getBoundingClientRect();
-        rotY += (e.clientX - lastX) / Math.max(1, rect.width) * Math.PI;
-        rotX += (e.clientY - lastY) / Math.max(1, rect.height) * Math.PI;
-        rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
-        lastX = e.clientX;
-        lastY = e.clientY;
+        const cur = arcballVecFromEvent(e);
+        // rotation between lastArc -> cur
+        const axis = v3cross(lastArc, cur);
+        const dot = Math.min(1, Math.max(-1, v3dot(lastArc, cur)));
+        const angle = Math.acos(dot); // radians
+
+        if (v3len(axis) > 1e-6 && angle > 1e-6) {
+            const dq = quatFromAxisAngle(axis, angle);
+            qOrient = quatNormalize(quatMul(dq, qOrient));
+        }
+        lastArc = cur;
         requestAnimationFrame(render);
     });
+
     window.addEventListener("pointerup", () => {
         dragging = false;
+        lastArc = null;
     });
+
     canvas.addEventListener("wheel", (e) => {
         const zoomGesture = e.ctrlKey || e.metaKey;
         if (!zoomGesture) return;
 
         e.preventDefault();
-        const s = Math.exp(e.deltaY * 0.001);
+        const s = Math.exp(e.deltaY * 0.005);
         dist = Math.max(2.0, dist * s);
         requestAnimationFrame(render);
     }, {passive: false});
+
     canvas.addEventListener("dblclick", () => {
-        rotX = initRotX;
-        rotY = initRotY;
+        qOrient = quatIdentity();
         dist = initDist;
         requestAnimationFrame(render);
     });
+
+    // --- hover picking ----------------------------------------------------------
+    function fmtTick(v) {
+        return formatTick(v);
+    }
+
+    canvas.addEventListener('pointermove', (e) => {
+        if (dragging || !lastMVP) {
+            tip.style.display = 'none';
+            return;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        const dpr = window.devicePixelRatio || 1;
+        const pickR = 12 * dpr;
+        const pickR2 = pickR * pickR;
+
+        let best = null; // {o, idx, sx, sy, d2}
+
+        for (const o of compiled) {
+            if (o.modeGL !== gl.POINTS || !o.vertsN) continue;
+
+            // per-primitive transform
+            const pos = o.position || {x: 0, y: 0, z: 0};
+            const rotD = o.rotationDeg || {x: 0, y: 0, z: 0};
+            const toRad = d => (d || 0) * Math.PI / 180.0;
+            const Rxp = mat4RotateX(toRad(rotD.x));
+            const Ryp = mat4RotateY(toRad(rotD.y));
+            const Rzp = mat4RotateZ(toRad(rotD.z));
+            const Tp = mat4Translate(pos.x || 0, pos.y || 0, pos.z || 0);
+            const Mp = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
+            const MVPp = mat4Mul(lastMVP, Mp);
+
+            const arr = o.vertsN;
+            for (let i = 0; i < arr.length; i += 3) {
+                const p = projectToScreen(arr[i], arr[i + 1], arr[i + 2], MVPp, lastCssW, lastCssH);
+                if (!p) continue;
+                const dx = p.x - mx, dy = p.y - my;
+                const d2 = dx * dx + dy * dy;
+                if (d2 <= pickR2 && (!best || d2 < best.d2)) best = {o, idx: i / 3, sx: p.x, sy: p.y, d2};
+            }
+        }
+
+        if (!best) {
+            tip.style.display = 'none';
+            return;
+        }
+
+        const vx = best.o.vertsN[best.idx * 3 + 0];
+        const vy = best.o.vertsN[best.idx * 3 + 1];
+        const vz = best.o.vertsN[best.idx * 3 + 2];
+
+        const lx = mapToLabel('x', vx);
+        const ly = mapToLabel('y', vy);
+        const lz = mapToLabel('z', vz);
+
+        tip.textContent = `(${fmtTick(lx)}, ${fmtTick(ly)}, ${fmtTick(lz)})`;
+        tip.style.left = `${best.sx}px`;
+        tip.style.top = `${best.sy}px`;
+        tip.style.display = 'block';
+    });
+
+    // hide tooltip while user acts
+    canvas.addEventListener('pointerdown', () => {
+        tip.style.display = 'none';
+    });
+    canvas.addEventListener('wheel', () => {
+        tip.style.display = 'none';
+    }, {passive: true});
+    canvas.addEventListener('dblclick', () => {
+        tip.style.display = 'none';
+    });
+
 
     // --- resize -------------------------------------------------------------
     const overlayCanvas = overlay; // alias
@@ -672,51 +1012,18 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     // ---------- compile generalized primitives ---------------------------------
     const compiled = [];
 
-    function createCheckerTextureGL(size = 64, squares = 8) {
-        const tex = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-
-        const pixels = new Uint8Array(size * size * 4);
-        const step = size / squares;
-
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                const idx = (y * size + x) * 4;
-                const cx = Math.floor(x / step);
-                const cy = Math.floor(y / step);
-                const on = (cx + cy) % 2 === 0;
-                const v = on ? 230 : 40;
-                pixels[idx + 0] = v;
-                pixels[idx + 1] = v;
-                pixels[idx + 2] = v;
-                pixels[idx + 3] = 255;
-            }
-        }
-
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        return tex;
-    }
-
-    // Build a default checker texture once
-    const checkerTex = createCheckerTextureGL(64, 8);
-
     // Texture cache and async loader for URL-based textures
-    const textureCache = new Map(); // url -> WebGLTexture | {loading:true, tex:WebGLTexture}
+    const textureCache = new Map();
 
     function isHttpUrl(u) {
         return typeof u === 'string' && /^(https?:)?\/\//i.test(u);
     }
 
     function getOrLoadTexture(url, onLoaded) {
-        if (!url) return checkerTex;
+        if (!url) return;
         const cached = textureCache.get(url);
         if (cached && cached !== 'loading') return cached;
-        if (cached === 'loading') return checkerTex;
+        if (cached === 'loading') return;
         // mark as loading
         textureCache.set(url, 'loading');
 
@@ -743,31 +1050,23 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
                 textureCache.set(url, tex);
-                onLoaded(tex);
+                if (typeof onLoaded === 'function') onLoaded(tex);
                 requestAnimationFrame(render);
             } catch (e) {
                 console.warn('Failed to upload texture image', url, e);
-                textureCache.set(url, checkerTex);
-                if (typeof onLoaded === 'function') onLoaded(checkerTex);
                 requestAnimationFrame(render);
             }
         };
         img.onerror = () => {
             console.warn('Failed to load texture URL:', url);
-            textureCache.set(url, checkerTex);
-            if (typeof onLoaded === 'function') onLoaded(checkerTex);
             requestAnimationFrame(render);
         };
         try {
             img.src = url;
         } catch (e) {
             console.warn('Invalid texture URL:', url, e);
-            textureCache.set(url, checkerTex);
         }
-<<<<<<< HEAD
-        return checkerTex;
-=======
->>>>>>> long
+        return;
     }
 
     // Helper: convert df_to_dict-like data using specified column names into a flat Float32Array
@@ -858,327 +1157,166 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         return (maxIndex <= 255) ? gl.UNSIGNED_BYTE : (maxIndex <= 65535 ? gl.UNSIGNED_SHORT : gl.UNSIGNED_INT);
     }
 
-    // Extract integer index arrays from df_to_dict-like dataset given column names
-    function toIndices(data, cols) {
-        if (!data || !cols || cols.length === 0) return null;
-        const colsMeta = data.cols || data.columns;
-        const orientation = ((data.orientation || data.orient || 'byrow') + '').toLowerCase();
-        const rows = data.rows || data.data || data.values;
-        if (!Array.isArray(colsMeta) || !Array.isArray(rows)) return null;
-        const colIndex = new Map();
-        for (let i = 0; i < colsMeta.length; i++) {
-            const name = String(colsMeta[i]);
-            colIndex.set(name, i);
-            colIndex.set(name.toLowerCase(), i);
-        }
-        const idxs = [];
-        for (const c of cols) {
-            const exact = colIndex.get(c);
-            const ci = (exact !== undefined) ? exact : colIndex.get(String(c).toLowerCase());
-            if (ci === undefined) return null;
-            idxs.push(ci);
-        }
-        const out = [];
-        if (orientation === 'byrow' || orientation === 'table' || orientation === 'json' || orientation === '') {
-            for (let r = 0; r < rows.length; r++) {
-                const row = rows[r];
-                if (!Array.isArray(row)) continue;
-                for (let k = 0; k < idxs.length; k++) {
-                    const v = +row[idxs[k]];
-                    out.push(Number.isFinite(v) ? v : 0);
-                }
-            }
-        } else if (orientation === 'bycol' || orientation === 'chart') {
-            const maxLen = rows.reduce((m, col) => Math.max(m, Array.isArray(col) ? col.length : 0), 0);
-            for (let r = 0; r < maxLen; r++) {
-                for (let k = 0; k < idxs.length; k++) {
-                    const colArr = rows[idxs[k]];
-                    const v = Array.isArray(colArr) ? +colArr[r] : 0;
-                    out.push(Number.isFinite(v) ? v : 0);
-                }
-            }
-        } else {
-            return null;
-        }
-        // choose index type based on max
-        let maxIndex = 0;
-        for (let i = 0; i < out.length; i++) if (out[i] > maxIndex) maxIndex = out[i];
-        const use32 = (maxIndex > 65535);
-        return use32 ? new Uint32Array(out) : (maxIndex > 255 ? new Uint16Array(out) : new Uint8Array(out));
-    }
-
-    // Extract a single numeric column (e.g., 'strip') as Int32Array
-    function toIntColumn(data, colName) {
-        if (!data || !colName) return null;
-        const arr = toFloat32(data, [colName]);
-        if (!arr) return null;
-        const out = new Int32Array(arr.length);
-        for (let i = 0; i < arr.length; i++) out[i] = Math.trunc(arr[i]);
-        return out;
-    }
-
     // Build compiled objects from datasets + primitives
-    try {
-        const getDS = (name) => {
-            if (name === '' || name === undefined) {
-                return null
-            }
-
-            const raw = datasets[name];
-            return raw;
-        };
-        for (const prim of (primitives || [])) {
-            try {
-                const vertsRaw = getDS(prim['obj-vertices']);
-                const edgesRaw = getDS(prim['obj-edges']);
-                const uvRaw = getDS(prim['obj-uv']);
-                const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
-
-                const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
-                // New: interpret edges dataset as indices to save data
-                const indicesLine = edgesRaw ? toIndices(edgesRaw, ['i0', 'i1']) : null; // for LINES
-                const indicesTri = edgesRaw ? toIndices(edgesRaw, ['i0', 'i1', 'i2']) : null; // for TRIANGLES
-                const indicesLineStrip = edgesRaw ? toIndices(edgesRaw, ['i']) : null; // for LINE_STRIP per strip order
-                const stripIds = edgesRaw ? toIntColumn(edgesRaw, 'strip') : null;
-                const edgesPos = edgesRaw ? toFloat32(edgesRaw, ['x', 'y', 'z']) : null; // legacy positions for lines
-                const uvs = toFloat32(uvRaw, ['u', 'v']);
-                const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
-
-                const name = prim.name || prim.id || 'obj';
-
-                // Determine mode
-                let mode = prim['obj-primitive']; // 'point' | 'line' | 'triangle'
-                if (!mode) {
-                    if (indicesLine && indicesLine.length >= 2) mode = 'line';
-                    else if (indicesTri && indicesTri.length >= 3) mode = 'triangle';
-                    else mode = 'point';
-                }
-
-                let program = null;
-                let locations = null;
-                let usesColorVary = false;
-                let usesUniformColor = false;
-                let usesTex = false;
-                let colorSize = 4;
-                let uniformColor = null;
-
-                const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, verts);
-                let cbo = null, uvbo = null, ebo = null;
-                let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
-                let modeGL = gl.POINTS;
-
-                function detectIndexType(idxArr) {
-                    if (!idxArr) return gl.UNSIGNED_SHORT;
-                    if (idxArr instanceof Uint32Array) return gl.UNSIGNED_INT;
-                    if (idxArr instanceof Uint16Array) return gl.UNSIGNED_SHORT;
-                    return gl.UNSIGNED_BYTE;
-                }
-
-                if (mode === 'point') {
-                    // points use vertices
-                    if (!verts || verts.length < 3) {
-                        console.warn('Primitive skipped (no vertices):', name);
-                        continue;
-                    }
-                    countVerts = Math.floor(verts.length / 3);
-                    // Choose colors handling
-                    if (cols && cols.length >= countVerts * 3) {
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progPointsVary;
-                        locations = locColor.points;
-                    } else {
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.point;
-                        program = progPoints;
-                        locations = loc.points;
-                    }
-                    modeGL = gl.POINTS;
-                } else if (mode === 'line') {
-                    // lines: prefer index-based draw if provided
-                    if (indicesLine && indicesLine.length >= 2) {
-                        ebo = createBufferAndUpload(gl.ELEMENT_ARRAY_BUFFER, indicesLine);
-                        indexType = detectIndexType(indicesLine);
-                        countElems = indicesLine.length;
-                        if (cols && verts) {
-                            usesColorVary = false;
-                        }
-                        // choose shader
-                        if (cols && cols.length >= (verts ? (verts.length / 3) * 3 : 0)) {
-                            usesColorVary = true;
-                            colorSize = (cols.length % 4 === 0) ? 4 : 3;
-                            cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                            program = progLinesVary;
-                            locations = locColor.lines;
-                        } else {
-                            usesUniformColor = true;
-                            uniformColor = prim.uniformColor || STYLE.cube;
-                            program = progLines;
-                            locations = loc.lines;
-                        }
-                        modeGL = gl.LINES;
-                    } else {
-                        // legacy: use edgesPos or verts as direct positions
-                        const lineData = edgesPos || verts;
-                        if (!lineData || lineData.length < 6) {
-                            console.warn('Primitive skipped (no edges/verts for lines):', name);
-                            continue;
-                        }
-                        // upload legacy positions into vbo instead
-                        if (edgesPos) {
-                            gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-                            gl.bufferData(gl.ARRAY_BUFFER, edgesPos, gl.STATIC_DRAW);
-                        }
-                        countVerts = Math.floor(lineData.length / 3);
-                        if (cols && cols.length >= countVerts * 3) {
-                            usesColorVary = true;
-                            colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                            cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                            program = progLinesVary;
-                            locations = locColor.lines;
-                        } else {
-                            usesUniformColor = true;
-                            uniformColor = prim.uniformColor || STYLE.cube;
-                            program = progLines;
-                            locations = loc.lines;
-                        }
-                        modeGL = gl.LINES;
-                    }
-                } else if (mode === 'line_strip') {
-                    // Build one or more line strips from indicesLineStrip, grouped by stripIds if present
-                    if (!indicesLineStrip || indicesLineStrip.length < 2) {
-                        console.warn('Primitive skipped (no indices for line_strip):', name);
-                        continue;
-                    }
-                    // Group indices by strip id if available
-                    const stripsMap = new Map();
-                    if (stripIds && stripIds.length === indicesLineStrip.length) {
-                        for (let i = 0; i < stripIds.length; i++) {
-                            const s = stripIds[i];
-                            if (!stripsMap.has(s)) stripsMap.set(s, []);
-                            stripsMap.get(s).push(indicesLineStrip[i]);
-                        }
-                    } else {
-                        stripsMap.set(0, Array.from(indicesLineStrip));
-                    }
-                    // For each strip, push a compiled object and continue to next prim (skip single push below)
-                    for (const [sid, arr] of stripsMap.entries()) {
-                        const idxArr = (arr instanceof Uint8Array || arr instanceof Uint16Array || arr instanceof Uint32Array) ? arr : (function () {
-                            // choose type based on max
-                            let maxI = 0;
-                            for (let k = 0; k < arr.length; k++) if (arr[k] > maxI) maxI = arr[k];
-                            if (maxI > 65535) return new Uint32Array(arr); else if (maxI > 255) return new Uint16Array(arr); else return new Uint8Array(arr);
-                        })();
-                        compiled.push({
-                            name: name + '_strip_' + sid,
-                            program: progLines,
-                            locations: loc.lines,
-                            vbo,
-                            cbo: null,
-                            uvbo: null,
-                            ebo: createBufferAndUpload(gl.ELEMENT_ARRAY_BUFFER, idxArr),
-                            colorSize: 4,
-                            usesColorVary: false,
-                            usesUniformColor: true,
-                            uniformColor: prim.uniformColor || STYLE.cube,
-                            usesTex: false,
-                            texture: null,
-                            hasIndices: true,
-                            countVerts: Math.floor((verts ? verts.length : 0) / 3),
-                            countElems: idxArr.length,
-                            indexType: detectIndexType(idxArr),
-                            modeGL: gl.LINE_STRIP,
-                            transformMatrix: (function () {
-                                const tm = prim['transform-matrix-data'];
-                                return (Array.isArray(tm) && tm.length === 16) ? tm : null;
-                            })(),
-                        });
-                    }
-                    continue; // handled
-                } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh' || mode === 'trianglestrip' || mode === 'triangle_strip') {
-                    if (!verts || verts.length < 9) {
-                        console.warn('Primitive skipped (no triangle vertices):', name);
-                        continue;
-                    }
-                    countVerts = Math.floor(verts.length / 3);
-                    if (uvs && uvs.length >= (countVerts * 2)) {
-                        // textured
-                        usesTex = true;
-                        uvbo = createBufferAndUpload(gl.ARRAY_BUFFER, uvs);
-                        program = progTrisTex;
-                        locations = locTex;
-                    } else if (cols && cols.length >= countVerts * 3) {
-                        // per-vertex color
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progTrisVary;
-                        locations = locColor.tris;
-                    } else {
-                        // uniform color
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.cube;
-                        program = progTris;
-                        locations = loc.tris;
-                    }
-                    // Indices if provided (for TRIANGLES). For triangle_strip, drawArrays without indices.
-                    if (indicesTri && !(mode === 'trianglestrip' || mode === 'triangle_strip')) {
-                        ebo = createBufferAndUpload(gl.ELEMENT_ARRAY_BUFFER, indicesTri);
-                        indexType = detectIndexType(indicesTri);
-                        countElems = indicesTri.length;
-                        modeGL = gl.TRIANGLES;
-                    } else {
-                        modeGL = (mode === 'trianglestrip' || mode === 'triangle_strip') ? gl.TRIANGLE_STRIP : gl.TRIANGLES;
-                    }
-                } else {
-                    console.warn('Unknown primitive mode, skipping:', mode);
-                    continue;
-                }
-
-                // If this primitive uses texturing and provides a texture URL, load it now (fallback to checker while loading)
-                let textureUrl = prim['obj-texture-absolute'];
-                let initialTexture;
-                if (usesTex && textureUrl) {
-                    flash("Loading texture " + textureUrl);
-                    initialTexture = getOrLoadTexture(textureUrl, (tex) => {
-                        // after load, update the compiled object's texture reference
-                        const obj = compiled.find(x => x.name === name);
-                        if (obj) obj.texture = tex;
-                    });
-                }
-
-                compiled.push({
-                    name,
-                    program,
-                    locations,
-                    vbo,
-                    cbo,
-                    uvbo,
-                    ebo,
-                    colorSize,
-                    usesColorVary,
-                    usesUniformColor,
-                    uniformColor,
-                    usesTex,
-                    texture: initialTexture,
-                    hasIndices: !!ebo,
-                    countVerts,
-                    countElems,
-                    indexType,
-                    modeGL,
-                    // transformation matrix (4x4) if provided; otherwise identity will be used at render time
-                    transformMatrix: (function () {
-                        const tm = prim['transform-matrix-data'];
-                        return (Array.isArray(tm) && tm.length === 16) ? tm : null;
-                    })(),
-                });
-            } catch (e) {
-                console.error('Error compiling primitive:', e);
-            }
+    const getDS = (name) => {
+        if (name === '' || name === undefined) {
+            return null
         }
-    } catch (e) {
-        console.error('Failed to build primitives:', e);
+
+        const raw = datasets[name];
+        return raw;
+    };
+    for (const prim of (primitives || [])) {
+        const vertsRaw = getDS(prim['obj-vertices']);
+        const edgesRaw = getDS(prim['obj-edges']);
+        const uvRaw = getDS(prim['obj-uv']);
+        const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
+
+        const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
+        const edges = toFloat32(edgesRaw, ['x1', 'y1', 'z1', 'x2', 'y2', 'z2']); // positions for lines
+        const uvs = toFloat32(uvRaw, ['u', 'v']);
+        const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
+
+        // Normalize positions so data ranges fit the axis cube
+        const vertsN = normalizeXYZSeq(verts);
+        const edgesN = normalizeXYZSeq(edges);
+
+        const name = prim.name || prim.id || 'obj';
+
+        // Determine mode
+        let mode = prim['obj-primitive']; // 'point' | 'line' | 'triangle'
+        if (!mode) {
+            if (edges && edges.length >= 6) mode = 'line';
+            else if (verts && (verts.length % 9 === 0)) mode = 'triangle';
+            else mode = 'point';
+        }
+
+        let program = null;
+        let locations = null;
+        let usesColorVary = false;
+        let usesUniformColor = false;
+        let usesTex = false;
+        let colorSize = 4;
+        let uniformColor = null;
+
+        const vboSource = (mode === 'line' && edgesN) ? edgesN : vertsN;
+        const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, vboSource);
+        let cbo = null, uvbo = null, ebo = null;
+        let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
+        let modeGL = gl.POINTS;
+
+        if (mode === 'point') {
+            // points use vertices
+            if (!vertsN || vertsN.length < 3) {
+                console.warn('Primitive skipped (no vertices):', name);
+                continue;
+            }
+            countVerts = Math.floor(vertsN.length / 3);
+            // Choose colors handling
+            if (cols && cols.length >= countVerts * 3) {
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progPointsVary;
+                locations = locColor.points;
+            } else {
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.point;
+                program = progPoints;
+                locations = loc.points;
+            }
+            modeGL = gl.POINTS;
+        } else if (mode === 'line') {
+            // lines use edges positions directly
+            const lineData = edgesN || vertsN; // fallback to verts if edges missing (interpret as line strip pairs)
+            if (!lineData || lineData.length < 6) {
+                console.warn('Primitive skipped (no edges/verts for lines):', name);
+                continue;
+            }
+            countVerts = Math.floor(lineData.length / 3);
+            if (cols && cols.length >= countVerts * 3) {
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progLinesVary;
+                locations = locColor.lines;
+            } else {
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.cube;
+                program = progLines;
+                locations = loc.lines;
+            }
+            modeGL = gl.LINES;
+        } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh' || mode === 'trianglestrip' || mode === 'triangle_strip') {
+            if (!vertsN || vertsN.length < 9) {
+                console.warn('Primitive skipped (no triangle vertices):', name);
+                continue;
+            }
+            countVerts = Math.floor(vertsN.length / 3);
+            if (uvs && uvs.length >= (countVerts * 2)) {
+                // textured
+                usesTex = true;
+                uvbo = createBufferAndUpload(gl.ARRAY_BUFFER, uvs);
+                program = progTrisTex;
+                locations = locTex;
+            } else if (cols && cols.length >= countVerts * 3) {
+                // per-vertex color
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progTrisVary;
+                locations = locColor.tris;
+            } else {
+                // uniform color
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.cube;
+                program = progTris;
+                locations = loc.tris;
+            }
+            // Select WebGL draw mode: TRIANGLES for lists, TRIANGLE_STRIP if requested
+            modeGL = (mode === 'trianglestrip' || mode === 'triangle_strip') ? gl.TRIANGLE_STRIP : gl.TRIANGLES;
+        } else {
+            console.warn('Unknown primitive mode, skipping:', mode);
+            continue;
+        }
+
+        // If this primitive uses texturing and provides a texture URL, load it now
+        let textureUrl = prim['obj-texture-absolute'];
+        let initialTexture;
+        if (usesTex && textureUrl) {
+            flash("Loading texture " + textureUrl);
+            initialTexture = getOrLoadTexture(textureUrl, (tex) => {
+                // after load, update the compiled object's texture reference
+                const obj = compiled.find(x => x.name === name);
+                if (obj) obj.texture = tex;
+            });
+        }
+
+        compiled.push({
+            name,
+            program,
+            locations,
+            vbo,
+            cbo,
+            uvbo,
+            ebo,
+            colorSize,
+            usesColorVary,
+            usesUniformColor,
+            uniformColor,
+            usesTex,
+            texture: initialTexture,
+            hasIndices: false,
+            countVerts,
+            countElems,
+            indexType,
+            modeGL,
+            // store transform directives from primitive (position and rotation in degrees)
+            position: prim.position || {x: 0, y: 0, z: 0},
+            rotationDeg: prim.rotationDeg || {x: 0, y: 0, z: 0},
+            // CPU-side verts for hover picking (only for points)
+            vertsN: (modeGL === gl.POINTS) ? vertsN : null,
+        });
     }
 
     // ---------- render -------------------------------------------------------
@@ -1197,10 +1335,13 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
         const P = mat4Perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100.0);
         const V = mat4Translate(0, 0, -dist);
-        const Rx = mat4RotateX(rotX);
-        const Ry = mat4RotateY(rotY);
-        const M = mat4Mul(Ry, Rx);
+        const M = mat4FromQuat(qOrient);
         const MVP = mat4Mul(mat4Mul(P, V), M);
+
+        // cache for hover picking
+        lastCssW = cssW;
+        lastCssH = cssH;
+        lastMVP = MVP;
 
         // Grids (back/left/bottom panes)
         gl.useProgram(progLines);
@@ -1232,10 +1373,18 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         for (const o of compiled) {
             gl.useProgram(o.program);
 
-            // Compute global bounds transform (orig_bounds → graph_bounds) and apply to all primitives
-            const MVPp = mat4Mul(MVP, M_bounds);
+            // compute per-primitive transform (position + rotation in degrees)
+            const pos = o.position || {x: 0, y: 0, z: 0};
+            const rotD = o.rotationDeg || {x: 0, y: 0, z: 0};
+            const toRad = (d) => (d || 0) * Math.PI / 180.0;
+            const Rxp = mat4RotateX(toRad(rotD.x));
+            const Ryp = mat4RotateY(toRad(rotD.y));
+            const Rzp = mat4RotateZ(toRad(rotD.z));
+            const Tp = mat4Translate(pos.x || 0, pos.y || 0, pos.z || 0);
+            // Model for primitive: Translate * Rz * Ry * Rx
+            const Mp = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
+            const MVPp = mat4Mul(MVP, Mp);
 
-            // common: MVP (per primitive)
             if (o.locations.u_mvp) gl.uniformMatrix4fv(o.locations.u_mvp, false, MVPp);
 
             // attributes
@@ -1264,7 +1413,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             // texture
             if (o.usesTex && o.uvbo) {
                 gl.activeTexture(gl.TEXTURE0);
-                if (o.texture) gl.bindTexture(gl.TEXTURE_2D, o.texture);
+                gl.bindTexture(gl.TEXTURE_2D, o.texture);
                 gl.uniform1i(o.locations.u_tex, 0);
                 gl.bindBuffer(gl.ARRAY_BUFFER, o.uvbo);
                 if (o.locations.a_uv !== -1) {
