@@ -106,7 +106,7 @@ button.btn-c2-play:hover {
 }
 
 .task-step-bar {
-    padding: 8px;
+    padding: 8px !important;
 }
 
 .radial-tl {
