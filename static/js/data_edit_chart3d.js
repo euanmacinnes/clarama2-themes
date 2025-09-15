@@ -12,6 +12,7 @@ window.exampleAxisConfig = {
     }
 };
 
+<<<<<<< HEAD
 //
 // (function installChart3DOnce() {
 //     if (window.__chart3d_boot_installed) return;
@@ -51,6 +52,8 @@ window.exampleAxisConfig = {
 // lines (vertices + lines)
 // traingle (vertices + lines + uv map + color)
 
+=======
+>>>>>>> long
 // ------------------------------------------------------------
 // Per-canvas setup
 // ------------------------------------------------------------
@@ -740,7 +743,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
                 textureCache.set(url, tex);
-                if (typeof onLoaded === 'function') onLoaded(tex);
+                onLoaded(tex);
                 requestAnimationFrame(render);
             } catch (e) {
                 console.warn('Failed to upload texture image', url, e);
@@ -761,7 +764,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             console.warn('Invalid texture URL:', url, e);
             textureCache.set(url, checkerTex);
         }
+<<<<<<< HEAD
         return checkerTex;
+=======
+>>>>>>> long
     }
 
     // Helper: convert df_to_dict-like data using specified column names into a flat Float32Array
@@ -1132,7 +1138,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
                 // If this primitive uses texturing and provides a texture URL, load it now (fallback to checker while loading)
                 let textureUrl = prim['obj-texture-absolute'];
-                let initialTexture = checkerTex;
+                let initialTexture;
                 if (usesTex && textureUrl) {
                     flash("Loading texture " + textureUrl);
                     initialTexture = getOrLoadTexture(textureUrl, (tex) => {

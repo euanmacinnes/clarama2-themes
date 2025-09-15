@@ -418,10 +418,14 @@
                             <button class="nav-link active" id="axis-titles-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-titles-{{ loop_index }}" type="button" role="tab" aria-controls="axis-titles-{{ loop_index }}" aria-selected="true">Titles</button>
                         </li>
                         <li class="nav-item" role="presentation">
+<<<<<<< HEAD
                             <button class="nav-link" id="axis-orig-bounds-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-orig-bounds-{{ loop_index }}" type="button" role="tab" aria-controls="axis-orig-bounds-{{ loop_index }}" aria-selected="false">Original Bounds</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="axis-graph-bounds-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-graph-bounds-{{ loop_index }}" type="button" role="tab" aria-controls="axis-graph-bounds-{{ loop_index }}" aria-selected="false">Graph Bounds</button>
+=======
+                            <button class="nav-link" id="axis-orig-bounds-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-orig-bounds-{{ loop_index }}" type="button" role="tab" aria-controls="axis-orig-bounds-{{ loop_index }}" aria-selected="false">Axis Ticks</button>
+>>>>>>> long
                         </li>
                     </ul>
                     <div class="tab-content border-start border-end border-bottom p-3" id="chart3dAxisTabsContent">
@@ -451,6 +455,7 @@
                         </div>
 
                         <!-- Original Bounds Tab -->
+<<<<<<< HEAD
                         <div class="tab-pane fade" id="axis-orig-bounds-{{ loop_index }}" role="tabpanel" aria-labelledby="axis-orig-bounds-tab-{{ loop_index }}">
                             <div class="row g-2 align-items-center">
                                 <div class="col-12 fw-bold">Original Bounds</div>
@@ -465,6 +470,16 @@
                                         <input type="number" step="any" class="form-control chart3d-axis-max-x" placeholder="X Max"
                                                value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('x') or [None, None])[1] or '' }}{% endif %}">
                                     </div>
+=======
+                        <div class="tab-pane fade" id="axis-orig-bounds-{{ loop_index }}" role="tabpanel" aria-labelledby="axis-orig-bounds-tab">
+                            <div class="row g-2 align-items-center mt-2">
+                                <div class="col-12 fw-bold">Ticks</div>
+                                <!-- X Axis Tick Step -->
+                                <div class="col-md-2"><label class="form-label mb-0">X Tick Step</label></div>
+                                <div class="col-md-4">
+                                    <input type="number" step="any" class="form-control chart3d-tick-step-x" placeholder="e.g. 1"
+                                           value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('ticks', {}).get('x', {}).get('step') if chart3d.get('axis', {}).get('ticks', {}) and chart3d.get('axis', {}).get('ticks', {}).get('x') else '') }}{% endif %}">
+>>>>>>> long
                                 </div>
                                 <div class="col-md-5"></div>
                                 <!-- Y Axis -->
@@ -495,6 +510,7 @@
                             </div>
                         </div>
 
+<<<<<<< HEAD
                         <!-- Graph Bounds Tab -->
                         <div class="tab-pane fade" id="axis-graph-bounds-{{ loop_index }}" role="tabpanel" aria-labelledby="axis-graph-bounds-tab-{{ loop_index }}">
                             <div class="row g-2 align-items-center">
@@ -539,6 +555,10 @@
                                 </div>
                             </div>
                         </div>
+=======
+
+
+>>>>>>> long
                     </div>
                 </div>
 

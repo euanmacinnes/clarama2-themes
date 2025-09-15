@@ -62,27 +62,32 @@
         </div>
         <div class="container-fluid">
             <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>
-            <div class="row">
+            <div class="row" data-task-index="{{ task_index }}">
                 <div class="col loop-left loop-hidden loop-{{ task_index }}">
                     <div class="loop loop-left loop-height">&nbsp;</div>
                 </div>
-                <!-- Left Half -->
-                <div class="col-6 left-content" id="left_content_{{ task_index }}">
-                    <!-- the Editing -->
-                    <div id="step_{{ stream }}_{{ task_index }}"
-                         class="clarama-post-embedded cell-editor"
-                         post_json="json_{{ task_index }}"
-                         url="{{ call('clarama_content.content_template_render','explorer/steps/' ~ task_step['type'] ~ '_edit') }}?loop_index={{ task_index }}">
-                    </div>
-                    <!-- the Results -->
-                    <div class="container-fluid cell-response">
-                        <div id="results_{{ task_index }}" class="cell-results">
+            
+                <div class="col-12 cell-split">
+                    <div class="content-row" data-task-index="{{ task_index }}">
+                        <!-- Left Half -->
+                        <div class="left-content" id="left_content_{{ task_index }}">
+                            <!-- the Editing -->
+                            <div id="step_{{ stream }}_{{ task_index }}"
+                                class="clarama-post-embedded cell-editor"
+                                post_json="json_{{ task_index }}"
+                                url="{{ call('clarama_content.content_template_render','explorer/steps/' ~ task_step['type'] ~ '_edit') }}?loop_index={{ task_index }}">
+                            </div>
+                            <!-- the Results -->
+                            <div class="container-fluid cell-response">
+                                <div id="results_{{ task_index }}" class="cell-results"></div>
+                            </div>
+                        </div>
+                
+                        <!-- Right Half (insights) -->
+                        <div class="right-content d-none" id="right_content_{{ task_index }}">
+                            {% include theme("explorer/files/_cell_insights.html") %}
                         </div>
                     </div>
-                </div>
-                <!-- Right Half -->
-                <div class="col-6 right-content d-none" id="right_content_{{ task_index }}">
-                    {% include theme("explorer/files/_cell_insights.html") %}
                 </div>
             </div>
             <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>

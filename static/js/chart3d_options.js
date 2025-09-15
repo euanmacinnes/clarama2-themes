@@ -111,4 +111,3 @@ function addSeriesObj() {
     newSA.setAttribute("url", `/template/render/explorer/steps/data_edit_chart3d_series_object?loop_index=${newIndex}`);
     return newSA;
 }
-

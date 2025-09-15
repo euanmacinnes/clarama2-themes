@@ -49,7 +49,7 @@ function closeAllinsights() {
 
         // Only process if the insights is currently open
         if (rightContent.length > 0 && !rightContent.hasClass('d-none')) {
-            leftContent.removeClass('col-6').addClass('col-6');
+            teardownDragDivider(cellItem);
             rightContent.addClass('d-none');
 
             insightsButton.removeClass('btn-warning');
@@ -269,8 +269,8 @@ function openinsights(cellItem, taskIndex) {
         notificationContents = cellItem.find('.clarama-cell-content[celltype="notification"] .alert-secondary > div');
     }
 
-    leftContent.removeClass('col-6').addClass('col-6');
     rightContent.removeClass('d-none');
+    setupDragDivider(cellItem, taskIndex);
 
     insightsButton.addClass('btn-warning');
     insightsButton.attr('title', 'Hide insights (Ctrl-\\)');
@@ -343,6 +343,170 @@ function cell_toggle_insights_view(parent) {
             openinsights(cellItem, taskIndex);
         }
     });
+}
+
+/**
+ * Set the CSS custom property that controls the split ratio.
+ * The value is read by CSS to size left/right panes responsively.
+ *
+ * @param {HTMLElement} rowEl - The `.content-row` element.
+ * @param {number} ratio - Ratio in [0, 1] for left pane width.
+ * @returns {void}
+ */
+function setRatio(rowEl, ratio) {
+    rowEl.style.setProperty('--split-ratio', String(ratio));
+}
+
+/**
+ * Get the divider's visual width in pixels.
+ * Falls back to 8px if the element has no measurable width yet.
+ *
+ * @param {HTMLElement} rowEl - The `.content-row` element (unused, reserved for symmetry).
+ * @param {HTMLElement} [dividerEl] - The divider element.
+ * @returns {number} Width in pixels.
+ */
+function getDividerWidth(rowEl, dividerEl){
+    return (dividerEl?.getBoundingClientRect().width) || 8;
+}
+  
+/**
+ * Compute available horizontal space (in px) for the two panes combined,
+ * i.e., the row width minus the divider width.
+ *
+ * @param {HTMLElement} rowEl - The `.content-row` element.
+ * @param {HTMLElement} [dividerEl] - The divider element.
+ * @returns {number} Available width in pixels (≥ 0).
+ */
+function getAvail(rowEl, dividerEl){
+    const rect = rowEl.getBoundingClientRect();
+    return Math.max(0, rect.width - getDividerWidth(rowEl, dividerEl));
+}
+
+/**
+ * Apply a split ratio to a jQuery-wrapped row by setting its CSS var.
+ *
+ * @param {jQuery} row - jQuery object for the `.content-row` element.
+ * @param {number} ratio - Ratio in [0, 1] for left pane width.
+ * @returns {void}
+ */
+function applyRatio(row, ratio){
+    const rowEl = row[0];
+    setRatio(rowEl, ratio);
+}
+
+/**
+ * Initialize and enable the draggable divider for a cell.
+ * - Ensures the right pane is visible and the row is marked as split.
+ * - Creates the divider if missing and wires up mouse/touch/keyboard handlers.
+ * - Enforces minimum pane widths (in px) via clamped ratio.
+ * - Persists the ratio in localStorage (`cellSplitRatio_<taskIndex>`).
+ * - Uses a ResizeObserver to keep the layout valid on container resize.
+ *
+ * @param {jQuery} cellItem - jQuery object for the cell `<li.clarama-cell-item>`.
+ * @param {string|number} taskIndex - The cell's step index used for IDs and storage.
+ * @returns {void}
+ */
+function setupDragDivider(cellItem, taskIndex) {
+    const row   = cellItem.find('.content-row');
+    const left  = cellItem.find('#left_content_' + taskIndex);
+    const right = cellItem.find('#right_content_' + taskIndex);
+
+    right.removeClass('d-none');
+    row.addClass('split-active');
+
+    let divider = row.find('.drag-divider');
+    if (!divider.length) {
+    divider = $('<div class="drag-divider" role="separator" aria-orientation="vertical" tabindex="0"></div>');
+    left.after(divider);
+    }
+
+    const rowEl = row[0];
+    const dividerEl = divider[0];
+    const MIN_PX = 400; // min width of the left and right pane
+
+    let ratio = parseFloat(localStorage.getItem('cellSplitRatio_' + taskIndex));
+    if (!(ratio > 0 && ratio < 1)) ratio = 0.5;
+    applyRatio(row, ratio);
+
+    // Clamp function that respects current container width
+    function clampRatio(r){
+        const avail = getAvail(rowEl, dividerEl);
+        if (!avail) return 0.5;
+        const minR = Math.min(0.5, MIN_PX / avail);
+        return Math.max(minR, Math.min(1 - minR, r));
+    }
+
+    // Drag logic
+    let dragging = false;
+    function onMove(e){
+        if (!dragging) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const rect = rowEl.getBoundingClientRect();
+        const avail = getAvail(rowEl, dividerEl);
+        let leftPx = clientX - rect.left - (getDividerWidth(rowEl, dividerEl) / 2);
+        leftPx = Math.max(MIN_PX, Math.min(avail - MIN_PX, leftPx));
+        ratio = clampRatio(avail ? (leftPx / avail) : 0.5);
+        applyRatio(row, ratio);
+    }
+
+    function onUp(){
+        if (!dragging) return;
+        dragging = false;
+        $('body').removeClass('dragging');
+        localStorage.setItem('cellSplitRatio_' + taskIndex, String(ratio));
+        $(document).off('.cellsplit_' + taskIndex);
+    }
+
+    divider
+        .off('.cellsplit_' + taskIndex)
+        .on('mousedown.cellsplit_' + taskIndex + ' touchstart.cellsplit_' + taskIndex, (e) => {
+            e.preventDefault();
+            dragging = true;
+            $('body').addClass('dragging');
+            $(document)
+            .on('mousemove.cellsplit_' + taskIndex + ' touchmove.cellsplit_' + taskIndex, onMove)
+            .on('mouseup.cellsplit_' + taskIndex + ' touchend.cellsplit_' + taskIndex + ' touchcancel.cellsplit_' + taskIndex, onUp);
+        })
+        .on('keydown.cellsplit_' + taskIndex, (e) => {
+            const avail = getAvail(rowEl, dividerEl);
+            const step = 10 / Math.max(avail, 1);
+            if (e.key === 'ArrowLeft')  ratio -= step;
+            else if (e.key === 'ArrowRight') ratio += step;
+            else return;
+            ratio = clampRatio(ratio);
+            applyRatio(row, ratio);
+            localStorage.setItem('cellSplitRatio_' + taskIndex, String(ratio));
+            e.preventDefault();
+        });
+
+    // Keep the split correct on container resize
+    const ro = new ResizeObserver(() => {
+        ratio = clampRatio(ratio);
+        applyRatio(row, ratio);
+        localStorage.setItem('cellSplitRatio_' + taskIndex, String(ratio));
+    });
+    ro.observe(rowEl);
+    row.data('resizeObserver', ro);
+}
+
+/**
+ * Tear down the draggable divider for a cell.
+ * - Removes `split-active` and the divider element.
+ * - Clears the CSS ratio variable.
+ * - Disconnects the ResizeObserver.
+ *
+ *
+ * @param {jQuery} cellItem - jQuery object for the cell `<li.clarama-cell-item>`.
+ * @param {string|number} [taskIndex] - Optional step index (not required by current implementation).
+ * @returns {void}
+ */
+function teardownDragDivider(cellItem){
+    const row = cellItem.find('.content-row');
+    row.removeClass('split-active');
+    const ro = row.data('resizeObserver');
+    if (ro) { ro.disconnect(); row.removeData('resizeObserver'); }
+    row[0].style.removeProperty('--split-ratio');
+    row.find('.drag-divider').remove();
 }
 
 /**
