@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+    {% with page_title="Field Tests Index" %}
+        {% include theme("web/common_header.html") %}
+    {% endwith %}
+</head>
+<body class="bg-light">
+<div class="container py-3">
+    <h1 class="h3">Clarama Field Tests (Themed)</h1>
+    <p class="text-muted">Click a link to open the generic tester with the selected field YAML. Use in a running Clarama app.</p>
+    {% set base = url_for('clarama_ui.home') %}
+    <ul class="list-group">
+        {% set tests = [
+          'System/Tests/Fields/String.field.yaml',
+          'System/Tests/Fields/Checkbox.field.yaml',
+          'Help/Samples/Fields/Date Range.field.yaml',
+          'System/Tests/Fields/Select.field.yaml',
+          'System/Tests/Fields/Select Multiple.field.yaml',
+          'System/Tests/Fields/Number.field.yaml',
+          'System/Tests/Fields/Textarea.field.yaml',
+          'System/Tests/Fields/Time.field.yaml',
+          'System/Tests/Fields/Datetime.field.yaml',
+          'System/Tests/Fields/Color.field.yaml',
+          'System/Tests/Fields/Range.field.yaml',
+          'System/Tests/Fields/Password.field.yaml',
+          'System/Tests/Fields/Email.field.yaml',
+          'System/Tests/Fields/Hidden.field.yaml',
+          'System/Tests/Fields/Button.field.yaml',
+          'System/Tests/Fields/List.field.yaml',
+          'System/Tests/Fields/State Toggle.field.yaml',
+          'System/Tests/Fields/Code Editor.field.yaml',
+          'System/Tests/Fields/Browse.field.yaml',
+          'System/Tests/Fields/Timer.field.yaml'
+        ] %}
+        {% for y in tests %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ y }}</span>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('clarama_ui.home') }}content/template/tests/field_test.html?yaml={{ y | urlencode }}">Open Test</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+<script>
+    $(function(){ try{ enable_interactions($(document.body), true, true); }catch(e){} });
+</script>
+</body>
+</html>
