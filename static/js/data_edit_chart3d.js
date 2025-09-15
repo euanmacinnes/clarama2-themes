@@ -12,15 +12,6 @@ window.exampleAxisConfig = {
     }
 };
 
-
-// test with triangles, points and lines
-// then test with the different datasets 
-// (vertices would be the same, but the edges would be different)
-
-// points (just the vertices)
-// lines (vertices + lines)
-// traingle (vertices + lines + uv map + color)
-
 // ------------------------------------------------------------
 // Per-canvas setup
 // ------------------------------------------------------------
@@ -83,25 +74,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     overlay.style.zIndex = "2";
     wrap.appendChild(overlay);
     const ctx2d = overlay.getContext("2d");
-    // --- tooltip DIV (overlays canvas; pointer-through) -------------------------
-    const tip = document.createElement('div');
-    tip.className = 'chart3d-tooltip';
-    Object.assign(tip.style, {
-      position: 'absolute',
-      zIndex: '3',
-      left: '0px',
-      top: '0px',
-      pointerEvents: 'none',
-      background: 'rgba(0,0,0,0.75)',
-      color: '#fff',
-      padding: '4px 6px',
-      borderRadius: '6px',
-      font: '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
-      transform: 'translate(8px, -12px)',
-      display: 'none'
-    });
-    wrap.appendChild(tip);
-
 
     // Style (Matplotlib-ish)
     const STYLE = {
@@ -288,38 +260,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         }
     `;
     const progTrisTex = prog(vsPosUV, fsTex);
-    // --- programs (textured triangles with per-vertex color) ---
-    const vsPosUVColor = `
-        attribute vec3 a_position;
-        attribute vec2 a_uv;
-        attribute vec4 a_color;
-        varying vec2 v_uv;
-        varying vec4 v_color;
-        uniform mat4 u_mvp;
-        void main(){
-            gl_Position = u_mvp * vec4(a_position, 1.0);
-            v_uv = a_uv;
-            v_color = a_color;
-        }
-    `;
-    const fsTexColor = `
-        precision mediump float;
-        varying vec2 v_uv;
-        varying vec4 v_color;
-        uniform sampler2D u_tex;
-        void main(){
-            gl_FragColor = texture2D(u_tex, v_uv) * v_color;
-        }
-    `;
-    const progTrisTexColor = prog(vsPosUVColor, fsTexColor);
-    const locTexColor = {
-        a_position: gl.getAttribLocation(progTrisTexColor, "a_position"),
-        a_uv:       gl.getAttribLocation(progTrisTexColor, "a_uv"),
-        a_color:    gl.getAttribLocation(progTrisTexColor, "a_color"),
-        u_mvp:      gl.getUniformLocation(progTrisTexColor, "u_mvp"),
-        u_tex:      gl.getUniformLocation(progTrisTexColor, "u_tex"),
-    };
-    
     const locTex = {
         a_position: gl.getAttribLocation(progTrisTex, "a_position"),
         a_uv: gl.getAttribLocation(progTrisTex, "a_uv"),
@@ -333,50 +273,18 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const defaultAxisLen = 3.0;
 
     function axisHalfExtentFor(axis) {
-        const spanFrom = (r) =>
-            r && typeof r.min === 'number' && typeof r.max === 'number' &&
-            isFinite(r.min) && isFinite(r.max) && r.max !== r.min
-                ? Math.abs(r.max - r.min) / 2
-                : null;
-
-        // Prefer GRAPH_RANGE; if missing/degenerate, use LABEL_RANGE; else default
-        const g = GRAPH_RANGE[axis];
-        const l = LABEL_RANGE[axis];
-        return spanFrom(g) ?? spanFrom(l) ?? defaultAxisLen;
+        const r = GRAPH_RANGE[axis];
+        if (r && typeof r.min === 'number' && typeof r.max === 'number') {
+            const span = r.max - r.min;
+            const L = Math.abs(span) / 2;
+            return (L > 0 && isFinite(L)) ? L : defaultAxisLen;
+        }
+        return defaultAxisLen;
     }
 
     const axisLenX = axisHalfExtentFor('x');
     const axisLenY = axisHalfExtentFor('y');
     const axisLenZ = axisHalfExtentFor('z');
-
-    // --- normalize data coords -> internal [-L..+L] using LABEL_RANGE -----------
-    function hasFiniteLabelRange(axis) {
-        const r = LABEL_RANGE[axis];
-        return r && isFinite(r.min) && isFinite(r.max) && r.max !== r.min;
-    }
-
-    // Maps a single scalar value v on a given axis into [-L..+L]
-    function mapScalarToInternal(axis, v) {
-        const r = LABEL_RANGE[axis];
-        if (!hasFiniteLabelRange(axis)) return v;
-        const L = (axis === 'x') ? axisLenX : (axis === 'y') ? axisLenY : axisLenZ;
-        const span = (r.max - r.min) || 1e-6;
-        const scale = (2 * L) / span;
-        const offset = -L - r.min * scale;
-        return v * scale + offset;
-    }
-
-    // Accepts any Float32Array of triples [..., x, y, z, ...] and maps in-place
-    function normalizeXYZSeq(float32) {
-        if (!float32 || float32.length < 3) return float32;
-        const out = new Float32Array(float32.length);
-        for (let i = 0; i < float32.length; i += 3) {
-            out[i    ] = mapScalarToInternal('x', float32[i    ]);
-            out[i + 1] = mapScalarToInternal('y', float32[i + 1]);
-            out[i + 2] = mapScalarToInternal('z', float32[i + 2]);
-        }
-        return out;
-    }
 
     // Per-axis tick step and size with overrides from axisConfig if provided.
     function numOr(v, d) {
@@ -475,46 +383,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const boxBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, boxBuf);
     gl.bufferData(gl.ARRAY_BUFFER, boxEdges, gl.STATIC_DRAW);
-
-    // --- tiny vec/quat helpers ----------------------------------
-    function v3(x=0,y=0,z=0){ return new Float32Array([x,y,z]); }
-    function v3dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
-    function v3cross(a,b){ return v3(a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]); }
-    function v3len(a){ return Math.hypot(a[0],a[1],a[2]); }
-    function v3norm(a){ const L=v3len(a)||1; return v3(a[0]/L,a[1]/L,a[2]/L); }
-
-    function quatIdentity(){ return new Float32Array([0,0,0,1]); } // [x,y,z,w]
-    function quatMul(a,b){
-        const ax=a[0], ay=a[1], az=a[2], aw=a[3];
-        const bx=b[0], by=b[1], bz=b[2], bw=b[3];
-        return new Float32Array([
-            aw*bx + ax*bw + ay*bz - az*by,
-            aw*by - ax*bz + ay*bw + az*bx,
-            aw*bz + ax*by - ay*bx + az*bw,
-            aw*bw - ax*bx - ay*by - az*bz
-        ]);
-    }
-    
-    function quatNormalize(q){
-        const L=Math.hypot(q[0],q[1],q[2],q[3])||1;
-        return new Float32Array([q[0]/L,q[1]/L,q[2]/L,q[3]/L]);
-    }
-
-    function quatFromAxisAngle(axis, angle){
-        const a=v3norm(axis), s=Math.sin(angle/2);
-        return new Float32Array([a[0]*s, a[1]*s, a[2]*s, Math.cos(angle/2)]);
-    }
-
-    function mat4FromQuat(q){
-        const x=q[0], y=q[1], z=q[2], w=q[3];
-        const xx=x*x, yy=y*y, zz=z*z, xy=x*y, xz=x*z, yz=y*z, wx=w*x, wy=w*y, wz=w*z;
-        const m=new Float32Array(16);
-        m[0]=1-2*(yy+zz); m[4]=2*(xy- wz); m[8 ]=2*(xz+wy); m[12]=0;
-        m[1]=2*(xy+wz);   m[5]=1-2*(xx+zz); m[9 ]=2*(yz-wx); m[13]=0;
-        m[2]=2*(xz-wy);   m[6]=2*(yz+wx);   m[10]=1-2*(xx+yy); m[14]=0;
-        m[3]=0;           m[7]=0;           m[11]=0;          m[15]=1;
-        return m;
-    }
 
     // --- matrices -----------------------------------------------------------
     function mat4Identity() {
@@ -632,31 +500,23 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
     canvas.addEventListener("pointerdown", (e) => {
         dragging = true;
-        lastArc = arcballVecFromEvent(e);
+        lastX = e.clientX;
+        lastY = e.clientY;
         canvas.setPointerCapture(e.pointerId);
     });
-    
     canvas.addEventListener("pointermove", (e) => {
         if (!dragging) return;
-        const cur = arcballVecFromEvent(e);
-        // rotation between lastArc -> cur
-        const axis = v3cross(lastArc, cur);
-        const dot  = Math.min(1, Math.max(-1, v3dot(lastArc, cur)));
-        const angle = Math.acos(dot); // radians
-        
-        if (v3len(axis) > 1e-6 && angle > 1e-6) {
-            const dq = quatFromAxisAngle(axis, angle);
-            qOrient = quatNormalize(quatMul(dq, qOrient));
-        }
-        lastArc = cur;
+        const rect = canvas.getBoundingClientRect();
+        rotY += (e.clientX - lastX) / Math.max(1, rect.width) * Math.PI;
+        rotX += (e.clientY - lastY) / Math.max(1, rect.height) * Math.PI;
+        rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
+        lastX = e.clientX;
+        lastY = e.clientY;
         requestAnimationFrame(render);
     });
-    
     window.addEventListener("pointerup", () => {
         dragging = false;
-        lastArc = null;
     });
-
     canvas.addEventListener("wheel", (e) => {
         const zoomGesture = e.ctrlKey || e.metaKey;
         if (!zoomGesture) return;
@@ -666,74 +526,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         dist = Math.max(2.0, dist * s);
         requestAnimationFrame(render);
     }, {passive: false});
-
     canvas.addEventListener("dblclick", () => {
-        qOrient = quatIdentity();
+        rotX = initRotX;
+        rotY = initRotY;
         dist = initDist;
         requestAnimationFrame(render);
     });
-
-    // --- hover picking ----------------------------------------------------------
-    function fmtTick(v) { return formatTick(v); }
-
-    canvas.addEventListener('pointermove', (e) => {
-        if (dragging || !lastMVP) { tip.style.display = 'none'; return; }
-
-        const rect = canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-
-        const dpr = window.devicePixelRatio || 1;
-        const pickR = 12 * dpr;
-        const pickR2 = pickR * pickR;
-
-        let best = null; // {o, idx, sx, sy, d2}
-
-        for (const o of compiled) {
-            if (o.modeGL !== gl.POINTS || !o.vertsN) continue;
-
-            // per-primitive transform
-            const pos = o.position || {x:0,y:0,z:0};
-            const rotD = o.rotationDeg || {x:0,y:0,z:0};
-            const toRad = d => (d||0) * Math.PI/180.0;
-            const Rxp = mat4RotateX(toRad(rotD.x));
-            const Ryp = mat4RotateY(toRad(rotD.y));
-            const Rzp = mat4RotateZ(toRad(rotD.z));
-            const Tp  = mat4Translate(pos.x||0, pos.y||0, pos.z||0);
-            const Mp  = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
-            const MVPp = mat4Mul(lastMVP, Mp);
-
-            const arr = o.vertsN;
-            for (let i = 0; i < arr.length; i += 3) {
-                const p = projectToScreen(arr[i], arr[i+1], arr[i+2], MVPp, lastCssW, lastCssH);
-                if (!p) continue;
-                const dx = p.x - mx, dy = p.y - my;
-                const d2 = dx*dx + dy*dy;
-                if (d2 <= pickR2 && (!best || d2 < best.d2)) best = {o, idx: i/3, sx: p.x, sy: p.y, d2};
-            }
-        }
-
-        if (!best) { tip.style.display = 'none'; return; }
-
-        const vx = best.o.vertsN[best.idx*3 + 0];
-        const vy = best.o.vertsN[best.idx*3 + 1];
-        const vz = best.o.vertsN[best.idx*3 + 2];
-
-        const lx = mapToLabel('x', vx);
-        const ly = mapToLabel('y', vy);
-        const lz = mapToLabel('z', vz);
-
-        tip.textContent = `(${fmtTick(lx)}, ${fmtTick(ly)}, ${fmtTick(lz)})`;
-        tip.style.left = `${best.sx}px`;
-        tip.style.top  = `${best.sy}px`;
-        tip.style.display = 'block';
-    });
-
-    // hide tooltip while user acts
-    canvas.addEventListener('pointerdown', () => { tip.style.display = 'none'; });
-    canvas.addEventListener('wheel', () => { tip.style.display = 'none'; }, {passive:true});
-    canvas.addEventListener('dblclick', () => { tip.style.display = 'none'; });
-
 
     // --- resize -------------------------------------------------------------
     const overlayCanvas = overlay; // alias
@@ -833,7 +631,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const compiled = [];
 
     // Texture cache and async loader for URL-based textures
-    const textureCache = new Map();
+    const textureCache = new Map(); // url -> WebGLTexture | {loading:true, tex:WebGLTexture}
 
     function isHttpUrl(u) {
         return typeof u === 'string' && /^(https?:)?\/\//i.test(u);
@@ -870,7 +668,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
                 textureCache.set(url, tex);
-                if (typeof onLoaded === 'function') onLoaded(tex);
+                onLoaded(tex);
                 requestAnimationFrame(render);
             } catch (e) {
                 console.warn('Failed to upload texture image', url, e);
@@ -886,7 +684,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         } catch (e) {
             console.warn('Invalid texture URL:', url, e);
         }
-        return;
     }
 
     // Helper: convert df_to_dict-like data using specified column names into a flat Float32Array
@@ -1037,22 +834,24 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // Build compiled objects from datasets + primitives
-    const getDS = (name) => {
-        if (name === '' || name === undefined) {
-            return null
-        }
+    try {
+        const getDS = (name) => {
+            if (name === '' || name === undefined) {
+                return null
+            }
 
-        const raw = datasets[name];
-        return raw;
-    };
-    for (const prim of (primitives || [])) {
-        const vertsRaw = getDS(prim['obj-vertices']);
-        const edgesRaw = getDS(prim['obj-edges']);
-        const uvRaw = getDS(prim['obj-uv']);
-        const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
+            const raw = datasets[name];
+            return raw;
+        };
+        for (const prim of (primitives || [])) {
+            try {
+                const vertsRaw = getDS(prim['obj-vertices']);
+                const edgesRaw = getDS(prim['obj-edges']);
+                const uvRaw = getDS(prim['obj-uv']);
+                const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
 
                 const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
-                // interpret edges dataset as indices to save data
+                // New: interpret edges dataset as indices to save data
                 const indicesLine = edgesRaw ? toIndices(edgesRaw, ['i0', 'i1']) : null; // for LINES
                 const indicesTri = edgesRaw ? toIndices(edgesRaw, ['i0', 'i1', 'i2']) : null; // for TRIANGLES
                 const indicesLineStrip = edgesRaw ? toIndices(edgesRaw, ['i']) : null; // for LINE_STRIP per strip order
@@ -1061,7 +860,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 const uvs = toFloat32(uvRaw, ['u', 'v']);
                 const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
 
-        const name = prim.name || prim.id || 'obj';
+                const name = prim.name || prim.id || 'obj';
 
                 // Determine mode
                 let mode = prim['obj-primitive']; // 'point' | 'line' | 'triangle'
@@ -1071,13 +870,13 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     else mode = 'point';
                 }
 
-        let program = null;
-        let locations = null;
-        let usesColorVary = false;
-        let usesUniformColor = false;
-        let usesTex = false;
-        let colorSize = 4;
-        let uniformColor = null;
+                let program = null;
+                let locations = null;
+                let usesColorVary = false;
+                let usesUniformColor = false;
+                let usesTex = false;
+                let colorSize = 4;
+                let uniformColor = null;
 
                 const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, verts);
                 let cbo = null, uvbo = null, ebo = null;
@@ -1253,17 +1052,17 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     continue;
                 }
 
-        // If this primitive uses texturing and provides a texture URL, load it now
-        let textureUrl = prim['obj-texture-absolute'];
-        let initialTexture;
-        if (usesTex && textureUrl) {
-            flash("Loading texture " + textureUrl);
-            initialTexture = getOrLoadTexture(textureUrl, (tex) => {
-                // after load, update the compiled object's texture reference
-                const obj = compiled.find(x => x.name === name);
-                if (obj) obj.texture = tex;
-            });
-        }
+                // If this primitive uses texturing and provides a texture URL, load it now (fallback to checker while loading)
+                let textureUrl = prim['obj-texture-absolute'];
+                let initialTexture;
+                if (usesTex && textureUrl) {
+                    flash("Loading texture " + textureUrl);
+                    initialTexture = getOrLoadTexture(textureUrl, (tex) => {
+                        // after load, update the compiled object's texture reference
+                        const obj = compiled.find(x => x.name === name);
+                        if (obj) obj.texture = tex;
+                    });
+                }
 
                 compiled.push({
                     name,
@@ -1314,13 +1113,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
         const P = mat4Perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100.0);
         const V = mat4Translate(0, 0, -dist);
-        const M = mat4FromQuat(qOrient);
+        const Rx = mat4RotateX(rotX);
+        const Ry = mat4RotateY(rotY);
+        const M = mat4Mul(Ry, Rx);
         const MVP = mat4Mul(mat4Mul(P, V), M);
-
-        // cache for hover picking
-        lastCssW = cssW;
-        lastCssH = cssH;
-        lastMVP  = MVP;
 
         // Grids (back/left/bottom panes)
         gl.useProgram(progLines);
@@ -1352,7 +1148,8 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         for (const o of compiled) {
             gl.useProgram(o.program);
 
-            const MVPp = mat4Mul(MVP, Mp);
+            // Compute global bounds transform (orig_bounds → graph_bounds) and apply to all primitives
+            const MVPp = mat4Mul(MVP, M_bounds);
 
             // common: MVP (per primitive)
             if (o.locations.u_mvp) gl.uniformMatrix4fv(o.locations.u_mvp, false, MVPp);
@@ -1383,7 +1180,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             // texture
             if (o.usesTex && o.uvbo) {
                 gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, o.texture);
+                if (o.texture) gl.bindTexture(gl.TEXTURE_2D, o.texture);
                 gl.uniform1i(o.locations.u_tex, 0);
                 gl.bindBuffer(gl.ARRAY_BUFFER, o.uvbo);
                 if (o.locations.a_uv !== -1) {
