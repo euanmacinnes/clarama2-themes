@@ -1,11 +1,10 @@
-<div class="clarama-cell-content">
-    <div id="content_query_{{ loop_index }}"
-         name="task_step_field_{{ loop_index }}"
-         editor="python"
-         class="source-editor form-control clarama-field-editor"
-         celltype="code"
-         style="min-height: 100px">{{ content }}</div>
-</div>
+<div id="content_query_{{ loop_index }}"
+     name="task_step_field_{{ loop_index }}"
+     editor="python"
+     class="clarama-cell-content source-editor form-control clarama-field-editor"
+     celltype="code"
+     dataid="{{ loop_index }}"
+     style="min-height: 100px">{{ content }}</div>
 
 <script type="text/javascript">
     $(document).ready(() => {

@@ -531,6 +531,12 @@ function get_shell_cell(cell) {
     return {"type": "shell", "content": code};
 }
 
+// need to implement
+function get_test_cell(cell) {
+    console.error("function get_test_cell(cell) not implemented yet.")
+    return {};
+}
+
 /**
  * Calls the specific get_<cell_type>_cell function to extract the entire cell information
  * @param {jQuery} cell - jQuery object representing the cell
@@ -539,9 +545,9 @@ function get_shell_cell(cell) {
  */
 function get_cell_values(cell) {
     var cell_type = cell.attr("celltype");
+    console.log("celltype: ", cell_type);
     // Get the cell-type specific details
     cell_data = window["get_" + cell_type + "_cell"](cell);
-
 
     console.log('cell data: ', cell_data);
     // cell_data["content"] = "locals().keys()";

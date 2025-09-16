@@ -7,6 +7,14 @@
             </h6>
         </div>
         <div class="card-body insights-content p-0 d-flex flex-column">
+            <ul class="nav nav-tabs" id="insightsTabs_{{ task_index }}" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="insights-variables-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-variables-{{ task_index }}" type="button" role="tab" aria-controls="insights-variables-{{ task_index }}" aria-selected="true">Variables</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="insights-suggestions-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-suggestions-{{ task_index }}" type="button" role="tab" aria-controls="insights-suggestions-{{ task_index }}" aria-selected="true">Chat</button>
+                </li>
+            </ul>
             <!-- Variables List -->
             <div class="insights-variables flex-grow-1 overflow-auto">
                 <div class="p-3">

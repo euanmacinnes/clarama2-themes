@@ -682,6 +682,10 @@ function extractCellContent(cell) {
             content = get_data_cell(targetCell);
             break;
 
+        case 'test':
+            content = get_test_cell(targetCell);
+            break;
+
         default:
             console.warn('Unknown cell type:', cellType);
             flash('could not copy cell', 'danger');

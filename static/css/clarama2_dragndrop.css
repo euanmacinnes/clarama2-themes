@@ -56,9 +56,12 @@ button.btn {
 }
 
 .clarama-cell-content {
-    background-color: #6af;
     border-width: 4px;
     border-radius: 6px;
+}
+
+.clarama-cell-border {
+    background-color: #6af;
 }
 
 .btn-c2 {
