@@ -453,7 +453,7 @@
                                 <div class="col-12 fw-bold">Ticks</div>
                             
                                 <!-- X Axis -->
-                                <div class="col-md-2">
+                                <div class="col-md-1">
                                     <label class="form-label mb-0" for="tick-step-x-{{ loop_index }}">X Tick Step</label>
                                 </div>
                                 <div class="col-md-4">
@@ -461,7 +461,8 @@
                                         class="form-control chart3d-tick-step-x" placeholder="e.g. 1"
                                         value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('ticks', {}).get('x', {}).get('step') if chart3d.get('axis', {}).get('ticks', {}) and chart3d.get('axis', {}).get('ticks', {}).get('x') else '') }}{% endif %}">
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-1"></div>
+                                <div class="col-md-1">
                                     <label class="form-label mb-0" for="tick-size-x-{{ loop_index }}">X Tick Size</label>
                                 </div>
                                 <div class="col-md-4">
@@ -469,9 +470,10 @@
                                         class="form-control chart3d-tick-size-x" placeholder="e.g. 0.08"
                                         value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('tickSizeX', '') }}{% endif %}">
                                 </div>
+                                <div class="col-md-1"></div>
                             
                                 <!-- Y Axis -->
-                                <div class="col-md-2">
+                                <div class="col-md-1">
                                     <label class="form-label mb-0" for="tick-step-y-{{ loop_index }}">Y Tick Step</label>
                                 </div>
                                 <div class="col-md-4">
@@ -479,7 +481,8 @@
                                         class="form-control chart3d-tick-step-y" placeholder="e.g. 1"
                                         value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('ticks', {}).get('y', {}).get('step') if chart3d.get('axis', {}).get('ticks', {}) and chart3d.get('axis', {}).get('ticks', {}).get('y') else '') }}{% endif %}">
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-1"></div>
+                                <div class="col-md-1">
                                     <label class="form-label mb-0" for="tick-size-y-{{ loop_index }}">Y Tick Size</label>
                                 </div>
                                 <div class="col-md-4">
@@ -487,9 +490,10 @@
                                         class="form-control chart3d-tick-size-y" placeholder="e.g. 0.08"
                                         value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('tickSizeY', '') }}{% endif %}">
                                 </div>
+                                <div class="col-md-1"></div>
                             
                                 <!-- Z Axis -->
-                                <div class="col-md-2">
+                                <div class="col-md-1">
                                     <label class="form-label mb-0" for="tick-step-z-{{ loop_index }}">Z Tick Step</label>
                                 </div>
                                 <div class="col-md-4">
@@ -497,7 +501,8 @@
                                         class="form-control chart3d-tick-step-z" placeholder="e.g. 1"
                                         value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('ticks', {}).get('z', {}).get('step') if chart3d.get('axis', {}).get('ticks', {}) and chart3d.get('axis', {}).get('ticks', {}).get('z') else '') }}{% endif %}">
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-1"></div>
+                                <div class="col-md-1">
                                     <label class="form-label mb-0" for="tick-size-z-{{ loop_index }}">Z Tick Size</label>
                                 </div>
                                 <div class="col-md-4">
@@ -505,6 +510,7 @@
                                         class="form-control chart3d-tick-size-z" placeholder="e.g. 0.08"
                                         value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('tickSizeZ', '') }}{% endif %}">
                                 </div>
+                                <div class="col-md-1"></div>
                             </div>
                         </div>                          
                     </div>
