@@ -538,75 +538,27 @@ function teardownDragDivider(cellItem){
  * @description Updates button states and visibility of options based on the selected output type
  */
 function datacell_setOutput(id_template, value, Options) {
-    $('#' + id_template + '_output').attr('value', value);
+    if (!value) value = 'table';
+    $('#' + id_template + '_output').val(value);
 
-    console.log(id_template);
-    console.log(value);
+    const types = ['table', 'chart', 'chart3d', 'code'];
 
-    if ((value == undefined) || (value == ''))
-        value = 'table';
+    types.forEach(t => {
+        const $btn = $('#' + id_template + '_' + t);
+        const isActive = (t === value);
+        // swap your theme classes
+        $btn.toggleClass('btn-c2', isActive)
+            .toggleClass('btn-c2-secondary', !isActive)
+            .attr('aria-pressed', isActive ? 'true' : 'false');
+    });
 
-    if (value == 'table') {
-        $('#' + id_template + '_table').removeClass('btn-secondary');
-        $('#' + id_template + '_table').addClass('btn-primary');
-
-        $('#' + id_template + '_chart').removeClass('btn-primary');
-        $('#' + id_template + '_chart').addClass('btn-secondary');
-        $('#' + id_template + '_chart3d').removeClass('btn-primary');
-        $('#' + id_template + '_chart3d').addClass('btn-secondary');
-        $('#' + id_template + '_code').removeClass('btn-primary');
-        $('#' + id_template + '_code').addClass('btn-secondary');
-    } else if (value == 'chart') {
-        $('#' + id_template + '_code').addClass('btn-secondary');
-        $('#' + id_template + '_code').removeClass('btn-primary');
-        $('#' + id_template + '_table').addClass('btn-secondary');
-        $('#' + id_template + '_table').removeClass('btn-primary');
-        $('#' + id_template + '_chart3d').addClass('btn-secondary');
-        $('#' + id_template + '_chart3d').removeClass('btn-primary');
-
-        $('#' + id_template + '_chart').addClass('btn-primary');
-        $('#' + id_template + '_chart').removeClass('btn-secondary');
-    } else if (value == 'chart3d') {
-        $('#' + id_template + '_code').addClass('btn-secondary');
-        $('#' + id_template + '_code').removeClass('btn-primary');
-        $('#' + id_template + '_table').addClass('btn-secondary');
-        $('#' + id_template + '_table').removeClass('btn-primary');
-        $('#' + id_template + '_chart').addClass('btn-secondary');
-        $('#' + id_template + '_chart').removeClass('btn-primary');
-
-        $('#' + id_template + '_chart3d').addClass('btn-primary');
-        $('#' + id_template + '_chart3d').removeClass('btn-secondary');
-    } else {
-        $('#' + id_template + '_code').addClass('btn-primary');
-        $('#' + id_template + '_code').removeClass('btn-secondary');
-
-        $('#' + id_template + '_table').addClass('btn-secondary');
-        $('#' + id_template + '_table').removeClass('btn-primary');
-        $('#' + id_template + '_chart').addClass('btn-secondary');
-        $('#' + id_template + '_chart').removeClass('btn-primary');
-        $('#' + id_template + '_chart3d').addClass('btn-secondary');
-        $('#' + id_template + '_chart3d').removeClass('btn-primary');
-    }
-
-    if (value === 'chart3d' || value === 'table' || value === 'chart' || value === 'code') {
-        // Close the accordion if one of the buttons is clicked
-
-        // close the 3d chart options
-        let accordion = document.getElementById('collapseChart3dOptions_' + Options);
-        let bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
-        bsCollapse.hide();
-        
-        // close the chart options
-        accordion = document.getElementById('collapseChartOptions_' + Options);
-        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
-        bsCollapse.hide();
-        
-        // close the table options
-        accordion = document.getElementById('collapseTableOptions_' + Options);
-        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
-        bsCollapse.hide();
-    }
-}
+    ['Chart3d', 'Chart', 'Table'].forEach(suffix => {
+        const tabContent = document.getElementById(`collapse${suffix}Options_` + Options);
+        if (tabContent) {
+            bootstrap.Collapse.getOrCreateInstance(tabContent, { toggle: false }).hide();
+        }
+    });
+}  
 
 /**
  * Moves focus to the next cell in sequence
