@@ -247,8 +247,52 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
             for (let i = 0; i < parts.length; i++) {
                 const segment = parts[i];
                 if (i % 2 === 1) {
-                    // code fence
-                    html += `<pre class="ginacode"><code>${esc(segment)}</code></pre>`;
+                    // code fence: detect optional language on first line
+                    let lang = '';
+                    let body = segment;
+                    const firstNl = segment.indexOf('\n');
+                    if (firstNl >= 0) {
+                        lang = segment.slice(0, firstNl).trim().toLowerCase();
+                        body = segment.slice(firstNl + 1);
+                    }
+                    // Normalise common aliases
+                    const map = {
+                        'py': 'python', 'python': 'python',
+                        'sql': 'sql',
+                        'ps1': 'powershell', 'ps': 'powershell', 'powershell': 'powershell',
+                        'sh': 'bash', 'shell': 'bash', 'bash': 'bash',
+                        'js': 'javascript', 'javascript': 'javascript',
+                        'ts': 'typescript', 'typescript': 'typescript',
+                        'json': 'json', 'html': 'html', 'xml': 'xml',
+                        'yaml': 'yaml', 'yml': 'yaml', 'ini': 'ini', 'txt': 'text', 'text': 'text',
+                        'mermaid': 'mermaid'
+                    };
+                    const norm = map[lang] || (lang && /^[a-z0-9_+-]+$/.test(lang) ? lang : '');
+
+                    if (norm === 'mermaid') {
+                        // Render Mermaid block; content should not be HTML-escaped for Mermaid parsing
+                        const safe = body.replace(/<\//g, '<\\/'); // avoid accidental closing tags
+                        // Base64 encode the raw body for safe attribute storage (handles unicode)
+                        let b64 = '';
+                        try {
+                            b64 = btoa(unescape(encodeURIComponent(body)));
+                        } catch (e) {
+                            try { b64 = btoa(body); } catch (_) { b64 = ''; }
+                        }
+                        // Wrap with a positioned container and a small copy button in the bottom-right
+                        html += `
+<div class="mermaid-wrap" style="position:relative;">
+  <div class="mermaid">${safe}</div>
+  <button class="mermaid-copy-btn" data-b64="${b64}" title="Copy Mermaid"
+          style="position:absolute; right:6px; bottom:6px; padding:4px 6px; border:none; border-radius:4px; background:rgba(0,0,0,0.5); color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+      <i class="bi bi-clipboard" aria-hidden="true"></i>
+  </button>
+</div>`;
+                    } else {
+                        // Render as code with language class for highlighters (Prism/HLJS)
+                        const cls = norm ? `language-${norm} hljs` : 'hljs';
+                        html += `<pre class="ginacode"><code class="${cls}">${esc(body)}</code></pre>`;
+                    }
                 } else {
                     html += renderBlocks(segment);
                 }
@@ -264,6 +308,57 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
             const next = prev + (chunk || "");
             out.__streamBuffer = next;
             out.innerHTML = renderLLM(next);
+            try {
+                if (window.hljs && typeof window.hljs.highlightAll === 'function') {
+                    window.hljs.highlightAll();
+                }
+            } catch(e) { /* noop */ }
+            try {
+                if (window.Prism && typeof window.Prism.highlightAll === 'function') {
+                    window.Prism.highlightAll();
+                }
+            } catch(e) { /* noop */ }
+            try {
+                if (window.mermaid && typeof window.mermaid.init === 'function') {
+                    window.mermaid.init(undefined, out.querySelectorAll('.mermaid'));
+                }
+            } catch(e) { console.warn('Mermaid init failed', e); }
+            try {
+                // Attach copy handlers for any Mermaid copy buttons in this output block
+                const btns = out.querySelectorAll('.mermaid-copy-btn');
+                btns.forEach(btn => {
+                    if (btn.__ginaBound) return; // avoid rebinding on stream updates
+                    btn.__ginaBound = true;
+                    btn.addEventListener('click', function(ev){
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        const b64 = this.getAttribute('data-b64') || '';
+                        let txt = '';
+                        try {
+                            txt = decodeURIComponent(escape(atob(b64)));
+                        } catch (e) {
+                            try { txt = atob(b64); } catch(_) { txt = ''; }
+                        }
+                        const doFeedback = () => {
+                            const origHTML = this.innerHTML;
+                            this.innerHTML = '<i class="bi bi-clipboard-check" aria-hidden="true"></i>';
+                            setTimeout(() => { this.innerHTML = origHTML; }, 1200);
+                        };
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(txt).then(doFeedback).catch(doFeedback);
+                        } else {
+                            // Fallback copy
+                            const ta = document.createElement('textarea');
+                            ta.value = txt;
+                            document.body.appendChild(ta);
+                            ta.select();
+                            try { document.execCommand('copy'); } catch(_) {}
+                            document.body.removeChild(ta);
+                            doFeedback();
+                        }
+                    });
+                });
+            } catch(e) { /* noop */ }
         }
 
         // If final chunk received, finalize the block and UI state

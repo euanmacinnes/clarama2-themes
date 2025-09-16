@@ -87,7 +87,11 @@ button.btn-c2-play:hover {
 }
 
 .col-step-bar {
-    width: 6%
+    width: 4%
+}
+
+.col-remainder {
+    width: 96%
 }
 
 .bg-c2 {
@@ -366,8 +370,17 @@ button.btn-c2-play:hover {
     opacity: 0.25;
 }
 
+.loop-iterable {
+    border-width: 1;
+    border-style: solid;
+    border-color: #ddd;
+    border-radius: 4px;
+    padding: 0px;
+    margin: 0px;
+    background-color: #f8f9fa;
+}
 .loop-inactive {
-    opacity: 0.04;
+    opacity: 0.4;
 }
 
 
