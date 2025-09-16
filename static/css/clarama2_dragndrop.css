@@ -68,6 +68,7 @@ button.btn {
   background-color: #15d;
   color: lightgray;
     font-variation-settings: 'wght' 400;
+    flex-grow: 1 !important;
 }
 
 button.btn-c2:hover {

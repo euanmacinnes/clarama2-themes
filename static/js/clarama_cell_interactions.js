@@ -381,15 +381,17 @@ function setRatio(rowEl, ratio) {
  * @param {HTMLElement} [dividerEl] - The divider element.
  * @returns {number} Width in pixels.
  */
-function getDividerWidth(rowEl, dividerEl){
+function getDividerWidth(rowEl, dividerEl) {
     return (dividerEl?.getBoundingClientRect().width) || 8;
 }
+
 
 function getBarWidth(rowEl){
     const bar = rowEl.querySelector('.insights-toggle-bar');
     return bar ? bar.getBoundingClientRect().width : 0;
 }
   
+
 /**
  * Compute available horizontal space (in px) for the two panes combined,
  * i.e., the row width minus the divider width.
@@ -398,7 +400,7 @@ function getBarWidth(rowEl){
  * @param {HTMLElement} [dividerEl] - The divider element.
  * @returns {number} Available width in pixels (≥ 0).
  */
-function getAvail(rowEl, dividerEl){
+function getAvail(rowEl, dividerEl) {
     const rect = rowEl.getBoundingClientRect();
     return Math.max(0, rect.width - getDividerWidth(rowEl, dividerEl) - getBarWidth(rowEl));
 }
@@ -410,7 +412,7 @@ function getAvail(rowEl, dividerEl){
  * @param {number} ratio - Ratio in [0, 1] for left pane width.
  * @returns {void}
  */
-function applyRatio(row, ratio){
+function applyRatio(row, ratio) {
     const rowEl = row[0];
     setRatio(rowEl, ratio);
 }
@@ -428,8 +430,8 @@ function applyRatio(row, ratio){
  * @returns {void}
  */
 function setupDragDivider(cellItem, taskIndex) {
-    const row   = cellItem.find('.content-row');
-    const left  = cellItem.find('#left_content_' + taskIndex);
+    const row = cellItem.find('.content-row');
+    const left = cellItem.find('#left_content_' + taskIndex);
     const right = cellItem.find('#right_content_' + taskIndex);
 
     right.removeClass('d-none');
@@ -437,8 +439,8 @@ function setupDragDivider(cellItem, taskIndex) {
 
     let divider = row.find('.drag-divider');
     if (!divider.length) {
-    divider = $('<div class="drag-divider" role="separator" aria-orientation="vertical" tabindex="0"></div>');
-    left.after(divider);
+        divider = $('<div class="drag-divider" role="separator" aria-orientation="vertical" tabindex="0"></div>');
+        left.after(divider);
     }
 
     const rowEl = row[0];
@@ -450,7 +452,7 @@ function setupDragDivider(cellItem, taskIndex) {
     applyRatio(row, ratio);
 
     // Clamp function that respects current container width
-    function clampRatio(r){
+    function clampRatio(r) {
         const avail = getAvail(rowEl, dividerEl);
         if (!avail) return 0.5;
         const minR = Math.min(0.5, MIN_PX / avail);
@@ -459,7 +461,8 @@ function setupDragDivider(cellItem, taskIndex) {
 
     // Drag logic
     let dragging = false;
-    function onMove(e){
+
+    function onMove(e) {
         if (!dragging) return;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const rect = rowEl.getBoundingClientRect();
@@ -470,7 +473,7 @@ function setupDragDivider(cellItem, taskIndex) {
         applyRatio(row, ratio);
     }
 
-    function onUp(){
+    function onUp() {
         if (!dragging) return;
         dragging = false;
         $('body').removeClass('dragging');
@@ -485,13 +488,13 @@ function setupDragDivider(cellItem, taskIndex) {
             dragging = true;
             $('body').addClass('dragging');
             $(document)
-            .on('mousemove.cellsplit_' + taskIndex + ' touchmove.cellsplit_' + taskIndex, onMove)
-            .on('mouseup.cellsplit_' + taskIndex + ' touchend.cellsplit_' + taskIndex + ' touchcancel.cellsplit_' + taskIndex, onUp);
+                .on('mousemove.cellsplit_' + taskIndex + ' touchmove.cellsplit_' + taskIndex, onMove)
+                .on('mouseup.cellsplit_' + taskIndex + ' touchend.cellsplit_' + taskIndex + ' touchcancel.cellsplit_' + taskIndex, onUp);
         })
         .on('keydown.cellsplit_' + taskIndex, (e) => {
             const avail = getAvail(rowEl, dividerEl);
             const step = 10 / Math.max(avail, 1);
-            if (e.key === 'ArrowLeft')  ratio -= step;
+            if (e.key === 'ArrowLeft') ratio -= step;
             else if (e.key === 'ArrowRight') ratio += step;
             else return;
             ratio = clampRatio(ratio);
@@ -521,11 +524,14 @@ function setupDragDivider(cellItem, taskIndex) {
  * @param {string|number} [taskIndex] - Optional step index (not required by current implementation).
  * @returns {void}
  */
-function teardownDragDivider(cellItem){
+function teardownDragDivider(cellItem) {
     const row = cellItem.find('.content-row');
     row.removeClass('split-active');
     const ro = row.data('resizeObserver');
-    if (ro) { ro.disconnect(); row.removeData('resizeObserver'); }
+    if (ro) {
+        ro.disconnect();
+        row.removeData('resizeObserver');
+    }
     row[0].style.removeProperty('--split-ratio');
     row.find('.drag-divider').remove();
 }
@@ -552,13 +558,106 @@ function datacell_setOutput(id_template, value, Options) {
             .attr('aria-pressed', isActive ? 'true' : 'false');
     });
 
-    ['Chart3d', 'Chart', 'Table'].forEach(suffix => {
+    ['Chart3d', 'Chart', 'Table',' Diagram'].forEach(suffix => {
         const tabContent = document.getElementById(`collapse${suffix}Options_` + Options);
         if (tabContent) {
             bootstrap.Collapse.getOrCreateInstance(tabContent, { toggle: false }).hide();
         }
     });
-}  
+
+
+    if (value == 'table') {
+        $('#' + id_template + '_table').removeClass('btn-secondary');
+        $('#' + id_template + '_table').addClass('btn-primary');
+
+        $('#' + id_template + '_chart').removeClass('btn-primary');
+        $('#' + id_template + '_chart').addClass('btn-secondary');
+        $('#' + id_template + '_diagram').removeClass('btn-primary');
+        $('#' + id_template + '_diagram').addClass('btn-secondary');
+        $('#' + id_template + '_chart3d').removeClass('btn-primary');
+        $('#' + id_template + '_chart3d').addClass('btn-secondary');
+        $('#' + id_template + '_code').removeClass('btn-primary');
+        $('#' + id_template + '_code').addClass('btn-secondary');
+    } else if (value == 'chart') {
+        $('#' + id_template + '_code').addClass('btn-secondary');
+        $('#' + id_template + '_code').removeClass('btn-primary');
+        $('#' + id_template + '_table').addClass('btn-secondary');
+        $('#' + id_template + '_table').removeClass('btn-primary');
+        $('#' + id_template + '_diagram').addClass('btn-secondary');
+        $('#' + id_template + '_diagram').removeClass('btn-primary');
+        $('#' + id_template + '_chart3d').addClass('btn-secondary');
+        $('#' + id_template + '_chart3d').removeClass('btn-primary');
+
+        $('#' + id_template + '_chart').addClass('btn-primary');
+        $('#' + id_template + '_chart').removeClass('btn-secondary');
+    } else if (value == 'diagram') {
+        $('#' + id_template + '_code').addClass('btn-secondary');
+        $('#' + id_template + '_code').removeClass('btn-primary');
+        $('#' + id_template + '_table').addClass('btn-secondary');
+        $('#' + id_template + '_table').removeClass('btn-primary');
+        $('#' + id_template + '_chart').addClass('btn-secondary');
+        $('#' + id_template + '_chart').removeClass('btn-primary');
+        $('#' + id_template + '_chart3d').addClass('btn-secondary');
+        $('#' + id_template + '_chart3d').removeClass('btn-primary');
+
+        $('#' + id_template + '_diagram').addClass('btn-primary');
+        $('#' + id_template + '_diagram').removeClass('btn-secondary');
+    } else if (value == 'chart3d') {
+        $('#' + id_template + '_code').addClass('btn-secondary');
+        $('#' + id_template + '_code').removeClass('btn-primary');
+        $('#' + id_template + '_table').addClass('btn-secondary');
+        $('#' + id_template + '_table').removeClass('btn-primary');
+        $('#' + id_template + '_chart').addClass('btn-secondary');
+        $('#' + id_template + '_chart').removeClass('btn-primary');
+        $('#' + id_template + '_diagram').addClass('btn-secondary');
+        $('#' + id_template + '_diagram').removeClass('btn-primary');
+
+        $('#' + id_template + '_chart3d').addClass('btn-primary');
+        $('#' + id_template + '_chart3d').removeClass('btn-secondary');
+    } else {
+        // default to code
+        $('#' + id_template + '_code').addClass('btn-primary');
+        $('#' + id_template + '_code').removeClass('btn-secondary');
+
+        $('#' + id_template + '_table').addClass('btn-secondary');
+        $('#' + id_template + '_table').removeClass('btn-primary');
+        $('#' + id_template + '_chart').addClass('btn-secondary');
+        $('#' + id_template + '_chart').removeClass('btn-primary');
+        $('#' + id_template + '_diagram').addClass('btn-secondary');
+        $('#' + id_template + '_diagram').removeClass('btn-primary');
+        $('#' + id_template + '_chart3d').addClass('btn-secondary');
+        $('#' + id_template + '_chart3d').removeClass('btn-primary');
+    }
+
+    if (value === 'chart3d' || value === 'table' || value === 'chart' || value === 'diagram' || value === 'code') {
+        // Close the accordion if one of the buttons is clicked
+
+        // close the 3d chart options
+        let accordion = document.getElementById('collapseChart3dOptions_' + Options);
+        let bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        bsCollapse.hide();
+
+        // close the chart options
+        accordion = document.getElementById('collapseChartOptions_' + Options);
+        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        bsCollapse.hide();
+
+        // close the diagram options
+        accordion = document.getElementById('collapseDiagramOptions_' + Options);
+        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        bsCollapse.hide();
+
+        // close the table options
+        accordion = document.getElementById('collapseTableOptions_' + Options);
+        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        bsCollapse.hide();
+
+        // close the code options
+        accordion = document.getElementById('collapseCodeOptions_' + Options);
+        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        bsCollapse.hide();
+    }
+}
 
 /**
  * Moves focus to the next cell in sequence
@@ -863,16 +962,16 @@ function taskCellPaste() {
 (function attachAutoOpenInsights() {
     const OPEN_DEBOUNCE_MS = 120;
     let lastMark = null;
-  
-    function debounce(fn, wait){
+
+    function debounce(fn, wait) {
         let t = null;
-        return function(...args){
+        return function (...args) {
             clearTimeout(t);
             t = setTimeout(() => fn.apply(this, args), wait);
         };
     }
 
-    const maybeActivate = debounce(function(cellItem) {
+    const maybeActivate = debounce(function (cellItem) {
         if (!cellItem || !cellItem.length) return;
 
         const taskIndex =
@@ -906,7 +1005,7 @@ function taskCellPaste() {
         maybeActivate($(this).closest('.clarama-cell-item'));
     });
 
-    $(document).on('focusin.autoinsights', '.clarama-cell-item .ace_text-input', function(){
+    $(document).on('focusin.autoinsights', '.clarama-cell-item .ace_text-input', function () {
         maybeActivate($(this).closest('.clarama-cell-item'));
     });
 })();

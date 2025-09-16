@@ -10,60 +10,62 @@
                     <ol class="breadcrumb" id="breadcrumb_addfield">
                     </ol>
                 </nav>
-      
-                <button type="button" class="btn btn-primary" onclick="handle_add_selected_content('/content/element/{{ file_url }}', 'empty')">Add Empty Grid</button>
-      
+
+                <button type="button" class="btn btn-c2"
+                        onclick="handle_add_selected_content('/content/element/{{ file_url }}', 'empty')">Add Empty Grid
+                </button>
+
                 <div class="d-flex align-items-center w-100">
                     <p class="mb-1 pe-2">New: </p>
                     <button id="new_1" type="button" class="btn toggle_show hoverover"
-                      opacity=0.6 style="opacity: 0.6" new_file_class="bi-folder"
-                      new_file_type="folder" data-bs-toggle="tooltip" data-bs-title="Folder"
-                      data-bs-placement="bottom"><i class="bi bi-folder"></i></button>
+                            opacity=0.6 style="opacity: 0.6" new_file_class="bi-folder"
+                            new_file_type="folder" data-bs-toggle="tooltip" data-bs-title="Folder"
+                            data-bs-placement="bottom"><i class="bi bi-folder"></i></button>
                     <button id="new_2" type="button" class="btn toggle_show hoverover"
-                      opacity=0.6 style="opacity: 0.6" new_file_class="bi-journal-arrow-down"
-                      new_file_type="task" data-bs-toggle="tooltip" data-bs-title="Task"
-                      data-bs-placement="bottom"><i class="bi bi-journal-arrow-down"></i></button>
+                            opacity=0.6 style="opacity: 0.6" new_file_class="bi-journal-arrow-down"
+                            new_file_type="task" data-bs-toggle="tooltip" data-bs-title="Task"
+                            data-bs-placement="bottom"><i class="bi bi-journal-arrow-down"></i></button>
                     <button id="new_3" type="button" class="btn toggle_show hoverover"
-                      opacity=0.6 style="opacity: 0.6"
-                      new_file_class="bi-menu-app" new_file_type="field"
-                      data-bs-toggle="tooltip" data-bs-title="Field"
-                      data-bs-placement="bottom"><i class="bi bi-menu-app"></i>
+                            opacity=0.6 style="opacity: 0.6"
+                            new_file_class="bi-menu-app" new_file_type="field"
+                            data-bs-toggle="tooltip" data-bs-title="Field"
+                            data-bs-placement="bottom"><i class="bi bi-menu-app"></i>
                     </button>
                     <button id="new_4" type="button" class="btn toggle_show hoverover"
-                      opacity=0.6 style="opacity: 0.6" new_file_class="bi-blockquote-left"
-                      new_file_type="markdown" data-bs-toggle="tooltip"
-                      data-bs-title="Markdown File (Help Content)" data-bs-placement="bottom"><i
-                      class="bi bi-blockquote-left"></i></button>
+                            opacity=0.6 style="opacity: 0.6" new_file_class="bi-blockquote-left"
+                            new_file_type="markdown" data-bs-toggle="tooltip"
+                            data-bs-title="Markdown File (Help Content)" data-bs-placement="bottom"><i
+                            class="bi bi-blockquote-left"></i></button>
                 </div>
-      
+
                 <div id="toggle_target" name="toggle_target"
-                    class="list-group-item list-group-item-action container-fluid toggle_target p-3"
-                    style="display: none;">
+                     class="list-group-item list-group-item-action container-fluid toggle_target p-3"
+                     style="display: none;">
                     <div class="row">
                         <div class="col">
                             <div class="row row-cols-auto justify-content-center align-items-center"
-                                  style="width:100%;">
+                                 style="width:100%;">
                                 <i id="new_item" class="bi bi-folder position-relative new_item"
-                                    style="font-size: 1.8rem;">
+                                   style="font-size: 1.8rem;">
                                     <div class="rounded-pill badge-notification position-absolute translate-middle"
-                                          style="font-size: 0.86em; left: 80%!important;top: 20%!important;">
+                                         style="font-size: 0.86em; left: 80%!important;top: 20%!important;">
                                         <i class="bi bi-plus-circle-dotted"></i>
                                     </div>
                                 </i>
                                 <div class="col-10">
                                     <form id="new_content_form" class="col">
                                         <div class="btn-group d-flex" role="group"
-                                              aria-label="task_functions" style="width=100%;">
+                                             aria-label="task_functions" style="width=100%;">
                                             <input id="new_content" name="new_content" type="text"
-                                                    value="Untitled" class="form-control"
-                                                    style="width: 100%;">
+                                                   value="Untitled" class="form-control"
+                                                   style="width: 100%;">
                                             <input id="new_content_type" name="new_content_type"
-                                                    type="hidden" value=""
-                                                    class="form-control new_content_type"
-                                                    style="width: 100%;">
-                                            <button type="submit" class="btn btn-secondary"><i
+                                                   type="hidden" value=""
+                                                   class="form-control new_content_type"
+                                                   style="width: 100%;">
+                                            <button type="submit" class="btn btn-c2-secondary"><i
                                                     class="bi bi-floppy"></i></button>
-                                            <button type="button" class="btn btn-secondary toggle_hide"><i
+                                            <button type="button" class="btn btn-c2-secondary toggle_hide"><i
                                                     class="bi bi-x fs-4"></i></button>
                                         </div>
                                     </form>
@@ -72,15 +74,15 @@
                         </div>
                     </div>
                 </div>
-      
+
                 <select id="add_content_addfield" name="add_content" size="10" class="form-control">
-      
+
                 </select>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary"
-                    onclick="handle_add_selected_content('/content/element/{{ file_url }}')">Add
+                <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-c2"
+                        onclick="handle_add_selected_content('/content/element/{{ file_url }}')">Add
                 </button>
             </div>
         </div>
@@ -90,11 +92,11 @@
 <script type="text/javascript">
     // this will add a grid element when file is selected
 
-    $( document ).ready(() => {
+    $(document).ready(() => {
         // double-click on a file in the modal
         $('#add_content_addfield').on('dblclick', 'option', function () {
             document.getElementById('new_content').value = '';
-            const selectedItem = $(this); 
+            const selectedItem = $(this);
             if (!isFolder(selectedItem)) {
                 console.log("File selected: " + selectedItem.val());
                 handle_add_selected_content('/content/element/{{ file_url }}')

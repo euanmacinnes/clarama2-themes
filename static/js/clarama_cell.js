@@ -280,7 +280,7 @@ function get_data_cell(cell) {
         'series-objects': chart3d_series_objs,
         // Axis config (GraphScaler-compatible)
         'axis': {
-            'titles': { x: chart3d_axis_title_x, y: chart3d_axis_title_y, z: chart3d_axis_title_z },
+            'titles': {x: chart3d_axis_title_x, y: chart3d_axis_title_y, z: chart3d_axis_title_z},
             'orig_bounds': {
                 x: [chart3d_axis_min_x !== '' ? parseFloat(chart3d_axis_min_x) : undefined,
                     chart3d_axis_max_x !== '' ? parseFloat(chart3d_axis_max_x) : undefined],
@@ -304,13 +304,16 @@ function get_data_cell(cell) {
     if (!chart3d.axis) chart3d.axis = {};
     var ticks = {};
     if (chart3d_tick_step_x !== '') {
-        ticks.x = ticks.x || {}; ticks.x.step = parseFloat(chart3d_tick_step_x);
+        ticks.x = ticks.x || {};
+        ticks.x.step = parseFloat(chart3d_tick_step_x);
     }
     if (chart3d_tick_step_y !== '') {
-        ticks.y = ticks.y || {}; ticks.y.step = parseFloat(chart3d_tick_step_y);
+        ticks.y = ticks.y || {};
+        ticks.y.step = parseFloat(chart3d_tick_step_y);
     }
     if (chart3d_tick_step_z !== '') {
-        ticks.z = ticks.z || {}; ticks.z.step = parseFloat(chart3d_tick_step_z);
+        ticks.z = ticks.z || {};
+        ticks.z.step = parseFloat(chart3d_tick_step_z);
     }
     if (Object.keys(ticks).length > 0) {
         chart3d.axis.ticks = ticks;

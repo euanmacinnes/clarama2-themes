@@ -6,7 +6,7 @@
                 <span class="clarama-capitalize clarama-error" data-bs-toggle="collapse"
                       data-bs-target="#collapse{instance_content}">{exception_content}</span>
             </div>
-            <button class="btn btn-primary mt-0" type="button" data-bs-toggle="collapse"
+            <button class="btn btn-c2 mt-0" type="button" data-bs-toggle="collapse"
                     data-bs-target="#collapse{instance_content}"
                     aria-expanded="false" aria-controls="collapse{instance_content}">
                 ...
@@ -31,7 +31,7 @@
                     </td>
                     <td>&nbsp;&nbsp;&nbsp;</td>
                     <td>
-                        <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                        <button class="btn btn-c2" type="button" data-bs-toggle="collapse"
                                 data-bs-target="#collapse{instance_content}"
                                 aria-expanded="false" aria-controls="collapse{instance_content}">
                             ...
@@ -50,7 +50,7 @@
 <template id="task_step_warn" target_class="cell-results">
     <div class="row alert alert-warning">
         <div><b>{message_content}</b>
-            <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+            <button class="btn btn-c2" type="button" data-bs-toggle="collapse"
                     data-bs-target="#collapse{instance_content}"
                     aria-expanded="false" aria-controls="collapse{instance_content}">
                 ...
@@ -67,7 +67,7 @@
 <template id="task_step_info" target_class="cell-results">
     <div class="row alert alert-primary">
         <div><b>{message_content}</b>
-            <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+            <button class="btn btn-c2" type="button" data-bs-toggle="collapse"
                     data-bs-target="#collapse{instance_content}"
                     aria-expanded="false" aria-controls="collapse{instance_content}">
                 ...
@@ -422,6 +422,36 @@
     </div>
 </template>
 
+<template id="task_step_result_diagram" target_class="cell-results">
+    <div class="container-fluid position-relative tight" style="height: 100%">
+        <div id="{diagram_id_content}-holder" style="min-width:100px; width:100%; position: relative;">
+            <div id="{diagram_id_content}" class="mermaid" data-b64="{output_content}"></div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            try {
+                const el = document.getElementById('{diagram_id_content}');
+                if (!el) return;
+                const b64 = el.getAttribute('data-b64') || '';
+                let txt = '';
+                try {
+                    txt = atob(b64);
+                } catch (e) {
+                    txt = b64;
+                }
+                // Set text content so Mermaid can parse it
+                el.textContent = txt;
+                if (window.mermaid && typeof window.mermaid.init === 'function') {
+                    window.mermaid.init(undefined, el);
+                }
+            } catch (e) {
+                console.error('Mermaid render error', e);
+            }
+        })();
+    </script>
+</template>
+
 <template id="grid_new_content" target_suffix="">
     <div class="container-fluid row" style="height: 100%">
         <div id="{target}" class="col clarama-embedded slate-panel-target" style="height: 100%"
@@ -471,37 +501,58 @@
                 }
 
                 // Trigger backend to start publishing (non-blocking): support multiple fetch URLs
-                function __claramaDecodeBodyMaybe(b){
-                    try{
-                        if(!b || b === 'None') return undefined;
+                function __claramaDecodeBodyMaybe(b) {
+                    try {
+                        if (!b || b === 'None') return undefined;
                         // Body is base64-encoded JSON string
                         return atob(b);
-                    }catch(e){
-                        try{ return decodeURIComponent(escape(atob(b))); }catch(ex){ return b; }
+                    } catch (e) {
+                        try {
+                            return decodeURIComponent(escape(atob(b)));
+                        } catch (ex) {
+                            return b;
+                        }
                     }
                 }
+
                 const headersBase = {'Content-Type': 'application/json'};
-                try { headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization']; } catch(e){}
+                try {
+                    headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization'];
+                } catch (e) {
+                }
                 let fetchedAny = false;
                 try {
-                    if (fetchUrlsRaw && fetchUrlsRaw !== 'None' && fetchUrlsRaw !== ''){
+                    if (fetchUrlsRaw && fetchUrlsRaw !== 'None' && fetchUrlsRaw !== '') {
                         const arr = JSON.parse(fetchUrlsRaw);
-                        if (Array.isArray(arr)){
+                        if (Array.isArray(arr)) {
                             arr.forEach(req => {
-                                if(req && req.url){
+                                if (req && req.url) {
                                     const m = (req.method && req.method !== 'None') ? req.method : 'POST';
                                     const b = (req.body && req.body !== 'None') ? __claramaDecodeBodyMaybe(req.body) : undefined;
-                                    fetch(req.url, {method: m, headers: headersBase, body: b}).catch(err=>console.error('Stream trigger fetch failed', err));
+                                    fetch(req.url, {
+                                        method: m,
+                                        headers: headersBase,
+                                        body: b
+                                    }).catch(err => console.error('Stream trigger fetch failed', err));
                                     fetchedAny = true;
                                 }
                             });
                         }
                     }
-                } catch(e){ console.warn('Invalid urls JSON', e); }
+                } catch (e) {
+                    console.warn('Invalid urls JSON', e);
+                }
                 if (!fetchedAny && fetchUrl && fetchUrl !== 'None') {
-                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: __claramaDecodeBodyMaybe(fetchBody)})
-                        .then(function () { })
-                        .catch(function (err) { console.error('Stream trigger fetch failed', err); });
+                    fetch(fetchUrl, {
+                        method: fetchMethod,
+                        headers: headersBase,
+                        body: __claramaDecodeBodyMaybe(fetchBody)
+                    })
+                        .then(function () {
+                        })
+                        .catch(function (err) {
+                            console.error('Stream trigger fetch failed', err);
+                        });
                 }
 
                 // Initialize streaming chart
@@ -571,36 +622,57 @@
                 const fetchUrlsRaw = `{urls_content}`; // optional JSON array of {url, method, body}
 
                 // If URL(s) provided, call them to trigger the backend to start publishing to the topic.
-                function __claramaDecodeBodyMaybe(b){
-                    try{
-                        if(!b || b === 'None') return undefined;
+                function __claramaDecodeBodyMaybe(b) {
+                    try {
+                        if (!b || b === 'None') return undefined;
                         return atob(b);
-                    }catch(e){
-                        try{ return decodeURIComponent(escape(atob(b))); }catch(ex){ return b; }
+                    } catch (e) {
+                        try {
+                            return decodeURIComponent(escape(atob(b)));
+                        } catch (ex) {
+                            return b;
+                        }
                     }
                 }
+
                 const headersBase = {'Content-Type': 'application/json'};
-                try { headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization']; } catch(e){}
+                try {
+                    headersBase['Authorization'] = window.claramaAuthToken ? ('Bearer ' + window.claramaAuthToken) : headersBase['Authorization'];
+                } catch (e) {
+                }
                 let fetchedAny = false;
                 try {
-                    if (fetchUrlsRaw && fetchUrlsRaw !== 'None' && fetchUrlsRaw !== ''){
+                    if (fetchUrlsRaw && fetchUrlsRaw !== 'None' && fetchUrlsRaw !== '') {
                         const arr = JSON.parse(fetchUrlsRaw);
-                        if (Array.isArray(arr)){
+                        if (Array.isArray(arr)) {
                             arr.forEach(req => {
-                                if(req && req.url){
+                                if (req && req.url) {
                                     const m = (req.method && req.method !== 'None') ? req.method : 'POST';
                                     const b = (req.body && req.body !== 'None') ? __claramaDecodeBodyMaybe(req.body) : undefined;
-                                    fetch(req.url, {method: m, headers: headersBase, body: b}).catch(err=>console.error('Stream trigger fetch failed', err));
+                                    fetch(req.url, {
+                                        method: m,
+                                        headers: headersBase,
+                                        body: b
+                                    }).catch(err => console.error('Stream trigger fetch failed', err));
                                     fetchedAny = true;
                                 }
                             });
                         }
                     }
-                } catch(e){ console.warn('Invalid urls JSON', e); }
+                } catch (e) {
+                    console.warn('Invalid urls JSON', e);
+                }
                 if (!fetchedAny && fetchUrl && fetchUrl !== 'None') {
-                    fetch(fetchUrl, {method: fetchMethod, headers: headersBase, body: __claramaDecodeBodyMaybe(fetchBody)})
-                        .then(function (resp) { /* no-op */ })
-                        .catch(function (err) { console.error('Stream trigger fetch failed', err); });
+                    fetch(fetchUrl, {
+                        method: fetchMethod,
+                        headers: headersBase,
+                        body: __claramaDecodeBodyMaybe(fetchBody)
+                    })
+                        .then(function (resp) { /* no-op */
+                        })
+                        .catch(function (err) {
+                            console.error('Stream trigger fetch failed', err);
+                        });
                 }
 
                 // Initialize streaming table subscription
