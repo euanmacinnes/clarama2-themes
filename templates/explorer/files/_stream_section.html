@@ -3,14 +3,13 @@
 {% set is_first = is_first if is_first is defined else true %}
 <div class="accordion-item stream-toolbar-container">
     <h2 class="accordion-header" id="panelsStayOpen-heading{{ stream }}">
-        <button class="accordion-button {% if not is_first %}collapsed{% endif %} d-flex align-items-center justify-content-between"
+        <button class="accordion-button stream {% if not is_first %}collapsed{% endif %} d-flex align-items-center justify-content-between"
                 type="button"
                 data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapse{{ stream }}"
                 aria-expanded="{{ 'true' if is_first else 'false' }}"
                 aria-controls="panelsStayOpen-collapse{{ stream }}">
             <div class="d-flex align-items-center flex-grow-1 stream-toolbar stream-title"
                  data-stream="{{ stream }}">
-                <i class="me-2">Stream </i>
                 <span class="stream-title-text flex-fill stream-toolbar-button {% if stream == 'main' %}fw-bold{% endif %}">{{ stream }}</span>
                 <input class="form-control form-control-sm stream-title-input" type="text" value="{{ stream }}"
                        style="display:none; max-width: 200px;">

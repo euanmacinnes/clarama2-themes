@@ -94,6 +94,16 @@ button.btn-c2-play:hover {
     width: 96%
 }
 
+.separator {
+  border-bottom: 1px dotted #ccc; /* 1px for thin, dotted style, #ccc for light gray color */
+  padding-bottom: 4px;
+}
+
+.stream {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 10px;
+}
 .bg-c2 {
   background-color: #15d;
     border-color: #04c;

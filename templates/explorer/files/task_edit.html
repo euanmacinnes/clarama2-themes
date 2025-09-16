@@ -14,15 +14,12 @@
 <form>
     <div class="container-fluid bg-light">
         <div class="row" style="padding: 0">
-            <div class="col-step-bar task-step-bar radial-tl">
-                Execution
-            </div>
             <div class="col">
                 <div class="row">
                 </div>
             </div>
             <div class="col-auto">
-                <ul class="btn-group clarama-task" role="group" aria-label="task_functions">
+                <ul class="btn-group clarama-task tight" role="group" aria-label="task_functions">
                     <button id="save" type="button" class="btn btn-c2 clarama-task clarama-task-save"
                             url="{{ file_url }}" title="save"><i
                             class="bi bi-floppy"></i></button>
@@ -82,11 +79,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-step-bar cell-panel task-step-bar" style="padding: 0">
-                Parameters
-            </div>
             <div class="col mb-3" style="padding: 0">
-                <hr/>
                 <div class="container-fluid">
                     {% include theme("explorer/files/_fields_edit_task.html") %}
                 </div>
