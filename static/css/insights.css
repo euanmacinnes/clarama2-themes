@@ -286,12 +286,18 @@ body.dragging {
 .insights-toggle-bar {
     flex: 0 0 var(--bar-width);
     display: flex;
-    align-items: center;
+    align-items:start;
     justify-content: center;
     border-left: 1px solid #dee2e6;
-    background: #0dcaf0;
+    background: #6af;
     cursor: pointer;
-    padding: 0;
+    padding-top: 16px;
+    border: none;
+    border-left: 1px solid #dee2e6;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    appearance: none;
+    box-shadow: none;
 }
 
 .insights-toggle-bar:focus { 
