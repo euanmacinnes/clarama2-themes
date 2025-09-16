@@ -755,6 +755,7 @@ window.ClaramaStream = window.ClaramaStream || (function () {
 function onMessage(event, socket_url, webSocket, socket_div) {
     let dict = JSON.parse(event.data);
     //console.log("WEBSOCKET.js: onMessage " + dict['class']);
+    // console.log("dict: ", dict);
 
     let message_event = socket_div.attr('onmessage');
 
@@ -812,6 +813,31 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 flash(dict['message'], dict['category']);
             }
 
+            if (dict['class'] === "insights_template") {
+                const step_id = dict['step_id'];
+                const output_text = dict?.values?.output;
+            
+                let taskIndex = null;
+                if (step_id) {
+                    const match = step_id.match(/step_(\d+)/);
+                    taskIndex = match ? match[1] : step_id.replace(/\D/g, '');
+                }
+            
+                if (taskIndex && output_text !== undefined) {
+                    const variablesCallbackKey = 'cell_insights_variables_callback_' + taskIndex;
+            
+                    if (typeof window[variablesCallbackKey] === "function") {
+                        try {
+                            window[variablesCallbackKey](output_text);
+                            delete window[variablesCallbackKey];
+                        } catch (e) { console.error("Error calling variables insights callback:", e); }
+                    }
+                }
+            
+                // Nothing to render via templates for insights; stop here.
+                return;
+            }            
+
             if (dict['class'] === "progress_bar") {
                 let resulter = "#" + dict['step_id'];
 
@@ -860,61 +886,6 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                         taskIndex = match[1];
                     } else {
                         taskIndex = step_id.replace(/\D/g, ''); // Remove non-digits
-                    }
-                }
-
-                if (taskIndex && output_text !== undefined) {
-                    // Check for console callback first
-                    let consoleCallbackKey = 'cell_insights_console_callback_' + taskIndex;
-                    let variablesCallbackKey = 'cell_insights_variables_callback_' + taskIndex;
-                    let generalCallbackKey = 'cell_insights_callback_' + taskIndex;
-
-                    if (typeof window[consoleCallbackKey] === "function") {
-                        console.log("Found console callback, calling with output:", output_text);
-                        try {
-                            window[consoleCallbackKey](output_text);
-                            delete window[consoleCallbackKey];
-                        } catch (e) {
-                            console.error("Error calling console insights callback:", e);
-                        }
-                    } else if (typeof window[variablesCallbackKey] === "function") {
-                        console.log("Found variables callback, calling with output:", output_text);
-                        try {
-                            window[variablesCallbackKey](output_text);
-                            delete window[variablesCallbackKey];
-                        } catch (e) {
-                            console.error("Error calling variables insights callback:", e);
-                        }
-                    } else if (typeof window[generalCallbackKey] === "function") {
-                        console.log("Found general callback, calling with output:", output_text);
-                        try {
-                            window[generalCallbackKey](output_text);
-                            delete window[generalCallbackKey];
-                        } catch (e) {
-                            console.error("Error calling general insights callback:", e);
-                        }
-                    } else {
-                        let insightsCallbacks = Object.keys(window).filter(key => key.startsWith('cell_insights_callback_'));
-                        console.log("Available insights callbacks:", insightsCallbacks);
-
-                        if (insightsCallbacks.length === 1) {
-                            console.log("Using single available callback:", insightsCallbacks[0]);
-                            try {
-                                window[insightsCallbacks[0]](output_text);
-                                delete window[insightsCallbacks[0]];
-                            } catch (e) {
-                                console.error("Error calling single insights callback:", e);
-                            }
-                        } else {
-                            console.log("No callback found, trying direct population for task:", taskIndex);
-                            if (taskIndex) {
-                                try {
-                                    populateVariablesList(output_text, taskIndex);
-                                } catch (e) {
-                                    console.error("Error calling populateVariablesList directly:", e);
-                                }
-                            }
-                        }
                     }
                 }
 

@@ -8,7 +8,10 @@
  * @param {string} code_command - The code to execute
  * @param {Object} field_registry - The field registry object
  */
-function set_insight_behaviour(task_registry, code_command, field_registry) {
+function set_insight_behaviour(task_registry, code_command, field_registry, isInspecting=false) {
+    if (!isInspecting) { // set if is not from inspecting the variable
+        task_registry['streams'][0]['main'][0]['target'] = 'insights';
+    }
     task_registry['streams'][0]['main'][0]['type'] = 'code';
     task_registry['streams'][0]['main'][0]['content'] = code_command;
     task_registry['streams'][0]['main'][0]['clear'] = false;
@@ -33,8 +36,7 @@ function cell_insights_run(cell_button, outputCallback) {
     window[runningKey] = true;
     
     window['cell_insights_variables_callback_' + taskIndex] = function(output) {
-        console.log("Variables insights callback received output for task", taskIndex, ":", output);
-        populateVariablesList(output, taskIndex, false);
+        populateVariablesList(output, taskIndex);
         
         if (outputCallback) {
             outputCallback(output);
@@ -204,11 +206,6 @@ function inspectVariable(varName, taskIndex) {
         const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
         const inspectionKey = `variable_inspecting_${currentTaskIndex}`;
         
-        if (window[inspectionKey]) {
-            console.log("Variable inspection already in progress for task", currentTaskIndex);
-            return;
-        }
-        
         window[inspectionKey] = true;
     
         // Clean up any existing callback
@@ -251,7 +248,7 @@ except Exception as e:
         print(f"Could not display variable '${varName}'")
 `;
 
-            set_insight_behaviour(task_registry, codeChecker, field_registry);
+            set_insight_behaviour(task_registry, codeChecker, field_registry, true);
     
             const socket_div = $("#edit_socket");
             const task_kernel_id = socket_div.attr("task_kernel_id");
@@ -383,9 +380,8 @@ function createEmptyVariablesMessage(message = "No user variables found") {
  * @param {HTMLElement} container - Container element
  * @param {Array} variableNames - Array of variable names
  * @param {string} taskIndex - Task index
- * @param {boolean} useTemplate - Whether to use template support
  */
-function populateVariablesContainer(container, variableNames, taskIndex, useTemplate = false) {
+function populateVariablesContainer(container, variableNames, taskIndex) {
     // Clear existing content and event listeners
     const existingButtons = container.querySelectorAll('.variable-item');
     existingButtons.forEach(button => {
@@ -398,32 +394,21 @@ function populateVariablesContainer(container, variableNames, taskIndex, useTemp
     const fragment = document.createDocumentFragment();
 
     variableNames.forEach(varName => {
-        const button = useTemplate ? 
-            createVariableButton(varName, taskIndex) : 
-            createVariableButtonDirect(varName, taskIndex);
+        const button = createVariableButtonDirect(varName, taskIndex);
         fragment.appendChild(button);
     });
     
     container.appendChild(fragment);
     
-    if (useTemplate) {
-        enable_interactions($(container));
-        
-        setTimeout(() => {
-            attachVariableClickHandlers(container, taskIndex);
-        }, 100);
-    } else {
-        attachVariableClickHandlers(container, taskIndex);
-    }
+    attachVariableClickHandlers(container, taskIndex);
 }
 
 /**
  * Populates the variables list with parsed output
  * @param {*} output - Raw output from Python execution
  * @param {string} taskIndex - Task index
- * @param {boolean} useTemplate - Whether to use template support
  */
-function populateVariablesList(output, taskIndex, useTemplate = false) {
+function populateVariablesList(output, taskIndex) {
     const variablesList = $(`#variables_${taskIndex}`)[0];
     
     if (!variablesList) {
@@ -480,7 +465,7 @@ function populateVariablesList(output, taskIndex, useTemplate = false) {
 
         if (variableNames.length > 0) {
             const container = createVariablesContainer(taskIndex);
-            populateVariablesContainer(container, variableNames, taskIndex, useTemplate);
+            populateVariablesContainer(container, variableNames, taskIndex);
             
             variablesList.innerHTML = '';
             variablesList.appendChild(container);
@@ -513,15 +498,13 @@ function parseVariableString(stringToParse) {
     if (stringToParse.startsWith("[") && stringToParse.endsWith("]")) {
         let innerContent = stringToParse.slice(1, -1).trim();
         
-        console.log("Inner content:", innerContent);
-        
         if (innerContent.length === 0) {
             return [];
         }
         
         variableNames = splitRespectingQuotes(innerContent);
         
-        console.log("After splitRespectingQuotes:", variableNames);
+        console.log("list of variables: ", variableNames);
         
     } else {
         variableNames = [stringToParse];
@@ -536,8 +519,6 @@ function parseVariableString(stringToParse) {
  * @returns {string[]} Array of split strings
  */
 function splitRespectingQuotes(str) {
-    console.log("splitRespectingQuotes input:", str);
-    
     const result = [];
     let current = '';
     let inQuotes = false;
