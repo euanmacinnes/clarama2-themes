@@ -12,7 +12,8 @@
     overflow: hidden;
     width: 100%;
   
-    --divider-width: 8px; 
+    --divider-width: 8px;
+    --bar-width: 28px;
     --split-ratio: 0.5;
 }
 
@@ -25,16 +26,16 @@
 }
 
 .content-row:not(.split-active) .left-content {
-    flex: 1 1 100% !important;
-    max-width: 100% !important;
+    flex: 0 0 calc(100% - var(--bar-width)) !important;
+    max-width: calc(100% - var(--bar-width)) !important;
 }
 
 .left-content{
-    flex: 0 0 calc(var(--split-ratio) * (100% - var(--divider-width)));
+    flex: 0 0 calc(var(--split-ratio) * (100% - var(--divider-width) - var(--bar-width)));
 }
 
 .right-content{
-    flex: 0 0 calc((1 - var(--split-ratio)) * (100% - var(--divider-width)));
+    flex: 0 0 calc((1 - var(--split-ratio)) * (100% - var(--divider-width) - var(--bar-width)));
 }
 
 .left-content,
@@ -280,4 +281,29 @@
 body.dragging {
     user-select: none;
     cursor: col-resize;
+}
+
+.insights-toggle-bar {
+    flex: 0 0 var(--bar-width);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid #dee2e6;
+    background: #0dcaf0;
+    cursor: pointer;
+    padding: 0;
+}
+
+.insights-toggle-bar:focus { 
+    outline: none; 
+}
+
+.insights-toggle-bar i { 
+    pointer-events: none; 
+    font-size: 1.1rem;
+}
+
+.insight-bulb-glow {
+    color: #ffc107;
+    text-shadow: 0 0 6px rgba(255,193,7,0.8), 0 0 14px rgba(255,193,7,0.6);
 }

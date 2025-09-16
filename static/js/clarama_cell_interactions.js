@@ -21,39 +21,43 @@ window.copiedCellData = null;
  * @description Finds all open insights and closes them
  */
 function closeAllinsights() {
-    // Find all cells that have insights (both static and dynamic)
     $('[id^="insights_"]').each(function () {
         var insightsDiv = $(this);
-        var insightsId = insightsDiv.attr('id');
-        var taskIndex = insightsId.replace('insights_', '');
+        var taskIndex   = insightsDiv.attr('id').replace('insights_', '');
+        var cellItem    = insightsDiv.closest('.clarama-cell-item');
+        if (!cellItem.length) cellItem = $(`li.clarama-cell-item[step="${taskIndex}"]`);
+        if (!cellItem.length) cellItem = $(`li.clarama-cell-item[data-task-index="${taskIndex}"]`);
+        if (!cellItem.length) return;
 
-        // Find the parent cell - try multiple selectors to catch dynamically added cells
-        var cellItem = insightsDiv.closest('.clarama-cell-item');
-        if (!cellItem.length) {
-            // Fallback: try to find by step attribute
-            cellItem = $(`li.clarama-cell-item[step="${taskIndex}"]`);
-        }
-        if (!cellItem.length) {
-            // Another fallback: try to find by data-task-index
-            cellItem = $(`li.clarama-cell-item[data-task-index="${taskIndex}"]`);
-        }
-
-        if (!cellItem.length) {
-            console.warn("Could not find cell item for insights", taskIndex);
-            return;
-        }
-
-        var leftContent = cellItem.find(`#left_content_${taskIndex}`);
         var rightContent = cellItem.find(`#right_content_${taskIndex}`);
-        var insightsButton = cellItem.find('.celleditinsights');
+        var oldBtn       = cellItem.find('.celleditinsights');
+        var bar          = cellItem.find('.insights-toggle-bar');
 
         // Only process if the insights is currently open
-        if (rightContent.length > 0 && !rightContent.hasClass('d-none')) {
+        if (rightContent.length && !rightContent.hasClass('d-none')) {
             teardownDragDivider(cellItem);
             rightContent.addClass('d-none');
 
-            insightsButton.removeClass('btn-warning');
-            insightsButton.attr('title', 'insights (Ctrl-\\)');
+            if (oldBtn.length) {
+                oldBtn.removeClass('btn-warning').attr('title', 'Insights (Ctrl-\\)');
+            }
+            
+            if (bar.length) {
+                bar.removeClass('open').attr('title', 'Insights (Ctrl-\\)');
+                var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
+                if (headerBulb.length) {
+                    headerBulb
+                        .removeClass('bi-lightbulb insight-bulb-glow')
+                        .addClass('bi-lightbulb-off');
+                }
+
+                if (bar.length) {
+                    const icon = bar.find('i');
+                    if (icon.length) {
+                        icon.removeClass('bi-lightbulb').addClass('bi-lightbulb-off');
+                    }
+                }
+            }
 
             var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
             if (isNotificationCell) {
@@ -123,24 +127,17 @@ function initializeNewCellinsights(newElement) {
     cell_toggle_insights_view(newElement);
 
     var taskIndex = newElement.attr('step') || newElement.attr('data-task-index');
-
     if (taskIndex) {
         setupConsoleHandlers(newElement, taskIndex);
 
-        var insightsButton = newElement.find('.celleditinsights');
-        if (insightsButton.length) {
-            insightsButton.attr('data-task-index', taskIndex);
-        }
+        // Support both old button and new bar
+        newElement.find('.celleditinsights, .insights-toggle-bar').attr('data-task-index', taskIndex);
 
-        var consoleInput = newElement.find('.console-input');
-        if (consoleInput.length) {
-            consoleInput.attr('data-task-index', taskIndex);
-        }
+        var consoleInput  = newElement.find('.console-input');
+        if (consoleInput.length) consoleInput.attr('data-task-index', taskIndex);
 
         var executeButton = newElement.find('.execute-console');
-        if (executeButton.length) {
-            executeButton.attr('data-task-index', taskIndex);
-        }
+        if (executeButton.length) executeButton.attr('data-task-index', taskIndex);
     }
 }
 
@@ -261,7 +258,8 @@ function openinsights(cellItem, taskIndex) {
 
     var leftContent = cellItem.find('#left_content_' + taskIndex);
     var rightContent = cellItem.find('#right_content_' + taskIndex);
-    var insightsButton = cellItem.find('.celleditinsights');
+    var oldBtn       = cellItem.find('.celleditinsights');       // may or may not exist
+    var bar          = cellItem.find('.insights-toggle-bar');    // new vertical bar
     var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
     var notificationContents = null;
 
@@ -272,19 +270,37 @@ function openinsights(cellItem, taskIndex) {
     rightContent.removeClass('d-none');
     setupDragDivider(cellItem, taskIndex);
 
-    insightsButton.addClass('btn-warning');
-    insightsButton.attr('title', 'Hide insights (Ctrl-\\)');
+    // Visual states / titles
+    if (oldBtn.length) {
+        oldBtn.addClass('btn-warning').attr('title', 'Hide insights (Ctrl-\\)');
+    }
+    if (bar.length) {
+        bar.addClass('open').attr('title', 'Hide insights (Ctrl-\\)');
+        var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
+        if (headerBulb.length) {
+            headerBulb
+                .removeClass('bi-lightbulb-off')
+                .addClass('bi-lightbulb insight-bulb-glow');
+        }
+
+        // Vertical bar icon -> ON
+        if (bar.length) {
+            const icon = bar.find('i');
+            if (icon.length) {
+                icon.removeClass('bi-lightbulb-off').addClass('bi-lightbulb');
+            }
+        }
+    }
 
     if (isNotificationCell && notificationContents && notificationContents.length > 0) {
-        notificationContents.removeClass('row');
-        notificationContents.addClass('d-flex flex-column');
+        notificationContents.removeClass('row').addClass('d-flex flex-column');
     }
 
     setupConsoleHandlers(cellItem, taskIndex);
 
     cell_insights_run(cellItem, function (output_text) {
-        var taskIndex = cellItem.attr('step') || cellItem.attr('data-task-index');
-        populateVariablesList(output_text, taskIndex);
+        var idx = cellItem.attr('step') || cellItem.attr('data-task-index');
+        populateVariablesList(output_text, idx);
     });
 }
 
@@ -325,19 +341,19 @@ function cell_delete_step(parent) {
  * can be open at a time.
  */
 function cell_toggle_insights_view(parent) {
-    parent.find(".celleditinsights").off('click.insights');
-    parent.find(".celleditinsights").on("click.insights", function () {
-        var insightsButton = $(this);
-        var cellItem = insightsButton.closest('.clarama-cell-item');
+    parent.find(".celleditinsights, .insights-toggle-bar").off('click.insights');
+    parent.find(".celleditinsights, .insights-toggle-bar").on("click.insights", function () {
+        var insightsControl = $(this);
+        var cellItem = insightsControl.closest('.clarama-cell-item');
 
-        var taskIndex = insightsButton.attr('data-task-index') ||
+        var taskIndex = insightsControl.attr('data-task-index') ||
             cellItem.attr('step') ||
             cellItem.attr('data-task-index');
 
         var rightContent = cellItem.find('#right_content_' + taskIndex);
-        var isThisinsightsOpen = !rightContent.hasClass('d-none');
+        var isOpen = !rightContent.hasClass('d-none');
 
-        if (isThisinsightsOpen) {
+        if (isOpen) {
             closeAllinsights();
         } else {
             openinsights(cellItem, taskIndex);
@@ -368,6 +384,11 @@ function setRatio(rowEl, ratio) {
 function getDividerWidth(rowEl, dividerEl){
     return (dividerEl?.getBoundingClientRect().width) || 8;
 }
+
+function getBarWidth(rowEl){
+    const bar = rowEl.querySelector('.insights-toggle-bar');
+    return bar ? bar.getBoundingClientRect().width : 0;
+}
   
 /**
  * Compute available horizontal space (in px) for the two panes combined,
@@ -379,7 +400,7 @@ function getDividerWidth(rowEl, dividerEl){
  */
 function getAvail(rowEl, dividerEl){
     const rect = rowEl.getBoundingClientRect();
-    return Math.max(0, rect.width - getDividerWidth(rowEl, dividerEl));
+    return Math.max(0, rect.width - getDividerWidth(rowEl, dividerEl) - getBarWidth(rowEl));
 }
 
 /**
