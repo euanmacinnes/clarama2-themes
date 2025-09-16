@@ -127,6 +127,10 @@ button.btn-c2-play:hover {
   color: white;
 }
 
+.centered {
+    width: 50%;
+    margin: 0 auto;
+}
 
 .MJXp-math { font-size: 1.5em !important; }
 

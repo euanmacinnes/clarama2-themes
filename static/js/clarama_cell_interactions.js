@@ -23,15 +23,15 @@ window.copiedCellData = null;
 function closeAllinsights() {
     $('[id^="insights_"]').each(function () {
         var insightsDiv = $(this);
-        var taskIndex   = insightsDiv.attr('id').replace('insights_', '');
-        var cellItem    = insightsDiv.closest('.clarama-cell-item');
+        var taskIndex = insightsDiv.attr('id').replace('insights_', '');
+        var cellItem = insightsDiv.closest('.clarama-cell-item');
         if (!cellItem.length) cellItem = $(`li.clarama-cell-item[step="${taskIndex}"]`);
         if (!cellItem.length) cellItem = $(`li.clarama-cell-item[data-task-index="${taskIndex}"]`);
         if (!cellItem.length) return;
 
         var rightContent = cellItem.find(`#right_content_${taskIndex}`);
-        var oldBtn       = cellItem.find('.celleditinsights');
-        var bar          = cellItem.find('.insights-toggle-bar');
+        var oldBtn = cellItem.find('.celleditinsights');
+        var bar = cellItem.find('.insights-toggle-bar');
 
         // Only process if the insights is currently open
         if (rightContent.length && !rightContent.hasClass('d-none')) {
@@ -41,7 +41,7 @@ function closeAllinsights() {
             if (oldBtn.length) {
                 oldBtn.removeClass('btn-warning').attr('title', 'Insights (Ctrl-\\)');
             }
-            
+
             if (bar.length) {
                 bar.removeClass('open').attr('title', 'Insights (Ctrl-\\)');
                 var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
@@ -133,7 +133,7 @@ function initializeNewCellinsights(newElement) {
         // Support both old button and new bar
         newElement.find('.celleditinsights, .insights-toggle-bar').attr('data-task-index', taskIndex);
 
-        var consoleInput  = newElement.find('.console-input');
+        var consoleInput = newElement.find('.console-input');
         if (consoleInput.length) consoleInput.attr('data-task-index', taskIndex);
 
         var executeButton = newElement.find('.execute-console');
@@ -258,8 +258,8 @@ function openinsights(cellItem, taskIndex) {
 
     var leftContent = cellItem.find('#left_content_' + taskIndex);
     var rightContent = cellItem.find('#right_content_' + taskIndex);
-    var oldBtn       = cellItem.find('.celleditinsights');       // may or may not exist
-    var bar          = cellItem.find('.insights-toggle-bar');    // new vertical bar
+    var oldBtn = cellItem.find('.celleditinsights');       // may or may not exist
+    var bar = cellItem.find('.insights-toggle-bar');    // new vertical bar
     var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
     var notificationContents = null;
 
@@ -386,11 +386,11 @@ function getDividerWidth(rowEl, dividerEl) {
 }
 
 
-function getBarWidth(rowEl){
+function getBarWidth(rowEl) {
     const bar = rowEl.querySelector('.insights-toggle-bar');
     return bar ? bar.getBoundingClientRect().width : 0;
 }
-  
+
 
 /**
  * Compute available horizontal space (in px) for the two panes combined,
@@ -558,12 +558,12 @@ function datacell_setOutput(id_template, value, Options) {
             .attr('aria-pressed', isActive ? 'true' : 'false');
     });
 
-    ['Chart3d', 'Chart', 'Table',' Diagram'].forEach(suffix => {
-        const tabContent = document.getElementById(`collapse${suffix}Options_` + Options);
-        if (tabContent) {
-            bootstrap.Collapse.getOrCreateInstance(tabContent, { toggle: false }).hide();
-        }
-    });
+    // ['Chart3d', 'Chart', 'Table',' Diagram'].forEach(suffix => {
+    //     const tabContent = document.getElementById(`collapse${suffix}Options_` + Options);
+    //     if (tabContent) {
+    //         bootstrap.Collapse.getOrCreateInstance(tabContent, { toggle: false }).hide();
+    //     }
+    // });
 
 
     if (value == 'table') {
@@ -979,7 +979,7 @@ function taskCellPaste() {
         if (!taskIndex) return;
 
         const hasInsights = cellItem.find('.celleditinsights, .insights-toggle-bar').length;
-        
+
         if (!hasInsights) {
             const mark = `close:${taskIndex}`;
             if (lastMark !== mark) {
