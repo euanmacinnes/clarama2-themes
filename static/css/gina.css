@@ -549,3 +549,21 @@
     transition: opacity .25s ease;
 }
 
+#gina-chat-container .clarama-markdown a,
+#gina-chat-container .gina-output a {
+  color: var(--gina-link, #79fbff);
+  text-decoration: underline;
+}
+
+#gina-chat-container .clarama-markdown a:hover,
+#gina-chat-container .gina-output a:hover {
+  color: var(--gina-link-hover, #bfe7ff);
+  text-decoration-thickness: 2px;
+}
+
+#gina-chat-container .clarama-markdown a:focus-visible,
+#gina-chat-container .gina-output a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
