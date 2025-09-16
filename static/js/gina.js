@@ -82,7 +82,9 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                         return u;
                     }
                     return '#';
-                } catch (_) { return '#'; }
+                } catch (_) {
+                    return '#';
+                }
             };
 
             // Escape HTML
@@ -150,7 +152,7 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                         t += '<tbody>' + bodyRows.map(cells => `<tr>${cells.map(c => `<td>${renderInline(c)}</td>`).join('')}</tr>`).join('') + '</tbody>';
                     }
                     t += '</table>';
-                    return { html: t, next: idx };
+                    return {html: t, next: idx};
                 };
 
                 while (i < lines.length) {
@@ -159,7 +161,8 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                     // Horizontal rule
                     if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
                         html += '<hr>';
-                        i++; continue;
+                        i++;
+                        continue;
                     }
 
                     // Headings #..######
@@ -167,7 +170,8 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                     if (h) {
                         const level = h[1].length;
                         html += `<h${level}>${renderInline(h[2])}</h${level}>`;
-                        i++; continue;
+                        i++;
+                        continue;
                     }
 
                     // Blockquote
@@ -195,7 +199,11 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                     // Table
                     if (/\|/.test(line)) {
                         const table = renderTable(i);
-                        if (table) { html += table.html; i = table.next; continue; }
+                        if (table) {
+                            html += table.html;
+                            i = table.next;
+                            continue;
+                        }
                     }
 
                     // Lists (unordered and ordered)
@@ -216,7 +224,11 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                     }
 
                     // Paragraphs: collect until blank line
-                    if (line.trim().length === 0) { html += '<br>'; i++; continue; }
+                    if (line.trim().length === 0) {
+                        html += '<br>';
+                        i++;
+                        continue;
+                    }
                     const pbuf = [line];
                     i++;
                     while (i < lines.length && lines[i].trim().length > 0 && !/^\s*(#{1,6})\s+/.test(lines[i])) {
@@ -914,7 +926,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function setInputsEnabled(enabled, placeholderText = "Type your question...") {
-        flash("GINA Inputs");
         const inputs = ginaContainer.querySelectorAll(".gina-input");
         inputs.forEach((inp) => {
             if (enabled) {
