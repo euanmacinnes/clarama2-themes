@@ -903,7 +903,6 @@ function taskCellPaste() {
     }
 }
 
-
 // Auto-open/close Insights based on focused cell
 (function attachAutoOpenInsights() {
     const OPEN_DEBOUNCE_MS = 120;
@@ -924,9 +923,9 @@ function taskCellPaste() {
             cellItem.attr('step') || cellItem.attr('data-task-index');
         if (!taskIndex) return;
 
-        const hasInsigts = cellItem.find('.celleditinsights').length;
-
-        if (!hasInsigts) {
+        const hasInsights = cellItem.find('.celleditinsights, .insights-toggle-bar').length;
+        
+        if (!hasInsights) {
             const mark = `close:${taskIndex}`;
             if (lastMark !== mark) {
                 closeAllinsights();
