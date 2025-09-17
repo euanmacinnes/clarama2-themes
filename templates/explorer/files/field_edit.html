@@ -421,43 +421,41 @@
                            value="{{ get(field_config,'filters','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
                     <div class="form-text">Pipe-separated list of file patterns. Example: *.field.yaml|*.task.yaml</div>
                 </div>
-                <div class="container-fluid">
-                    <div class="row align-items-start">
-                        <div class="col align-items-start">
-                            <label class="form-label">Minimum</label>
-                            <input id="minimum" name="minimum" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="0"
-                                   value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Maximum</label>
-                            <input id="maximum" name="maximum" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="100"
-                                   value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Step</label>
-                            <input id="step" name="step" type="number"
-                                   class="form-control clarama-field clarama-delay-field"
-                                   fieldtype="html" placeholder="1"
-                                   value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Size</label>
-                            <input id="size" name="size" type="number"
-                                   class="form-control clarama-field clarama-delay-field"
-                                   fieldtype="html" placeholder="4"
-                                   value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Spacing</label>
-                            <input id="spacing" name="spacing" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="2"
-                                   value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
+                <div class="row align-items-start">
+                    <div class="col align-items-start">
+                        <label class="form-label">Minimum</label>
+                        <input id="minimum" name="minimum" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="0"
+                               value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Maximum</label>
+                        <input id="maximum" name="maximum" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="100"
+                               value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Step</label>
+                        <input id="step" name="step" type="number"
+                               class="form-control clarama-field clarama-delay-field"
+                               fieldtype="html" placeholder="1"
+                               value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Size</label>
+                        <input id="size" name="size" type="number"
+                               class="form-control clarama-field clarama-delay-field"
+                               fieldtype="html" placeholder="4"
+                               value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Spacing</label>
+                        <input id="spacing" name="spacing" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="2"
+                               value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
                     </div>
                 </div>
             </div>
@@ -465,7 +463,9 @@
 
         <!-- Custom Pane (per-field-type options) -->
         <div class="tab-pane fade" id="pane-custom" role="tabpanel" aria-labelledby="tab-custom">
-            <div id="custom-dynamic-container" class="container-fluid"></div>
+            <div class="mb-3">
+                <div id="custom-dynamic-container" class="custom-dynamic-container"></div>
+            </div>
 
             <!-- Hidden templates for dynamic injection -->
             <template id="tpl-custom-string">

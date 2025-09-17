@@ -18,6 +18,10 @@ body {
     border-style: solid;
 }
 
+.custom-dynamic-container {
+    overflow: hidden;
+}
+
 .border-cell-config {
     background-color: #e8e8e8;
 }
