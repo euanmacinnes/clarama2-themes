@@ -34,6 +34,18 @@
                         Data
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="insights-preview-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-preview-{{ task_index }}"
+                        type="button" role="tab" aria-controls="insights-preview-{{ task_index }}" aria-selected="false">
+                        Preview
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="insights-fields-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-fields-{{ task_index }}" 
+                        type="button" role="tab" aria-controls="insights-fields-{{ task_index }}" aria-selected="false">
+                        Fields
+                    </button>
+                </li>
             </ul>
         
             <!-- Tab panes -->
@@ -68,6 +80,16 @@
                 <div class="tab-pane fade" id="insights-data-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-data-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3" id="data_{{ task_index }}"></div>
+                </div>
+
+                <div class="tab-pane fade" id="insights-preview-{{ task_index }}" role="tabpanel"
+                    aria-labelledby="insights-preview-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="preview_{{ task_index }}"></div>
+                </div>
+
+                <div class="tab-pane fade" id="insights-fields-{{ task_index }}" role="tabpanel"
+                    aria-labelledby="insights-fields-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="fields_{{ task_index }}"></div>
                 </div>
             </div>
         
