@@ -934,32 +934,49 @@
     </script>
 
     <style>
-    /* Ensure navbar dropdown is above the list items in Folders Explore */
-    #explore-card .navbar,
-    #explore-card .card-header {
-        position: relative;
-        z-index: 20000; /* must be above any list item stacking */
-    }
-    #explore-card .navbar .collapse,
-    #explore-card .navbar .dropdown,
-    #explore-card .navbar .dropdown-menu {
-        overflow: visible;
-    }
-    /* Force the dropdown menu to sit above everything else within the card */
-    #explore-card .dropdown-menu,
-    #explore-card .dropdown-menu.show {
-        position: absolute; /* ensure positioned for z-index to apply */
-        z-index: 20001 !important; /* above navbar and list */
-    }
-    #explore-card .card-body,
-    #explore-card .list-group {
-        overflow: visible; /* avoid clipping dropdown */
-    }
-    /* Keep list items below the dropdown by removing any elevated stacking */
-    #explore-card .list-group-item {
-        position: relative;
-        z-index: auto;
-    }
+        /* Ensure navbar dropdown is above the list items in Folders Explore */
+        #explore-card .navbar,
+        #explore-card .card-header {
+            position: relative;
+            z-index: 2; /* must be above any list item stacking */
+        }
+
+        #explore-card .navbar .collapse,
+        #explore-card .navbar .dropdown,
+        #explore-card .navbar .dropdown-menu {
+            overflow: visible;
+        }
+
+        #nav-menu .navbar,
+        #nav_menu .card-header {
+            position: relative;
+            z-index: 30000; /* must be above any list item stacking */
+        }
+
+        /* Force the dropdown menu to sit above everything else within the card */
+        #nav-menu .dropdown-menu,
+        #nav-menu .dropdown-menu.show {
+            position: absolute; /* ensure positioned for z-index to apply */
+            z-index: 30001 !important; /* above navbar and list */
+        }
+
+        /* Force the dropdown menu to sit above everything else within the card */
+        #explore-card .dropdown-menu,
+        #explore-card .dropdown-menu.show {
+            position: absolute; /* ensure positioned for z-index to apply */
+            z-index: 20001 !important; /* above navbar and list */
+        }
+
+        #explore-card .card-body,
+        #explore-card .list-group {
+            overflow: visible; /* avoid clipping dropdown */
+        }
+
+        /* Keep list items below the dropdown by removing any elevated stacking */
+        #explore-card .list-group-item {
+            position: relative;
+            z-index: auto;
+        }
     </style>
 
 {% endblock %}
