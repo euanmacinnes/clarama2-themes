@@ -1,18 +1,19 @@
 {# Custom options for string fields #}
-<div class="row g-3">
-  <div class="col-md-6">
-    <label class="form-label">Max Length</label>
-    <input id="str_maxlength" name="str_maxlength" type="number" class="form-control clarama-field clarama-delay-field" value="{{ get(field_config,'maxlength','') }}">
-    <div class="form-text">Optional: limit characters allowed.</div>
-  </div>
-  <div class="col-md-6">
-    <label class="form-label">Transform</label>
-    <select id="str_transform" name="str_transform" class="form-select clarama-field clarama-delay-field">
-      {% set t = get(field_config,'transform','') %}
-      <option value="" {% if not t %}selected{% endif %}>None</option>
-      <option value="lower" {% if t=='lower' %}selected{% endif %}>lowercase</option>
-      <option value="upper" {% if t=='upper' %}selected{% endif %}>UPPERCASE</option>
-      <option value="title" {% if t=='title' %}selected{% endif %}>Title Case</option>
-    </select>
-  </div>
+<div class="row g-3 align-items-start">
+    <div class="col-md-6">
+        <label class="form-label">Max Length</label>
+        <input id="str_maxlength" name="str_maxlength" type="number"
+               class="form-control clarama-field clarama-delay-field" value="{{ get(field_config,'maxlength','') }}">
+        <div class="form-text">Optional: limit characters allowed.</div>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Transform</label>
+        <select id="str_transform" name="str_transform" class="form-select clarama-field clarama-delay-field">
+            {% set t = get(field_config,'transform','') %}
+            <option value="" {% if not t %}selected{% endif %}>None</option>
+            <option value="lower" {% if t=='lower' %}selected{% endif %}>lowercase</option>
+            <option value="upper" {% if t=='upper' %}selected{% endif %}>UPPERCASE</option>
+            <option value="title" {% if t=='title' %}selected{% endif %}>Title Case</option>
+        </select>
+    </div>
 </div>

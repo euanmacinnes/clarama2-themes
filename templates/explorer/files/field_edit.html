@@ -86,7 +86,14 @@
         <div class="tab-pane fade show active" id="pane-fieldtype" role="tabpanel" aria-labelledby="tab-fieldtype">
             <div class="container-fluid">
                 <div class="row g-3 my-2">
-                    {% for key, ftype in fieldtypes.items() %}
+                    {# Build a sortable list of (key, ftype) and sort by group then name #}
+                    {% set ft_list = [] %}
+                    {% for k, v in fieldtypes.items() %}
+                        {% set _ = ft_list.append({'key': k, 'v': v, 'group': v.get('group',''), 'name': v.get('name','')}) %}
+                    {% endfor %}
+                    {% for item in ft_list|sort(attribute='group')|sort(attribute='name') %}
+                        {% set key = item.key %}
+                        {% set ftype = item.v %}
                         <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                             <label id="field_{{ key }}" key="{{ key }}"
                                    class="btn w-100 {% if field_config['type'] == key %} clicked btn-c2 {% else %} btn-light {% endif %} field">
@@ -414,43 +421,41 @@
                            value="{{ get(field_config,'filters','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
                     <div class="form-text">Pipe-separated list of file patterns. Example: *.field.yaml|*.task.yaml</div>
                 </div>
-                <div class="container-fluid">
-                    <div class="row align-items-start">
-                        <div class="col align-items-start">
-                            <label class="form-label">Minimum</label>
-                            <input id="minimum" name="minimum" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="0"
-                                   value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Maximum</label>
-                            <input id="maximum" name="maximum" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="100"
-                                   value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Step</label>
-                            <input id="step" name="step" type="number"
-                                   class="form-control clarama-field clarama-delay-field"
-                                   fieldtype="html" placeholder="1"
-                                   value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Size</label>
-                            <input id="size" name="size" type="number"
-                                   class="form-control clarama-field clarama-delay-field"
-                                   fieldtype="html" placeholder="4"
-                                   value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Spacing</label>
-                            <input id="spacing" name="spacing" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="2"
-                                   value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
+                <div class="row align-items-start">
+                    <div class="col align-items-start">
+                        <label class="form-label">Minimum</label>
+                        <input id="minimum" name="minimum" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="0"
+                               value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Maximum</label>
+                        <input id="maximum" name="maximum" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="100"
+                               value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Step</label>
+                        <input id="step" name="step" type="number"
+                               class="form-control clarama-field clarama-delay-field"
+                               fieldtype="html" placeholder="1"
+                               value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Size</label>
+                        <input id="size" name="size" type="number"
+                               class="form-control clarama-field clarama-delay-field"
+                               fieldtype="html" placeholder="4"
+                               value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Spacing</label>
+                        <input id="spacing" name="spacing" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="2"
+                               value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
                     </div>
                 </div>
             </div>
@@ -458,7 +463,9 @@
 
         <!-- Custom Pane (per-field-type options) -->
         <div class="tab-pane fade" id="pane-custom" role="tabpanel" aria-labelledby="tab-custom">
-            <div id="custom-dynamic-container"></div>
+            <div class="mb-3">
+                <div id="custom-dynamic-container" class="custom-dynamic-container"></div>
+            </div>
 
             <!-- Hidden templates for dynamic injection -->
             <template id="tpl-custom-string">
@@ -493,6 +500,12 @@
             </template>
             <template id="tpl-custom-textarea">
                 {% include theme('explorer/files/_field_custom_textarea.html') %}
+            </template>
+            <template id="tpl-custom-tagcloud">
+                {% include theme('explorer/files/_field_custom_tagcloud.html') %}
+            </template>
+            <template id="tpl-custom-daterange">
+                {% include theme('explorer/files/_field_custom_daterange.html') %}
             </template>
         </div>
 
@@ -1438,6 +1451,14 @@
                 field_data['format'] = $('#dt_format').val() || '';
                 field_data['min'] = $('#dt_min').val() || '';
                 field_data['max'] = $('#dt_max').val() || '';
+            } else if (t === 'tagcloud') {
+                field_data['mode'] = ($('#tc_mode').val() || 'move');
+                field_data['editable'] = !!($('#tc_editable').prop('checked'));
+            } else if (t === 'daterange') {
+                field_data['time_enabled'] = !!($('#dr_time_enabled').prop('checked'));
+                field_data['milliseconds'] = !!($('#dr_milliseconds').prop('checked'));
+                // Store ranges as raw text; server persists as-is (string) to allow flexible parsing later
+                field_data['ranges'] = ($('#dr_ranges').val() || '').trim();
             } else {
                 field_data['maxlength'] = $('#str_maxlength').val() || '';
                 field_data['transform'] = $('#str_transform').val() || '';

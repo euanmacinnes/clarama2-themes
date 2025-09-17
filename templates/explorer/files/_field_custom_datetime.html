@@ -1,16 +1,19 @@
 {# Custom options for Date/Time fields #}
-<div class="row g-3">
-  <div class="col-md-4">
-    <label class="form-label">Display Format</label>
-    <input id="dt_format" name="dt_format" type="text" class="form-control clarama-field clarama-delay-field" value="{{ get(field_config,'format','') }}">
-    <div class="form-text">e.g., YYYY-MM-DD HH:mm, or locale-based.</div>
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">Min Date/Time</label>
-    <input id="dt_min" name="dt_min" type="text" class="form-control clarama-field clarama-delay-field" value="{{ get(field_config,'min','') }}" placeholder="e.g., 2020-01-01">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">Max Date/Time</label>
-    <input id="dt_max" name="dt_max" type="text" class="form-control clarama-field clarama-delay-field" value="{{ get(field_config,'max','') }}" placeholder="e.g., 2030-12-31">
-  </div>
+<div class="row g-3 align-items-start">
+    <div class="col-md-4">
+        <label class="form-label">Display Format</label>
+        <input id="dt_format" name="dt_format" type="text" class="form-control clarama-field clarama-delay-field"
+               value="{{ get(field_config,'format','') }}">
+        <div class="form-text">e.g., YYYY-MM-DD HH:mm, or locale-based.</div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Min Date/Time</label>
+        <input id="dt_min" name="dt_min" type="text" class="form-control clarama-field clarama-delay-field"
+               value="{{ get(field_config,'min','') }}" placeholder="e.g., 2020-01-01">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Max Date/Time</label>
+        <input id="dt_max" name="dt_max" type="text" class="form-control clarama-field clarama-delay-field"
+               value="{{ get(field_config,'max','') }}" placeholder="e.g., 2030-12-31">
+    </div>
 </div>

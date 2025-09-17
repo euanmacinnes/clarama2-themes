@@ -1,0 +1,38 @@
+{# Custom options for Date Range field #}
+<div class="row g-3 align-items-start">
+    <div class="col-12 col-md-4 d-flex align-items-end">
+        <div class="form-check">
+            <input class="form-check-input clarama-field" type="checkbox" id="dr_time_enabled"
+                   {% if get(field_config,'time_enabled', True) %}checked{% endif %}>
+            <label class="form-check-label" for="dr_time_enabled">Enable time</label>
+        </div>
+    </div>
+    <div class="col-12 col-md-4 d-flex align-items-end">
+        <div class="form-check">
+            <input class="form-check-input clarama-field" type="checkbox" id="dr_milliseconds"
+                   {% if get(field_config,'milliseconds', False) %}checked{% endif %}>
+            <label class="form-check-label" for="dr_milliseconds">Enable milliseconds</label>
+        </div>
+    </div>
+    <div class="col-12">
+        <label class="form-label">Default ranges</label>
+        <textarea id="dr_ranges" class="form-control clarama-field" rows="5" placeholder='One range per line, e.g.:
+Last 15 minutes|now-15m -> now
+Last 24 hours|now-24h -> now
+Today|today 00:00 -> today 23:59:59'>
+{% set ranges = get(field_config,'ranges',[]) %}
+{% if ranges is string %}{{ ranges }}{% else %}
+    {%- for r in ranges -%}
+        {%- if r is mapping -%}
+            {{ r.get('label', '') }}|{{ r.get('from','') }} -> {{ r.get('to','') }}
+        {%- else -%}
+            {{ r }}
+        {%- endif -%}
+    {%- endfor -%}
+{% endif %}
+</textarea>
+        <div class="form-text">Provide quick-select presets. Format: Label|from -> to. You may also paste JSON/YAML in
+            Data if you need advanced behavior.
+        </div>
+    </div>
+</div>
