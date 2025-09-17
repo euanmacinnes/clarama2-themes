@@ -51,6 +51,7 @@ function task_edit_run(parent) {
                     const task = get_url(url, field_registry);
 
                     console.log("Running Task " + task);
+                    console.log(task_registry);
 
                     $.ajax({
                         type: 'POST',

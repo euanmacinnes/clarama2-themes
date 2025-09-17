@@ -1,0 +1,331 @@
+{% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
+
+{% block content %}
+    <div class="clarama-tagcloud" data-id="{{ field_id }}"
+         fieldtype="html"
+         name="{{ field_name }}"
+            {{ field_config | required }}
+            {{ field_config | readonly }}
+            {{ field_config | sticky }}
+            {% include theme("explorer/files/field_tooltip.html") %}
+            {% if field_config.get('data',{}).get('source') %}
+         sourceurl="{{ field_config['data'] | datasource }}"
+            {% endif %}
+         data-mode="{{ field_config.get('mode','move') }}"
+         data-editable="{{ 'true' if field_config.get('editable', False) else 'false' }}"
+         data-max-tags="{{ field_config.get('max_tags','') }}"
+         data-interact-on="{{ field_config.get('interact_on','added') }}"
+         data-v-align="{{ field_config.get('v_align','top') }}"
+         data-tag-size="{{ field_config.get('tag_size','md') }}"
+         style="min-height:42px;"
+    >
+        <div class="tagcloud-box border rounded p-2 d-flex flex-wrap gap-1" id="box-{{ field_id }}"
+             aria-label="Tag Cloud"></div>
+        <input type="hidden" class="clarama-field" id="input-{{ field_id }}" name="{{ field_name }}">
+    </div>
+
+    <script>
+        (function () {
+            const root = document.querySelector('.clarama-tagcloud[data-id="{{ field_id }}"]'); // resolve by data-id because scripts run from <head>
+            if (!root) return;
+            let box = root.querySelector('.tagcloud-box');
+            let hidden = root.querySelector('input[type="hidden"]');
+            const mode = (root.getAttribute('data-mode') || 'move').toLowerCase();
+            const editable = (root.getAttribute('data-editable') === 'true');
+            const sourceUrl = root.getAttribute('sourceurl');
+            const maxTags = (function(){ const v = root.getAttribute('data-max-tags'); const n = parseInt(v, 10); return isNaN(n) ? null : Math.max(0, n); })();
+            const interactOn = (root.getAttribute('data-interact-on') || 'added').toLowerCase(); // 'added' | 'max'
+            const vAlign = (root.getAttribute('data-v-align') || 'top').toLowerCase(); // top|middle|bottom
+            const tagSize = (root.getAttribute('data-tag-size') || 'md').toLowerCase(); // sm|md|lg
+            let initializing = true;
+
+            // Ensure essential elements exist to avoid null dereferences
+            if (!box) {
+                box = document.createElement('div');
+                box.className = 'tagcloud-box border rounded p-2 d-flex flex-wrap gap-1';
+                box.setAttribute('aria-label', 'Tag Cloud');
+                root.insertBefore(box, hidden || null);
+            }
+            if (!hidden) {
+                hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.className = 'clarama-field';
+                // Try to preserve name attr from root
+                const nm = root.getAttribute('name');
+                if (nm) hidden.name = nm;
+                // Create a reasonably unique id fallback
+                hidden.id = 'input-' + (root.getAttribute('data-id') || Math.random().toString(36).slice(2));
+                root.appendChild(hidden);
+            }
+
+            // Apply vertical alignment to box
+            if (box) {
+                const alignMap = { top: 'flex-start', middle: 'center', bottom: 'flex-end' };
+                box.style.alignItems = alignMap[vAlign] || 'flex-start';
+            }
+
+            const tagSizeClass = (function(){
+                if (tagSize === 'sm') return 'size-sm';
+                if (tagSize === 'lg') return 'size-lg';
+                return 'size-md';
+            })();
+
+            // Helpers
+            function tagKey(obj) {
+                return (obj && (obj.id !== undefined && obj.id !== null)) ? String(obj.id) : String(obj.value ?? obj.text ?? obj);
+            }
+
+            function createTagEl(item) {
+                const id = item.id !== undefined ? String(item.id) : String(item);
+                const label = item.value !== undefined ? String(item.value) : (item.text !== undefined ? String(item.text) : String(item));
+                const span = document.createElement('span');
+                span.className = 'badge bg-secondary clarama-tag ' + tagSizeClass;
+                span.draggable = true;
+                span.dataset.id = id;
+                span.title = label;
+                span.textContent = label;
+                if (editable) {
+                    span.classList.add('editable');
+                    span.addEventListener('click', function (e) {
+                        // inline rename on single click if not already editing
+                        if (span.querySelector('input')) return;
+                        const old = span.textContent;
+                        const inp = document.createElement('input');
+                        inp.type = 'text';
+                        inp.value = old;
+                        inp.className = 'form-control form-control-sm d-inline-block';
+                        inp.style.width = Math.max(50, old.length * 9) + 'px';
+                        span.textContent = '';
+                        span.appendChild(inp);
+                        inp.focus();
+
+                        function commit() {
+                            const val = inp.value.trim();
+                            span.innerHTML = '';
+                            span.textContent = val || old;
+                            span.title = span.textContent;
+                            updateHidden();
+                        }
+
+                        inp.addEventListener('blur', commit);
+                        inp.addEventListener('keydown', function (ev) {
+                            if (ev.key === 'Enter') {
+                                commit();
+                            } else if (ev.key === 'Escape') {
+                                span.textContent = old;
+                            }
+                        });
+                    });
+                    span.addEventListener('dblclick', function () { // delete on double click
+                        span.remove();
+                        updateHidden();
+                    });
+                }
+                span.addEventListener('dragstart', function (e) {
+                    e.dataTransfer.setData('text/plain', JSON.stringify({id: id, text: span.textContent}));
+                    e.dataTransfer.effectAllowed = (mode === 'copy') ? 'copyMove' : 'move';
+                });
+                return span;
+            }
+
+            function listFromBox(b) {
+                return Array.from(b.querySelectorAll('.clarama-tag')).map(el => ({
+                    id: el.dataset.id,
+                    text: el.textContent
+                }));
+            }
+
+            function updateHidden() {
+                if (!box || !hidden) return;
+                const arr = listFromBox(box).map(t => ({id: t.id, value: t.text}));
+                // Store as JSON array for fidelity
+                hidden.value = JSON.stringify(arr);
+            }
+
+            function triggerInteraction() {
+                if (hidden) hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function currentCount() {
+                return box ? box.querySelectorAll('.clarama-tag').length : 0;
+            }
+
+            function addIfMissing(item) {
+                if (!box) return false;
+                const exists = Array.from(box.querySelectorAll('.clarama-tag')).some(el => el.dataset.id === String(item.id ?? item));
+                if (exists) return false;
+
+                const before = currentCount();
+                if (maxTags !== null && before >= maxTags) {
+                    // Already at max, do not add
+                    try { if (typeof flash === 'function') flash('Maximum tags reached', 'warning'); } catch(e) {}
+                    return false;
+                }
+
+                box.appendChild(createTagEl(item));
+                updateHidden();
+
+                const after = before + 1;
+                if (!initializing) {
+                    if (interactOn === 'added') {
+                        triggerInteraction();
+                    } else if (interactOn === 'max' && maxTags !== null && after === maxTags) {
+                        triggerInteraction();
+                    }
+                }
+                return true;
+            }
+
+            // DnD behavior for box
+            if (box) {
+                box.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = (mode === 'copy') ? 'copy' : 'move';
+                });
+                box.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    let data;
+                    try {
+                        data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    } catch (err) {
+                        return;
+                    }
+                    if (!data) return;
+                    const added = addIfMissing({id: data.id, value: data.text});
+                    // If move and source is another tagcloud, remove from source
+                    if (added && mode !== 'copy') {
+                        const srcEl = document.querySelector('.clarama-tag[draggable="true"][data-id="' + CSS.escape(String(data.id)) + '"][data-moving="1"]');
+                        if (srcEl) {
+                            srcEl.removeAttribute('data-moving');
+                            srcEl.remove();
+                        }
+                        updateHidden();
+                    }
+                });
+            }
+            // Mark moving element when drag starts globally
+            document.addEventListener('dragstart', function (e) {
+                const t = e.target;
+                if (t && t.classList && t.classList.contains('clarama-tag')) {
+                    t.setAttribute('data-moving', '1');
+                }
+            });
+            document.addEventListener('dragend', function (e) {
+                const t = e.target;
+                if (t && t.classList && t.classList.contains('clarama-tag')) {
+                    t.removeAttribute('data-moving');
+                }
+            });
+
+            // Plus tag for adding new items
+            if (editable) {
+                const add = document.createElement('button');
+                add.type = 'button';
+                add.className = 'btn btn-sm btn-outline-secondary';
+                add.innerHTML = '<i class="bi bi-plus"></i>';
+                add.title = 'Add tag';
+                add.addEventListener('click', function () {
+                    const name = prompt('New tag name');
+                    if (name && name.trim()) {
+                        const id = name.trim();
+                        addIfMissing({id: id, value: name.trim()});
+                    }
+                });
+                if (hidden && hidden.parentNode === root) {
+                    root.insertBefore(add, hidden);
+                } else {
+                    root.appendChild(add);
+                }
+            }
+
+            // Populate from options or remote source
+            function normalizeOptions(opts) {
+                if (!opts) return [];
+                if (Array.isArray(opts)) {
+                    return opts.map(o => (typeof o === 'object') ? {
+                        id: (o.id ?? o.key ?? o.value ?? o.text),
+                        value: (o.value ?? o.text ?? o.id)
+                    } : {id: String(o), value: String(o)});
+                } else if (typeof opts === 'object') {
+                    return Object.keys(opts).map(k => ({id: k, value: opts[k]}));
+                }
+                return [];
+            }
+
+            function ensureDefaults(defaultVal) {
+                if (!defaultVal) return;
+                let arr = [];
+                if (Array.isArray(defaultVal)) {
+                    arr = defaultVal.map(v => (typeof v === 'object') ? v : {id: String(v), value: String(v)});
+                } else if (typeof defaultVal === 'string') {
+                    try {
+                        arr = JSON.parse(defaultVal);
+                    } catch {
+                        arr = defaultVal.split(',').map(v => ({id: v.trim(), value: v.trim()}));
+                    }
+                } else if (typeof defaultVal === 'object') {
+                    arr = [defaultVal];
+                }
+                arr.forEach(addIfMissing);
+            }
+
+            // Initial options
+            const tmplData = {{ (field_config.get('data',{}) | tojson) | safe }};
+            const defaultVal = {{ (field_value or field_config.get('default')) | tojson | safe }};
+
+            if (sourceUrl) {
+                fetch(sourceUrl).then(r => r.json()).then(json => {
+                    const opts = normalizeOptions((json && json.results) ? json.results : (json && json.data) ? json.data : json);
+                    // If defaults are actual selected tags, add them; otherwise seed with options as the cloud contents
+                    if (defaultVal) {
+                        ensureDefaults(defaultVal);
+                    } else {
+                        opts.slice(0, 50).forEach(addIfMissing);
+                    } // avoid too many tags
+                    updateHidden();
+                    initializing = false;
+                }).catch(() => { /* fallback to manual */
+                    const opts = normalizeOptions(tmplData && tmplData.options);
+                    if (defaultVal) {
+                        ensureDefaults(defaultVal);
+                    } else {
+                        opts.slice(0, 50).forEach(addIfMissing);
+                    }
+                    updateHidden();
+                    initializing = false;
+                });
+            } else {
+                const opts = normalizeOptions(tmplData && tmplData.options);
+                console.log('TAGCLOUD manual options');
+                if (defaultVal) {
+                    ensureDefaults(defaultVal);
+                } else {
+                    opts.slice(0, 50).forEach(addIfMissing);
+                }
+                updateHidden();
+                initializing = false;
+            }
+        })();
+    </script>
+
+    <style>
+        .clarama-tagcloud .clarama-tag {
+            cursor: move;
+            user-select: none;
+        }
+
+        .clarama-tagcloud .clarama-tag.editable {
+            cursor: text;
+        }
+
+        .clarama-tagcloud .tagcloud-box {
+            min-height: 36px;
+            background: var(--bs-light, #f8f9fa);
+        }
+
+        /* Tag size variants */
+        .clarama-tagcloud .clarama-tag.size-sm { font-size: .65rem; padding: .2em .35em; }
+        .clarama-tagcloud .clarama-tag.size-md { font-size: .8rem;  padding: .35em .55em; }
+        .clarama-tagcloud .clarama-tag.size-lg { font-size: 1rem;   padding: .5em .8em; }
+    </style>
+{% endblock %}
