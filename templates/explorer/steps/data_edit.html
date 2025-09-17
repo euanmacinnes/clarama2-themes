@@ -470,7 +470,7 @@
                             showResult('<div class="text-warning">Mermaid parse function is not available in this version.</div>', '');
                             return;
                         }
-                        showResult('<div class="text-success">' + text + 'No errors found. The diagram script parsed successfully.</div>', '');
+                        showResult('<div class="text-success">No errors found. The diagram script parsed successfully.</div>', '');
                     } catch(err){
                         const msg = (err && (err.str || err.message)) ? (err.str || err.message) : 'Invalid Mermaid diagram';
                         const code = esc(text);

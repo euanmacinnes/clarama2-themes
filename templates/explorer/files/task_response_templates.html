@@ -442,7 +442,7 @@
                 }
                 // Set text content so Mermaid can parse it
                 el.textContent = txt;
-                // console.log('Mermaid init', txt);
+                console.log('Mermaid init', txt);
                 if (window.mermaid && typeof window.mermaid.run === 'function') {
                     window.mermaid.run(undefined, el);
                 }
