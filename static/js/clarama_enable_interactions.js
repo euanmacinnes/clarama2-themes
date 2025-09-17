@@ -101,6 +101,25 @@ function enable_interactions(parent, reload = false, runtask = false) {
     });
     hoverover_this(parent.find('.hoverover'));
 
+    // Wire kernel info click handlers for dynamically loaded content
+    try {
+        parent.find('#edit-kernel-status, #run-kernel-status, #explore-kernel-status').each(function(){
+            var $el = $(this);
+            if($el.data('wired')) return;
+            $el.data('wired', 1);
+            $el.css('cursor','pointer');
+            if(!$el.attr('title')){ $el.attr('title','Click to view kernel info'); }
+            $el.on('click', function(){
+                var kid = $el.data('kernel-id') || $.trim($el.text());
+                if(window.ClaramaKernel && window.ClaramaKernel.openKernelInfo){
+                    window.ClaramaKernel.openKernelInfo(kid);
+                } else {
+                    console.warn('ClaramaKernel not available to open kernel info');
+                }
+            });
+        });
+    } catch(e) { console.warn('Kernel info wiring failed', e); }
+
     if (reload) {
         parent.find('.clarama-post-embedded').attr('clarama_loaded', false);
         parent.find('.clarama-embedded').attr('clarama_loaded', false);
