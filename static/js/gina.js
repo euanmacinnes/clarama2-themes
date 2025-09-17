@@ -277,7 +277,11 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                         try {
                             b64 = btoa(unescape(encodeURIComponent(body)));
                         } catch (e) {
-                            try { b64 = btoa(body); } catch (_) { b64 = ''; }
+                            try {
+                                b64 = btoa(body);
+                            } catch (_) {
+                                b64 = '';
+                            }
                         }
                         // Wrap with a positioned container and a small copy button in the bottom-right
                         html += `
@@ -312,24 +316,30 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                 if (window.hljs && typeof window.hljs.highlightAll === 'function') {
                     window.hljs.highlightAll();
                 }
-            } catch(e) { /* noop */ }
+            } catch (e) { /* noop */
+            }
             try {
                 if (window.Prism && typeof window.Prism.highlightAll === 'function') {
                     window.Prism.highlightAll();
                 }
-            } catch(e) { /* noop */ }
+            } catch (e) { /* noop */
+            }
             try {
-                if (window.mermaid && typeof window.mermaid.init === 'function') {
-                    window.mermaid.init(undefined, out.querySelectorAll('.mermaid'));
+                if (window.mermaid && typeof window.mermaid.run === 'function') {
+                    window.mermaid.run({
+                        suppressErrors: false,
+                    }, out.querySelectorAll('.mermaid'));
                 }
-            } catch(e) { console.warn('Mermaid init failed', e); }
+            } catch (e) {
+                console.warn('Mermaid run failed', e);
+            }
             try {
                 // Attach copy handlers for any Mermaid copy buttons in this output block
                 const btns = out.querySelectorAll('.mermaid-copy-btn');
                 btns.forEach(btn => {
                     if (btn.__ginaBound) return; // avoid rebinding on stream updates
                     btn.__ginaBound = true;
-                    btn.addEventListener('click', function(ev){
+                    btn.addEventListener('click', function (ev) {
                         ev.preventDefault();
                         ev.stopPropagation();
                         const b64 = this.getAttribute('data-b64') || '';
@@ -337,12 +347,18 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                         try {
                             txt = decodeURIComponent(escape(atob(b64)));
                         } catch (e) {
-                            try { txt = atob(b64); } catch(_) { txt = ''; }
+                            try {
+                                txt = atob(b64);
+                            } catch (_) {
+                                txt = '';
+                            }
                         }
                         const doFeedback = () => {
                             const origHTML = this.innerHTML;
                             this.innerHTML = '<i class="bi bi-clipboard-check" aria-hidden="true"></i>';
-                            setTimeout(() => { this.innerHTML = origHTML; }, 1200);
+                            setTimeout(() => {
+                                this.innerHTML = origHTML;
+                            }, 1200);
                         };
                         if (navigator.clipboard && navigator.clipboard.writeText) {
                             navigator.clipboard.writeText(txt).then(doFeedback).catch(doFeedback);
@@ -352,13 +368,17 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
                             ta.value = txt;
                             document.body.appendChild(ta);
                             ta.select();
-                            try { document.execCommand('copy'); } catch(_) {}
+                            try {
+                                document.execCommand('copy');
+                            } catch (_) {
+                            }
                             document.body.removeChild(ta);
                             doFeedback();
                         }
                     });
                 });
-            } catch(e) { /* noop */ }
+            } catch (e) { /* noop */
+            }
         }
 
         // If final chunk received, finalize the block and UI state

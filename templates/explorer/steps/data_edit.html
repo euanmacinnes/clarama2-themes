@@ -401,8 +401,101 @@
     <div id="collapseDiagramOptions_{{ loop_index }}"
          class="accordion-collapse collapse bg-cell-config {% if output=='diagram' %}show{% endif %}">
         <div class="accordion-body" aria-labelledby="diagram" style="padding: 8px;">
-            There are no options for this diagram type, it's just the code. Use GINA to help you generate a mermaid diagram.
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <button type="button" class="btn btn-c2" id="diagram-parse-btn-{{ loop_index }}">
+                    <i class="bi bi-search"></i> Check Diagram (Parse)
+                </button>
+                <span class="text-white-50 small">Validate the current tab's Mermaid script and show any errors below.</span>
+            </div>
+            <div id="diagram-parse-result-{{ loop_index }}" class="p-2 rounded" style="background:#151515; border:1px solid #2a2a2a; color:#ddd; min-height:44px;">
+                <span class="text-white-50">There are no options for this diagram type. Use the button to check your Mermaid diagram script.</span>
+            </div>
         </div>
+        <script>
+            (function(){
+                const loopIndex = '{{ loop_index }}';
+                const btnId = `diagram-parse-btn-${loopIndex}`;
+                const resId = `diagram-parse-result-${loopIndex}`;
+                const containerSel = `#dataEditTabContentContainer_${loopIndex}`;
+                function esc(s){return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));}
+                function getActiveEditorText(){
+                    const container = document.querySelector(containerSel);
+                    if (!container) return '';
+                    // Prefer the visible active pane
+                    let pane = container.querySelector('.tab-pane.show.active');
+                    if (!pane) {
+                        // Fallback: first pane
+                        pane = container.querySelector('.tab-pane');
+                    }
+                    if (!pane) return '';
+                    const editor = pane.querySelector('.source-editor');
+                    if (!editor) return '';
+                    // Try Monaco if attached via jQuery data
+                    try{
+                        if (window.$) {
+                            const $ed = window.$(editor);
+                            const monacoEd = $ed && $ed.data && $ed.data('monacoEditor');
+                            if (monacoEd && typeof monacoEd.getValue === 'function') {
+                                return String(monacoEd.getValue() || '').trim();
+                            }
+                        }
+                    } catch(e){}
+                    // Fallback to raw text content
+                    return (editor.textContent || '').trim();
+                }
+                function showResult(html, cls){
+                    const r = document.getElementById(resId);
+                    if (!r) return;
+                    r.className = `p-2 rounded ${cls||''}`;
+                    r.style.background = '#151515';
+                    r.style.border = '1px solid #2a2a2a';
+                    r.style.color = '#ddd';
+                    r.innerHTML = html;
+                }
+                function parseMermaid(text){
+                    if (!window.mermaid){
+                        showResult('<div class="text-warning">Mermaid library is not loaded. Cannot parse diagram.</div>', '');
+                        return;
+                    }
+                    if (!text){
+                        showResult('<div class="text-white-50">No script found in the current tab.</div>', '');
+                        return;
+                    }
+                    try{
+                        if (typeof window.mermaid.parse === 'function'){
+                            window.mermaid.parse(text);
+                        } else if (window.mermaid.mermaidAPI && typeof window.mermaid.mermaidAPI.parse === 'function'){
+                            window.mermaid.mermaidAPI.parse(text);
+                        } else {
+                            showResult('<div class="text-warning">Mermaid parse function is not available in this version.</div>', '');
+                            return;
+                        }
+                        showResult('<div class="text-success">' + text + 'No errors found. The diagram script parsed successfully.</div>', '');
+                    } catch(err){
+                        const msg = (err && (err.str || err.message)) ? (err.str || err.message) : 'Invalid Mermaid diagram';
+                        const code = esc(text);
+                        const html = `<div class="mermaid-error-box" style="border:1px solid #e57373;background:#2b0000;color:#ffb3b3;padding:8px;border-radius:4px;margin:4px 0;">
+  <div style="font-weight:600;margin-bottom:6px;">Mermaid error: ${esc(msg)}</div>
+  <pre style="white-space:pre-wrap;margin:0;max-height:240px;overflow:auto;"><code class="hljs language-text">${code}</code></pre>
+</div>`;
+                        showResult(html, '');
+                    }
+                }
+                function bind(){
+                    const btn = document.getElementById(btnId);
+                    if (!btn || btn.__boundMermaidParse){ return; }
+                    btn.__boundMermaidParse = true;
+                    btn.addEventListener('click', function(){
+                        // Slight delay to ensure any pending editor syncs are applied
+                        setTimeout(()=>{ parseMermaid(getActiveEditorText()); }, 0);
+                    });
+                }
+                // Bind on DOM ready and also when content may be replaced dynamically
+                if (document.readyState === 'loading'){
+                    document.addEventListener('DOMContentLoaded', bind);
+                } else { bind(); }
+            })();
+        </script>
     </div>
     <!-- 3D CHART -->
     <div id="collapseChart3dOptions_{{ loop_index }}"
