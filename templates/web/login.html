@@ -112,13 +112,13 @@
                                             <a href="{{ url_for('clarama_ui.oauth', oauth_name=provider) }}"
                                                style="text-align: center; display:inline-block;">
                                                 {% if provider_info.get('image', {}).get('src') %}
-                                                    <img id="sso_{{ provider }}_image" 
+                                                    <img id="sso_{{ provider }}_image"
                                                          src="{{ provider_info.get('image', {}).get('src') }}"
                                                          alt="{{ provider_info.get('image', {}).get('alt', provider_info.get('button', {}).get('text', 'Sign In')) }}"
                                                          style="cursor:pointer; max-width:100%; {{ provider_info.get('image', {}).get('style', '') }}">
                                                 {% else %}
                                                     <button id="sso_{{ provider }}_signin" type="button"
-                                                            class="btn {{ provider_info.get('button', {}).get('class', 'btn-primary') }} btn-lg shadow"
+                                                            class="btn {{ provider_info.get('button', {}).get('class', 'btn-c2') }} btn-lg shadow"
                                                             style="padding:12px; {{ provider_info.get('button', {}).get('style', '') }}">
                                                         {{ provider_info.get('button', {}).get('text', 'Sign In') }}
                                                     </button>

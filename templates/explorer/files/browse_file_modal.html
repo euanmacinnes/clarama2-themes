@@ -1,35 +1,35 @@
 <div class="modal fade" tabindex="-1" id="browseFileModal">
     <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Browse File</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Browse File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb" id="breadcrumb_browsefile">
+                    </ol>
+                </nav>
+
+                <select id="add_content_browsefile" name="add_file" size="10" class="form-control">
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-c2" onclick="add_selected_file()">Select
+                </button>
+            </div>
         </div>
-        <div class="modal-body">
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb" id="breadcrumb_browsefile">
-            </ol>
-          </nav>
-  
-          <select id="add_content_browsefile" name="add_file" size="10" class="form-control">
-          </select>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" onclick="add_selected_file()">Select
-          </button>
-        </div>
-      </div>
     </div>
 </div>
 
 <script type="text/javascript">
     // this will not add a grid element
 
-    $( document ).ready(() => {
+    $(document).ready(() => {
         // this allows double click to add file
         $('#add_content_browsefile').on('dblclick', 'option', function () {
-            const selectedItem = $(this); 
+            const selectedItem = $(this);
             if (!isFolder(selectedItem)) {
                 console.log("File selected: " + selectedItem.val());
                 add_selected_file();
@@ -39,7 +39,7 @@
         // this loads the folder/file in the browse modal
         $('#browseFileModal').on('shown.bs.modal', function (event) {
             const button = $(event.relatedTarget);
-            const filters = button.attr('filters'); 
+            const filters = button.attr('filters');
             const inputId = button.attr('inputId');
             const gridElem = button.attr('gridElem');
 
@@ -75,12 +75,10 @@
         if (targetInput === null) {
             targetInput = $("#browseFileModal").data('adjacent');
             console.log("targetInput", targetInput);
-            inputId='relative';
+            inputId = 'relative';
+        } else {
+            target = inputId.replace('_elemInput', '');
         }
-        else
-            {
-                target = inputId.replace('_elemInput', '');
-            }
 
         if (targetInput) {
 
@@ -93,7 +91,7 @@
                 let parentDiv = document.getElementById(target);
                 const currentUrl = parentDiv.getAttribute('url');
                 parentDiv.setAttribute('url', "/render/embed/" + absolutePath + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
-                
+
                 // console.log("new url", document.getElementById(target).getAttribute('url'))
                 enable_interactions($(`#${target}`).parent(), true);
             } else if (inputId == "settings_table_source") { // this part is to generate the fields in a slate when a table in the slate settings is selected
@@ -120,7 +118,7 @@
                         for (const filePath of all_fields) {
                             let absFullFilePath = json_files['results']['filename'] + "/" + filePath;
                             let relativeFullFilePath = "./" + getRelativePath("{{ file_url | path }}", absFullFilePath)
-                            
+
                             // console.log("filePath", filePath);
                             // console.log("absFullFilePath", absFullFilePath);
                             // console.log("relativeFullFilePath", relativeFullFilePath);
@@ -128,16 +126,16 @@
                                 // did async-await to ensure itll run finish first before proceeding to next loop
                                 await add_selected_content('/content/element/{{ file_url }}', relativeFullFilePath);
                                 console.log("success");
-                            } catch(err) {
+                            } catch (err) {
                                 console.error("error", err)
                             }
-                        };
+                        }
+                        ;
                     });
             } else {
                 if (targetInput.jquery) {
                     targetInput.val(newSource);
-                    }
-                else {
+                } else {
                     targetInput.value = newSource;
                 }
             }

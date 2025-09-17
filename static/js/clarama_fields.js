@@ -436,6 +436,16 @@ function initializeCellNavigation() {
             }
         }
 
+        // Shift+Enter: Run current cell and move to next
+        if ((e.shiftKey || e.metaKey) && e.keyCode === 13) {
+            e.preventDefault();
+
+            const currentCell = getCurrentCell();
+            if (!currentCell) return;
+
+            const runSuccess = runCurrentCell(currentCell);
+        }
+
         // Ctrl+\ : Toggle insights for current cell
         if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
             e.preventDefault();

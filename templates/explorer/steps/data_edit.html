@@ -55,7 +55,8 @@
                 <div class="flex-grow-1">
                     <ul class="nav nav-tabs gap-1" id="dataSourceTabs_{{ loop_index }}" role="tablist">
                         <div class="nav-item btn-group me-2">
-                            <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse" title="output"
+                            <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
+                                    title="output"
                                     data-bs-target="#collapseTableOptions_{{ loop_index }}"
                                     aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
                                     aria-controls="collapseTableOptions_{{ loop_index }}"
@@ -63,7 +64,8 @@
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
                                 <i class="bi bi-table"></i>
                             </button>
-                            <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse" title="table configuration"
+                            <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse"
+                                    title="table configuration"
                                     data-bs-target="#collapseChartOptions_{{ loop_index }}"
                                     aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
                                     aria-controls="collapseChartOptions_{{ loop_index }}"
@@ -71,7 +73,17 @@
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
                                 <i class="bi bi-graph-up-arrow"></i>
                             </button>
-                            <button id="task_step_{{ loop_index }}_chart3d" type="button" data-bs-toggle="collapse" title="3D chart configuration"
+                            <button id="task_step_{{ loop_index }}_diagram" type="button" data-bs-toggle="collapse"
+                                    title="Mermaid Diagram configuration"
+                                    data-bs-target="#collapseDiagramOptions_{{ loop_index }}"
+                                    aria-expanded="{% if output=='diagram' %}true{% else %}false{% endif %}"
+                                    aria-controls="collapseDiagramOptions_{{ loop_index }}"
+                                    class="btn rounded-0 {% if output=='diagram' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
+                                    onclick="datacell_setOutput('task_step_{{ loop_index }}', 'diagram', '{{ loop_index }}');">
+                                <i class="bi bi-diagram-3"></i>
+                            </button>
+                            <button id="task_step_{{ loop_index }}_chart3d" type="button" data-bs-toggle="collapse"
+                                    title="3D chart configuration"
                                     data-bs-target="#collapseChart3dOptions_{{ loop_index }}"
                                     aria-expanded="{% if output=='chart3d' %}true{% else %}false{% endif %}"
                                     aria-controls="collapseChart3dOptions_{{ loop_index }}"
@@ -80,6 +92,10 @@
                                 <i class="bi bi-box"></i>
                             </button>
                             <button id="task_step_{{ loop_index }}_code" type="button" title="data query"
+                                    title="Code configuration"
+                                    data-bs-target="#collapseCodeOptions_{{ loop_index }}"
+                                    aria-expanded="{% if output=='code' %}true{% else %}false{% endif %}"
+                                    aria-controls="collapseCodeOptions_{{ loop_index }}"
                                     class="btn {% if output=='code' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
                                     onclick="datacell_setOutput('task_step_{{ loop_index }}', 'code', '{{ loop_index }}');">
                                 <i class="bi bi-code"></i>
@@ -95,14 +111,15 @@
                             {% set current_loop = loop %}
                             {% set is_active = loop.first %}
                             {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
-                            
+
                             {% with tab=tab, loop_index=loop_index, tab_id=tab_id, is_active=is_active %}
                                 {% include theme("explorer/steps/data_edit_tab_header.html") %}
                             {% endwith %}
                         {% endfor %}
 
                         <li class="add-tab-button" role="presentation">
-                            <button id="add-source-tab-{{ loop_index }}" type="button" class="nav-link add-source-tab" title="Add tab" data-loop-index="{{ loop_index }}">
+                            <button id="add-source-tab-{{ loop_index }}" type="button" class="nav-link add-source-tab"
+                                    title="Add tab" data-loop-index="{{ loop_index }}">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </li>
@@ -113,9 +130,9 @@
         {% for tab in tabs %}
             {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
             <div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }} {% if loop.first %}show active{% endif %}"
-                id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
-                data-tab-id="{{ tab_id }}"
-                role="tabpanel" aria-labelledby="tab_{{ loop_index }}_{{ tab_id }}">
+                 id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                 data-tab-id="{{ tab_id }}"
+                 role="tabpanel" aria-labelledby="tab_{{ loop_index }}_{{ tab_id }}">
                 {# Include the sub-template for each tab's content #}
                 {% with source=tab.source, content=tab.content, loop_index=loop_index, tab_id=tab_id %}
                     <!-- Input source file & SQL code editor -->
@@ -213,10 +230,11 @@
                         <i class="bi bi-folder2-open"></i>
                     </button>
                     {% if table['slate'] %}
-                        <a href="{{ table['slate'] }}" target="_blank" id="task_step_{{ loop_index }}_source_browse_link"
+                        <a href="{{ table['slate'] }}" target="_blank"
+                           id="task_step_{{ loop_index }}_source_browse_link"
                            class="text-decoration-none text-white">
                             <button id="task_step_{{ loop_index }}_source_browse_link" type="button"
-                                    class="btn btn-secondary datasource" aria-haspopup="true"
+                                    class="btn btn-c2-secondary datasource" aria-haspopup="true"
                                     aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
                                 <i class="bi bi-pen"></i>
                             </button>
@@ -259,7 +277,7 @@
                             <option {{ selected("Bottom",legend) }}>Bottom</option>
                         </select>
                     </div>
-                    <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chartYamlEditor"
+                    <button type="button" class="btn btn-c2 ms-3" data-bs-toggle="collapse" href="#chartYamlEditor"
                             role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advanced
                     </button>
                 </div>
@@ -271,7 +289,7 @@
                      editor="yaml"
                      class="source-editor form-control clarama-field-editor chart-advanced"
                      celltype="code"
-                     style="min-height: 100px">{{  chart['advanced'] }}</div>
+                     style="min-height: 100px">{{ chart['advanced'] }}</div>
             </div>
 
             <div class="container-fluid my-3">
@@ -380,6 +398,105 @@
 
         </div>
     </div>
+    <div id="collapseDiagramOptions_{{ loop_index }}"
+         class="accordion-collapse collapse bg-cell-config {% if output=='diagram' %}show{% endif %}">
+        <div class="accordion-body" aria-labelledby="diagram" style="padding: 8px;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <button type="button" class="btn btn-c2" id="diagram-parse-btn-{{ loop_index }}">
+                    <i class="bi bi-search"></i> Check Diagram (Parse)
+                </button>
+                <span class="text-white-50 small">Validate the current tab's Mermaid script and show any errors below.</span>
+            </div>
+            <div id="diagram-parse-result-{{ loop_index }}" class="p-2 rounded" style="background:#151515; border:1px solid #2a2a2a; color:#ddd; min-height:44px;">
+                <span class="text-white-50">There are no options for this diagram type. Use the button to check your Mermaid diagram script.</span>
+            </div>
+        </div>
+        <script>
+            (function(){
+                const loopIndex = '{{ loop_index }}';
+                const btnId = `diagram-parse-btn-${loopIndex}`;
+                const resId = `diagram-parse-result-${loopIndex}`;
+                const containerSel = `#dataEditTabContentContainer_${loopIndex}`;
+                function esc(s){return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));}
+                function getActiveEditorText(){
+                    const container = document.querySelector(containerSel);
+                    if (!container) return '';
+                    // Prefer the visible active pane
+                    let pane = container.querySelector('.tab-pane.show.active');
+                    if (!pane) {
+                        // Fallback: first pane
+                        pane = container.querySelector('.tab-pane');
+                    }
+                    if (!pane) return '';
+                    const editor = pane.querySelector('.source-editor');
+                    if (!editor) return '';
+                    // Try Monaco if attached via jQuery data
+                    try{
+                        if (window.$) {
+                            const $ed = window.$(editor);
+                            const monacoEd = $ed && $ed.data && $ed.data('monacoEditor');
+                            if (monacoEd && typeof monacoEd.getValue === 'function') {
+                                return String(monacoEd.getValue() || '').trim();
+                            }
+                        }
+                    } catch(e){}
+                    // Fallback to raw text content
+                    return (editor.textContent || '').trim();
+                }
+                function showResult(html, cls){
+                    const r = document.getElementById(resId);
+                    if (!r) return;
+                    r.className = `p-2 rounded ${cls||''}`;
+                    r.style.background = '#151515';
+                    r.style.border = '1px solid #2a2a2a';
+                    r.style.color = '#ddd';
+                    r.innerHTML = html;
+                }
+                function parseMermaid(text){
+                    if (!window.mermaid){
+                        showResult('<div class="text-warning">Mermaid library is not loaded. Cannot parse diagram.</div>', '');
+                        return;
+                    }
+                    if (!text){
+                        showResult('<div class="text-white-50">No script found in the current tab.</div>', '');
+                        return;
+                    }
+                    try{
+                        if (typeof window.mermaid.parse === 'function'){
+                            window.mermaid.parse(text);
+                        } else if (window.mermaid.mermaidAPI && typeof window.mermaid.mermaidAPI.parse === 'function'){
+                            window.mermaid.mermaidAPI.parse(text);
+                        } else {
+                            showResult('<div class="text-warning">Mermaid parse function is not available in this version.</div>', '');
+                            return;
+                        }
+                        showResult('<div class="text-success">No errors found. The diagram script parsed successfully.</div>', '');
+                    } catch(err){
+                        const msg = (err && (err.str || err.message)) ? (err.str || err.message) : 'Invalid Mermaid diagram';
+                        const code = esc(text);
+                        const html = `<div class="mermaid-error-box" style="border:1px solid #e57373;background:#2b0000;color:#ffb3b3;padding:8px;border-radius:4px;margin:4px 0;">
+  <div style="font-weight:600;margin-bottom:6px;">Mermaid error: ${esc(msg)}</div>
+  <pre style="white-space:pre-wrap;margin:0;max-height:240px;overflow:auto;"><code class="hljs language-text">${code}</code></pre>
+</div>`;
+                        showResult(html, '');
+                    }
+                }
+                function bind(){
+                    const btn = document.getElementById(btnId);
+                    if (!btn || btn.__boundMermaidParse){ return; }
+                    btn.__boundMermaidParse = true;
+                    btn.addEventListener('click', function(){
+                        // Slight delay to ensure any pending editor syncs are applied
+                        setTimeout(()=>{ parseMermaid(getActiveEditorText()); }, 0);
+                    });
+                }
+                // Bind on DOM ready and also when content may be replaced dynamically
+                if (document.readyState === 'loading'){
+                    document.addEventListener('DOMContentLoaded', bind);
+                } else { bind(); }
+            })();
+        </script>
+    </div>
     <!-- 3D CHART -->
     <div id="collapseChart3dOptions_{{ loop_index }}"
          class="accordion-collapse collapse bg-cell-config {% if output=='chart3d' %}show{% endif %}">
@@ -406,7 +523,7 @@
                             <option {{ selected("Bottom",legend) }}>Bottom</option>
                         </select>
                     </div>
-                    <button type="button" class="btn btn-primary ms-3" data-bs-toggle="collapse" href="#chart3dYamlEditor"
+                    <button type="button" class="btn btn-c2 ms-3" data-bs-toggle="collapse" href="#chart3dYamlEditor"
                             role="button" aria-expanded="false" aria-controls="chart3dYamlEditor">Advanced
                     </button>
                 </div>
@@ -415,41 +532,57 @@
                 <div class="mt-2">
                     <ul class="nav nav-tabs" id="chart3dAxisTabs_{{ loop_index }}" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="axis-titles-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-titles-{{ loop_index }}" type="button" role="tab" aria-controls="axis-titles-{{ loop_index }}" aria-selected="true">Titles</button>
+                            <button class="nav-link active" id="axis-titles-tab-{{ loop_index }}" data-bs-toggle="tab"
+                                    data-bs-target="#axis-titles-{{ loop_index }}" type="button" role="tab"
+                                    aria-controls="axis-titles-{{ loop_index }}" aria-selected="true">Titles
+                            </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="axis-orig-bounds-tab-{{ loop_index }}" data-bs-toggle="tab" data-bs-target="#axis-orig-bounds-{{ loop_index }}" type="button" role="tab" aria-controls="axis-orig-bounds-{{ loop_index }}" aria-selected="false">Axis Ticks</button>
+                            <button class="nav-link" id="axis-orig-bounds-tab-{{ loop_index }}" data-bs-toggle="tab"
+                                    data-bs-target="#axis-orig-bounds-{{ loop_index }}" type="button" role="tab"
+                                    aria-controls="axis-orig-bounds-{{ loop_index }}" aria-selected="false">Axis Ticks
+                            </button>
                         </li>
                     </ul>
                     <div class="tab-content border-start border-end border-bottom p-3" id="chart3dAxisTabsContent">
                         <!-- Titles Tab -->
-                        <div class="tab-pane fade show active" id="axis-titles-{{ loop_index }}" role="tabpanel" aria-labelledby="axis-titles-tab-{{ loop_index }}">
+                        <div class="tab-pane fade show active" id="axis-titles-{{ loop_index }}" role="tabpanel"
+                             aria-labelledby="axis-titles-tab-{{ loop_index }}">
                             <div class="row g-2 align-items-center">
                                 <div class="col-12 fw-bold">Axis Titles</div>
                                 <!-- X Axis Title -->
                                 <div class="col-md-2"><label class="form-label mb-0">X Title</label></div>
                                 <div class="col-md-10">
-                                    <input type="text" class="form-control chart3d-axis-title-x" placeholder="X axis title"
-                                           value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('x', '') }}{% endif %}">
+                                    <input type="text" class="form-control chart3d-axis-title-x"
+                                           placeholder="X axis title"
+                                           value="
+
+                                                   {% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('x', '') }}{% endif %}">
                                 </div>
                                 <!-- Y Axis Title -->
                                 <div class="col-md-2 mt-2"><label class="form-label mb-0">Y Title</label></div>
                                 <div class="col-md-10 mt-2">
-                                    <input type="text" class="form-control chart3d-axis-title-y" placeholder="Y axis title"
-                                           value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('y', '') }}{% endif %}">
+                                    <input type="text" class="form-control chart3d-axis-title-y"
+                                           placeholder="Y axis title"
+                                           value="
+
+                                                   {% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('y', '') }}{% endif %}">
                                 </div>
                                 <!-- Z Axis Title -->
                                 <div class="col-md-2 mt-2"><label class="form-label mb-0">Z Title</label></div>
                                 <div class="col-md-10 mt-2">
-                                    <input type="text" class="form-control chart3d-axis-title-z" placeholder="Z axis title"
-                                           value="{% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('z', '') }}{% endif %}">
+                                    <input type="text" class="form-control chart3d-axis-title-z"
+                                           placeholder="Z axis title"
+                                           value="
+
+                                                   {% if chart3d is defined %}{{ chart3d.get('axis', {}).get('titles', {}).get('z', '') }}{% endif %}">
                                 </div>
                             </div>
                         </div>
 
                         <!-- Original Bounds Tab -->
                         <div class="tab-pane fade" id="axis-orig-bounds-{{ loop_index }}" role="tabpanel" aria-labelledby="axis-orig-bounds-tab">
-                            <div class="row gx-0 gy-2 align-items-center mt-2">
+                            <div class="row g-2 align-items-center mt-2">
                                 <div class="col-12 fw-bold">Ticks</div>
                             
                                 <!-- X Axis -->
@@ -460,6 +593,11 @@
                                     <input id="tick-step-x-{{ loop_index }}" type="number" step="any"
                                         class="form-control chart3d-tick-step-x" placeholder="e.g. 1"
                                         value="{% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('ticks', {}).get('x', {}).get('step') if chart3d.get('axis', {}).get('ticks', {}) and chart3d.get('axis', {}).get('ticks', {}).get('x') else '') }}{% endif %}">
+                                    <input type="number" step="any" class="form-control chart3d-tick-step-x"
+                                           placeholder="e.g. 1"
+                                           value="
+
+                                                   {% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('ticks', {}).get('x', {}).get('step') if chart3d.get('axis', {}).get('ticks', {}) and chart3d.get('axis', {}).get('ticks', {}).get('x') else '') }}{% endif %}">
                                 </div>
                                 <div class="col-md-1"></div>
                                 <div class="col-md-1">
@@ -475,6 +613,22 @@
                                 <!-- Y Axis -->
                                 <div class="col-md-1">
                                     <label class="form-label mb-0" for="tick-step-y-{{ loop_index }}">Y Tick Step</label>
+                                <div class="col-md-2 mt-2"><label class="form-label mb-0">Y Bounds</label></div>
+                                <div class="col-md-5 mt-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-min-y"
+                                               placeholder="Y Min"
+                                               value="
+
+                                                       {% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('y') or [None, None])[0] or '' }}{% endif %}">
+                                        <span class="input-group-text">Max</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-max-y"
+                                               placeholder="Y Max"
+                                               value="
+
+                                                       {% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('y') or [None, None])[1] or '' }}{% endif %}">
+                                    </div>
                                 </div>
                                 <div class="col-md-4">
                                     <input id="tick-step-y-{{ loop_index }}" type="number" step="any"
@@ -495,6 +649,22 @@
                                 <!-- Z Axis -->
                                 <div class="col-md-1">
                                     <label class="form-label mb-0" for="tick-step-z-{{ loop_index }}">Z Tick Step</label>
+                                <div class="col-md-2 mt-2"><label class="form-label mb-0">Z Bounds</label></div>
+                                <div class="col-md-5 mt-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-min-z"
+                                               placeholder="Z Min"
+                                               value="
+
+                                                       {% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('z') or [None, None])[0] or '' }}{% endif %}">
+                                        <span class="input-group-text">Max</span>
+                                        <input type="number" step="any" class="form-control chart3d-axis-max-z"
+                                               placeholder="Z Max"
+                                               value="
+
+                                                       {% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('orig_bounds', {}).get('z') or [None, None])[1] or '' }}{% endif %}">
+                                    </div>
                                 </div>
                                 <div class="col-md-4">
                                     <input id="tick-step-z-{{ loop_index }}" type="number" step="any"
@@ -512,7 +682,32 @@
                                 </div>
                                 <div class="col-md-1"></div>
                             </div>
-                        </div>                          
+                        </div>
+                    </div>
+                    <div class="col-md-2 mt-2" style="text-align: right;"><label class="form-label mb-0">Y Tick
+                        Size</label></div>
+                    <div class="col-md-4 mt-2"><input type="number" step="any" class="form-control chart3d-tick-size-y"
+                                                      placeholder="e.g. 0.08"
+                                                      value="
+
+                                                              {% if chart3d is defined %}{{ chart3d.get('axis', {}).get('tickSizeY', '') }}{% endif %}">
+                    </div>
+
+                    <!-- Z Axis Tick Step -->
+                    <div class="col-md-2 mt-2"><label class="form-label mb-0">Z Tick Step</label></div>
+                    <div class="col-md-4 mt-2">
+                        <input type="number" step="any" class="form-control chart3d-tick-step-z" placeholder="e.g. 1"
+                               value="
+
+                                       {% if chart3d is defined %}{{ (chart3d.get('axis', {}).get('ticks', {}).get('z', {}).get('step') if chart3d.get('axis', {}).get('ticks', {}) and chart3d.get('axis', {}).get('ticks', {}).get('z') else '') }}{% endif %}">
+                    </div>
+                    <div class="col-md-2 mt-2" style="text-align: right;"><label class="form-label mb-0">Z Tick
+                        Size</label></div>
+                    <div class="col-md-4 mt-2"><input type="number" step="any" class="form-control chart3d-tick-size-z"
+                                                      placeholder="e.g. 0.08"
+                                                      value="
+
+                                                              {% if chart3d is defined %}{{ chart3d.get('axis', {}).get('tickSizeZ', '') }}{% endif %}">
                     </div>
                 </div>
             </div>
@@ -523,7 +718,7 @@
                      editor="yaml"
                      class="source-editor form-control clarama-field-editor chart3d-advanced"
                      celltype="code"
-                     style="min-height: 100px">{{  chart3d['advanced'] }}</div>
+                     style="min-height: 100px">{{ chart3d['advanced'] }}</div>
             </div>
             <ul id="seriesObj{{ loop_index }}" class="list-group">
                 <label for="so{{ loop_index }}" class="form-label mb-2">
@@ -547,6 +742,12 @@
             </ul>
         </div>
     </div>
+    <div id="collapseCodeOptions_{{ loop_index }}"
+         class="accordion-collapse collapse bg-cell-config {% if output=='diagram' %}show{% endif %}">
+        <div class="accordion-body" aria-labelledby="diagram" style="padding: 8px;">
+            There are no options for this code type, output is sent only to cell_results.
+        </div>
+    </div>
     <div id="content_chart_{{ loop_index }}">
 
     </div>
@@ -564,12 +765,12 @@
 
         let currentModalInputFieldId = null;
 
-        $('#browseFileModal').on('show.bs.modal', function(event) {
+        $('#browseFileModal').on('show.bs.modal', function (event) {
             const button = $(event.relatedTarget);
             currentModalInputFieldId = button.attr('inputId');
         });
 
-        $('#browseFileModal').on('hidden.bs.modal', function() {
+        $('#browseFileModal').on('hidden.bs.modal', function () {
             if (currentModalInputFieldId) {
                 const $targetInput = $(`#${currentModalInputFieldId}`);
                 if ($targetInput.length) {
@@ -608,63 +809,63 @@
 
         function updateAllTabDropdowns(loopIndex) {
             const currentTabs = [];
-            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').each(function() {
+            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').each(function () {
                 const $tabButton = $(this);
                 const tabId = $tabButton.attr('id').split('_').pop();
-                
+
                 let tabTitle = $tabButton.find('.tab-title').text().trim();
-                
+
                 if (!tabTitle) {
                     tabTitle = $tabButton.attr('title');
                 }
-                
+
                 if (!tabTitle) {
                     const $sourceInput = $(`#content_source_${loopIndex}_tab_${tabId}`);
                     if ($sourceInput.length && $sourceInput.val()) {
                         tabTitle = $sourceInput.val().split(/[\\/]/).pop();
                     }
                 }
-                
+
                 if (!tabTitle) {
                     tabTitle = `Tab ${tabId}`;
                 }
-                
+
                 currentTabs.push({
                     id: tabId,
                     title: tabTitle
                 });
             });
-            
+
             // Update all series group tab dropdowns
-            $(`#seriesGrp${loopIndex} .series-tab`).each(function() {
+            $(`#seriesGrp${loopIndex} .series-tab`).each(function () {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
                 $dropdown.empty();
-                
+
                 currentTabs.forEach((tab, index) => {
                     const isSelected = currentValue === tab.id || (!currentValue && index === 0);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
-            
+
             // Update series annotations tab dropdowns
-            $(`#seriesAnno${loopIndex} .anno-tab`).each(function() {
+            $(`#seriesAnno${loopIndex} .anno-tab`).each(function () {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
                 $dropdown.empty();
-                
+
                 currentTabs.forEach((tab, index) => {
                     const isSelected = currentValue === tab.id || (!currentValue && index === 0);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
-            
+
             // Update series objects vertices dropdowns
-            $(`#seriesObj${loopIndex} .obj-vertices`).each(function() {
+            $(`#seriesObj${loopIndex} .obj-vertices`).each(function () {
                 const $dropdown = $(this);
                 const currentValue = $dropdown.val();
                 $dropdown.empty();
-                
+
                 currentTabs.forEach((tab, index) => {
                     const isSelected = currentValue === tab.id || (!currentValue && index === 0);
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
@@ -672,7 +873,7 @@
             });
 
             // Update series objects edges dropdowns
-            $(`#seriesObj${loopIndex} .obj-edges`).each(function() {
+            $(`#seriesObj${loopIndex} .obj-edges`).each(function () {
                 const $dropdown = $(this);
                 let currentValue = $dropdown.val();
                 if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
@@ -687,7 +888,7 @@
             });
 
             // Update series objects uv dropdowns
-            $(`#seriesObj${loopIndex} .obj-uv`).each(function() {
+            $(`#seriesObj${loopIndex} .obj-uv`).each(function () {
                 const $dropdown = $(this);
                 let currentValue = $dropdown.val();
                 if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
@@ -702,7 +903,7 @@
             });
 
             // Update series objects colour dropdowns
-            $(`#seriesObj${loopIndex} .obj-colour`).each(function() {
+            $(`#seriesObj${loopIndex} .obj-colour`).each(function () {
                 const $dropdown = $(this);
                 let currentValue = $dropdown.val();
                 if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
@@ -725,19 +926,19 @@
             updateSeriesFields($(this));
         });
 
-        $(document).on('click', `#addSG${loopIndex}`, function() {
+        $(document).on('click', `#addSG${loopIndex}`, function () {
             setTimeout(() => {
                 updateAllTabDropdowns(loopIndex);
             }, 200);
         });
 
-        $(document).on('click', `#addAN${loopIndex}`, function() {
+        $(document).on('click', `#addAN${loopIndex}`, function () {
             setTimeout(() => {
                 updateAllTabDropdowns(loopIndex);
             }, 200);
         });
 
-        $(document).on('click', `#addSO${loopIndex}`, function() {
+        $(document).on('click', `#addSO${loopIndex}`, function () {
             setTimeout(() => {
                 updateAllTabDropdowns(loopIndex);
             }, 200);
@@ -748,7 +949,7 @@
         const existingTabs = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab');
 
         let maxExistingTabId = -1;
-        existingTabs.each(function() {
+        existingTabs.each(function () {
             const $tabButton = $(this);
             const tabId = parseInt($tabButton.attr('id').split('_').pop());
             if (!isNaN(tabId) && tabId > maxExistingTabId) {
@@ -766,12 +967,12 @@
             const newTabHeader = document.createElement("li");
             newTabHeader.className = "clarama-post-embedded clarama-replaceable nav-item";
             newTabHeader.setAttribute("role", "presentation");
-            
+
             const tabData = {
                 tab_id: tabId,
                 source: ''
             };
-            
+
             const params = new URLSearchParams({
                 loop_index: loopIndex,
                 tab_id: tabId,
@@ -780,7 +981,7 @@
                 source: '',
                 content: ''
             });
-            
+
             newTabHeader.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_header?${params.toString()}`);
             return newTabHeader;
         }
@@ -792,17 +993,17 @@
             newTabContent.setAttribute("data-tab-id", tabId);
             newTabContent.setAttribute("role", "tabpanel");
             newTabContent.setAttribute("aria-labelledby", `tab_${loopIndex}_${tabId}`);
-            
+
             const innerContent = document.createElement("div");
             innerContent.className = "clarama-post-embedded clarama-replaceable";
-            
+
             const params = new URLSearchParams({
                 loop_index: loopIndex,
                 tab_id: tabId,
                 source: '',
                 content: ''
             });
-            
+
             innerContent.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_contents?${params.toString()}`);
             newTabContent.appendChild(innerContent);
             return newTabContent;
@@ -810,14 +1011,14 @@
 
         function addNewTab() {
             const tabId = tabCounter++;
-            
+
             // Check if this is the first tab (no existing tabs)
             const existingTabsCount = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').length;
             const isFirst = existingTabsCount === 0;
 
             const tabHeader = addTabHeader(tabId, isFirst);
             const tabContent = addTabContent(tabId);
-            
+
             // Insert the tab header before the add button
             const addSourceTabLi = addSourceTabBtn.closest('li');
             addSourceTabLi.before(tabHeader);
@@ -843,16 +1044,16 @@
             const $tabButton = $(this).closest('button');
             const tabIdToClose = $tabButton.attr('id').split('_').pop();
             const $tabLi = $tabButton.closest('li');
-            
+
             // Check if this is the currently active tab
             const isActiveTab = $tabButton.hasClass('active');
-            
+
             // Find the next tab to activate if this is the active tab
             let $nextTabToActivate = null;
             if (isActiveTab) {
                 // First try to get the tab to the right
                 $nextTabToActivate = $tabLi.next('li').find('button.nav-link').not('.add-source-tab').first();
-                
+
                 // If no tab to the right, get the tab to the left
                 if (!$nextTabToActivate.length) {
                     $nextTabToActivate = $tabLi.prev('li').find('button.nav-link').not('.add-source-tab').first();
@@ -867,20 +1068,20 @@
 
             $tabLi.remove();
             $(`#tabContentBlock_${loopIndex}_${tabIdToClose}`).remove();
-            
+
             // Activate the next tab if we closed the active tab
             if (isActiveTab && $nextTabToActivate && $nextTabToActivate.length) {
                 activateTab($nextTabToActivate[0]);
             }
-            
+
             updateAllTabDropdowns(loopIndex);
         });
 
         if (addSourceTabBtn.length) {
-            addSourceTabBtn.on('click', function(e) {
+            addSourceTabBtn.on('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 console.log(`Add tab clicked for cell ${loopIndex}`);
                 const newTabId = addNewTab();
                 $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
@@ -908,16 +1109,16 @@
                 }
                 $tabTitleSpan.text(newName);
                 $tabButton.attr('title', newName);
-                
+
                 updateAllTabDropdowns(loopIndex);
             }
         }
 
-        contentContainer.on('change keyup', '.source-input-field', function() {
+        contentContainer.on('change keyup', '.source-input-field', function () {
             updateTabNameFromInput($(this));
         });
 
-        contentContainer.find('.source-input-field').each(function() {
+        contentContainer.find('.source-input-field').each(function () {
             updateTabNameFromInput($(this));
         });
 
@@ -931,7 +1132,7 @@
             $(`#${targetContentId}`).addClass('show active');
         }
 
-        tabsContainer.on('click', 'button.nav-link', function(e) {
+        tabsContainer.on('click', 'button.nav-link', function (e) {
             e.preventDefault();
             const $thisButton = $(this);
             if ($thisButton.hasClass('add-source-tab')) {

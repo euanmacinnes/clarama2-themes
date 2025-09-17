@@ -84,8 +84,8 @@
         <div class="card-header">Streaming Table</div>
         <div class="card-body">
             <div class="mb-2">
-                <button id="btnSimTable" class="btn btn-secondary">Simulate Stream (Table)</button>
-                <button id="btnLiveTable" class="btn btn-primary">Start Live Stream (Table)</button>
+                <button id="btnSimTable" class="btn btn-c2-secondary">Simulate Stream (Table)</button>
+                <button id="btnLiveTable" class="btn btn-c2">Start Live Stream (Table)</button>
             </div>
             <table id="jobsTable" data-classes="table table-striped" data-pagination="true" data-page-size="10"></table>
         </div>
@@ -95,8 +95,8 @@
         <div class="card-header">Streaming Chart</div>
         <div class="card-body">
             <div class="mb-2">
-                <button id="btnSimChart" class="btn btn-secondary">Simulate Stream (Chart)</button>
-                <button id="btnLiveChart" class="btn btn-primary">Start Live Stream (Chart)</button>
+                <button id="btnSimChart" class="btn btn-c2-secondary">Simulate Stream (Chart)</button>
+                <button id="btnLiveChart" class="btn btn-c2">Start Live Stream (Chart)</button>
             </div>
             <div class="row g-2">
                 <div class="col-md-4">
@@ -187,16 +187,18 @@
             return;
         }
         // start
-        const datatypes = (function(cs){
-            try{
-                return cs.map(c=>{
+        const datatypes = (function (cs) {
+            try {
+                return cs.map(c => {
                     const lc = String(c).toLowerCase();
-                    if(lc.includes('date') || lc.includes('time') || lc.includes('ts')) return 'datetime';
-                    if(lc.includes('uuid') || lc.endsWith('id')) return 'uuid';
-                    if(lc.includes('count') || lc.includes('runs') || lc.includes('num')) return 'integer';
+                    if (lc.includes('date') || lc.includes('time') || lc.includes('ts')) return 'datetime';
+                    if (lc.includes('uuid') || lc.endsWith('id')) return 'uuid';
+                    if (lc.includes('count') || lc.includes('runs') || lc.includes('num')) return 'integer';
                     return 'string';
                 });
-            }catch(e){ return undefined; }
+            } catch (e) {
+                return undefined;
+            }
         })(cols);
         window.ClaramaStream.dispatch(topic, {
             type: 'start',

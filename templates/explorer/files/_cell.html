@@ -2,13 +2,13 @@
     class="row bg-white text-dark clarama-cell-item"
     steptype="{{ task_step['type'] }}"
 >
-    <div class="panel col-step-bar cell-panel col-lg-1 d-flex flex-column position-relative bg-{{ 'primary' if task_last else 'secondary' }} text-light draggable-heading"
+    <div class="panel col-step-bar cell-panel col-lg-1 d-flex flex-column position-relative bg-{{ 'cell' if task_last else 'resultcell' }} text-light draggable-heading"
          style="padding:0">
         <hr class="faded" style="margin: 0"/>
         <div class="container-fluid pt-2">
             <div class="row g-1 align-items-center">
                 <div class="col-auto">
-                    <button type="button" class="btn text-white step-label px-2 py-1">{{ task_index }}</button>
+                    <button type="button" class="btn step-label px-2 py-1">{{ task_index }}</button>
                 </div>
                 <div class="col text-end">
                     <div class="btn-group">
@@ -17,14 +17,6 @@
                             <i class="fs-5 bi bi-play-fill"></i>
                         </button>
                     </div>
-                </div>
-            </div>
-            <div class="row mt-2">
-                <div class="col">
-                    <input type="text" id="loop-iterable-{{ task_index }}"
-                           loop-id="{{ task_index }}"
-                           class="form-control loop-iterable loop-inactive"
-                           value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
                 </div>
             </div>
             <div class="row mt-2">
@@ -38,9 +30,15 @@
                  style="width: 4rem; height: 4rem;"></div>
         </div>
     </div>
-    <div class="col-10 col-lg-11" style="padding:0px;">
+    <div class="col-remainder" style="padding:0px;">
         <div class="container-fluid">
             <div class="row flex-nowrap align-items-center" style="padding:0px;">
+                <div class="col">
+                    <input type="text" id="loop-iterable-{{ task_index }}"
+                           loop-id="{{ task_index }}"
+                           class="form-control loop-iterable loop-inactive"
+                           value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
+                </div>
                 {% include theme("explorer/files/_cell_insert.html") %}
                 <div class="col-auto hoverover auto-hover"
                      id="task_toolbar_{{ stream }}_{{ task_index }}_trash"
@@ -83,9 +81,9 @@
 
                         {% if task_step['type'] != "data" %}
                             <button
-                                type="button" class="insights-toggle-bar" data-task-index="{{ task_index }}"
-                                data-bs-toggle="tooltip" data-bs-placement="left"
-                                title="Insights (Ctrl-\\)" aria-label="Toggle insights (Ctrl-\\)" tabindex="0">
+                                    type="button" class="insights-toggle-bar" data-task-index="{{ task_index }}"
+                                    data-bs-toggle="tooltip" data-bs-placement="left"
+                                    title="Insights (Ctrl-\\)" aria-label="Toggle insights (Ctrl-\\)" tabindex="0">
                                 <i class="bi bi-lightbulb-off"></i>
                             </button>
                         {% endif %}

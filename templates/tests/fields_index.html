@@ -8,7 +8,8 @@
 <body class="bg-light">
 <div class="container py-3">
     <h1 class="h3">Clarama Field Tests (Themed)</h1>
-    <p class="text-muted">Click a link to open the generic tester with the selected field YAML. Use in a running Clarama app.</p>
+    <p class="text-muted">Click a link to open the generic tester with the selected field YAML. Use in a running Clarama
+        app.</p>
     {% set base = url_for('clarama_ui.home') %}
     <ul class="list-group">
         {% set tests = [
@@ -34,15 +35,22 @@
           'System/Tests/Fields/Timer.field.yaml'
         ] %}
         {% for y in tests %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>{{ y }}</span>
-            <a class="btn btn-sm btn-primary" href="{{ url_for('clarama_ui.home') }}content/template/tests/field_test.html?yaml={{ y | urlencode }}">Open Test</a>
-        </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>{{ y }}</span>
+                <a class="btn btn-sm btn-c2"
+                   href="{{ url_for('clarama_ui.home') }}content/template/tests/field_test.html?yaml={{ y | urlencode }}">Open
+                    Test</a>
+            </li>
         {% endfor %}
     </ul>
 </div>
 <script>
-    $(function(){ try{ enable_interactions($(document.body), true, true); }catch(e){} });
+    $(function () {
+        try {
+            enable_interactions($(document.body), true, true);
+        } catch (e) {
+        }
+    });
 </script>
 </body>
 </html>

@@ -31,29 +31,29 @@
 
         <div class="container-fluid bg-light">
             <div class="row">
-                {% for streamslist in streams %}
-                    {% for stream, steps in streamslist.items() %}
-                        {% if stream=='main' %}
-                            <div class="progress col p-0" style="height: 52px;">
-                                <div id="task_progress_{{ stream }}"
-                                     style="width: 0%; height:100%;"
-                                     max="{{ steps | length }} "
-                                     class="progress-bar" role="progressbar">
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                {% endfor %}
-                <div class="col-auto clarama-task">
+                <div class="d-flex flex-row-reverse clarama-task">
                     <div class="btn-group" role="group" aria-label="task_functions">
-                        <button id="run" type="button" class="btn btn-primary kernel-play-button" socket="run_socket"
+                        <button id="run" type="button" class="btn btn-c2 kernel-play-button" socket="run_socket"
                                 kill="False"><i
                                 class="bi bi-play-fill h2"></i></button>
-                        <button type="button" class="btn btn-info kernel_status" id="embed-kernel-status"> Loading...
+                        <button type="button" class="btn btn-c2 kernel_status" id="embed-kernel-status"> Loading...
                         </button>
                     </div>
                 </div>
             </div>
+            {% for streamslist in streams %}
+                {% for stream, steps in streamslist.items() %}
+                    {% if stream=='main' %}
+                        <div class="progress col p-0" style="height: 12px;">
+                            <div id="task_progress_{{ stream }}"
+                                 style="width: 0%; height:100%;"
+                                 max="{{ steps | length }} "
+                                 class="progress-bar" role="progressbar">
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
 
         </div>
     </form>

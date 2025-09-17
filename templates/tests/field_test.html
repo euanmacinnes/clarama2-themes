@@ -20,7 +20,7 @@
                          url="{{ embedded_url(filename=yaml) }}?clarama_layout=tight&fieldname=fieldA"
                          autorun="true"></div>
                     <div class="mt-2">
-                        <button id="btnAGet" class="btn btn-sm btn-primary">get_field_values (A)</button>
+                        <button id="btnAGet" class="btn btn-sm btn-c2">get_field_values (A)</button>
                         <pre id="outA" class="mt-2 small bg-body p-2 border rounded" style="min-height:80px"></pre>
                     </div>
                 </div>
@@ -34,7 +34,7 @@
                          url="{{ embedded_url(filename=yaml) }}?clarama_layout=tight&fieldname=fieldB"
                          autorun="true"></div>
                     <div class="mt-2">
-                        <button id="btnBGet" class="btn btn-sm btn-primary">get_field_values (B)</button>
+                        <button id="btnBGet" class="btn btn-sm btn-c2">get_field_values (B)</button>
                         <pre id="outB" class="mt-2 small bg-body p-2 border rounded" style="min-height:80px"></pre>
                     </div>
                 </div>
@@ -50,17 +50,30 @@
 
 <script>
     // Ensure interactions are enabled and embedded content is loaded
-    $(function(){
-        try{ enable_interactions($(document.body), true, true); }catch(e){ console.warn('enable_interactions failed', e); }
-        function capture(containerSel, outSel){
-            try{
-                const $container = $(containerSel);
-                const vals = get_field_values({}, false, function(){} , $container);
-                $(outSel).text(JSON.stringify(vals, null, 2));
-            }catch(e){ $(outSel).text('Error: ' + e); }
+    $(function () {
+        try {
+            enable_interactions($(document.body), true, true);
+        } catch (e) {
+            console.warn('enable_interactions failed', e);
         }
-        $('#btnAGet').on('click', function(){ capture('#fieldA', '#outA'); });
-        $('#btnBGet').on('click', function(){ capture('#fieldB', '#outB'); });
+
+        function capture(containerSel, outSel) {
+            try {
+                const $container = $(containerSel);
+                const vals = get_field_values({}, false, function () {
+                }, $container);
+                $(outSel).text(JSON.stringify(vals, null, 2));
+            } catch (e) {
+                $(outSel).text('Error: ' + e);
+            }
+        }
+
+        $('#btnAGet').on('click', function () {
+            capture('#fieldA', '#outA');
+        });
+        $('#btnBGet').on('click', function () {
+            capture('#fieldB', '#outB');
+        });
     });
 </script>
 </body>

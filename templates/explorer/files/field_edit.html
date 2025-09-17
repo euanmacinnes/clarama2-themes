@@ -89,7 +89,7 @@
                     {% for key, ftype in fieldtypes.items() %}
                         <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                             <label id="field_{{ key }}" key="{{ key }}"
-                                   class="btn w-100 {% if field_config['type'] == key %} clicked btn-primary {% else %} btn-light {% endif %} field">
+                                   class="btn w-100 {% if field_config['type'] == key %} clicked btn-c2 {% else %} btn-light {% endif %} field">
                                 <i class="bi fs-4 {{ ftype['icon'] }} w-100"></i>
                                 <div class="text-center mt-1"><b>{{ ftype['name'] }}</b></div>
                             </label>
@@ -544,9 +544,9 @@
 
         // Click handlers
         $(document).on('click', '.field', function () {
-            $(".field").removeClass("clicked btn-primary").addClass("btn-light");
+            $(".field").removeClass("clicked btn-c2").addClass("btn-light");
             key = $(this).attr("key");
-            $(this).addClass("clicked btn-primary").removeClass("btn-light");
+            $(this).addClass("clicked btn-c2").removeClass("btn-light");
             // Toggle custom mode availability for list type
 
             // Show/Hide filters field for browse-like types (c2file, browse)
@@ -737,8 +737,8 @@
                 $body.empty();
                 $body.append('<div id="gfe-inline" class="my-2"></div>');
                 $body.append('<div class="d-flex justify-content-end gap-2 mt-2">\
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>\
-                    <button type="button" class="btn btn-primary" id="gfe-inline-apply">Apply</button>\
+                    <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Cancel</button>\
+                    <button type="button" class="btn btn-c2" id="gfe-inline-apply">Apply</button>\
                 </div>');
 
                 // Initialize editor after modal shown to ensure layout is correct
@@ -1534,7 +1534,7 @@
                     "name LIKE '%ann%'".</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

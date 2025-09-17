@@ -68,6 +68,7 @@ button.btn {
   background-color: #15d;
   color: lightgray;
     font-variation-settings: 'wght' 400;
+    flex-grow: 1 !important;
 }
 
 button.btn-c2:hover {
@@ -86,9 +87,23 @@ button.btn-c2-play:hover {
 }
 
 .col-step-bar {
-    width: 6%
+    width: 4%
 }
 
+.col-remainder {
+    width: 96%
+}
+
+.separator {
+  border-bottom: 1px dotted #ccc; /* 1px for thin, dotted style, #ccc for light gray color */
+  padding-bottom: 4px;
+}
+
+.stream {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 10px;
+}
 .bg-c2 {
   background-color: #15d;
     border-color: #04c;
@@ -126,6 +141,10 @@ button.btn-c2-play:hover {
   color: white;
 }
 
+.centered {
+    width: 50%;
+    margin: 0 auto;
+}
 
 .MJXp-math { font-size: 1.5em !important; }
 
@@ -361,8 +380,17 @@ button.btn-c2-play:hover {
     opacity: 0.25;
 }
 
+.loop-iterable {
+    border-width: 1;
+    border-style: solid;
+    border-color: #ddd;
+    border-radius: 4px;
+    padding: 0px;
+    margin: 0px;
+    background-color: #f8f9fa;
+}
 .loop-inactive {
-    opacity: 0.04;
+    opacity: 0.4;
 }
 
 

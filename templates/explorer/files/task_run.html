@@ -1,44 +1,20 @@
 {% set internal_topic = url_for(request.endpoint, **request.view_args) | topic %}
 <form>
-    <div class="container-fluid bg-light">
-        <div class="row">
-            <div class="col-1 bg-secondary text-light" style="padding:0">
-                <div class="container-fluid">
-                    <br/>Execution
-                </div>
-            </div>
-            {% for streamslist in streams %}
-                {% for stream, steps in streamslist.items() %}
-                    {% if stream=='main' %}
-                        <div class="progress col p-0"
-                             style="height: 52px;border-bottom-left-radius: 0;border-top-left-radius: 0;">
-                            <div id="task_progress_{{ stream }}"
-                                 style="width: 0%; height:100%;"
-                                 max="{{ steps | length }} "
-                                 class="progress-bar" role="progressbar">
-                            </div>
-                        </div>
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-            <div class="col-auto clarama-task">
+    <div class="container-fluid bg-light tight">
+        <div class="d-flex flex-row-reverse tight">
+            <div class="clarama-task d-flex flex-row-reverse tight">
                 <div class="btn-group" role="group" aria-label="task_functions">
                     <button id="run" name="run" type="button" class="btn btn-c2-play kernel-play-button"
                             socket="run_socket"
                             kill="False"><i
                             class="bi bi-play-fill h2"></i></button>
-                    <button id="schedule" type="button" class="btn btn-c2"><i
+                    <button id="schedule" type="button" class="btn btn-c2 p-2"><i
                             class="bi bi-stopwatch h2" onclick="show_schedule();"></i></button>
                     <button type="button" class="btn btn-c2 kernel_status" id="run-kernel-status"> Loading...</button>
                 </div>
             </div>
         </div>
         <div class="row">
-            <div class="col-1 bg-secondary text-light" style="padding:0">
-                <div class="container-fluid">
-                    <br/>Parameters
-                </div>
-            </div>
             <div class="col">
                 <div class="container-fluid">
                     <ul class="row" style="list-style-type: none; padding: 0px;">
@@ -52,12 +28,7 @@
     <div id="schedule_form" class="loop-hidden">
         <div class="container-fluid">
             <div class="row bg-white text-dark">
-                <div class="col-1 bg-primary text-light justify-content-end" style="padding:0">
-                    <div class="container-fluid">
-                        <br/>Schedule<br/>
-                    </div>
-                </div>
-                <div class="col-11 bg-light" style="padding:0">
+                <div class="col-12 bg-light" style="padding:0">
                     <!-- the Results -->
                     <div class="container-fluid">
                         <div id="results_scheduler" class="cell-results" url="/render/schedule/{{ content_url }}">
@@ -78,11 +49,7 @@
                             <div class="row bg-white text-dark clarama-cell-item"
                                  id="{{ internal_topic ~ '_stream_' ~ stream ~ '_step' }}_{{ loop.index }}"
                             >
-                                <div class="col-1 bg-primary text-light justify-content-end" style="padding:0">
-                                    <div class="container-fluid">
-                                        <br/>Results<br/>
-                                        <br/>
-                                    </div>
+                                <div class="col-auto text-light justify-content-end" style="padding:0">
                                     <div class="cell-spin" style="opacity: 0">
                                         <div
                                                 class="d-flex justify-content-center spinner-border text-info position-absolute start-50"
@@ -96,7 +63,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-11 bg-light" style="padding:0">
+                                <div class="col-12 bg-light" style="padding:0">
                                     <!-- the Results -->
                                     <div class="container-fluid">
                                         <div id="results_{{ loop.index }}" class="cell-results">
@@ -105,6 +72,20 @@
                                 </div>
                             </div>
                         {% endif %}
+                    {% endfor %}
+                    {% for streamslist in streams %}
+                        {% for stream, steps in streamslist.items() %}
+                            {% if stream=='main' %}
+                                <div class="progress col p-0"
+                                     style="height: 12px;">
+                                    <div id="task_progress_{{ stream }}"
+                                         style="width: 0%; height:100%;"
+                                         max="{{ steps | length }} "
+                                         class="progress-bar" role="progressbar">
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
                     {% endfor %}
                 </div>
             {% endif %}
