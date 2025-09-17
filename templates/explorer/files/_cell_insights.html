@@ -2,47 +2,95 @@
     <div class="card h-100">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">
-                <i id="insight_bulb_{{ task_index }}" class="bi bi-lightbulb-off me-2 insight-bulb-icon"></i>
-                Insights
+            <i id="insight_bulb_{{ task_index }}" class="bi bi-lightbulb-off me-2 insight-bulb-icon"></i>
+            Insights
             </h6>
         </div>
+    
         <div class="card-body insights-content p-0 d-flex flex-column">
+            <!-- Tabs -->
             <ul class="nav nav-tabs" id="insightsTabs_{{ task_index }}" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="insights-variables-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-variables-{{ task_index }}" type="button" role="tab" aria-controls="insights-variables-{{ task_index }}" aria-selected="true">Variables</button>
+                    <button
+                    class="nav-link active"
+                    id="insights-variables-tab-{{ task_index }}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#insights-variables-{{ task_index }}"
+                    type="button" role="tab"
+                    aria-controls="insights-variables-{{ task_index }}"
+                    aria-selected="true">
+                    Variables
+                    </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="insights-suggestions-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-suggestions-{{ task_index }}" type="button" role="tab" aria-controls="insights-suggestions-{{ task_index }}" aria-selected="true">Chat</button>
+                    <button
+                    class="nav-link"
+                    id="insights-chat-tab-{{ task_index }}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#insights-chat-{{ task_index }}"
+                    type="button" role="tab"
+                    aria-controls="insights-chat-{{ task_index }}"
+                    aria-selected="false">
+                    Chat
+                    </button>
                 </li>
             </ul>
-            <!-- Variables List -->
-            <div class="insights-variables flex-grow-1 overflow-auto">
-                <div class="p-3">
-                    <h6 class="mb-2">Variables</h6>
-                    <div class="variables-list" id="variables_{{ task_index }}">
-                        <div class="text-muted d-flex align-items-center">
-                            <div class="spinner-border spinner-border-sm me-2 d-none insights-spinner" role="status">
-                                <span class="visually-hidden">Loading...</span>
+    
+            <!-- Tab panes -->
+            <div class="tab-content flex-grow-1" id="insightsTabContent_{{ task_index }}">
+            <!-- Variables pane -->
+                <div
+                    class="tab-pane fade show active h-100 d-flex flex-column"
+                    id="insights-variables-{{ task_index }}"
+                    role="tabpanel"
+                    aria-labelledby="insights-variables-tab-{{ task_index }}">
+        
+                    <!-- Variables List -->
+                    <div class="insights-variables flex-grow-1 overflow-auto">
+                        <div class="p-3">
+                            <div class="variables-list" id="variables_{{ task_index }}">
+                                <div class="text-muted d-flex align-items-center">
+                                    <div class="spinner-border spinner-border-sm me-2 d-none insights-spinner" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+        
+                    <!-- Console -->
+                    <div class="insights-console border-top bg-light">
+                        <div class="p-2">
+                            <div class="input-group">
+                                <input
+                                    type="text"
+                                    class="form-control console-input"
+                                    id="console_input_{{ task_index }}"
+                                    placeholder="Enter Python command..."
+                                    data-task-index="{{ task_index }}">
+                                <button
+                                    class="btn btn-outline-secondary execute-console"
+                                    type="button"
+                                    data-task-index="{{ task_index }}">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <!-- Console -->
-            <div class="insights-console border-top bg-light">
-                <div class="p-2">
-                    <div class="input-group">
-                        <input type="text" class="form-control console-input" 
-                               id="console_input_{{ task_index }}" 
-                               placeholder="Enter Python command..."
-                               data-task-index="{{ task_index }}">
-                        <button class="btn btn-outline-secondary execute-console" 
-                                type="button" data-task-index="{{ task_index }}">
-                            <i class="bi bi-play-fill"></i>
-                        </button>
+    
+                <!-- Chat pane -->
+                <div
+                    class="tab-pane fade h-100 d-flex flex-column"
+                    id="insights-chat-{{ task_index }}"
+                    role="tabpanel"
+                    aria-labelledby="insights-chat-tab-{{ task_index }}">
+                    <div id="insights_chat_container_{{ task_index }}" class="flex-grow-1">
+                    <!-- Chat UI here -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+  
