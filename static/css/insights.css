@@ -181,18 +181,31 @@
 .console-input {
     resize: none;
     overflow: hidden;
-    font-family: 'Courier New', Monaco, monospace;
-    font-size: 12px;
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    border: 1px solid #333333 !important;
+    transition: opacity 120ms ease, background-color 120ms ease, filter 120ms ease;
 }
 
-.console-input:focus {
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    border-color: #007bff !important;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+.console-input.console-disabled,
+.console-input:disabled {
+    opacity: 0.55;
+    background-color: #f2f2f2;
+    filter: grayscale(25%);
+    cursor: not-allowed;
+}
+
+.console-input.console-disabled::placeholder,
+.console-input:disabled::placeholder {
+    color: #9aa0a6;
+}
+
+.execute-console {
+    transition: opacity 120ms ease, filter 120ms ease;
+}
+
+.execute-console:disabled {
+    opacity: 0.5;
+    filter: grayscale(25%);
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .console-input::placeholder {

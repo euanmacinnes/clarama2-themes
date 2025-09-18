@@ -4,11 +4,6 @@ window.__ginaChatActive = window.__ginaChatActive || {};
 window.__ginaStreamBuf = window.__ginaStreamBuf || {};
 window.__ginaStreamIdleTimer = window.__ginaStreamIdleTimer || {};
 
-function insights_gina_kernel_message(dict, socket_url, webSocket, socket_div) {
-    // if (dict && dict["class"] === "insights_template" && dict["type"] === "task_llm_result") {
-    // }
-}
-
 function debounce(fn, wait, immediate) {
     let timeout;
     return function debounced(...args) {
@@ -58,8 +53,19 @@ function armGinaStream(taskIndex) {
 }
 
 /** Get jQuery cell element by task index */
-function $cellByTask(taskIndex) {
+function getCellByTask(taskIndex) {
     return $(`li.clarama-cell-item[step="${taskIndex}"]`);
+}
+
+function setConsoleEnabled(taskIndex, enabled) {
+    const $input = $(`#console_input_${taskIndex}`);
+    const $sendBtn = $(`.execute-console[step="${taskIndex}"], .execute-console[data-task-index="${taskIndex}"]`);
+
+    $input.prop('disabled', !enabled)
+          .attr('aria-disabled', String(!enabled))
+          .toggleClass('console-disabled', !enabled);
+
+    $sendBtn.prop('disabled', !enabled);
 }
 
 function finalizePreviousReplyBubble(taskIndex) {
@@ -188,7 +194,7 @@ function postToKernel(taskIndex, streamSpec, parameters = null) {
     const task_kernel_id = socket_div.attr("task_kernel_id");
     const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
 
-    const $cell = $cellByTask(taskIndex);
+    const $cell = getCellByTask(taskIndex);
     const task_registry = get_cell_fields($cell);
 
     // fill stream
@@ -244,11 +250,12 @@ function cell_insights_gina_run(cell_button, questionText) {
 
     // Resolve text (argument or console input)
     const $input = $(`#console_input_${taskIndex}`);
-    let text = (typeof questionText === "string" ? questionText : "").trim();
+    let text = questionText.trim();
     if (!text && $input.length) {
         text = ($input.val() || "").trim();
     }
     if (!text) return;
+    if ($input.is(':disabled')) return;
     if ($input.length) $input.val("");
 
     if (text.trim().toLowerCase() === "/reset") {
@@ -287,6 +294,7 @@ function cell_insights_gina_run(cell_button, questionText) {
     window.__ginaChatActive[taskIndex] = true;
     window.__ginaStreamBuf[taskIndex] = "";
 
+    setConsoleEnabled(taskIndex, false);
     setStreamText(streamId, "thinking...", { append: false });
     scrollChatToBottom(taskIndex);
 
@@ -596,7 +604,7 @@ function cell_insights_variables_run(cell_button, outputCallback) {
 /* CONSOLE (PYTHON MODE)      
                                                   */
 function insight_console_run(taskIndex, code) {
-    const $cell = $cellByTask(taskIndex);
+    const $cell = getCellByTask(taskIndex);
     if (!$cell.length) { console.error("Cell element not found for task index", taskIndex); return; }
 
     const shownIndex = $cell.closest("li.clarama-cell-item").find("button.step-label").text().trim();
@@ -667,7 +675,7 @@ function inspectVariable(varName, taskIndex) {
     console.log("Inspecting variable:", varName, "in task:", taskIndex);
 
     debounce(function (vName, tIdx) {
-        const $cell = $cellByTask(tIdx);
+        const $cell = getCellByTask(tIdx);
         if (!$cell.length) { console.error("Cell not found for task", tIdx); return; }
 
         const inspectionKey = `variable_inspecting_${tIdx}`;
@@ -754,7 +762,7 @@ $(document).on("shown.bs.tab", 'button[id^="insights-variables-tab-"], button[id
 // Click “play” on console
 $(document).on("click", ".execute-console", function () {
     const taskIndex = $(this).data("task-index");
-    const $cell = $cellByTask(taskIndex);
+    const $cell = getCellByTask(taskIndex);
     const $input = $(`#console_input_${taskIndex}`);
     const mode = ($input.data("console-mode") || "python");
 
@@ -771,7 +779,7 @@ $(document).on("keydown", ".console-input", function (e) {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         const taskIndex = $(this).data("task-index");
-        const $cell = $cellByTask(taskIndex);
+        const $cell = getCellByTask(taskIndex);
         const mode = ($(this).data("console-mode") || "python");
 
         if (mode === "gina") {

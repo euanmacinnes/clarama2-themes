@@ -23,6 +23,12 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         window.__ginaHandshakeDone = true;
         window.waitingForAiUserInput = false;
         window.__ginaSetInputsEnabled(true, "Type your question.");
+        
+        // for unlocking insights console since the dict for gina is going throught this function
+        const stepId = String(dict.step_id || "");
+        const m = stepId.match(/step_(\d+)/);
+        const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+        setConsoleEnabled(taskIndex, true);
         return;
     }
 
