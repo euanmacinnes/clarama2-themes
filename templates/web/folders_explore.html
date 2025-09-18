@@ -155,6 +155,7 @@
                                        listing_icon="bi-folder-fill"
                                        class="container-fluid listing text-black p-0"
                                        style="text-decoration:none"
+                                       draggable="true"
                                     >
                                         <div class="row">
                                             <div class="col">
@@ -186,7 +187,8 @@
                                        listing_fullpath="{{ url_for('clarama_content.content_get',mode='default', filename=local_url + file) }}"
                                        listing_icon="{{ get(filetypes, file | fileextension, 'bi-clipboard2-data') }}"
                                        class="container-fluid listing text-black p-0"
-                                       style="text-decoration:none">
+                                       style="text-decoration:none"
+                                       draggable="true">
                                         <div class="row align-items-center">
                                             <div class="col">
                                                 <div class="row row-cols-auto align-items-center flex-nowrap"
@@ -287,6 +289,25 @@
                     <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button id="confirmDeleteBtn" type="button" class="btn btn-danger" onclick="context_delete()">Yes
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Move confirmation Modal -->
+    <div class="modal fade" id="moveConfirmModal" tabindex="-1" aria-labelledby="moveConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="moveConfirmModalLabel">Confirm Move</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="moveConfirmText">
+                    Are you sure you want to move the selected item(s)?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="confirmMoveBtn" type="button" class="btn btn-danger">Move</button>
                 </div>
             </div>
         </div>
@@ -931,6 +952,139 @@
 
             });
         });
+        // Drag-to move/copy between folders (Ctrl = copy, default = move)
+        (function(){
+            const getSelectedFilepaths = window.getSelectedFilepaths || function(){
+                const paths=[]; $('.multi-select-checkbox:checked').each(function(){
+                    const p=$(this).closest('.favorites-div').find('a').attr('listing_filepath');
+                    if(p) paths.push(p);
+                });
+                return paths;
+            };
+
+            function getDragPathsFromAnchor(anchor){
+                const selected = getSelectedFilepaths();
+                if (selected && selected.length>0) return selected;
+                const fp = anchor.getAttribute('listing_filepath');
+                return fp ? [fp] : [];
+            }
+
+            function setDropEffect(e){
+                try { e.dataTransfer.dropEffect = e.ctrlKey ? 'copy' : 'move'; } catch(_){}
+            }
+
+            function isInvalidMove(paths, target){
+                // Disallow moving into itself or its descendant
+                for (const p of paths){
+                    if (p === target) return `Cannot move '${p}' into itself.`;
+                    if (target.startsWith(p + '/')) return `Cannot move '${p}' into its own subfolder.`;
+                }
+                return null;
+            }
+
+            function pasteMany(paths, targetPath, mode){
+                paths.forEach(path=>{
+                    const url = `/render/paste/${targetPath}?source=${encodeURIComponent(path)}&mode=${mode}`;
+                    execute_json_url(url, true);
+                });
+            }
+
+            // State for pending move confirmation
+            let pendingDrop = null;
+            const moveModalEl = document.getElementById('moveConfirmModal');
+            const moveTextEl = document.getElementById('moveConfirmText');
+            const confirmBtn = document.getElementById('confirmMoveBtn');
+            if (confirmBtn){
+                confirmBtn.addEventListener('click', function(){
+                    if (!pendingDrop) return;
+                    const {paths, targetPath} = pendingDrop;
+                    pasteMany(paths, targetPath, 'cut');
+                    pendingDrop = null;
+                    // hide modal
+                    const modal = bootstrap.Modal.getInstance(moveModalEl) || new bootstrap.Modal(moveModalEl);
+                    modal.hide();
+                });
+            }
+
+            // Drag start from any listing (file or folder)
+            document.addEventListener('dragstart', function(e){
+                const a = e.target && e.target.closest && e.target.closest('a.listing');
+                if (!a) return;
+                const paths = getDragPathsFromAnchor(a);
+                if (!paths.length) return;
+                try {
+                    e.dataTransfer.setData('application/json', JSON.stringify({paths}));
+                    e.dataTransfer.effectAllowed = 'copyMove';
+                } catch(_){}
+            });
+
+            function handleDragOver(e){
+                const a = e.currentTarget;
+                e.preventDefault();
+                setDropEffect(e);
+                a.classList.add('drop-target');
+            }
+            function clearDragOver(e){
+                const a = e.currentTarget;
+                a.classList.remove('drop-target');
+            }
+
+            function onDropToTarget(e, targetPath){
+                e.preventDefault();
+                let payload = null;
+                try { payload = JSON.parse(e.dataTransfer.getData('application/json')||'{}'); } catch(_){}
+                const paths = (payload && payload.paths) || [];
+                if (!paths.length) return;
+
+                const invalid = isInvalidMove(paths, targetPath);
+                if (invalid){ flash(invalid, 'warning'); return; }
+
+                const isCopy = !!e.ctrlKey;
+                if (isCopy){
+                    pasteMany(paths, targetPath, 'copy');
+                } else {
+                    // Determine if any dragged item is a folder (present in DOM with folder icon)
+                    let movingFolder = false;
+                    document.querySelectorAll('a.listing[listing_icon="bi-folder-fill"]').forEach(a => {
+                        const fp = a.getAttribute('listing_filepath');
+                        if (paths.includes(fp)) movingFolder = true;
+                    });
+
+                    if (movingFolder){
+                        // Ask confirmation only when moving folders
+                        if (moveTextEl){
+                            const name = targetPath.split('/').filter(Boolean).slice(-1)[0] || targetPath;
+                            moveTextEl.textContent = `Move ${paths.length} item(s) to '${name}'?`;
+                        }
+                        pendingDrop = {paths, targetPath};
+                        const modal = new bootstrap.Modal(moveModalEl);
+                        modal.show();
+                    } else {
+                        // Move files immediately without confirmation
+                        pasteMany(paths, targetPath, 'cut');
+                    }
+                }
+            }
+
+            // Make folder rows act as drop targets
+            document.querySelectorAll('a.listing[listing_icon="bi-folder-fill"]').forEach(a=>{
+                a.addEventListener('dragover', handleDragOver);
+                a.addEventListener('dragenter', handleDragOver);
+                a.addEventListener('dragleave', clearDragOver);
+                a.addEventListener('drop', function(e){
+                    clearDragOver(e);
+                    const targetPath = a.getAttribute('listing_filepath');
+                    onDropToTarget(e, targetPath);
+                });
+            });
+
+            // Allow dropping to the folder dropzone (current folder)
+            document.querySelectorAll('.upload_dropZone').forEach(zone=>{
+                zone.addEventListener('dragover', function(e){ e.preventDefault(); setDropEffect(e); zone.classList.add('highlight'); });
+                zone.addEventListener('dragleave', function(){ zone.classList.remove('highlight'); });
+                zone.addEventListener('drop', function(e){ zone.classList.remove('highlight'); onDropToTarget(e, zone.getAttribute('data-filepath')); });
+            });
+        })();
     </script>
 
     <style>
@@ -977,6 +1131,7 @@
             position: relative;
             z-index: auto;
         }
+        .drop-target { outline: 2px dashed #0d6efd; }
     </style>
 
 {% endblock %}

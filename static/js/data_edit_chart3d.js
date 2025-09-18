@@ -760,7 +760,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // --- interaction --------------------------------------------------------
-    const initDist = 30.0;
+    const initDist = 13.0;
     let dist = initDist;
     let dragging = false;
 
@@ -819,7 +819,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         if (!zoomGesture) return;
 
         e.preventDefault();
-        const s = Math.exp(e.deltaY * 0.005);
+        const s = Math.exp(e.deltaY * 0.001);
         dist = Math.max(2.0, dist * s);
         requestAnimationFrame(render);
     }, {passive: false});
