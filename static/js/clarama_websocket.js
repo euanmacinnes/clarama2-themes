@@ -817,20 +817,28 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const stepId = String(dict.step_id || "");
                 const m = stepId.match(/step_(\d+)/);
                 const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
-            
+              
                 const output = dict.values.output || "";
-            
                 let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
-                chunk =  html_decode(chunk);
-            
+                chunk = html_decode(chunk);
+              
                 if (taskIndex) {
-                    const cbKey = "cell_insights_variables_callback_" + taskIndex;
-                    if (typeof window[cbKey] === "function") {
-                        try { window[cbKey](chunk); } finally { delete window[cbKey]; }
+                    const cbChat = "cell_insights_chat_callback_" + taskIndex;
+                    const cbVars = "cell_insights_variables_callback_" + taskIndex;
+                
+                    // Prefer active gina insights chat stream first
+                    if (typeof window[cbChat] === "function") {
+                        try { window[cbChat](chunk); } catch(e){ console.error(e); } finally { delete window[cbChat]; }
+                        return; // handled by chat
+                    }
+                    // Otherwise deliver to variables
+                    if (typeof window[cbVars] === "function") {
+                        try { window[cbVars](chunk); } catch(e){ console.error(e); } finally { delete window[cbVars]; }
+                        return; // handled by variables
                     }
                 }
-                return; // handled
-            }
+                return; // nothing to deliver
+            }              
 
             if (dict['class'] === "progress_bar") {
                 let resulter = "#" + dict['step_id'];

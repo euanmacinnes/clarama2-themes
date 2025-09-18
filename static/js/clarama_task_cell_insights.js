@@ -34,24 +34,6 @@ function normalizeChunk(chunk) {
 // Keep a small idle timer per cell to mark stream end
 window.__ginaIdleTimers = window.__ginaIdleTimers || Object.create(null);
 
-function armGinaStream(taskIndex) {
-    const cbKey = "cell_insights_variables_callback_" + taskIndex;
-
-    window[cbKey] = function onStreamChunk(chunk) {
-        const piece = normalizeChunk(chunk);
-        const streamText = document.querySelector(
-            `#gina_stream_${taskIndex} .stream-text`
-        );
-        if (streamText && piece) {
-            // append text; don't replace
-            streamText.textContent += piece;
-        }
-
-        // re-arm for the next frame (the websocket handler deletes the cb after calling)
-        setTimeout(() => armGinaStream(taskIndex), 0);
-    };
-}
-
 /** Get jQuery cell element by task index */
 function getCellByTask(taskIndex) {
     return $(`li.clarama-cell-item[step="${taskIndex}"]`);
@@ -83,6 +65,7 @@ function finalizePreviousReplyBubble(taskIndex) {
 
 /** Ensure a streaming Reply bubble exists and return its key pieces */
 function ensureStreamBubble(taskIndex) {
+    if (!is_chat_tab_active(taskIndex)) return null;
     const streamId = `gina_stream_${taskIndex}`;
     if (!document.getElementById(streamId)) {
         appendChatBubbleViaTemplate(taskIndex, "reply", streamId);
@@ -92,32 +75,31 @@ function ensureStreamBubble(taskIndex) {
 
 /** Stream loop: arms websocket callback key and handles idle close */
 function armStream(taskIndex, onChunk) {
-    const cbKey = `cell_insights_variables_callback_${taskIndex}`;
+    const cbKey = `cell_insights_chat_callback_${taskIndex}`; // <-- changed
     let sawFirstChunk = false;
-
+  
     function scheduleIdleClose() {
         clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
         window.__ginaStreamIdleTimer[taskIndex] = setTimeout(() => {
             window.__ginaChatActive[taskIndex] = false;
-            try { delete window[cbKey]; } catch (_) { }
+            try { delete window[cbKey]; } catch (_) {}
             finalizePreviousReplyBubble(taskIndex);
+            setConsoleEnabled(taskIndex, true); 
         }, 1500);
     }
-
+  
     const handler = function (chunk) {
         const string = normalizeChunk(chunk);
         if (string) {
             onChunk(string);
-            if (!sawFirstChunk) { sawFirstChunk = true; }   // start timers after first data
+            if (!sawFirstChunk) { sawFirstChunk = true; }
             scheduleIdleClose();
         }
-
         if (window.__ginaChatActive[taskIndex]) {
             setTimeout(() => { window[cbKey] = handler; }, 0);
         }
     };
-
-    // arm the callback, but DO NOT start idle timer yet
+  
     window[cbKey] = handler;
 }
 
@@ -237,6 +219,16 @@ function set_console_mode(taskIndex, mode) {
     }
 }
 
+function get_console_mode(taskIndex) {
+    const $tabs = $(`#insightsTabs_${taskIndex}`);
+    const activeId = ($tabs.find('.nav-link.active').attr('id') || '');
+    return activeId.startsWith(`insights-chat-tab-`) ? 'gina' : 'python';
+}
+
+function is_chat_tab_active(taskIndex) {
+    return get_console_mode(taskIndex) === 'gina';
+}  
+
 /* ====================================================================== */
 /* CHAT WITH GINA (INSIGHTS PANE)                                         */
 /* ====================================================================== */
@@ -247,6 +239,12 @@ function cell_insights_gina_run(cell_button, questionText) {
         (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
 
     if (!taskIndex) { console.warn("GINA chat: No taskIndex found"); return; }
+
+    // Only allow in chat tab
+    if (!is_chat_tab_active(taskIndex)) {
+        console.debug("GINA chat suppressed: not on Chat tab");
+        return;
+    }
 
     // Resolve text (argument or console input)
     const $input = $(`#console_input_${taskIndex}`);
@@ -319,45 +317,34 @@ function cell_insights_gina_run(cell_button, questionText) {
 function initaliseInsightsGina(taskIndex) {
     if (!taskIndex) return;
     if (window.__ginaInsightsHandshakeSent[taskIndex] || window.__ginaInsightsHandshakeDone[taskIndex]) return;
-
+  
     window.__ginaInsightsHandshakeSent[taskIndex] = true;
-
-    const streamId = ensureStreamBubble(taskIndex);
     window.__ginaChatActive[taskIndex] = true;
     window.__ginaStreamBuf[taskIndex] = "";
-
+  
     armStream(taskIndex, (s) => {
+        // Create bubble lazily on first chunk
+        let streamId = document.getElementById(`gina_stream_${taskIndex}`) ? `gina_stream_${taskIndex}` : ensureStreamBubble(taskIndex);
         window.__ginaStreamBuf[taskIndex] += s;
         setStreamText(streamId, window.__ginaStreamBuf[taskIndex], { append: false });
         scrollChatToBottom(taskIndex);
     });
-
+  
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
-
         postToKernel(
-            taskIndex,
-            {
-                target: "insights",
-                type: "question",
-                source: "/init",
-                clear: false
-            },
+            taskIndex, 
+            { 
+                target: "insights", 
+                type: "question", 
+                source: "/init", 
+                clear: false 
+            }, 
             field_registry
-        ).done((data) => {
-            if (data && data.data === "ok") {
-                console.log("GINA /init sent for task", taskIndex);
-            } else {
-                console.warn("GINA /init failed for task", taskIndex, data && data.error);
-            }
-
-        }).fail(() => {
-            console.warn("GINA /init network error for task", taskIndex);
-        }).always(() => {
-            window.__ginaInsightsHandshakeDone[taskIndex] = true;
-        });
+        )
+        .always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
     });
-}
+}  
 
 /* ====================================================================== */
 /* VARIABLES TAB                                                           */
@@ -763,10 +750,10 @@ $(document).on("shown.bs.tab", 'button[id^="insights-variables-tab-"], button[id
 $(document).on("click", ".execute-console", function () {
     const taskIndex = $(this).data("task-index");
     const $cell = getCellByTask(taskIndex);
-    const $input = $(`#console_input_${taskIndex}`);
-    const mode = ($input.data("console-mode") || "python");
-
+    const mode = get_console_mode(taskIndex);
+  
     if (mode === "gina") {
+        const $input = $(`#console_input_${taskIndex}`);
         cell_insights_gina_run($cell, $input.val());
     } else {
         insight_console_run(taskIndex);
@@ -780,7 +767,7 @@ $(document).on("keydown", ".console-input", function (e) {
         e.preventDefault();
         const taskIndex = $(this).data("task-index");
         const $cell = getCellByTask(taskIndex);
-        const mode = ($(this).data("console-mode") || "python");
+        const mode = get_console_mode(taskIndex);
 
         if (mode === "gina") {
             cell_insights_gina_run($cell, $(this).val());
