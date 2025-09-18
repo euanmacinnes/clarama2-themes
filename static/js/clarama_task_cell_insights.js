@@ -63,7 +63,7 @@ function $cellByTask(taskIndex) {
 }
 
 function finalizePreviousReplyBubble(taskIndex) {
-    const $prev = $(`#gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
+    const $prev = $(`#insights_gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
     if (!$prev.length) return;
 
     const $span = $prev.find('.stream-text');
@@ -117,13 +117,28 @@ function armStream(taskIndex, onChunk) {
 
 /** Smooth scroll to bottom of chat if present */
 function scrollChatToBottom(taskIndex) {
-    const $chat = $(`#gina_chat_${taskIndex}`);
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
     if ($chat.length) $chat.scrollTop($chat[0].scrollHeight);
+}
+
+/** Clear all chat bubbles for a given task and reset stream state */
+function clear_insights_gina_chat(taskIndex) {
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
+    if ($chat.length) $chat.empty();
+
+    // Kill any pending stream timers/callbacks for this task
+    const cbKey = `cell_insights_variables_callback_${taskIndex}`;
+    try { delete window[cbKey]; } catch(_) {}
+    clearTimeout(window.__ginaStreamIdleTimer?.[taskIndex]);
+
+    // Reset stream flags/buffers
+    if (window.__ginaStreamBuf) delete window.__ginaStreamBuf[taskIndex];
+    if (window.__ginaChatActive) delete window.__ginaChatActive[taskIndex];
 }
 
 // --- Template helpers (place near the top utilities) -----------------
 function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
-    const $chat = $(`#gina_chat_${taskIndex}`);
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
     if (!$chat.length) return null;
 
     const params = new URLSearchParams({ role, stream_id: streamId });
@@ -136,12 +151,21 @@ function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
     return chatBubble;
 }
 
+function cleanStreamText(text, append) {
+    if (!append) {
+        // strip leading spaces/newlines on a fresh write,
+        // and collapse 3+ blank lines to 2
+        return String(text || "")
+            .replace(/^\s+/, "")
+            .replace(/\n{3,}/g, "\n\n");
+    }
+    return String(text || "");
+}
+  
 function setStreamText(streamId, text, { append = false } = {}) {
     const el = document.getElementById(streamId);
-    if (!el) {
-        setTimeout(() => setStreamText(streamId, text, { append }), 16);
-        return;
-    }
+    if (!el) { setTimeout(() => setStreamText(streamId, text, { append }), 16); return; }
+  
     let span = el.querySelector(".stream-text");
     if (!span) {
         const bubble = el.querySelector(".insights-gina-chat-bubble");
@@ -150,13 +174,13 @@ function setStreamText(streamId, text, { append = false } = {}) {
         span.className = "stream-text";
         bubble.appendChild(span);
     }
-
+  
     if (append) {
-        span.textContent += String(text || "");
+        span.textContent += cleanStreamText(text, append);
     } else {
-        span.textContent = String(text || "");
+        span.textContent = cleanStreamText(text, append);
     }
-}
+}  
 
 /** POST a task request to kernel (shared shape) */
 function postToKernel(taskIndex, streamSpec, parameters = null) {
@@ -227,6 +251,29 @@ function cell_insights_gina_run(cell_button, questionText) {
     if (!text) return;
     if ($input.length) $input.val("");
 
+    if (text.trim().toLowerCase() === "/reset") {
+        // Clear UI immediately
+        clear_insights_gina_chat(taskIndex);
+
+        // Send '/reset' to kernel WITHOUT creating bubbles
+        get_field_values({}, true, function (field_registry) {
+            field_registry.clarama_task_kill = false;
+            postToKernel(taskIndex, {
+                target: "insights",
+                type: "question",
+                source: text,
+                clear: false
+            }, field_registry).done((data) => {
+                console.log("GINA reset sent");
+            }).fail(() => {
+                flash("Couldn't process reset, network or access issue", "danger");
+            });
+        });
+
+        return;
+    }
+
+    // --- normal chat path below ---
     try {
         const bubbleId = `gina_user_${taskIndex}_${Date.now()}`;
         appendChatBubbleViaTemplate(taskIndex, "user", bubbleId);
@@ -236,37 +283,27 @@ function cell_insights_gina_run(cell_button, questionText) {
 
     finalizePreviousReplyBubble(taskIndex);
 
-    // Streaming Reply bubble + buffers
     const streamId = ensureStreamBubble(taskIndex);
     window.__ginaChatActive[taskIndex] = true;
     window.__ginaStreamBuf[taskIndex] = "";
 
-    // Arm streaming callback
+    setStreamText(streamId, "thinking...", { append: false });
+    scrollChatToBottom(taskIndex);
+
     armStream(taskIndex, (s) => {
         window.__ginaStreamBuf[taskIndex] += s;
         setStreamText(streamId, window.__ginaStreamBuf[taskIndex], { append: false });
         scrollChatToBottom(taskIndex);
     });
 
-    // Send to kernel
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
-
         postToKernel(taskIndex, {
             target: "insights",
             type: "question",
             source: text,
             clear: false
-        }, field_registry).done((data) => {
-            if (data && data.data === "ok") {
-                console.log("GINA user input sent:", text);
-            } else {
-                const err = (data && data.error) ? data.error : "Unknown error.";
-                flash("Couldn't process question: " + err, "danger");
-            }
-        }).fail(() => {
-            flash("Couldn't process question, network or access issue", "danger");
-        }).always(() => { });
+        }, field_registry);
     });
 }
 

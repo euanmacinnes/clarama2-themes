@@ -313,31 +313,39 @@ body.dragging {
     text-shadow: 0 0 6px rgba(255,193,7,0.8), 0 0 14px rgba(255,193,7,0.6);
 }
 
-.gina-chat {
+.insights-gina-chat-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-height: 120px;
+    gap: 6px;
+    min-height: 0;
+    padding: 8px 12px;
 }
-.insights-gina-chat { display: flex; }
-.insights-gina-chat-user { justify-content: flex-end; }
-.insights-gina-chat-reply { justify-content: flex-start; }
+
+.insights-gina-chat { 
+    display: flex; 
+    margin: 0;
+}
+
+.insights-gina-chat-user { 
+    justify-content: flex-end; 
+}
+
+.insights-gina-chat-reply { 
+    justify-content: flex-start; 
+}
+
 .insights-gina-chat-bubble {
     max-width: 90%;
     padding: 8px 12px;
     border: 1px solid #dee2e6;
     border-radius: 14px;
     background: #f8f9fa;
+    white-space: pre-line;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    display: inline-flex;
 }
 .insights-gina-chat-user .insights-gina-chat-bubble {
     background: #e7f5ff;
     border-color: #74c0fc;
-}
-  
-.gina-chat .insights-gina-chat-bubble{
-    display:inline-block;
-    max-width:min(85%, 640px);
-    white-space:pre-wrap;
-    word-break:normal;
-    overflow-wrap:anywhere;
 }

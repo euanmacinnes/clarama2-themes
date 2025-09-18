@@ -50,14 +50,13 @@
         
             <!-- Tab panes -->
             <div class="tab-content flex-grow-1 overflow-auto" id="insightsTabsContent_{{ task_index }}">
+                <!-- Chat with GINA  -->
                 <div class="tab-pane fade show active" id="insights-chat-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-chat-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3">
-                        <!-- chat UI  -->
-                        <div id="gina_chat_{{ task_index }}" class="gina-chat"></div>
-                    </div>
+                    <div id="insights_gina_chat_{{ task_index }}" class="insights-gina-chat-container"></div>
                 </div>
         
+                <!-- Variables -->
                 <div class="tab-pane fade" id="insights-variables-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-variables-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3">
@@ -72,21 +71,25 @@
                     </div>
                 </div>
         
+                <!-- Inspector -->
                 <div class="tab-pane fade" id="insights-inspector-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-inspector-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3" id="inspector_{{ task_index }}"></div>
                 </div>
         
+                <!-- Data -->
                 <div class="tab-pane fade" id="insights-data-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-data-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3" id="data_{{ task_index }}"></div>
                 </div>
 
+                <!-- Preview -->
                 <div class="tab-pane fade" id="insights-preview-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-preview-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3" id="preview_{{ task_index }}"></div>
                 </div>
 
+                <!-- Fields -->
                 <div class="tab-pane fade" id="insights-fields-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-fields-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3" id="fields_{{ task_index }}"></div>
