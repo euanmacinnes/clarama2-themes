@@ -81,8 +81,6 @@ function sortUpdate(panelList) {
 
     $('.panel', panelList).last().removeClass("bg-secondary");
     $('.panel', panelList).last().addClass("bg-primary");
-
-    reinitializeConsoleHandlers(panelList);
 }
 
 function updateInsightsIds(cellElement, oldStep, newStep) {
@@ -192,17 +190,6 @@ function updateInsightsIds(cellElement, oldStep, newStep) {
         window[`console_executing_${newStep}`] = window[`console_executing_${oldStep}`];
         delete window[`console_executing_${oldStep}`];
     }
-}
-
-function reinitializeConsoleHandlers(stream) {
-    stream.find('.clarama-cell-item').each(function() {
-        const cellElement = $(this);
-        const taskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
-        
-        if (taskIndex) {
-            setupConsoleHandlers(cellElement, taskIndex);
-        }
-    });
 }
 
 $.fn.enablesort = function () {

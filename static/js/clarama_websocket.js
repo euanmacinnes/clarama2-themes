@@ -814,29 +814,23 @@ function onMessage(event, socket_url, webSocket, socket_div) {
             }
 
             if (dict['class'] === "insights_template") {
-                const step_id = dict['step_id'];
-                const output_text = dict?.values?.output;
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
             
-                let taskIndex = null;
-                if (step_id) {
-                    const match = step_id.match(/step_(\d+)/);
-                    taskIndex = match ? match[1] : step_id.replace(/\D/g, '');
-                }
+                const output = dict.values.output || "";
             
-                if (taskIndex && output_text !== undefined) {
-                    const variablesCallbackKey = 'cell_insights_variables_callback_' + taskIndex;
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk =  html_decode(chunk);
             
-                    if (typeof window[variablesCallbackKey] === "function") {
-                        try {
-                            window[variablesCallbackKey](output_text);
-                            delete window[variablesCallbackKey];
-                        } catch (e) { console.error("Error calling variables insights callback:", e); }
+                if (taskIndex) {
+                    const cbKey = "cell_insights_variables_callback_" + taskIndex;
+                    if (typeof window[cbKey] === "function") {
+                        try { window[cbKey](chunk); } finally { delete window[cbKey]; }
                     }
                 }
-            
-                // Nothing to render via templates for insights; stop here.
-                return;
-            }            
+                return; // handled
+            }
 
             if (dict['class'] === "progress_bar") {
                 let resulter = "#" + dict['step_id'];

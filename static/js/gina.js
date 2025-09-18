@@ -27,7 +27,7 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
     }
 
     // 2) Answer (either a welcome/system message OR a reply to the user's turn)
-    if (dict && dict["type"] === "task_llm_result") {
+    if (dict && dict["class"] === "template" && dict["type"] === "task_llm_result") {
         const outputs = (dict.values && dict.values.output) ? dict.values.output : [];
         const chunk = html_decode(outputs.join(""));
         const isFinal = !!(dict.values && dict.values.final);
