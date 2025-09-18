@@ -156,7 +156,6 @@
     font-size: 11px;
 }
 
-/* Console section stays at bottom with fixed height */
 .insights-console {
     background-color: #000000 !important;
     border-top: 1px solid #333333 !important;
@@ -180,6 +179,8 @@
 }
 
 .console-input {
+    resize: none;
+    overflow: hidden;
     font-family: 'Courier New', Monaco, monospace;
     font-size: 12px;
     background-color: #000000 !important;

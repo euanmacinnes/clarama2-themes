@@ -100,10 +100,10 @@
             <div class="insights-console border-top bg-light">
                 <div class="p-2">
                     <div class="input-group">
-                        <input type="text" class="form-control console-input" id="console_input_{{ task_index }}"
-                            placeholder="Enter Python command..." data-task-index="{{ task_index }}">
+                        <textarea class="form-control console-input" id="console_input_{{ task_index }}"
+                            placeholder="Enter Python command." data-task-index="{{ task_index }}" rows="1"></textarea>
                         <button class="btn btn-outline-secondary execute-console" type="button" data-task-index="{{ task_index }}">
-                                <i class="bi bi-play-fill"></i>
+                            <i class="bi bi-play-fill"></i>
                         </button>
                     </div>
                 </div>

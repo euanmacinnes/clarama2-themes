@@ -731,6 +731,13 @@ except Exception as e:
     }, 200)(varName, taskIndex);
 }
 
+function resetConsole(taskIndex) {
+    const el = document.getElementById(`console_input_${taskIndex}`);
+    if (!el) return;
+    el.value = "";
+    el.style.height = "auto"; // collapse back to single-line height
+}
+
 // When Chat tab shows: set mode + /init handshake once
 $(document).on("shown.bs.tab", 'button[id^="insights-chat-tab-"]', function () {
     const taskIndex = this.id.replace("insights-chat-tab-", "");
@@ -756,6 +763,7 @@ $(document).on("click", ".execute-console", function () {
     } else {
         insight_console_run(taskIndex);
     }
+    resetConsole(taskIndex);
 });
 
 // Press Enter in console input (Shift+Enter for newline)
@@ -771,7 +779,13 @@ $(document).on("keydown", ".console-input", function (e) {
         } else {
             insight_console_run(taskIndex);
         }
+        resetConsole(taskIndex);
     }
+});
+
+$(document).on("input", ".console-input", function () {
+    this.style.height = "auto";
+    this.style.height = this.scrollHeight + "px";
 });
 
 // On initial load: if a Chat tab is already active, set mode + /init
