@@ -83,7 +83,7 @@ function configureConsoleForActiveTab(taskIndex, activeTabId) {
     }
 
     setConsoleVisible(taskIndex, true);
-}  
+}
 
 function finalizePreviousReplyBubble(taskIndex) {
     const $prev = $(`#insights_gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
@@ -189,20 +189,32 @@ function setStreamText(streamId, text, { append = false } = {}) {
     const el = document.getElementById(streamId);
     if (!el) { setTimeout(() => setStreamText(streamId, text, { append }), 16); return; }
   
-    let span = el.querySelector(".stream-text");
-    if (!span) {
-        const bubble = el.querySelector(".insights-gina-chat-bubble");
-        if (!bubble) return;
-        span = document.createElement("span");
-        span.className = "stream-text";
-        bubble.appendChild(span);
-    }
+    const bubble = el.querySelector(".insights-gina-chat-bubble");
+    if (!bubble) return;
   
-    if (append) {
-        span.textContent += cleanStreamText(text, append);
-    } else {
-        span.textContent = cleanStreamText(text, append);
+    // Ensure an HTML container (when rendering markdown/code)
+    let htmlDiv = bubble.querySelector(".stream-html");
+    let textSpan = bubble.querySelector(".stream-text");
+  
+    // Create .stream-html once and remove .stream-text to avoid duplicate content
+    if (!htmlDiv) {
+        htmlDiv = document.createElement("div");
+        htmlDiv.className = "stream-html";
+        if (textSpan) {
+            textSpan.remove();
+        } 
+        bubble.appendChild(htmlDiv);
     }
+    // Build/append buffer safely
+    const next = String(text || "");
+    if (append && htmlDiv.__buffer) {
+        htmlDiv.__buffer += next;
+    } else {
+        htmlDiv.__buffer = next;
+    }
+
+    htmlDiv.innerHTML = markdownToHtml(htmlDiv.__buffer);
+    return;
 }  
 
 /** POST a task request to kernel (shared shape) */
