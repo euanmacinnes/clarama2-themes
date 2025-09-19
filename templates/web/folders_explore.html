@@ -128,7 +128,7 @@
                                                          aria-label="task_functions" style="width: 100%;">
                                                         <input id="new_content" name="new_content" type="text"
                                                                value="Untitled" class="form-control"
-                                                               style="width: 100%;">
+                                                               maxlength="64" style="width: 100%;">
                                                         <input id="new_content_type" name="new_content_type"
                                                                type="hidden" value=""
                                                                class="form-control new_content_type"
@@ -325,21 +325,42 @@
         }
 
         function isValidFilename(name) {
-            // Disallow slashes
-            if (name.includes("/")) {
-                flash("File or folder name cannot contain a slash (/).", "danger");
+            // Trim whitespace for validation but keep original for submission
+            if (typeof name !== 'string') {
+                flash("Invalid name.", "danger");
                 return false;
             }
+            const trimmed = name.trim();
 
-            // Disallow starting with '.' or '..'
-            if (name.startsWith(".") || name.startsWith("..")) {
-                flash("File or folder name cannot start with '.' or '..'.", "danger");
-                return false;
-            }
-
-            if (name.trim() === "") {
+            // 1. Required and max length 64
+            if (trimmed.length === 0) {
                 flash("File or folder name cannot be empty.", "danger");
                 return false;
+            }
+            if (trimmed.length > 64) {
+                flash("Name too long (max 64 characters).", "danger");
+                return false;
+            }
+
+            // 2. Cannot be '.' or '..' (but allow dotfiles like '.env')
+            if (trimmed === '.' || trimmed === '..') {
+                flash("Name cannot be '.' or '..'.", "danger");
+                return false;
+            }
+
+            // 3. Disallow '/'
+            if (trimmed.includes('/')) {
+                flash("Name cannot contain '/'.", "danger");
+                return false;
+            }
+
+            // 4. Disallow NUL and other ASCII control characters (0x00-0x1F)
+            for (let i = 0; i < trimmed.length; i++) {
+                const code = trimmed.charCodeAt(i);
+                if (code >= 0 && code < 32) {
+                    flash("Name cannot contain control characters.", "danger");
+                    return false;
+                }
             }
 
             return true;

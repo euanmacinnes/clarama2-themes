@@ -363,3 +363,23 @@ body.dragging {
     background: #e7f5ff;
     border-color: #74c0fc;
 }
+
+/* Stack the Global Field Editor controls only inside Insights */
+.cell-insights .row:has(#gfe_dep_field) > [class^="col-"],
+.cell-insights .row:has(#gfe_to) > [class^="col-"],
+.cell-insights .row:has(#gfe_layout) > [class^="col-"],
+.cell-insights .row:has(#gfe_ext) > [class^="col-"],
+.cell-insights .row:has(#gfe_result_expr) > [class^="col-"],
+.cell-insights .row:has(#gfe_result_value) > [class^="col-"] {
+  flex: 0 0 100% !important;
+  max-width: 100% !important;   /* makes them behave like col-12 */
+}
+
+/* Make the + Insert button span the row */
+.cell-insights #gfe_insert { width: 100%; }
+
+/* Nicer label wrapping only in Insights (avoid mid-word breaks) */
+.cell-insights .form-label { word-break: normal; overflow-wrap: anywhere; }
+
+/* Optional: small spacing tune so helper text sits snugly under the select */
+.cell-insights .form-text { margin-top: .25rem; }

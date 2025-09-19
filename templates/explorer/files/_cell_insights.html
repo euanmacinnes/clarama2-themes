@@ -22,16 +22,16 @@
                 </li>
                 <!-- Code Inspector. Only for code cells -->
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-inspector-{{ task_index }}"
-                        type="button" role="tab" aria-controls="insights-inspector-{{ task_index }}" aria-selected="false">
-                        Inspector
+                    <button class="nav-link" id="insights-code-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-code-inspector-{{ task_index }}"
+                        type="button" role="tab" aria-controls="insights-code-inspector-{{ task_index }}" aria-selected="false">
+                        Code Inspector
                     </button>
                 </li>
                 <!-- Data Inspector. Only for data & source cells. Data cell has tabs, use the currently selected one -->
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-data-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-data-{{ task_index }}" 
-                        type="button" role="tab" aria-controls="insights-data-{{ task_index }}" aria-selected="false">
-                        Data
+                    <button class="nav-link" id="insights-data-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-data-inspector-{{ task_index }}" 
+                        type="button" role="tab" aria-controls="insights-data-inspector-{{ task_index }}" aria-selected="false">
+                        Data Inspector
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -41,9 +41,9 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-fields-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-fields-{{ task_index }}" 
-                        type="button" role="tab" aria-controls="insights-fields-{{ task_index }}" aria-selected="false">
-                        Fields
+                    <button class="nav-link" id="insights-global-fields-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-global-fields-{{ task_index }}" 
+                        type="button" role="tab" aria-controls="insights-global-fields-{{ task_index }}" aria-selected="false">
+                        Global Fields
                     </button>
                 </li>
             </ul>
@@ -71,16 +71,16 @@
                     </div>
                 </div>
         
-                <!-- Inspector -->
-                <div class="tab-pane fade" id="insights-inspector-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-inspector-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="inspector_{{ task_index }}"></div>
+                <!-- Code Inspector (only for code cells) -->
+                <div class="tab-pane fade" id="insights-code-inspector-{{ task_index }}" role="tabpanel"
+                    aria-labelledby="insights-code-inspector-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="code_inspector_{{ task_index }}"></div>
                 </div>
         
-                <!-- Data -->
-                <div class="tab-pane fade" id="insights-data-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-data-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="data_{{ task_index }}"></div>
+                <!-- Data Inspector (Only for data & source cells. Data cell has tabs, use the currently selected one) -->
+                <div class="tab-pane fade" id="insights-data-inspector-{{ task_index }}" role="tabpanel"
+                    aria-labelledby="insights-data-inspector-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="data_inspector_{{ task_index }}"></div>
                 </div>
 
                 <!-- Preview -->
@@ -89,10 +89,12 @@
                     <div class="p-3" id="preview_{{ task_index }}"></div>
                 </div>
 
-                <!-- Fields -->
-                <div class="tab-pane fade" id="insights-fields-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-fields-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="fields_{{ task_index }}"></div>
+                <!-- Global Fields -->
+                <div class="tab-pane fade" id="insights-global-fields-{{ task_index }}" role="tabpanel"
+                    aria-labelledby="insights-global-fields-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="global-fields_{{ task_index }}">
+                        {% include theme("explorer/files/field_edit_fields.html") %}
+                    </div>
                 </div>
             </div>
         
@@ -101,7 +103,7 @@
                 <div class="p-2">
                     <div class="input-group">
                         <textarea class="form-control console-input" id="console_input_{{ task_index }}"
-                            placeholder="Enter Python command." data-task-index="{{ task_index }}" rows="1"></textarea>
+                            placeholder="Enter command." data-task-index="{{ task_index }}" rows="1"></textarea>
                         <button class="btn btn-outline-secondary execute-console" type="button" data-task-index="{{ task_index }}">
                             <i class="bi bi-play-fill"></i>
                         </button>
