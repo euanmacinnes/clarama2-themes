@@ -734,7 +734,7 @@ try:
     val = ${vName}
     if isinstance(val, pd.DataFrame):
         print(val.info())
-    elif inspect.isclass(val) or inspect.isfunction(val) or inspect.ismethod(val) or inspect.ismodule(val) or inspect.isbuiltin(val):
+    elif inspect.isclass(val) or inspect.isclass(type(val)) or inspect.isfunction(val) or inspect.ismethod(val) or inspect.ismodule(val) or inspect.isbuiltin(val):
         help(${vName})
     else:
         pprint(${vName})
