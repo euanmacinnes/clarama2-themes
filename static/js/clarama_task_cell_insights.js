@@ -710,6 +710,10 @@ function insight_console_run(taskIndex, code) {
 function inspectVariable(varName, taskIndex) {
     console.log("Inspecting variable:", varName, "in task:", taskIndex);
 
+    // clear the cell output before inspecting
+    const cell_output = $(`#results_${taskIndex}`);
+    cell_output.empty();
+
     debounce(function (vName, tIdx) {
         const $cell = getCellByTask(tIdx);
         if (!$cell.length) { console.error("Cell not found for task", tIdx); return; }
