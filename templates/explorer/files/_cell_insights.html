@@ -41,9 +41,9 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-fields-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-fields-{{ task_index }}" 
-                        type="button" role="tab" aria-controls="insights-fields-{{ task_index }}" aria-selected="false">
-                        Fields
+                    <button class="nav-link" id="insights-global-fields-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-global-fields-{{ task_index }}" 
+                        type="button" role="tab" aria-controls="insights-global-fields-{{ task_index }}" aria-selected="false">
+                        Global Fields
                     </button>
                 </li>
             </ul>
@@ -89,10 +89,10 @@
                     <div class="p-3" id="preview_{{ task_index }}"></div>
                 </div>
 
-                <!-- Fields -->
-                <div class="tab-pane fade" id="insights-fields-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-fields-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="fields_{{ task_index }}">
+                <!-- Global Fields -->
+                <div class="tab-pane fade" id="insights-global-fields-{{ task_index }}" role="tabpanel"
+                    aria-labelledby="insights-global-fields-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="global-fields_{{ task_index }}">
                         {% include theme("explorer/files/field_edit_fields.html") %}
                     </div>
                 </div>
@@ -103,7 +103,7 @@
                 <div class="p-2">
                     <div class="input-group">
                         <textarea class="form-control console-input" id="console_input_{{ task_index }}"
-                            placeholder="Enter Python command." data-task-index="{{ task_index }}" rows="1"></textarea>
+                            placeholder="Enter command." data-task-index="{{ task_index }}" rows="1"></textarea>
                         <button class="btn btn-outline-secondary execute-console" type="button" data-task-index="{{ task_index }}">
                             <i class="bi bi-play-fill"></i>
                         </button>

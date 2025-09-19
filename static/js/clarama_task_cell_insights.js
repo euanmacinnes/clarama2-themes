@@ -50,6 +50,41 @@ function setConsoleEnabled(taskIndex, enabled) {
     $sendBtn.prop('disabled', !enabled);
 }
 
+function setConsoleVisible(taskIndex, visible) {
+    const $wrap = $(`#insights_${taskIndex} .insights-console`);
+    $wrap.toggleClass('d-none', !visible);
+  }
+  
+  function setConsolePlaceholder(taskIndex, text) {
+    const $input = $(`#console_input_${taskIndex}`);
+    if ($input.length) $input.attr('placeholder', text);
+  }
+  
+function configureConsoleForActiveTab(taskIndex, activeTabId) {
+    if (activeTabId.startsWith(`insights-chat-tab-`)) {
+        setConsoleVisible(taskIndex, true);
+        set_console_mode(taskIndex, "gina");
+        return;
+    }
+    if (activeTabId.startsWith(`insights-code-inspector-tab-`) || activeTabId.startsWith(`insights-variables-tab-`)) {
+        setConsoleVisible(taskIndex, true);
+        set_console_mode(taskIndex, "python");
+        return;
+    }
+    if (activeTabId.startsWith(`insights-data-inspector-tab-`)) {
+        setConsoleVisible(taskIndex, true);
+        set_console_mode(taskIndex, "data");
+        return;
+    }
+    // hide the console for "preview" and "global fields" tabs
+    if (activeTabId.startsWith(`insights-preview-tab-`) || activeTabId.startsWith(`insights-global-fields-tab-`)) {
+        setConsoleVisible(taskIndex, false);
+        return;
+    }
+
+    setConsoleVisible(taskIndex, true);
+}  
+
 function finalizePreviousReplyBubble(taskIndex) {
     const $prev = $(`#insights_gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
     if (!$prev.length) return;
@@ -214,6 +249,8 @@ function set_console_mode(taskIndex, mode) {
     if (!$input.length) return;
     if (mode === "gina") {
         $input.attr("placeholder", "Message GINA…").data("console-mode", "gina");
+    }else if (mode === "data") {
+        $input.attr("placeholder", "Enter data command").data("console-mode", "data");
     } else {
         $input.attr("placeholder", "Enter Python command.").data("console-mode", "python");
     }
@@ -733,18 +770,14 @@ function resetConsole(taskIndex) {
     el.style.height = "auto"; // collapse back to single-line height
 }
 
-// When Chat tab shows: set mode + /init handshake once
-$(document).on("shown.bs.tab", 'button[id^="insights-chat-tab-"]', function () {
-    const taskIndex = this.id.replace("insights-chat-tab-", "");
-    set_console_mode(taskIndex, "gina");
-    initaliseInsightsGina(taskIndex);
-});
-
-// Switching away from Chat → revert console to Python
-$(document).on("shown.bs.tab", 'button[id^="insights-variables-tab-"], button[id^="insights-inspector-tab-"], button[id^="insights-data-tab-"]', function () {
-    const taskIndex = this.id.split("-").pop();
-    set_console_mode(taskIndex, "python");
-});
+$(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function () {
+    const id = this.id;
+    const taskIndex = id.split("-").pop();
+    configureConsoleForActiveTab(taskIndex, id);
+    if (id.startsWith("insights-chat-tab-")) {
+        initaliseInsightsGina(taskIndex);
+    }
+});  
 
 // Click “play” on console
 $(document).on("click", ".execute-console", function () {
@@ -785,9 +818,12 @@ $(document).on("input", ".console-input", function () {
 
 // On initial load: if a Chat tab is already active, set mode + /init
 $(function () {
-    $('div[id^="insights-chat-"].tab-pane.show.active').each(function () {
-        const taskIndex = this.id.replace("insights-chat-", "");
-        set_console_mode(taskIndex, "gina");
-        initaliseInsightsGina(taskIndex);
+    $('[id^="insightsTabs_"]').each(function () {
+        const taskIndex = this.id.replace("insightsTabs_", "");
+        const activeId = ($(this).find('.nav-link.active').attr('id') || '');
+        configureConsoleForActiveTab(taskIndex, activeId);
+        if (activeId.startsWith('insights-chat-tab-')) {
+            initaliseInsightsGina(taskIndex);
+        }
     });
-});
+});  
