@@ -620,6 +620,10 @@ const chart_type_map = {
     'Bubble': 'bubble',
     'Pie': 'pie',
     'Scatter': 'scatter',
+    // Custom series types mapped to a base Chart.js type
+    'Radial Bar': 'radialBar',
+    'RadialBar': 'radialBar',
+    'radialbar': 'radialBar',
 }
 
 /**
@@ -1091,10 +1095,32 @@ function bChart(chart_id, chart_data) {
     }
 
 
+    // Detect if any series group requires the Radial Bar plugin
+    var hasRadialBar = false;
+    try {
+        var sgs = chart_data && chart_data['chart'] && chart_data['chart']['series-groups'] ? chart_data['chart']['series-groups'] : [];
+        for (var si = 0; si < sgs.length; si++) {
+            var st = (sgs[si]['series-type'] || '').toString();
+            if (st === 'Radial Bar' || st === 'RadialBar' || st.toLowerCase() === 'radialbar') {
+                hasRadialBar = true;
+                break;
+            }
+        }
+    } catch (e) {
+        hasRadialBar = false;
+    }
+
     var chartJS_datasets = {
         datasets: datasets
     }
+    if (hasRadialBar && labels !== undefined) {
+        chartJS_datasets['labels'] = labels;
+    }
 
+    // If RadialBar is requested but controller is not registered, fallback to doughnut + plugin
+
+    console.log("CHART/2D registering radial Bar");
+    registerRadialBar();
 
     var config = {
         data: chartJS_datasets,
@@ -1134,6 +1160,10 @@ function bChart(chart_id, chart_data) {
                 }
             },
             plugins: {
+                // Enable Radial Bar plugin if requested
+                radialBar: {
+                    enabled: hasRadialBar
+                },
                 legend: {
                     display: legend_display,
                     position: config['legend'].toLowerCase(),

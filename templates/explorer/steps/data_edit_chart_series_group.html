@@ -14,7 +14,7 @@
                     {% set filename = tab.source.split('/')[-1].split('\\')[-1] if has_source else 'Tab ' + (tab_id|string) %}
                     {% set is_selected = sgroup.get('series-tab') and tab_id|string == sgroup['series-tab']|string %}
                     {% set is_first_and_no_selection = loop.first and not sgroup.get('series-tab') %}
-                    <option value="{{ tab_id }}" 
+                    <option value="{{ tab_id }}"
                             {% if is_selected or is_first_and_no_selection %}selected{% endif %}>
                         {{ filename }}
                     </option>
@@ -27,6 +27,7 @@
                 <option {{ selected("Scatter",sgroup['series-type']) }}>Scatter</option>
                 <option {{ selected("Bubble",sgroup['series-type']) }}>Bubble</option>
                 <option {{ selected("Bar",sgroup['series-type']) }}>Bar</option>
+                <option {{ selected("Radial Bar",sgroup['series-type']) }}>Radial Bar</option>
                 <option {{ selected("Doughnut",sgroup['series-type']) }}>Doughnut</option>
                 <option {{ selected("Pie",sgroup['series-type']) }}>Pie</option>
                 <option {{ selected("Polar Area",sgroup['series-type']) }}>Polar Area</option>
@@ -43,14 +44,16 @@
         </div>
         <div class="grid10-col-1">
             <input type="string" class="form-control series-z" id="z{{ loop_index }}_{{ series_index }}" name="z"
-                   value="{{ sgroup['series-z'] }}" {% if (sgroup['series-type'] == "Line") %}disabled{% endif %} >
+                   value="{{ sgroup['series-z'] }}" {% if (sgroup['series-type'] == "Line") %}disabled{% endif %}>
         </div>
         <div class="grid10-col-1">
-            <input type="string" class="form-control series-ymin" id="ymin{{ loop_index }}_{{ series_index }}" name="ymin"
+            <input type="string" class="form-control series-ymin" id="ymin{{ loop_index }}_{{ series_index }}"
+                   name="ymin"
                    value="{{ sgroup['series-ymin'] }}">
         </div>
         <div class="grid10-col-1">
-            <input type="string" class="form-control series-ymax" id="ymax{{ loop_index }}_{{ series_index }}" name="ymax"
+            <input type="string" class="form-control series-ymax" id="ymax{{ loop_index }}_{{ series_index }}"
+                   name="ymax"
                    value="{{ sgroup['series-ymax'] }}">
         </div>
         <div class="grid10-col-1">

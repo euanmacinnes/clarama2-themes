@@ -46,7 +46,7 @@
     ];
 
     const plugin = {
-        id: 'radialBarPlugin',
+        id: 'radialBar',
         afterDraw(chart, args, opts) {
             const cfg = chart?.options?.plugins?.radialBar;
             if (!cfg || !cfg.enabled) return;
@@ -207,7 +207,10 @@
         return value == null ? '' : String(value);
     }
 
-    // Register globally
+})();
+
+function registerRadialBar() {
+// Register globally
     try {
         window.Chart.register(plugin);
         // Expose for debugging
@@ -215,4 +218,4 @@
     } catch (e) {
         // ignore
     }
-})();
+}
