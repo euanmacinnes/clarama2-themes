@@ -35,7 +35,8 @@
  });
  */
 (function () {
-    if (!window || !window.Chart) return;
+    // Define plugin regardless of whether Chart is loaded yet; we'll register later
+    const root = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
 
     const TAU = Math.PI * 2;
     const toRad = (deg) => deg * Math.PI / 180;
@@ -47,6 +48,12 @@
 
     const plugin = {
         id: 'radialBar',
+        // Prevent base dataset drawing (e.g., doughnut) when radialBar is enabled
+        beforeDatasetDraw(chart, args, opts) {
+            const cfg = chart?.options?.plugins?.radialBar;
+            if (!cfg || !cfg.enabled) return;
+            return false; // cancel default dataset draw
+        },
         afterDraw(chart, args, opts) {
             const cfg = chart?.options?.plugins?.radialBar;
             if (!cfg || !cfg.enabled) return;
@@ -66,7 +73,7 @@
 
             // Options with defaults
             const startAngleDeg = isFinite(cfg.startAngle) ? cfg.startAngle : -90;
-            const totalAngleDeg = isFinite(cfg.totalAngle) ? cfg.totalAngle : 360;
+            const totalAngleDeg = isFinite(cfg.totalAngle) ? cfg.totalAngle : 270;
             const startAngle = toRad(startAngleDeg);
             const totalAngle = toRad(totalAngleDeg);
             const n = values.length;
@@ -207,14 +214,26 @@
         return value == null ? '' : String(value);
     }
 
+    // Expose plugin object for late registration
+    try { root.RadialBarChartPlugin = plugin; } catch (e) {}
+
+    // Auto-register immediately if Chart is already available
+    try {
+        if (root.Chart && root.Chart.register) {
+            root.Chart.register(plugin);
+        }
+    } catch (e) {}
+
 })();
 
 function registerRadialBar() {
-// Register globally
+    // Register globally (idempotent)
     try {
-        window.Chart.register(plugin);
-        // Expose for debugging
-        window.RadialBarChartPlugin = plugin;
+        const root = (typeof globalThis !== 'undefined') ? globalThis : window;
+        const plug = root.RadialBarChartPlugin;
+        if (root.Chart && root.Chart.register && plug) {
+            root.Chart.register(plug);
+        }
     } catch (e) {
         // ignore
     }

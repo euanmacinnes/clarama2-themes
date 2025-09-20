@@ -621,9 +621,10 @@ const chart_type_map = {
     'Pie': 'pie',
     'Scatter': 'scatter',
     // Custom series types mapped to a base Chart.js type
-    'Radial Bar': 'radialBar',
-    'RadialBar': 'radialBar',
-    'radialbar': 'radialBar',
+    // Map Radial Bar to 'doughnut' so we don't require a custom controller
+    'Radial Bar': 'doughnut',
+    'RadialBar': 'doughnut',
+    'radialbar': 'doughnut',
 }
 
 /**
@@ -1116,9 +1117,7 @@ function bChart(chart_id, chart_data) {
     if (hasRadialBar && labels !== undefined) {
         chartJS_datasets['labels'] = labels;
     }
-
-    // If RadialBar is requested but controller is not registered, fallback to doughnut + plugin
-
+    
     console.log("CHART/2D registering radial Bar");
     registerRadialBar();
 
