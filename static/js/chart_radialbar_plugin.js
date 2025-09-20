@@ -25,8 +25,8 @@
          showLabels: true,        // draw labels
          labelColor: '#444',
          valueColor: '#111',
-         labelFont: { family: 'Arial, sans-serif', size: 11, style: '', weight: '' },
-         valueFont: { family: 'Arial, sans-serif', size: 12, style: 'normal', weight: 'bold' },
+         labelFont: { family: 'Arial, sans-serif', size: 14, style: '', weight: '' },
+         valueFont: { family: 'Arial, sans-serif', size: 16, style: 'normal', weight: 'bold'},
          labelFormat: (label, value, max) => label, // function or string pattern
          valueFormat: (value, max) => String(value),
        }
@@ -78,7 +78,7 @@
             const totalAngle = toRad(totalAngleDeg);
             const n = values.length;
             const innerRadius = Math.min(maxRadius, Math.max(0, Number(cfg.innerRadius ?? 16)));
-            const thickness = Math.max(2, Number(cfg.barThickness ?? 14));
+            const thickness = Math.max(2, Number(cfg.barThickness ?? 64));
             const spacing = Math.max(0, Number(cfg.barSpacing ?? 6));
             const roundedCaps = cfg.roundedCaps !== false;
             const trackColor = cfg.trackColor ?? 'rgba(0,0,0,0.05)';
@@ -88,13 +88,13 @@
             const valueColor = cfg.valueColor ?? '#111';
             const labelFont = normalizeFont(cfg.labelFont, {
                 family: defaultFontFamily(ctx),
-                size: 11,
+                size: 14,
                 style: '',
                 weight: ''
             });
             const valueFont = normalizeFont(cfg.valueFont, {
                 family: defaultFontFamily(ctx),
-                size: 12,
+                size: 16,
                 style: 'normal',
                 weight: 'bold'
             });
@@ -104,6 +104,20 @@
             const usableRadius = Math.max(0, maxRadius - innerRadius);
             const neededRadius = ringsHeight;
             const scale = neededRadius > 0 ? Math.min(1, usableRadius / neededRadius) : 1;
+
+            // Precompute maximum value width to include in padding so values have reserved space
+            let maxValueWidth = 0;
+            if (showLabels) {
+                ctx.save();
+                ctx.font = toFontString(valueFont);
+                for (let i = 0; i < n; i++) {
+                    const v = Math.max(0, values[i] ?? 0);
+                    const valueText = formatMaybe(cfg.valueFormat, v, (isFinite(cfg.max) && cfg.max > 0 ? cfg.max : Math.max(...values)), (Array.isArray(chart.data?.labels) ? chart.data.labels[i] : (values[i] !== undefined ? String(i + 1) : '')));
+                    const w = valueText ? ctx.measureText(valueText).width : 0;
+                    if (w > maxValueWidth) maxValueWidth = w;
+                }
+                ctx.restore();
+            }
 
             // Draw each ring from inner to outer
             ctx.save();
@@ -139,33 +153,38 @@
                     ctx.stroke();
                 }
 
-                // Labels
+                // Labels at the start of the series, right-align label at tangent; value starts where label ends
                 if (showLabels) {
                     const label = (labels[i] ?? '').toString();
                     const labelText = formatMaybe(cfg.labelFormat, label, v, maxValue);
                     const valueText = formatMaybe(cfg.valueFormat, v, maxValue, label);
 
-                    const textAngle = startAngle + Math.max(sweep, toRad(1)) / 2; // center of arc or small offset
-                    const tx = Math.cos(textAngle) * (radius);
+                    // Position at the start of the arc
+                    const textAngle = startAngle; // start of series
+                    const pad = thickness / 2; // padding to place label/value completely left (outside) of the bar
+                    const gap = Math.max(0, Number(cfg.valueGap ?? 6)); // small gap between label end and value start
+
+                    // Move outward (to the left of the bar) from the arc start point by padding only
+                    const tx = Math.cos(textAngle) * (radius) - pad;
                     const ty = Math.sin(textAngle) * (radius);
 
-                    // Draw label above value slightly towards center
                     ctx.save();
-                    ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
 
-                    // label
+                    // Draw label right-aligned so its end sits at (tx, ty)
                     if (labelText) {
+                        ctx.textAlign = 'right';
                         ctx.font = toFontString(labelFont);
                         ctx.fillStyle = labelColor;
-                        ctx.fillText(labelText, tx, ty - Math.max(10, (r1 - r0) * 0.15));
+                        ctx.fillText(labelText, tx - gap, ty);
                     }
 
-                    // value
+                    // Draw value left-aligned, starting at the same x where label ended
                     if (valueText) {
+                        ctx.textAlign = 'left';
                         ctx.font = toFontString(valueFont);
                         ctx.fillStyle = valueColor;
-                        ctx.fillText(valueText, tx, ty + Math.max(0, (r1 - r0) * 0.15));
+                        ctx.fillText(valueText, tx + gap, ty);
                     }
 
                     ctx.restore();
@@ -215,14 +234,18 @@
     }
 
     // Expose plugin object for late registration
-    try { root.RadialBarChartPlugin = plugin; } catch (e) {}
+    try {
+        root.RadialBarChartPlugin = plugin;
+    } catch (e) {
+    }
 
     // Auto-register immediately if Chart is already available
     try {
         if (root.Chart && root.Chart.register) {
             root.Chart.register(plugin);
         }
-    } catch (e) {}
+    } catch (e) {
+    }
 
 })();
 
