@@ -1459,6 +1459,12 @@
                 field_data['milliseconds'] = !!($('#dr_milliseconds').prop('checked'));
                 // Store ranges as raw text; server persists as-is (string) to allow flexible parsing later
                 field_data['ranges'] = ($('#dr_ranges').val() || '').trim();
+            } else if (t === 'select' || t === 'select_multiple') {
+                // Save custom column mapping options for select/select_multiple
+                field_data['id_column'] = $('#id_column').val() || '';
+                field_data['value_column'] = $('#value_column').val() || '';
+                field_data['select_column'] = $('#select_column').val() || '';
+                field_data['disable_column'] = $('#disable_column').val() || '';
             } else {
                 field_data['maxlength'] = $('#str_maxlength').val() || '';
                 field_data['transform'] = $('#str_transform').val() || '';

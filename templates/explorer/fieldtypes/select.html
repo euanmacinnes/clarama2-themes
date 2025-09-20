@@ -1,7 +1,7 @@
 {% extends theme("explorer/files/fieldlayout_" + field_layout + ".html") %}
 
 {% block content %}
-    <div style="position-relative">
+    <div style="position: relative">
         <select data-id="{{ field_id }}"
                 fieldtype="html"
                 name="{{ field_name }}"
@@ -10,6 +10,13 @@
                 {{ field_config | required }}
                 {{ field_config | readonly }}
                 {{ field_config | sticky }}
+                {% if field_config.get('id_column') is defined %} id_column="{{ field_config['id_column'] }}"{% endif %}
+                {% if field_config.get('value_column') is defined %}
+                value_column="{{ field_config['value_column'] }}"{% endif %}
+                {% if field_config.get('select_column') is defined %}
+                select_column="{{ field_config['select_column'] }}"{% endif %}
+                {% if field_config.get('disable_column') is defined %}
+                disable_column="{{ field_config['disable_column'] }}"{% endif %}
                 class="form-control clarama-field-select2 clarama-field clarama-select-field tooltip"
                 {% include theme("explorer/files/field_tooltip.html") %}
                 {% if field_config.get('data',{}).get('source') %}
