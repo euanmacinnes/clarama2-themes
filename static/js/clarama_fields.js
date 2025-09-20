@@ -215,11 +215,15 @@ function get_fields(fields, cell, field_submit) {
         'environment': socket_div.attr("environment")
     }
 
-    $('.stream').each(
+    $('ul.stream').each(
         function (index) {
             var stream = $(this);
 
             var current_stream = stream.attr("stream")
+            if (!current_stream) {
+                // Skip elements that are not actual stream containers
+                return;
+            }
 
             var stream_cells = get_cell(stream, "");
 
