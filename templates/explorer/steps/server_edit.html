@@ -9,11 +9,15 @@
             <div class="container-fluid">
                 <div class="row g-2 align-items-center mb-2">
                     <div class="col-md-2"><label class="form-label mb-0">Server Type</label></div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 d-flex align-items-center">
                         <select class="form-control server-type">
                             <option value="opcua">OPC-UA</option>
                             <option value="opcua-client">OPC-UA Client</option>
                         </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ms-2 server-preview-btn d-none"
+                                title="Browse OPC-UA Server">
+                            <i class="bi bi-binoculars"></i>
+                        </button>
                     </div>
                     <div class="col-md-2 text-end"><label class="form-label mb-0">Instance</label></div>
                     <div class="col-md-4"><input type="text" class="form-control server-instance"
@@ -22,13 +26,15 @@
                 <div class="row g-2 align-items-start mb-2">
                     <div class="col-md-2 d-flex align-items-center justify-content-between">
                         <label class="form-label mb-0">YAML Config</label>
-                        <button type="button" class="btn btn-sm btn-outline-info ms-2 server-help-btn" title="Show OPC-UA YAML example"
+                        <button type="button" class="btn btn-sm btn-outline-info ms-2 server-help-btn"
+                                title="Show OPC-UA YAML example"
                                 data-template="help/opcua_server_config">
                             <i class="bi bi-question-circle"></i>
                         </button>
                     </div>
                     <div class="col-md-10">
-                        <div id="content_query_{{ loop_index }}_server_config" class="source-editor form-control clarama-field-editor server-config" editor="yaml"
+                        <div id="content_query_{{ loop_index }}_server_config"
+                             class="source-editor form-control clarama-field-editor server-config" editor="yaml"
                              style="min-height:140px">{{ content or '' }}</div>
                         <div class="text-white-50 small mt-1">Provide server options (e.g. endpoint, namespace_uri,
                             publishing, nodes:[]).
@@ -41,19 +47,24 @@
                                                  type="checkbox" {{ 'checked' if k8s else '' }}></div>
                     <div class="col-md-1 text-end"><label class="form-label mb-0">Service</label></div>
                     <div class="col-md-3"><input type="text" class="form-control server-k8s-svc"
-                                                 placeholder="service name" value="{{ k8s_options.service_name if k8s_options and k8s_options.service_name else '' }}">
+                                                 placeholder="service name"
+                                                 value="{{ k8s_options.service_name if k8s_options and k8s_options.service_name else '' }}">
                     </div>
                     <div class="col-md-1 text-end"><label class="form-label mb-0">Port</label></div>
                     <div class="col-md-2"><input type="number" class="form-control server-k8s-port" placeholder="4840"
-                                                 value="{{ k8s_options.port if k8s_options and k8s_options.port else 4840 }}"></div>
+                                                 value="{{ k8s_options.port if k8s_options and k8s_options.port else 4840 }}">
+                    </div>
                 </div>
                 <div class="row g-2 align-items-center mb-2 server-k8s-row">
                     <div class="col-md-2 text-end"><label class="form-label mb-0">Host</label></div>
                     <div class="col-md-4"><input type="text" class="form-control server-k8s-host"
-                                                 placeholder="example.local" value="{{ k8s_options.host if k8s_options and k8s_options.host else '' }}"></div>
+                                                 placeholder="example.local"
+                                                 value="{{ k8s_options.host if k8s_options and k8s_options.host else '' }}">
+                    </div>
                     <div class="col-md-2 text-end"><label class="form-label mb-0">Path</label></div>
                     <div class="col-md-4"><input type="text" class="form-control server-k8s-path" placeholder="/"
-                                                 value="{{ k8s_options.path if k8s_options and k8s_options.path else '/' }}"></div>
+                                                 value="{{ k8s_options.path if k8s_options and k8s_options.path else '/' }}">
+                    </div>
                 </div>
                 <div class="row g-2 align-items-center server-k8s-row">
                     <div class="col-md-12 text-white-50 small">At runtime, the kernel will start the selected server and
@@ -65,193 +76,345 @@
     </div>
 </div>
 
+<style>
+/* Ensure the OPC Browser button remains clickable above any editors */
+.server-preview-btn{ position: relative; z-index: 1001; pointer-events: auto; }
+</style>
 <script type="text/javascript">
     $(document).ready(() => {
         $('.source-editor').editor();
 
-        function ensureHelpModal(){
-            let $m = $('#server-help-modal');
-            if($m.length === 0){
-                const html = [
-                    '<div class="modal fade" id="server-help-modal" tabindex="-1" aria-hidden="true">',
-                    '  <div class="modal-dialog modal-lg modal-dialog-scrollable">',
-                    '    <div class="modal-content">',
-                    '      <div class="modal-header">',
-                    '        <h5 class="modal-title">OPC-UA YAML Example</h5>',
-                    '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>',
-                    '      </div>',
-                    '      <div class="modal-body"><div class="text-muted">Loading...</div></div>',
-                    '      <div class="modal-footer">',
-                    '        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>',
-                    '      </div>',
-                    '    </div>',
-                    '  </div>',
-                    '</div>'
-                ].join('');
-                $('body').append(html);
-                $m = $('#server-help-modal');
-            }
-            return $m;
-        }
-
-        function currentHelpTemplate(){
-            const t = ($('.server-type').val()||'').toLowerCase();
-            if(t === 'opcua-client') return 'help/opcua_client_config';
+        function currentHelpTemplate() {
+            const t = ($('.server-type').val() || '').toLowerCase();
+            if (t === 'opcua-client') return 'help/opcua_client_config';
             return 'help/opcua_server_config';
         }
-        function updateModalTitle($m){
-            const t = ($('.server-type').val()||'').toLowerCase();
-            const ttl = (t === 'opcua-client') ? 'OPC-UA Client YAML Example' : 'OPC-UA YAML Example';
-            $m.find('.modal-title').text(ttl);
-        }
-        $('.server-help-btn').on('click', function(){
-            const tmpl = currentHelpTemplate();
-            const $m = ensureHelpModal();
-            updateModalTitle($m);
-            $m.find('.modal-body').html('<div class="text-muted">Loading...</div>');
-            $.ajax({
-                url: '/template/render/' + tmpl,
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({})
-            }).done(function(html){
-                $m.find('.modal-body').html(html);
-                try{ Prism.highlightAll(); }catch(e){}
-            }).fail(function(xhr){
-                const msg = (xhr.responseJSON && xhr.responseJSON.error) || xhr.responseText || 'Failed to load template';
-                $m.find('.modal-body').html('<div class="alert alert-danger">'+ $('<div>').text(msg).html() +'</div>');
-            }).always(function(){
-                try {
-                    const modal = new bootstrap.Modal(document.getElementById('server-help-modal'));
-                    modal.show();
-                } catch(e) {
-                    $('#server-help-modal').modal('show');
-                }
-            });
-        });
-        function extractYamlFromTemplate(html){
-            try{
+
+        function extractYamlFromTemplate(html) {
+            try {
                 const $tmp = $('<div>').html(html);
-                // Prefer code block inside pre>code
                 let text = $tmp.find('pre code').first().text();
-                if(!text){
-                    // fallback: any code block
+                if (!text) {
                     text = $tmp.find('code').first().text();
                 }
                 return text || '';
-            }catch(e){ return ''; }
+            } catch (e) {
+                return '';
+            }
         }
-        function setServerConfigContent(text){
+
+        function setServerConfigContent(text) {
             const $cfg = $('.server-config').first();
             const id = $cfg.attr('id');
-            try{
-                if(id){ const ed = ace.edit(id); ed.setValue(text||'', -1); }
-                else { $cfg.text(text||''); }
-            }catch(e){ $cfg.text(text||''); }
+            try {
+                if (id) {
+                    const ed = ace.edit(id);
+                    ed.setValue(text || '', -1);
+                } else {
+                    $cfg.text(text || '');
+                }
+            } catch (e) {
+                $cfg.text(text || '');
+            }
         }
-        function getServerConfigContent(){
+
+        function getServerConfigContent() {
             const $cfg = $('.server-config').first();
             const id = $cfg.attr('id');
-            try{
-                if(id){ const ed = ace.edit(id); return ed.getValue(); }
-                return $cfg.text()||'';
-            }catch(e){ return $cfg.text()||''; }
+            try {
+                if (id) {
+                    const ed = ace.edit(id);
+                    return ed.getValue();
+                }
+                return $cfg.text() || '';
+            } catch (e) {
+                return $cfg.text() || '';
+            }
         }
-        function toggleK8sByType(){
-            const t = ($('.server-type').val()||'').toLowerCase();
+
+        function toggleK8sByType() {
+            const t = ($('.server-type').val() || '').toLowerCase();
             const showK8s = (t === 'opcua');
             $('.server-k8s-row')[showK8s ? 'show' : 'hide']();
         }
-        // Create (once) a reusable confirm modal for overwrite prompts
-        function ensureConfirmModal(){
-            let $m = $('#server-confirm-modal');
-            if($m.length === 0){
-                const html = [
-                    '<div class="modal fade" id="server-confirm-modal" tabindex="-1" aria-hidden="true">',
-                    '  <div class="modal-dialog">',
-                    '    <div class="modal-content">',
-                    '      <div class="modal-header">',
-                    '        <h5 class="modal-title">Confirm action</h5>',
-                    '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>',
-                    '      </div>',
-                    '      <div class="modal-body"><div class="confirm-message">Are you sure?</div></div>',
-                    '      <div class="modal-footer">',
-                    '        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>',
-                    '        <button type="button" class="btn btn-primary btn-confirm">Replace</button>',
-                    '      </div>',
-                    '    </div>',
-                    '  </div>',
-                    '</div>'
-                ].join('');
-                $('body').append(html);
-                $m = $('#server-confirm-modal');
+
+        function togglePreviewByType() {
+            const t = ($('.server-type').val() || '').toLowerCase();
+            const showPrev = (t === 'opcua-client');
+            $('.server-preview-btn')[showPrev ? 'removeClass' : 'addClass']('d-none');
+        }
+
+        // Help button -> use centralized dialogs
+        $('.server-help-btn').on('click', function () {
+            const tmpl = currentHelpTemplate();
+            const ttl = ($('.server-type').val() || '').toLowerCase() === 'opcua-client' ? 'OPC-UA Client YAML Example' : 'OPC-UA YAML Example';
+            if (window.ClaramaDialogs && ClaramaDialogs.loadTemplateModal) {
+                ClaramaDialogs.loadTemplateModal(tmpl, ttl);
+            } else {
+                // fallback inline if module not loaded
+                $.ajax({
+                    url: '/template/render/' + tmpl,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({})
+                })
+                    .done(function (html) {
+                        ClaramaDialogs && ClaramaDialogs.showModal ? ClaramaDialogs.showModal({
+                            title: ttl,
+                            body: html,
+                            id: 'clarama-generic-modal',
+                            size: 'modal-lg modal-dialog-scrollable'
+                        }) : $('body').append(html);
+                    })
+                    .fail(function () {
+                    });
             }
-            return $m;
-        }
-        function confirmReplaceDialog(message){
-            return new Promise(function(resolve){
-                const $m = ensureConfirmModal();
-                $m.find('.confirm-message').text(message || 'Are you sure?');
-                let resolved = false;
-                function cleanup(){
-                    $m.off('click', '.btn-confirm');
-                    $m.off('hidden.bs.modal');
-                }
-                $m.on('click', '.btn-confirm', function(){
-                    resolved = true;
-                    cleanup();
-                    try{
-                        const inst = bootstrap.Modal.getInstance(document.getElementById('server-confirm-modal')) || new bootstrap.Modal(document.getElementById('server-confirm-modal'));
-                        inst.hide();
-                    }catch(e){
-                        $m.modal('hide');
-                    }
-                    resolve(true);
-                });
-                $m.on('hidden.bs.modal', function(){
-                    if(!resolved){
-                        cleanup();
-                        resolve(false);
-                    }
-                });
-                try{
-                    const modal = new bootstrap.Modal(document.getElementById('server-confirm-modal'), {backdrop:'static', keyboard:false});
-                    modal.show();
-                }catch(e){
-                    $m.modal({backdrop:'static', keyboard:false, show:true});
-                }
-            });
-        }
-        function loadExampleForType(overwrite=false){
+        });
+
+        function loadExampleForType(overwrite = false) {
             const tmpl = currentHelpTemplate();
             $.ajax({
                 url: '/template/render/' + tmpl,
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({})
-            }).done(function(html){
-                const yaml = extractYamlFromTemplate(html);
-                if(!yaml) return;
-                const applyYaml = function(){ setServerConfigContent(yaml); };
-                if(!overwrite){
-                    const curr = (getServerConfigContent()||'').trim();
-                    if(curr){
-                        confirmReplaceDialog('Replace current config with the default for this server type?')
-                            .then(function(proceed){ if(proceed) applyYaml(); });
-                        return;
+            })
+                .done(function (html) {
+                    const yaml = extractYamlFromTemplate(html);
+                    if (!yaml) return;
+                    const applyYaml = function () {
+                        setServerConfigContent(yaml);
+                    };
+                    if (!overwrite) {
+                        const curr = (getServerConfigContent() || '').trim();
+                        if (curr) {
+                            if (window.ClaramaDialogs && ClaramaDialogs.confirm) {
+                                ClaramaDialogs.confirm({
+                                    message: 'Replace current config with the default for this server type?',
+                                    confirmText: 'Replace'
+                                })
+                                    .then(function (proceed) {
+                                        if (proceed) applyYaml();
+                                    });
+                            }
+                            return;
+                        }
                     }
-                }
-                applyYaml();
-            }).fail(function(){ /* ignore */ });
+                    applyYaml();
+                }).fail(function () { /* ignore */
+            });
         }
-        function onServerTypeChanged(){
-            const $m = $('#server-help-modal');
-            if($m.length){ updateModalTitle($m); }
+
+        function buildOpcBrowserModalHtml(initialEndpoint) {
+            const ep = initialEndpoint || '';
+            return [
+                '<div class="container-fluid">',
+                '  <div class="row g-2 align-items-center mb-2">',
+                '    <div class="col-md-2 text-end"><label class="form-label mb-0">Endpoint</label></div>',
+                '    <div class="col-md-10 d-flex">',
+                '      <input type="text" class="form-control opc-endpoint" placeholder="opc.tcp://127.0.0.1:4840/clarama/opcua" value="' + $('<div>').text(ep).html() + '">',
+                '      <button type="button" class="btn btn-sm btn-primary ms-2 opc-connect">Connect</button>',
+                '      <button type="button" class="btn btn-sm btn-outline-secondary ms-2 opc-refresh" disabled>Refresh</button>',
+                '      <button type="button" class="btn btn-sm btn-success ms-2 opc-insert" disabled>Insert</button>',
+                '    </div>',
+                '  </div>',
+                '  <div class="row g-2 align-items-center mb-2">',
+                '    <div class="col-md-2 text-end"><label class="form-label mb-0">Search</label></div>',
+                '    <div class="col-md-10 d-flex">',
+                '      <input type="text" class="form-control opc-filter" placeholder="Filter by path or value">',
+                '      <button type="button" class="btn btn-sm btn-outline-secondary ms-2 opc-filter-clear" title="Clear">Clear</button>',
+                '    </div>',
+                '  </div>',
+                '  <div class="row">',
+                '    <div class="col-12">',
+                '      <div class="table-responsive" style="max-height:380px; overflow:auto;">',
+                '        <table class="table table-sm table-striped align-middle mb-0 opc-table">',
+                '          <thead><tr><th style="width:28px;"><input type="checkbox" class="opc-check-all"></th><th>Path</th><th style="width:25%">Value</th></tr></thead>',
+                '          <tbody></tbody>',
+                '        </table>',
+                '      </div>',
+                '    </div>',
+                '  </div>',
+                '  <div class="text-muted small mt-1">Tip: Select rows to include in the client YAML nodes list. Use Refresh to update current values.</div>',
+                '</div>'
+            ].join('');
+        }
+
+        function parseEndpointFromYaml() {
+            try {
+                const txt = getServerConfigContent() || '';
+                const m = txt.match(/endpoint\s*:\s*([^\s#]+)\s*/i);
+                return m ? m[1].trim() : '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function opcRenderTable($modal, items) {
+            const $tb = $modal.find('table.opc-table tbody');
+            $tb.empty();
+            if (!Array.isArray(items)) return;
+            items.forEach(function (it, idx) {
+                const p = it.path || '';
+                const v = (it.value === null || typeof it.value === 'undefined') ? '' : String(it.value);
+                const tr = [
+                    '<tr>',
+                    ' <td><input type="checkbox" class="opc-row-check"></td>',
+                    ' <td class="opc-path">' + $('<div>').text(p).html() + '</td>',
+                    ' <td class="opc-value text-truncate" title="' + $('<div>').text(v).html() + '">' + $('<div>').text(v).html() + '</td>',
+                    '</tr>'
+                ].join('');
+                $tb.append(tr);
+            });
+        }
+
+        function opcCollectSelectedPaths($modal) {
+            const paths = [];
+            $modal.find('tbody tr').each(function () {
+                const $tr = $(this);
+                if ($tr.find('.opc-row-check').is(':checked')) {
+                    paths.push(($tr.find('.opc-path').text() || '').trim());
+                }
+            });
+            return paths;
+        }
+
+        function opcEnableActions($modal, enabled) {
+            $modal.find('.opc-refresh, .opc-insert')[enabled ? 'prop' : 'prop']('disabled', !enabled);
+        }
+
+        function opcApplyFilter($modal) {
+            try {
+                const q = ($modal.find('.opc-filter').val() || '').toString().toLowerCase();
+                const $rows = $modal.find('table.opc-table tbody tr');
+                if (!q) { $rows.show(); return; }
+                $rows.each(function(){
+                    const $tr = $(this);
+                    const path = ($tr.find('.opc-path').text() || '').toLowerCase();
+                    const val = ($tr.find('.opc-value').text() || '').toLowerCase();
+                    const ok = path.indexOf(q) >= 0 || val.indexOf(q) >= 0;
+                    $tr.toggle(!!ok);
+                });
+            } catch (e) { /* ignore */ }
+        }
+
+        function openOpcBrowser() {
+            const initialEndpoint = parseEndpointFromYaml() || 'opc.tcp://127.0.0.1:4840/clarama/opcua';
+            const body = buildOpcBrowserModalHtml(initialEndpoint);
+            const ttl = 'OPC Browser';
+            if (window.ClaramaDialogs && ClaramaDialogs.showModal) {
+                ClaramaDialogs.showModal({
+                    id: 'opc-browser-modal',
+                    title: ttl,
+                    body: body,
+                    size: 'modal-xl modal-dialog-scrollable'
+                });
+                const $m = $('#opc-browser-modal');
+                const $body = $m.find('.modal-body');
+                // filter bindings
+                $body.on('input', '.opc-filter', function(){ opcApplyFilter($body); });
+                $body.on('click', '.opc-filter-clear', function(){ $body.find('.opc-filter').val(''); opcApplyFilter($body); $body.find('.opc-filter').focus(); });
+                // wire select all
+                $body.on('change', '.opc-check-all', function () {
+                    const chk = $(this).is(':checked');
+                    $body.find('.opc-row-check').prop('checked', chk);
+                });
+                // connect handler
+                $body.on('click', '.opc-connect', function () {
+                    const ep = ($body.find('.opc-endpoint').val() || '').trim();
+                    if (!ep) return;
+                    $body.find('.opc-connect').prop('disabled', true).text('Connecting...');
+                    $.ajax({
+                        url: '/web/opcua/browse',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({endpoint: ep, max_depth: 3, max_nodes: 500})
+                    })
+                        .done(function (res) {
+                            let items = [];
+                            if (res && res.status === 'ok') items = res.results || [];
+                            else if (Array.isArray(res)) items = res; else if (res && res.data === 'ok') items = res.results || [];
+                            opcRenderTable($body, items);
+                            opcEnableActions($body, items.length > 0);
+                            opcApplyFilter($body);
+                        })
+                        .fail(function (xhr) {
+                            const msg = (xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)) || xhr.responseText || 'Failed to browse';
+                            console.warn('OPC browse failed', msg);
+                        })
+                        .always(function () {
+                            $body.find('.opc-connect').prop('disabled', false).text('Connect');
+                        });
+                });
+                // refresh handler
+                $body.on('click', '.opc-refresh', function () {
+                    const ep = ($body.find('.opc-endpoint').val() || '').trim();
+                    const paths = opcCollectSelectedPaths($body);
+                    if (!ep || paths.length === 0) return;
+                    $body.find('.opc-refresh').prop('disabled', true).text('Refreshing...');
+                    $.ajax({
+                        url: '/web/opcua/read_values',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({endpoint: ep, paths: paths})
+                    })
+                        .done(function (res) {
+                            let values = {};
+                            if (res && res.status === 'ok') values = res.results || {};
+                            else if (res && res.data === 'ok') values = res.results || {}; else if (res && typeof res === 'object') values = res;
+                            // update table
+                            $body.find('tbody tr').each(function () {
+                                const $tr = $(this);
+                                const p = ($tr.find('.opc-path').text() || '').trim();
+                                if (values.hasOwnProperty(p)) {
+                                    const v = values[p];
+                                    const txt = (v === null || typeof v === 'undefined') ? '' : String(v);
+                                    $tr.find('.opc-value').text(txt).attr('title', txt);
+                                }
+                            });
+                        })
+                        .always(function () {
+                            $body.find('.opc-refresh').prop('disabled', false).text('Refresh');
+                        });
+                });
+                // insert handler
+                $body.on('click', '.opc-insert', function () {
+                    const ep = ($body.find('.opc-endpoint').val() || '').trim();
+                    const paths = opcCollectSelectedPaths($body);
+                    if (!ep || paths.length === 0) return;
+                    const yaml = ['endpoint: ' + ep, 'subscribe_interval_ms: 200', 'reconnect: true', 'nodes:'].concat(paths.map(p => '  - path: ' + p)).join('\n');
+                    const apply = function () {
+                        setServerConfigContent(yaml);
+                        $m.modal('hide');
+                    };
+                    const curr = (getServerConfigContent() || '').trim();
+                    if (curr && window.ClaramaDialogs && ClaramaDialogs.confirm) {
+                        ClaramaDialogs.confirm({
+                            message: 'Replace current YAML config with selected client nodes?',
+                            confirmText: 'Insert'
+                        })
+                            .then(function (ok) {
+                                if (ok) apply();
+                            });
+                    } else {
+                        apply();
+                    }
+                });
+            }
+        }
+
+        // wire preview button and initial UI state
+        // Use delegated handler to be robust against dynamic content changes
+        $(document).on('click', '.server-preview-btn', function(e){ e.preventDefault(); e.stopPropagation(); openOpcBrowser(); });
+
+        function onServerTypeChanged() {
             toggleK8sByType();
+            togglePreviewByType();
             loadExampleForType(false);
         }
-        // initial toggle based on current value
+
         toggleK8sByType();
+        togglePreviewByType();
         $('.server-type').on('change', onServerTypeChanged);
     });
 </script>

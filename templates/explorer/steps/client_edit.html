@@ -67,53 +67,17 @@
 <script type="text/javascript">
     $(document).ready(() => {
         $('.source-editor').editor();
-        function ensureHelpModal(){
-            let $m = $('#server-help-modal');
-            if($m.length === 0){
-                const html = [
-                    '<div class="modal fade" id="server-help-modal" tabindex="-1" aria-hidden="true">',
-                    '  <div class="modal-dialog modal-lg modal-dialog-scrollable">',
-                    '    <div class="modal-content">',
-                    '      <div class="modal-header">',
-                    '        <h5 class="modal-title">OPC-UA Client YAML Example</h5>',
-                    '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>',
-                    '      </div>',
-                    '      <div class="modal-body"><div class="text-muted">Loading...</div></div>',
-                    '      <div class="modal-footer">',
-                    '        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>',
-                    '      </div>',
-                    '    </div>',
-                    '  </div>',
-                    '</div>'
-                ].join('');
-                $('body').append(html);
-                $m = $('#server-help-modal');
-            }
-            return $m;
-        }
         $('.server-help-btn').on('click', function(){
             const tmpl = $(this).data('template') || 'help/opcua_client_config';
-            const $m = ensureHelpModal();
-            $m.find('.modal-body').html('<div class="text-muted">Loading...</div>');
-            $.ajax({
-                url: '/template/render/' + tmpl,
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({})
-            }).done(function(html){
-                $m.find('.modal-body').html(html);
-                try{ Prism.highlightAll(); }catch(e){}
-            }).fail(function(xhr){
-                const msg = (xhr.responseJSON && xhr.responseJSON.error) || xhr.responseText || 'Failed to load template';
-                $m.find('.modal-body').html('<div class="alert alert-danger">'+ $('<div>').text(msg).html() +'</div>');
-            }).always(function(){
-                try {
-                    const modal = new bootstrap.Modal(document.getElementById('server-help-modal'));
-                    modal.show();
-                } catch(e) {
-                    $('#server-help-modal').modal('show');
-                }
-            });
+            const ttl = 'OPC-UA Client YAML Example';
+            if(window.ClaramaDialogs && ClaramaDialogs.loadTemplateModal){
+                ClaramaDialogs.loadTemplateModal(tmpl, ttl);
+            } else {
+                // fallback
+                $.ajax({ url: '/template/render/' + tmpl, method: 'POST', contentType: 'application/json', data: JSON.stringify({}) })
+                 .done(function(html){ ClaramaDialogs && ClaramaDialogs.showModal ? ClaramaDialogs.showModal({title: ttl, body: html, id: 'clarama-generic-modal', size: 'modal-lg modal-dialog-scrollable'}) : $('body').append(html); })
+                 .fail(function(){});
+            }
         });
     });
 </script>
