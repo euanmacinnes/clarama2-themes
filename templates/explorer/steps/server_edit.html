@@ -162,6 +162,66 @@
             const showK8s = (t === 'opcua');
             $('.server-k8s-row')[showK8s ? 'show' : 'hide']();
         }
+        // Create (once) a reusable confirm modal for overwrite prompts
+        function ensureConfirmModal(){
+            let $m = $('#server-confirm-modal');
+            if($m.length === 0){
+                const html = [
+                    '<div class="modal fade" id="server-confirm-modal" tabindex="-1" aria-hidden="true">',
+                    '  <div class="modal-dialog">',
+                    '    <div class="modal-content">',
+                    '      <div class="modal-header">',
+                    '        <h5 class="modal-title">Confirm action</h5>',
+                    '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>',
+                    '      </div>',
+                    '      <div class="modal-body"><div class="confirm-message">Are you sure?</div></div>',
+                    '      <div class="modal-footer">',
+                    '        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>',
+                    '        <button type="button" class="btn btn-primary btn-confirm">Replace</button>',
+                    '      </div>',
+                    '    </div>',
+                    '  </div>',
+                    '</div>'
+                ].join('');
+                $('body').append(html);
+                $m = $('#server-confirm-modal');
+            }
+            return $m;
+        }
+        function confirmReplaceDialog(message){
+            return new Promise(function(resolve){
+                const $m = ensureConfirmModal();
+                $m.find('.confirm-message').text(message || 'Are you sure?');
+                let resolved = false;
+                function cleanup(){
+                    $m.off('click', '.btn-confirm');
+                    $m.off('hidden.bs.modal');
+                }
+                $m.on('click', '.btn-confirm', function(){
+                    resolved = true;
+                    cleanup();
+                    try{
+                        const inst = bootstrap.Modal.getInstance(document.getElementById('server-confirm-modal')) || new bootstrap.Modal(document.getElementById('server-confirm-modal'));
+                        inst.hide();
+                    }catch(e){
+                        $m.modal('hide');
+                    }
+                    resolve(true);
+                });
+                $m.on('hidden.bs.modal', function(){
+                    if(!resolved){
+                        cleanup();
+                        resolve(false);
+                    }
+                });
+                try{
+                    const modal = new bootstrap.Modal(document.getElementById('server-confirm-modal'), {backdrop:'static', keyboard:false});
+                    modal.show();
+                }catch(e){
+                    $m.modal({backdrop:'static', keyboard:false, show:true});
+                }
+            });
+        }
         function loadExampleForType(overwrite=false){
             const tmpl = currentHelpTemplate();
             $.ajax({
@@ -172,15 +232,16 @@
             }).done(function(html){
                 const yaml = extractYamlFromTemplate(html);
                 if(!yaml) return;
+                const applyYaml = function(){ setServerConfigContent(yaml); };
                 if(!overwrite){
                     const curr = (getServerConfigContent()||'').trim();
                     if(curr){
-                        // confirm overwrite
-                        const proceed = window.confirm('Replace current config with the default for this server type?');
-                        if(!proceed) return;
+                        confirmReplaceDialog('Replace current config with the default for this server type?')
+                            .then(function(proceed){ if(proceed) applyYaml(); });
+                        return;
                     }
                 }
-                setServerConfigContent(yaml);
+                applyYaml();
             }).fail(function(){ /* ignore */ });
         }
         function onServerTypeChanged(){
