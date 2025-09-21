@@ -1,0 +1,196 @@
+<div class="clarama-cell-content" celltype="server" dataid="{{ loop_index }}">
+    <div class="bg-c2-light rounded-top text-light px-2" style="padding-top:.25rem!important;">
+        <div class="d-flex align-items-center gap-2 py-1">
+            <div class="text-white-50 small">Server Step</div>
+        </div>
+    </div>
+    <div class="accordion-collapse show bg-cell-config">
+        <div class="accordion-body" style="padding:8px;">
+            <div class="container-fluid">
+                <div class="row g-2 align-items-center mb-2">
+                    <div class="col-md-2"><label class="form-label mb-0">Server Type</label></div>
+                    <div class="col-md-4">
+                        <select class="form-control server-type">
+                            <option value="opcua">OPC-UA</option>
+                            <option value="opcua-client">OPC-UA Client</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 text-end"><label class="form-label mb-0">Instance</label></div>
+                    <div class="col-md-4"><input type="text" class="form-control server-instance"
+                                                 placeholder="e.g. default" value="{{ instance or 'default' }}"></div>
+                </div>
+                <div class="row g-2 align-items-start mb-2">
+                    <div class="col-md-2 d-flex align-items-center justify-content-between">
+                        <label class="form-label mb-0">YAML Config</label>
+                        <button type="button" class="btn btn-sm btn-outline-info ms-2 server-help-btn" title="Show OPC-UA YAML example"
+                                data-template="help/opcua_server_config">
+                            <i class="bi bi-question-circle"></i>
+                        </button>
+                    </div>
+                    <div class="col-md-10">
+                        <div id="content_query_{{ loop_index }}_server_config" class="source-editor form-control clarama-field-editor server-config" editor="yaml"
+                             style="min-height:140px">{{ content or '' }}</div>
+                        <div class="text-white-50 small mt-1">Provide server options (e.g. endpoint, namespace_uri,
+                            publishing, nodes:[]).
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-2 align-items-center mb-2 server-k8s-row">
+                    <div class="col-md-2"><label class="form-label mb-0">Expose via K8s</label></div>
+                    <div class="col-md-1"><input class="form-check-input server-k8s"
+                                                 type="checkbox" {{ 'checked' if k8s else '' }}></div>
+                    <div class="col-md-1 text-end"><label class="form-label mb-0">Service</label></div>
+                    <div class="col-md-3"><input type="text" class="form-control server-k8s-svc"
+                                                 placeholder="service name" value="{{ k8s_options.service_name if k8s_options and k8s_options.service_name else '' }}">
+                    </div>
+                    <div class="col-md-1 text-end"><label class="form-label mb-0">Port</label></div>
+                    <div class="col-md-2"><input type="number" class="form-control server-k8s-port" placeholder="4840"
+                                                 value="{{ k8s_options.port if k8s_options and k8s_options.port else 4840 }}"></div>
+                </div>
+                <div class="row g-2 align-items-center mb-2 server-k8s-row">
+                    <div class="col-md-2 text-end"><label class="form-label mb-0">Host</label></div>
+                    <div class="col-md-4"><input type="text" class="form-control server-k8s-host"
+                                                 placeholder="example.local" value="{{ k8s_options.host if k8s_options and k8s_options.host else '' }}"></div>
+                    <div class="col-md-2 text-end"><label class="form-label mb-0">Path</label></div>
+                    <div class="col-md-4"><input type="text" class="form-control server-k8s-path" placeholder="/"
+                                                 value="{{ k8s_options.path if k8s_options and k8s_options.path else '/' }}"></div>
+                </div>
+                <div class="row g-2 align-items-center server-k8s-row">
+                    <div class="col-md-12 text-white-50 small">At runtime, the kernel will start the selected server and
+                        attempt to register a Service (and Ingress if Host is set).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(() => {
+        $('.source-editor').editor();
+
+        function ensureHelpModal(){
+            let $m = $('#server-help-modal');
+            if($m.length === 0){
+                const html = [
+                    '<div class="modal fade" id="server-help-modal" tabindex="-1" aria-hidden="true">',
+                    '  <div class="modal-dialog modal-lg modal-dialog-scrollable">',
+                    '    <div class="modal-content">',
+                    '      <div class="modal-header">',
+                    '        <h5 class="modal-title">OPC-UA YAML Example</h5>',
+                    '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>',
+                    '      </div>',
+                    '      <div class="modal-body"><div class="text-muted">Loading...</div></div>',
+                    '      <div class="modal-footer">',
+                    '        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>',
+                    '      </div>',
+                    '    </div>',
+                    '  </div>',
+                    '</div>'
+                ].join('');
+                $('body').append(html);
+                $m = $('#server-help-modal');
+            }
+            return $m;
+        }
+
+        function currentHelpTemplate(){
+            const t = ($('.server-type').val()||'').toLowerCase();
+            if(t === 'opcua-client') return 'help/opcua_client_config';
+            return 'help/opcua_server_config';
+        }
+        function updateModalTitle($m){
+            const t = ($('.server-type').val()||'').toLowerCase();
+            const ttl = (t === 'opcua-client') ? 'OPC-UA Client YAML Example' : 'OPC-UA YAML Example';
+            $m.find('.modal-title').text(ttl);
+        }
+        $('.server-help-btn').on('click', function(){
+            const tmpl = currentHelpTemplate();
+            const $m = ensureHelpModal();
+            updateModalTitle($m);
+            $m.find('.modal-body').html('<div class="text-muted">Loading...</div>');
+            $.ajax({
+                url: '/template/render/' + tmpl,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({})
+            }).done(function(html){
+                $m.find('.modal-body').html(html);
+                try{ Prism.highlightAll(); }catch(e){}
+            }).fail(function(xhr){
+                const msg = (xhr.responseJSON && xhr.responseJSON.error) || xhr.responseText || 'Failed to load template';
+                $m.find('.modal-body').html('<div class="alert alert-danger">'+ $('<div>').text(msg).html() +'</div>');
+            }).always(function(){
+                try {
+                    const modal = new bootstrap.Modal(document.getElementById('server-help-modal'));
+                    modal.show();
+                } catch(e) {
+                    $('#server-help-modal').modal('show');
+                }
+            });
+        });
+        function extractYamlFromTemplate(html){
+            try{
+                const $tmp = $('<div>').html(html);
+                // Prefer code block inside pre>code
+                let text = $tmp.find('pre code').first().text();
+                if(!text){
+                    // fallback: any code block
+                    text = $tmp.find('code').first().text();
+                }
+                return text || '';
+            }catch(e){ return ''; }
+        }
+        function setServerConfigContent(text){
+            const $cfg = $('.server-config').first();
+            const id = $cfg.attr('id');
+            try{
+                if(id){ const ed = ace.edit(id); ed.setValue(text||'', -1); }
+                else { $cfg.text(text||''); }
+            }catch(e){ $cfg.text(text||''); }
+        }
+        function getServerConfigContent(){
+            const $cfg = $('.server-config').first();
+            const id = $cfg.attr('id');
+            try{
+                if(id){ const ed = ace.edit(id); return ed.getValue(); }
+                return $cfg.text()||'';
+            }catch(e){ return $cfg.text()||''; }
+        }
+        function toggleK8sByType(){
+            const t = ($('.server-type').val()||'').toLowerCase();
+            const showK8s = (t === 'opcua');
+            $('.server-k8s-row')[showK8s ? 'show' : 'hide']();
+        }
+        function loadExampleForType(overwrite=false){
+            const tmpl = currentHelpTemplate();
+            $.ajax({
+                url: '/template/render/' + tmpl,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({})
+            }).done(function(html){
+                const yaml = extractYamlFromTemplate(html);
+                if(!yaml) return;
+                if(!overwrite){
+                    const curr = (getServerConfigContent()||'').trim();
+                    if(curr){
+                        // confirm overwrite
+                        const proceed = window.confirm('Replace current config with the default for this server type?');
+                        if(!proceed) return;
+                    }
+                }
+                setServerConfigContent(yaml);
+            }).fail(function(){ /* ignore */ });
+        }
+        function onServerTypeChanged(){
+            const $m = $('#server-help-modal');
+            if($m.length){ updateModalTitle($m); }
+            toggleK8sByType();
+            loadExampleForType(false);
+        }
+        // initial toggle based on current value
+        toggleK8sByType();
+        $('.server-type').on('change', onServerTypeChanged);
+    });
+</script>

@@ -1,0 +1,27 @@
+<!-- OPC-UA Client YAML example help -->
+<div class="container-fluid py-2">
+  <h5 class="mb-2">Example OPC-UA client configuration (YAML)</h5>
+  <p class="text-muted small mb-2">Copy this into the YAML Config box and adjust values for your environment. The client connects to a remote OPC-UA endpoint and subscribes to specified node paths.</p>
+  <pre class="mb-0"><code class="language-yaml"># Minimal client that subscribes to three nodes under /Sim
+endpoint: opc.tcp://127.0.0.1:4840/clarama/opcua
+subscribe_interval_ms: 200         # subscription publishing interval (ms)
+reconnect: true                    # best-effort future reconnects (if supported)
+
+# List of node paths to subscribe to (relative to Objects folder)
+nodes:
+  - path: /Sim/Node1
+  - path: /Sim/Node2
+  - path: /Sim/Node3
+
+# Optional instance identifier (used for bookkeeping only)
+instance_id: default
+</code></pre>
+  <div class="text-muted small mt-2">
+    Notes:
+    <ul class="mb-0">
+      <li>Paths are resolved relative to the OPC UA Objects folder. You can also prefix with /Objects/..</li>
+      <li>Received values are re-published on Clarama's messenger with topic equal to the full node path.</li>
+      <li>If asyncua is not installed, the client stays idle but accepts configuration.</li>
+    </ul>
+  </div>
+</div>
