@@ -1,9 +1,13 @@
 window.__ginaInsightsHandshakeSent = window.__ginaInsightsHandshakeSent || {};
 window.__ginaInsightsHandshakeDone = window.__ginaInsightsHandshakeDone || {};
-window.__ginaChatActive = window.__ginaChatActive || {};
-window.__ginaStreamBuf = window.__ginaStreamBuf || {};
-window.__ginaStreamIdleTimer = window.__ginaStreamIdleTimer || {};
-window.__ginaIdleTimers = window.__ginaIdleTimers || Object.create(null);
+window.__ginaChatActive            = window.__ginaChatActive || {};
+window.__ginaStreamBuf             = window.__ginaStreamBuf || {};
+window.__ginaStreamIdleTimer       = window.__ginaStreamIdleTimer || {};
+window.__ginaIdleTimers            = window.__ginaIdleTimers || Object.create(null);
+
+/* ---------------------------------------------------------------------- */
+/* Utilities                                                              */
+/* ---------------------------------------------------------------------- */
 
 function debounce(fn, wait, immediate) {
     let timeout;
@@ -23,40 +27,118 @@ function debounce(fn, wait, immediate) {
 function normalizeChunk(chunk) {
     if (Array.isArray(chunk)) return chunk.join("");
     if (chunk && typeof chunk === "object") {
-        if (chunk.text) {
-            return chunk.text;
-        } else {
-            return "";
-        }
+        return chunk.text ? chunk.text : "";
     }
     return typeof chunk === "string" ? chunk : "";
 }
 
-/** Get jQuery cell element by task index */
+/** Quick DOM helpers */
 function getCellByTask(taskIndex) {
     return $(`li.clarama-cell-item[step="${taskIndex}"]`);
 }
+function getActiveTabId(taskIndex) {
+    const $tabs = $(`#insightsTabs_${taskIndex}`);
+    return ($tabs.find(".nav-link.active").attr("id") || "");
+}
+function tabIs(activeId, prefix) {
+    return activeId.startsWith(prefix);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Kernel Helpers                                                         */
+/* ---------------------------------------------------------------------- */
+
+function getKernelUrl() {
+    const socket_div = $("#edit_socket");
+    const task_kernel_id = socket_div.attr("task_kernel_id");
+    return $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
+}
+
+/** Read all fields from the current cell and return task_registry */
+function buildTaskRegistry($cell) {
+    // Prefer existing get_cell_fields() util if present
+    const reg = get_cell_fields($cell) || {};
+    if (!reg.streams || !reg.streams[0]) reg.streams = [{ main: [{}] }];
+    if (!reg.streams[0].main) reg.streams[0].main = [{}];
+    if (!reg.streams[0].main[0]) reg.streams[0].main[0] = {};
+    return reg;
+}
+
+/** Ensure stream scaffold (main[0]) and return it */
+function ensureStreamScaffold(task_registry) {
+    if (!task_registry.streams || !task_registry.streams[0]) task_registry.streams = [{ main: [{}] }];
+    if (!task_registry.streams[0].main) task_registry.streams[0].main = [{}];
+    if (!task_registry.streams[0].main[0]) task_registry.streams[0].main[0] = {};
+    return task_registry.streams[0].main[0];
+}
+
+/** Generic POST to kernel with given registry (returns jqXHR) */
+function ajaxRun(task_registry, failMsg = "Kernel request failed") {
+    const url = getKernelUrl();
+    return $.ajax({
+        type: "POST",
+        url,
+        dataType: "json",
+        contentType: "application/json",
+        data: JSON.stringify(task_registry)
+    }).fail(() => {
+        flash(failMsg, "danger");
+    });
+}
+
+/** Build and send a kernel post (shared shape) */
+function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kernel request failed") {
+    const $cell = getCellByTask(taskIndex);
+    const task_registry = buildTaskRegistry($cell);
+    const spec = ensureStreamScaffold(task_registry);
+
+    spec.target = "insights";
+    spec.type   = streamSpec.type;
+    spec.clear  = !!streamSpec.clear;
+
+    if ("source" in streamSpec)  spec.source  = streamSpec.source;
+    if ("content" in streamSpec) spec.content = streamSpec.content;
+    if ("output" in streamSpec)  spec.output  = streamSpec.output;
+    if ("tabs"   in streamSpec)  spec.tabs    = streamSpec.tabs;
+
+    task_registry.parameters = parameters || {};
+    return ajaxRun(task_registry, failMsg);
+}
+
+/** Configure Python execution spec for console/inspect */
+function set_insight_behaviour(task_registry, code_command, field_registry, isInspecting = false) {
+    const spec = ensureStreamScaffold(task_registry);
+    if (!isInspecting) spec.target = "insights";
+    spec.type    = "code";
+    spec.content = code_command;
+    spec.clear   = false;
+    task_registry.parameters = field_registry;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Console Controls                                                        */
+/* ---------------------------------------------------------------------- */
 
 function setConsoleEnabled(taskIndex, enabled) {
     const $input  = $(`#console_input_${taskIndex}`);
     const $sendBtn = $(`.execute-console[step="${taskIndex}"], .execute-console[data-task-index="${taskIndex}"]`);
 
     $input
-        .prop('disabled', !enabled)
-        .attr('aria-disabled', String(!enabled))
-        .toggleClass('console-disabled', !enabled);
+        .prop("disabled", !enabled)
+        .attr("aria-disabled", String(!enabled))
+        .toggleClass("console-disabled", !enabled);
 
-    $sendBtn.prop('disabled', !enabled);
+    $sendBtn.prop("disabled", !enabled);
 }
 
 function setConsoleVisible(taskIndex, visible) {
     const $wrap = $(`#insights_${taskIndex} .insights-console`);
-    $wrap.toggleClass('d-none', !visible);
+    $wrap.toggleClass("d-none", !visible);
 }
 
 function setConsolePlaceholder(taskIndex, text) {
     const $input = $(`#console_input_${taskIndex}`);
-    if ($input.length) $input.attr('placeholder', text);
+    if ($input.length) $input.attr("placeholder", text);
 }
 
 /** Toggle console placeholder/mode per tab */
@@ -74,36 +156,34 @@ function set_console_mode(taskIndex, mode) {
 
 /** Determine console mode from active tab */
 function get_console_mode(taskIndex) {
-    const $tabs = $(`#insightsTabs_${taskIndex}`);
-    const activeId = ($tabs.find('.nav-link.active').attr('id') || '');
-    if (activeId.startsWith(`insights-chat-tab-`)) return 'gina';
-    if (activeId.startsWith(`insights-data-inspector-tab-`)) return 'data';
-    return 'python';
+    const activeId = getActiveTabId(taskIndex);
+    if (tabIs(activeId, "insights-chat-tab-")) return "gina";
+    if (tabIs(activeId, "insights-data-inspector-tab-")) return "data";
+    return "python";
 }
-
 function is_chat_tab_active(taskIndex) {
-    return get_console_mode(taskIndex) === 'gina';
+    return get_console_mode(taskIndex) === "gina";
 }
 
-/** Configure console visibility + mode per active tab */
+/** Configure console for currently active tab id */
 function configureConsoleForActiveTab(taskIndex, activeTabId) {
-    if (activeTabId.startsWith(`insights-chat-tab-`)) {
+    if (tabIs(activeTabId, "insights-chat-tab-")) {
         setConsoleVisible(taskIndex, true);
         set_console_mode(taskIndex, "gina");
         return;
     }
-    if (activeTabId.startsWith(`insights-code-inspector-tab-`) || activeTabId.startsWith(`insights-variables-tab-`)) {
+    if (tabIs(activeTabId, "insights-code-inspector-tab-") || tabIs(activeTabId, "insights-variables-tab-")) {
         setConsoleVisible(taskIndex, true);
         set_console_mode(taskIndex, "python");
         return;
     }
-    if (activeTabId.startsWith(`insights-data-inspector-tab-`)) {
+    if (tabIs(activeTabId, "insights-data-inspector-tab-")) {
         setConsoleVisible(taskIndex, true);
         set_console_mode(taskIndex, "data");
         return;
     }
-    // hide the console for "preview" and "global fields" tabs
-    if (activeTabId.startsWith(`insights-preview-tab-`) || activeTabId.startsWith(`insights-global-fields-tab-`)) {
+    // Hide the console for "preview" and "global fields"
+    if (tabIs(activeTabId, "insights-preview-tab-") || tabIs(activeTabId, "insights-global-fields-tab-")) {
         setConsoleVisible(taskIndex, false);
         return;
     }
@@ -118,16 +198,29 @@ function finalizePreviousReplyBubble(taskIndex) {
     const $prev = $(`#insights_gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
     if (!$prev.length) return;
 
-    const $span = $prev.find('.stream-text');
+    const $span = $prev.find(".stream-text");
     if ($span.length) {
         const text = $span.text();
         $span.replaceWith(document.createTextNode(text));
     }
-    // mark as a normal reply bubble and drop the streaming id
-    $prev.removeAttr('id').removeClass('insights-gina-chat-reply').addClass('insights-gina-chat-assistant');
+    $prev.removeAttr("id").removeClass("insights-gina-chat-reply").addClass("insights-gina-chat-assistant");
 }
 
-/** Ensure a streaming Reply bubble exists and return its key pieces */
+/** Load a bubble template into chat area */
+function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
+    if (!$chat.length) return null;
+
+    const params = new URLSearchParams({ role, stream_id: streamId });
+    const chatBubble = $(`<div class="clarama-post-embedded clarama-replaceable">`)
+        .attr("url", `/template/render/explorer/files/_cell_insights_gina_chat_block?${params}`);
+
+    $chat.append(chatBubble);
+    enable_interactions($chat);
+    return chatBubble;
+}
+
+/** If no stream bubble, create one and return its id */
 function ensureStreamBubble(taskIndex) {
     if (!is_chat_tab_active(taskIndex)) return null;
     const streamId = `gina_stream_${taskIndex}`;
@@ -135,6 +228,47 @@ function ensureStreamBubble(taskIndex) {
         appendChatBubbleViaTemplate(taskIndex, "reply", streamId);
     }
     return streamId;
+}
+
+/** Smooth scroll to bottom of chat if present */
+function scrollChatToBottom(taskIndex) {
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
+    if ($chat.length) $chat.scrollTop($chat[0].scrollHeight);
+}
+
+/** Minimal whitespace cleanup (kept for compatibility) */
+function cleanStreamText(text, append) {
+    if (!append) {
+        return String(text || "").replace(/^\s+/, "").replace(/\n{3,}/g, "\n\n");
+    }
+    return String(text || "");
+}
+
+/** Render streaming text into the current bubble (markdown aware) */
+function setStreamText(streamId, text, { append = false } = {}) {
+    const el = document.getElementById(streamId);
+    if (!el) { setTimeout(() => setStreamText(streamId, text, { append }), 16); return; }
+
+    const bubble = el.querySelector(".insights-gina-chat-bubble");
+    if (!bubble) return;
+
+    let htmlDiv = bubble.querySelector(".stream-html");
+    let textSpan = bubble.querySelector(".stream-text");
+
+    // Ensure HTML container (render markdown/code), remove text span to avoid duplication
+    if (!htmlDiv) {
+        htmlDiv = document.createElement("div");
+        htmlDiv.className = "stream-html";
+        if (textSpan) textSpan.remove();
+        bubble.appendChild(htmlDiv);
+    }
+
+    const next = String(text || "");
+    if (append && htmlDiv.__buffer) htmlDiv.__buffer += next;
+    else htmlDiv.__buffer = next;
+
+    // markdownToHtml is expected to be globally available
+    htmlDiv.innerHTML = markdownToHtml(htmlDiv.__buffer);
 }
 
 /** Stream loop: arms websocket callback key and handles idle close */
@@ -167,286 +301,115 @@ function armStream(taskIndex, onChunk) {
     window[cbKey] = handler;
 }
 
-/** Smooth scroll to bottom of chat if present */
-function scrollChatToBottom(taskIndex) {
-    const $chat = $(`#insights_gina_chat_${taskIndex}`);
-    if ($chat.length) $chat.scrollTop($chat[0].scrollHeight);
-}
-
 /** Clear all chat bubbles for a given task and reset stream state */
 function clear_insights_gina_chat(taskIndex) {
     const $chat = $(`#insights_gina_chat_${taskIndex}`);
     if ($chat.length) $chat.empty();
 
-    // Kill any pending stream timers/callbacks for this task
     const cbKey = `cell_insights_variables_callback_${taskIndex}`;
-    try { delete window[cbKey]; } catch(_) {}
+    try { delete window[cbKey]; } catch (_) {}
     clearTimeout(window.__ginaStreamIdleTimer?.[taskIndex]);
 
-    // Reset stream flags/buffers
     if (window.__ginaStreamBuf) delete window.__ginaStreamBuf[taskIndex];
     if (window.__ginaChatActive) delete window.__ginaChatActive[taskIndex];
-}
-
-// --- Template helpers ---------------------------------------------------
-function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
-    const $chat = $(`#insights_gina_chat_${taskIndex}`);
-    if (!$chat.length) return null;
-
-    const params = new URLSearchParams({ role, stream_id: streamId });
-    const chatBubble = $(`<div class="clarama-post-embedded clarama-replaceable">`)
-        .attr("url", `/template/render/explorer/files/_cell_insights_gina_chat_block?${params}`);
-
-    $chat.append(chatBubble);
-    enable_interactions($chat);
-
-    return chatBubble;
-}
-
-function cleanStreamText(text, append) {
-    if (!append) {
-        // strip leading spaces/newlines on a fresh write,
-        // and collapse 3+ blank lines to 2
-        return String(text || "")
-        .replace(/^\s+/, "")
-        .replace(/\n{3,}/g, "\n\n");
-    }
-    return String(text || "");
-}
-
-function setStreamText(streamId, text, { append = false } = {}) {
-    const el = document.getElementById(streamId);
-    if (!el) { setTimeout(() => setStreamText(streamId, text, { append }), 16); return; }
-
-    const bubble = el.querySelector(".insights-gina-chat-bubble");
-    if (!bubble) return;
-
-    // Ensure an HTML container (when rendering markdown/code)
-    let htmlDiv = bubble.querySelector(".stream-html");
-    let textSpan = bubble.querySelector(".stream-text");
-
-    // Create .stream-html once and remove .stream-text to avoid duplicate content
-    if (!htmlDiv) {
-        htmlDiv = document.createElement("div");
-        htmlDiv.className = "stream-html";
-        if (textSpan) textSpan.remove();
-        bubble.appendChild(htmlDiv);
-    }
-    // Build/append buffer safely
-    const next = String(text || "");
-    if (append && htmlDiv.__buffer) {
-        htmlDiv.__buffer += next;
-    } else {
-        htmlDiv.__buffer = next;
-    }
-
-    // markdownToHtml is expected to be globally available
-    htmlDiv.innerHTML = markdownToHtml(htmlDiv.__buffer);
-    return;
-}
-
-/* ---------------------------------------------------------------------- */
-/* Kernel posting helpers                                                  */
-/* ---------------------------------------------------------------------- */
-
-/** POST a task request to kernel (shared shape) */
-function postToKernel(taskIndex, streamSpec, parameters = null) {
-    const socket_div = $("#edit_socket");
-    const task_kernel_id = socket_div.attr("task_kernel_id");
-    const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-
-    const $cell = getCellByTask(taskIndex);
-    const task_registry = get_cell_fields($cell) || {};
-
-    if (!task_registry.streams || !task_registry.streams[0]) {
-        task_registry.streams = [{ main: [{}] }];
-    } else if (!task_registry.streams[0].main) {
-        task_registry.streams[0].main = [{}];
-    } else if (!task_registry.streams[0].main[0]) {
-        task_registry.streams[0].main[0] = {};
-    }
-
-    const spec = task_registry.streams[0].main[0];
-    spec.target = "insights";
-    spec.type   = streamSpec.type;
-    spec.clear  = !!streamSpec.clear;
-
-    if ("source" in streamSpec)  spec.source  = streamSpec.source;
-    if ("content" in streamSpec) spec.content = streamSpec.content;
-    if ("output" in streamSpec)  spec.output  = streamSpec.output;
-
-    task_registry.parameters = parameters || {};
-    return $.ajax({
-        type: "POST",
-        url,
-        dataType: "json",
-        contentType: "application/json",
-        data: JSON.stringify(task_registry)
-    });
-}
-
-/** Set insight behaviour for Python console execution */
-function set_insight_behaviour(task_registry, code_command, field_registry, isInspecting = false) {
-    if (!isInspecting) task_registry.streams[0].main[0].target = "insights";
-    task_registry.streams[0].main[0].type = "code";
-    task_registry.streams[0].main[0].content = code_command;
-    task_registry.streams[0].main[0].clear = false;
-    task_registry.parameters = field_registry;
 }
 
 /* ---------------------------------------------------------------------- */
 /* DATA MODE                                                               */
 /* ---------------------------------------------------------------------- */
 
+/** Resolve current Data Inspector "source" value depending on cell mode */
+function resolveDataSource(taskIndex) {
+    // Source-Edit mode: presence of the single source input implies source-edit
+    const sourceInputEl = document.getElementById(`task_step_${taskIndex}_source`);
+    if (sourceInputEl) {
+        return {
+            mode: "source-edit",
+            source: String(sourceInputEl.value || "").trim(),
+            tabId: null
+        };
+    }
+
+    // Data-Editor with tabs: use active tab's source field
+    const container = document.querySelector(`#dataEditTabContentContainer_${taskIndex}`);
+    if (!container) return { mode: "none", source: "", tabId: null };
+
+    const pane = container.querySelector(".tab-pane.show.active") || container.querySelector(".tab-pane");
+    const tabId = (pane && pane.getAttribute("data-tab-id")) || "0";
+    const tabSourceInput = document.getElementById(`task_step_${taskIndex}_source_${tabId}`);
+    const sourceVal = tabSourceInput ? String(tabSourceInput.value || "").trim() : "";
+
+    return { mode: "tabbed", source: sourceVal, tabId };
+}
+
 /** Send a dataQuery via the Insights console to kernel (Data Inspector tab) */
 function cell_insights_data_run(cell_button, dataQuery) {
     const taskIndex = (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
     if (!taskIndex) { console.warn("Insights Data Inspector: No taskIndex found"); return; }
-  
-    // Only when the Data Inspector tab is active
-    const $tabs = $(`#insightsTabs_${taskIndex}`);
-    const activeTabId = ($tabs.find('.nav-link.active').attr('id') || '');
-    if (!activeTabId.startsWith(`insights-data-inspector-tab-`)) {
+
+    const activeTabId = getActiveTabId(taskIndex);
+    if (!tabIs(activeTabId, "insights-data-inspector-tab-")) {
         console.debug("Data run suppressed: not on Data Inspector tab");
         return;
     }
-  
-    // Take the TEXT FROM THE INSIGHTS CONSOLE
+
+    // Read command from argument or console
     const $input = $(`#console_input_${taskIndex}`);
     let query = String(dataQuery || "").trim();
     if (!query && $input.length) query = String($input.val() || "").trim();
     if (!query) return;
-    if ($input.is(':disabled')) return;
+    if ($input.is(":disabled")) return;
     if ($input.length) $input.val("");
-  
-    function ensureStreamScaffold(task_registry) {
-        if (!task_registry.streams || !task_registry.streams[0]) task_registry.streams = [{ main: [{}] }];
-        if (!task_registry.streams[0].main) task_registry.streams[0].main = [{}];
-        if (!task_registry.streams[0].main[0]) task_registry.streams[0].main[0] = {};
-        return task_registry.streams[0].main[0];
-    }
-  
-    // Try SOURCE EDIT first: #task_step_{idx}_source exists for source cells
-    const sourceInputEl = document.getElementById(`task_step_${taskIndex}_source`);
-    let sourceVal = "";
-    let isSourceEditMode = false;
-  
-    if (sourceInputEl) {
-        sourceVal = String(sourceInputEl.value || '').trim();
-        isSourceEditMode = !!sourceVal || true; // presence of field implies source-edit cell
-    }
-  
-    // If not a source-edit cell, fall back to DATA cell’s active tab source
-    if (!isSourceEditMode) {
-        const container = document.querySelector(`#dataEditTabContentContainer_${taskIndex}`);
-        if (!container) { console.warn("No data editor container for task", taskIndex); return; }
-        let pane = container.querySelector('.tab-pane.show.active') || container.querySelector('.tab-pane');
-        if (!pane) { console.warn("No data editor tab-pane found for task", taskIndex); return; }
-    
-        const tabId = pane.getAttribute('data-tab-id') || '0';
-        const tabSourceInput = document.getElementById(`task_step_${taskIndex}_source_${tabId}`);
-        sourceVal = tabSourceInput ? String(tabSourceInput.value || '').trim() : '';
-    
-        // proceed with POST (tab-aware)
-        get_field_values({}, true, function (field_registry) {
-            field_registry.clarama_task_kill = false;
-    
-            const $cell = getCellByTask(taskIndex);
-            const task_registry = get_cell_fields($cell) || {};
-            const spec = ensureStreamScaffold(task_registry);
-    
-            // keep tabs array aligned to active tab
-            spec.tabs = Array.isArray(spec.tabs) ? spec.tabs : [];
-            let activeIdx = 0;
-            let foundIdx = spec.tabs.findIndex(t => String(t?.tab_id ?? '') === String(tabId));
-            if (foundIdx >= 0) activeIdx = foundIdx;
-            else if (spec.tabs.length) activeIdx = 0;
-            else spec.tabs = [{ tab_id: Number(tabId) || 0 }];
-    
-            // write console query + source for the active tab
-            spec.tabs[activeIdx] = Object.assign({}, spec.tabs[activeIdx], {
-                tab_id: Number(tabId) || 0,
-                source: sourceVal,
-                content: query
-            });
-    
-            // mirror for backends that read top-level fields
-            spec.source = sourceVal;
-            spec.content = query;
-    
-            // enforce data mode
-            spec.target = "insights";
-            spec.type   = "data";
-            spec.output = "table";
-            spec.clear  = true;
-    
-            task_registry.parameters = field_registry;
-    
-            const socket_div = $("#edit_socket");
-            const task_kernel_id = socket_div.attr("task_kernel_id");
-            const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-            window.__insightsDataRoute = window.__insightsDataRoute || {};
-            window.__insightsDataRoute[taskIndex] = { active: true, at: Date.now() };
 
-            $.ajax({
-                type: "POST",
-                url,
-                dataType: "json",
-                contentType: "application/json",
-                data: JSON.stringify(task_registry)
-            }).fail(() => {
-                flash("Data query failed: access/network issue", "danger");
-            });
-        });
-    
-        return;
-    }
-  
-    // 4) SOURCE EDIT path (single source field)
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
-    
+
+        const { mode, source, tabId } = resolveDataSource(taskIndex);
         const $cell = getCellByTask(taskIndex);
-        const task_registry = get_cell_fields($cell) || {};
+        const task_registry = buildTaskRegistry($cell);
         const spec = ensureStreamScaffold(task_registry);
-    
-        // For source-edit cells, do NOT force/create tabs; just set top-level fields
-        spec.source = sourceVal;
-        spec.content = query;
+
+        // Common data mode settings
         spec.target = "insights";
         spec.type   = "data";
         spec.output = "table";
         spec.clear  = true;
-    
+        spec.source = source;
+        spec.content = query;
+
+        // If tabbed, keep spec.tabs aligned to active tab
+        if (mode === "tabbed" && tabId != null) {
+            spec.tabs = Array.isArray(spec.tabs) ? spec.tabs : [];
+            let foundIdx = spec.tabs.findIndex(t => String(t?.tab_id ?? "") === String(tabId));
+            if (foundIdx < 0) {
+                spec.tabs.push({ tab_id: Number(tabId) || 0 });
+                foundIdx = spec.tabs.length - 1;
+            }
+            spec.tabs[foundIdx] = Object.assign({}, spec.tabs[foundIdx], {
+                tab_id: Number(tabId) || 0,
+                source,
+                content: query
+            });
+        }
+
         task_registry.parameters = field_registry;
-    
-        const socket_div = $("#edit_socket");
-        const task_kernel_id = socket_div.attr("task_kernel_id");
-        const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-    
-        $.ajax({
-            type: "POST",
-            url,
-            dataType: "json",
-            contentType: "application/json",
-            data: JSON.stringify(task_registry)
-        }).fail(() => {
-            flash("Data query failed: access/network issue", "danger");
-        });
+
+        // Mark route for potential downstream logic/telemetry
+        window.__insightsDataRoute = window.__insightsDataRoute || {};
+        window.__insightsDataRoute[taskIndex] = { active: true, at: Date.now() };
+
+        ajaxRun(task_registry, "Data query failed: access/network issue");
     });
 }
-  
+
 /* ---------------------------------------------------------------------- */
 /* CHAT WITH GINA (INSIGHTS PANE)                                         */
 /* ---------------------------------------------------------------------- */
 
 function cell_insights_gina_run(cell_button, questionText) {
-  const taskIndex =
-    (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
-
+    const taskIndex = (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
     if (!taskIndex) { console.warn("GINA chat: No taskIndex found"); return; }
 
-    // Only allow in chat tab
     if (!is_chat_tab_active(taskIndex)) {
         console.debug("GINA chat suppressed: not on Chat tab");
         return;
@@ -457,39 +420,41 @@ function cell_insights_gina_run(cell_button, questionText) {
     let text = String(questionText || "").trim();
     if (!text && $input.length) text = String($input.val() || "").trim();
     if (!text) return;
-    if ($input.is(':disabled')) return;
+    if ($input.is(":disabled")) return;
     if ($input.length) $input.val("");
 
     if (text.trim().toLowerCase() === "/reset") {
-        // Clear UI immediately
         clear_insights_gina_chat(taskIndex);
-
-        // Send '/reset' to kernel WITHOUT creating bubbles
         get_field_values({}, true, function (field_registry) {
             field_registry.clarama_task_kill = false;
-            postToKernel(taskIndex, {
-                target: "insights",
-                type:   "question",
-                source: text,
-                clear:  false
-            }, field_registry).fail(() => {
-                flash("Couldn't process reset, network or access issue", "danger");
-            });
+            postToKernel(
+                taskIndex,
+                { 
+                    type: "question", 
+                    source: text, 
+                    clear: false 
+                },
+                field_registry,
+                "Couldn't process reset, network or access issue"
+            );
         });
         return;
     }
 
-    // --- normal chat path below ---
+    // User bubble
     try {
         const bubbleId = `gina_user_${taskIndex}_${Date.now()}`;
         appendChatBubbleViaTemplate(taskIndex, "user", bubbleId);
         setStreamText(bubbleId, text, { append: false });
         scrollChatToBottom(taskIndex);
-    } catch (e) { console.warn("GINA chat: unable to render user bubble", e); }
+    } catch (e) {
+        console.warn("GINA chat: unable to render user bubble", e);
+    }
 
+    // Prepare reply streaming bubble
     finalizePreviousReplyBubble(taskIndex);
-
     const streamId = ensureStreamBubble(taskIndex);
+
     window.__ginaChatActive[taskIndex] = true;
     window.__ginaStreamBuf[taskIndex] = "";
 
@@ -497,20 +462,17 @@ function cell_insights_gina_run(cell_button, questionText) {
     setStreamText(streamId, "thinking...", { append: false });
     scrollChatToBottom(taskIndex);
 
+    // Stream handler
     armStream(taskIndex, (s) => {
         window.__ginaStreamBuf[taskIndex] += s;
         setStreamText(streamId, window.__ginaStreamBuf[taskIndex], { append: false });
         scrollChatToBottom(taskIndex);
     });
 
+    // Send question to kernel
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
-        postToKernel(taskIndex, {
-            target: "insights",
-            type: "question",
-            source: text,
-            clear: false
-        }, field_registry);
+        postToKernel(taskIndex, { type: "question", source: text, clear: false }, field_registry);
     });
 }
 
@@ -524,10 +486,10 @@ function initaliseInsightsGina(taskIndex) {
     window.__ginaStreamBuf[taskIndex] = "";
 
     armStream(taskIndex, (s) => {
-        // Create bubble lazily on first chunk
-        let streamId = document.getElementById(`gina_stream_${taskIndex}`) ? `gina_stream_${taskIndex}` : ensureStreamBubble(taskIndex);
+        const streamEl = document.getElementById(`gina_stream_${taskIndex}`);
+        const sid = streamEl ? `gina_stream_${taskIndex}` : ensureStreamBubble(taskIndex);
         window.__ginaStreamBuf[taskIndex] += s;
-        setStreamText(streamId, window.__ginaStreamBuf[taskIndex], { append: false });
+        setStreamText(sid, window.__ginaStreamBuf[taskIndex], { append: false });
         scrollChatToBottom(taskIndex);
     });
 
@@ -535,12 +497,7 @@ function initaliseInsightsGina(taskIndex) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
-            { 
-                target: "insights", 
-                type: "question", 
-                source: "/init", 
-                clear: false 
-            },
+            { type: "question", source: "/init", clear: false },
             field_registry
         ).always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
     });
@@ -565,7 +522,7 @@ function createVariableButtonDirect(varName, taskIndex) {
     return button;
 }
 
-/** Template-based variable button (kept for compatibility) */
+/** Template-based variable button (kept for compatibility if needed) */
 function createVariableButton(varName, taskIndex) {
     const button = document.createElement("button");
     button.type = "button";
@@ -701,13 +658,11 @@ function attachVariableClickHandlers(container, taskIndex) {
         }
         button._variableClickHandler = debounce(function (e) {
             e.preventDefault(); e.stopPropagation();
-
             const varName = this.dataset.variable;
             container.querySelectorAll(".variable-item").forEach(b => b.classList.remove("selected"));
             this.classList.add("selected");
             inspectVariable(varName, taskIndex);
         }, 150);
-
         button.addEventListener("click", button._variableClickHandler);
     });
 }
@@ -749,22 +704,11 @@ function cell_insights_variables_run(cell_button, outputCallback) {
     };
 
     get_field_values({}, true, function (field_registry) {
-        const task_registry = get_cell_fields(cell_button);
+        const $cell = getCellByTask(taskIndex);
+        const task_registry = buildTaskRegistry($cell);
         set_insight_behaviour(task_registry, "print(list(locals().keys()));", field_registry);
 
-        const socket_div = $("#edit_socket");
-        field_registry.clarama_task_kill = false;
-
-        const task_kernel_id = socket_div.attr("task_kernel_id");
-        const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-
-        $.ajax({
-            type: "POST",
-            url,
-            dataType: "json",
-            contentType: "application/json",
-            data: JSON.stringify(task_registry)
-        }).done((data) => {
+        ajaxRun(task_registry).done((data) => {
             if (data && data.data === "ok") {
                 console.log("Insights submission ok for task", shownIndex);
                 flash(`Cell ${shownIndex} insight toggled on`, "success");
@@ -793,40 +737,34 @@ function cell_insights_variables_run(cell_button, outputCallback) {
 
 function cell_insights_code_run(taskIndex, code) {
     const $cell = getCellByTask(taskIndex);
-    if (!$cell.length) { 
+    if (!$cell.length) {
         console.error("Cell element not found for task index", taskIndex);
         return;
     }
 
-    const shownIndex    = $cell.closest("li.clarama-cell-item").find("button.step-label").text().trim();
-    const executionKey  = `console_executing_${taskIndex}`;
+    const shownIndex = $cell.closest("li.clarama-cell-item").find("button.step-label").text().trim();
+    const executionKey = `console_executing_${taskIndex}`;
     if (window[executionKey]) {
         console.log("Console execution already in progress for task", taskIndex);
         return;
     }
 
-    // Resolve input
+    // Resolve code from console if not provided
     if (!code) {
         let input = document.getElementById(`console_input_${taskIndex}`) || $cell.find(".console-input")[0];
         if (input && !input.id) {
             console.warn(`Console input found via fallback; syncing ID for task ${taskIndex}.`);
             input.id = `console_input_${taskIndex}`;
         }
-        if (!input) {
-            console.error("Console input not found for task", taskIndex); return;
-        }
+        if (!input) { console.error("Console input not found for task", taskIndex); return; }
         code = (input.value || "").trim();
         input.value = "";
     }
-
-    if (!code) {
-        console.log("No code to execute for task", taskIndex);
-        return;
-    }
+    if (!code) { console.log("No code to execute for task", taskIndex); return; }
 
     window[executionKey] = true;
 
-    // Callback to receive console result
+    // Console result callback
     window[`cell_insights_callback_${taskIndex}`] = function (output) {
         const outEl = document.getElementById(`console_output_${taskIndex}`) || $cell.find(".console-output")[0];
         if (outEl) outEl.textContent = output;
@@ -834,33 +772,20 @@ function cell_insights_code_run(taskIndex, code) {
     };
 
     get_field_values({}, true, function (field_registry) {
-        const task_registry = get_cell_fields($cell);
+        const task_registry = buildTaskRegistry($cell);
         set_insight_behaviour(task_registry, code, field_registry);
 
-        const socket_div = $("#edit_socket");
-        field_registry.clarama_task_kill = false;
-
-        const task_kernel_id = socket_div.attr("task_kernel_id");
-        const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-
-        console.log("Console execution: running for task", taskIndex);
-
-        $.ajax({
-            type: "POST",
-            url,
-            dataType: "json",
-            contentType: "application/json",
-            data: JSON.stringify(task_registry)
-        }).done((data) => {
-            if (!(data && data.data === "ok")) {
+        ajaxRun(task_registry, "Console execution failed: access denied")
+            .done((data) => {
+                if (!(data && data.data === "ok")) {
+                    delete window[`cell_insights_callback_${taskIndex}`];
+                    delete window[executionKey];
+                }
+            })
+            .fail(() => {
                 delete window[`cell_insights_callback_${taskIndex}`];
                 delete window[executionKey];
-            }
-        }).fail(() => {
-            flash("Console execution failed: access denied", "danger");
-            delete window[`cell_insights_callback_${taskIndex}`];
-            delete window[executionKey];
-        });
+            });
     });
 }
 
@@ -889,7 +814,7 @@ function inspectVariable(varName, taskIndex) {
         };
 
         get_field_values({}, true, function (field_registry) {
-            const task_registry = get_cell_fields($cell);
+            const task_registry = buildTaskRegistry($cell);
 
             const codeChecker = `
 from pprint import pprint
@@ -915,27 +840,18 @@ except Exception as e:
 
             set_insight_behaviour(task_registry, codeChecker, field_registry, true);
 
-            const socket_div = $("#edit_socket");
-            const task_kernel_id = socket_div.attr("task_kernel_id");
-            const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-
-            $.ajax({
-                type: "POST",
-                url,
-                dataType: "json",
-                contentType: "application/json",
-                data: JSON.stringify(task_registry)
-            }).done((data) => {
-                if (!(data && data.data === "ok")) {
-                delete window[`cell_insights_callback_${tIdx}`];
-                delete window[inspectionKey];
-                }
-            }).fail((error) => {
-                console.log("inspectVariable AJAX error for task", tIdx, ":", error);
-                flash("Couldn't inspect variable", "danger");
-                delete window[`cell_insights_callback_${tIdx}`];
-                delete window[inspectionKey];
-            });
+            ajaxRun(task_registry, "Couldn't inspect variable")
+                .done((data) => {
+                    if (!(data && data.data === "ok")) {
+                        delete window[`cell_insights_callback_${tIdx}`];
+                        delete window[inspectionKey];
+                    }
+                })
+                .fail((error) => {
+                    console.log("inspectVariable AJAX error for task", tIdx, ":", error);
+                    delete window[`cell_insights_callback_${tIdx}`];
+                    delete window[inspectionKey];
+                });
         });
     }, 200)(varName, taskIndex);
 }
@@ -970,9 +886,9 @@ $(document).on("click", ".execute-console", function () {
     const mode = get_console_mode(taskIndex);
     const $cellItem = getCellByTask(taskIndex);
 
-    if (mode === 'gina') {
+    if (mode === "gina") {
         cell_insights_gina_run($cellItem, "");
-    } else if (mode === 'data') {
+    } else if (mode === "data") {
         cell_insights_data_run($cellItem, "");
     } else {
         cell_insights_code_run(taskIndex, "");
@@ -1009,9 +925,9 @@ $(document).on("input", ".console-input", function () {
 $(function () {
     $('[id^="insightsTabs_"]').each(function () {
         const taskIndex = this.id.replace("insightsTabs_", "");
-        const activeId = ($(this).find('.nav-link.active').attr('id') || '');
+        const activeId = ($(this).find(".nav-link.active").attr("id") || "");
         configureConsoleForActiveTab(taskIndex, activeId);
-        if (activeId.startsWith('insights-chat-tab-')) {
+        if (activeId.startsWith("insights-chat-tab-")) {
             initaliseInsightsGina(taskIndex);
         }
     });
