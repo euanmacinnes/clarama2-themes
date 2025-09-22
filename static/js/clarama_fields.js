@@ -215,11 +215,15 @@ function get_fields(fields, cell, field_submit) {
         'environment': socket_div.attr("environment")
     }
 
-    $('.stream').each(
+    $('ul.stream').each(
         function (index) {
             var stream = $(this);
 
             var current_stream = stream.attr("stream")
+            if (!current_stream) {
+                // Skip elements that are not actual stream containers
+                return;
+            }
 
             var stream_cells = get_cell(stream, "");
 
@@ -546,6 +550,12 @@ $.fn.initselect = function () {
 
                 var close_on_select = embedded.attr("close_on_select");
 
+                // Allow column mapping attributes on the select element or its wrapper div
+                var user_id_column = embedded.attr("id_column") || embedded.attr('id_column');
+                var user_value_column = embedded.attr("value_column") || embedded.attr('value_column');
+                var user_select_column = embedded.attr("select_column") || embedded.attr('select_column');
+                var user_disable_column = embedded.attr("disable_column") || embedded.attr('disable_column');
+
                 if (close_on_select === undefined)
                     close_on_select = false
 
@@ -585,6 +595,18 @@ $.fn.initselect = function () {
                             var headings = ['id', 'text', 'selected', 'disabled']
                             var hcount = headings.length;
 
+                            var id_index = parseInt(user_id_column) || 0;
+                            var value_index = parseInt(user_value_column) || 1;
+                            var selected_index = parseInt(user_select_column) || 2;
+                            var disabled_index = parseInt(user_disable_column) || 3;
+
+                            if (hcount === 1) {
+                                id_index = 0;
+                                value_index = 0;
+                            }
+
+                            let column_index_mappings = [id_index, value_index, selected_index, disabled_index];
+
                             if (data['data'] != 'ok') {
                                 $('#clarama-query-result').html(data['error']);
                                 var error_lines = data['error'].split(/\r?\n/)
@@ -609,7 +631,7 @@ $.fn.initselect = function () {
                                 for (var row in rows) {
                                     var result = {};
                                     for (var i = 0; i < hcount; i++) {
-                                        result[headings[i]] = rows[row][i];
+                                        result[headings[i]] = rows[row][column_index_mappings[i]];
                                     }
 
                                     resultarr.push(result);
