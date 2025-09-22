@@ -3,6 +3,7 @@ window.__ginaInsightsHandshakeDone = window.__ginaInsightsHandshakeDone || {};
 window.__ginaChatActive = window.__ginaChatActive || {};
 window.__ginaStreamBuf = window.__ginaStreamBuf || {};
 window.__ginaStreamIdleTimer = window.__ginaStreamIdleTimer || {};
+window.__ginaIdleTimers = window.__ginaIdleTimers || Object.create(null);
 
 function debounce(fn, wait, immediate) {
     let timeout;
@@ -31,21 +32,19 @@ function normalizeChunk(chunk) {
     return typeof chunk === "string" ? chunk : "";
 }
 
-// Keep a small idle timer per cell to mark stream end
-window.__ginaIdleTimers = window.__ginaIdleTimers || Object.create(null);
-
 /** Get jQuery cell element by task index */
 function getCellByTask(taskIndex) {
     return $(`li.clarama-cell-item[step="${taskIndex}"]`);
 }
 
 function setConsoleEnabled(taskIndex, enabled) {
-    const $input = $(`#console_input_${taskIndex}`);
+    const $input  = $(`#console_input_${taskIndex}`);
     const $sendBtn = $(`.execute-console[step="${taskIndex}"], .execute-console[data-task-index="${taskIndex}"]`);
 
-    $input.prop('disabled', !enabled)
-          .attr('aria-disabled', String(!enabled))
-          .toggleClass('console-disabled', !enabled);
+    $input
+        .prop('disabled', !enabled)
+        .attr('aria-disabled', String(!enabled))
+        .toggleClass('console-disabled', !enabled);
 
     $sendBtn.prop('disabled', !enabled);
 }
@@ -53,13 +52,40 @@ function setConsoleEnabled(taskIndex, enabled) {
 function setConsoleVisible(taskIndex, visible) {
     const $wrap = $(`#insights_${taskIndex} .insights-console`);
     $wrap.toggleClass('d-none', !visible);
-  }
-  
-  function setConsolePlaceholder(taskIndex, text) {
+}
+
+function setConsolePlaceholder(taskIndex, text) {
     const $input = $(`#console_input_${taskIndex}`);
     if ($input.length) $input.attr('placeholder', text);
-  }
-  
+}
+
+/** Toggle console placeholder/mode per tab */
+function set_console_mode(taskIndex, mode) {
+    const $input = $(`#console_input_${taskIndex}`);
+    if (!$input.length) return;
+    if (mode === "gina") {
+        $input.attr("placeholder", "Message GINA…").data("console-mode", "gina");
+    } else if (mode === "data") {
+        $input.attr("placeholder", "Enter data command").data("console-mode", "data");
+    } else {
+        $input.attr("placeholder", "Enter Python command.").data("console-mode", "python");
+    }
+}
+
+/** Determine console mode from active tab */
+function get_console_mode(taskIndex) {
+    const $tabs = $(`#insightsTabs_${taskIndex}`);
+    const activeId = ($tabs.find('.nav-link.active').attr('id') || '');
+    if (activeId.startsWith(`insights-chat-tab-`)) return 'gina';
+    if (activeId.startsWith(`insights-data-inspector-tab-`)) return 'data';
+    return 'python';
+}
+
+function is_chat_tab_active(taskIndex) {
+    return get_console_mode(taskIndex) === 'gina';
+}
+
+/** Configure console visibility + mode per active tab */
 function configureConsoleForActiveTab(taskIndex, activeTabId) {
     if (activeTabId.startsWith(`insights-chat-tab-`)) {
         setConsoleVisible(taskIndex, true);
@@ -81,9 +107,12 @@ function configureConsoleForActiveTab(taskIndex, activeTabId) {
         setConsoleVisible(taskIndex, false);
         return;
     }
-
     setConsoleVisible(taskIndex, true);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Chat bubbles + streaming                                                */
+/* ---------------------------------------------------------------------- */
 
 function finalizePreviousReplyBubble(taskIndex) {
     const $prev = $(`#insights_gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
@@ -110,19 +139,19 @@ function ensureStreamBubble(taskIndex) {
 
 /** Stream loop: arms websocket callback key and handles idle close */
 function armStream(taskIndex, onChunk) {
-    const cbKey = `cell_insights_chat_callback_${taskIndex}`; // <-- changed
+    const cbKey = `cell_insights_chat_callback_${taskIndex}`;
     let sawFirstChunk = false;
-  
+
     function scheduleIdleClose() {
         clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
         window.__ginaStreamIdleTimer[taskIndex] = setTimeout(() => {
             window.__ginaChatActive[taskIndex] = false;
             try { delete window[cbKey]; } catch (_) {}
             finalizePreviousReplyBubble(taskIndex);
-            setConsoleEnabled(taskIndex, true); 
+            setConsoleEnabled(taskIndex, true);
         }, 1500);
     }
-  
+
     const handler = function (chunk) {
         const string = normalizeChunk(chunk);
         if (string) {
@@ -134,7 +163,7 @@ function armStream(taskIndex, onChunk) {
             setTimeout(() => { window[cbKey] = handler; }, 0);
         }
     };
-  
+
     window[cbKey] = handler;
 }
 
@@ -159,7 +188,7 @@ function clear_insights_gina_chat(taskIndex) {
     if (window.__ginaChatActive) delete window.__ginaChatActive[taskIndex];
 }
 
-// --- Template helpers (place near the top utilities) -----------------
+// --- Template helpers ---------------------------------------------------
 function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
     const $chat = $(`#insights_gina_chat_${taskIndex}`);
     if (!$chat.length) return null;
@@ -179,30 +208,28 @@ function cleanStreamText(text, append) {
         // strip leading spaces/newlines on a fresh write,
         // and collapse 3+ blank lines to 2
         return String(text || "")
-            .replace(/^\s+/, "")
-            .replace(/\n{3,}/g, "\n\n");
+        .replace(/^\s+/, "")
+        .replace(/\n{3,}/g, "\n\n");
     }
     return String(text || "");
 }
-  
+
 function setStreamText(streamId, text, { append = false } = {}) {
     const el = document.getElementById(streamId);
     if (!el) { setTimeout(() => setStreamText(streamId, text, { append }), 16); return; }
-  
+
     const bubble = el.querySelector(".insights-gina-chat-bubble");
     if (!bubble) return;
-  
+
     // Ensure an HTML container (when rendering markdown/code)
     let htmlDiv = bubble.querySelector(".stream-html");
     let textSpan = bubble.querySelector(".stream-text");
-  
+
     // Create .stream-html once and remove .stream-text to avoid duplicate content
     if (!htmlDiv) {
         htmlDiv = document.createElement("div");
         htmlDiv.className = "stream-html";
-        if (textSpan) {
-            textSpan.remove();
-        } 
+        if (textSpan) textSpan.remove();
         bubble.appendChild(htmlDiv);
     }
     // Build/append buffer safely
@@ -213,19 +240,24 @@ function setStreamText(streamId, text, { append = false } = {}) {
         htmlDiv.__buffer = next;
     }
 
+    // markdownToHtml is expected to be globally available
     htmlDiv.innerHTML = markdownToHtml(htmlDiv.__buffer);
     return;
-}  
+}
+
+/* ---------------------------------------------------------------------- */
+/* Kernel posting helpers                                                  */
+/* ---------------------------------------------------------------------- */
 
 /** POST a task request to kernel (shared shape) */
 function postToKernel(taskIndex, streamSpec, parameters = null) {
     const socket_div = $("#edit_socket");
     const task_kernel_id = socket_div.attr("task_kernel_id");
     const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-  
+
     const $cell = getCellByTask(taskIndex);
     const task_registry = get_cell_fields($cell) || {};
-  
+
     if (!task_registry.streams || !task_registry.streams[0]) {
         task_registry.streams = [{ main: [{}] }];
     } else if (!task_registry.streams[0].main) {
@@ -233,19 +265,16 @@ function postToKernel(taskIndex, streamSpec, parameters = null) {
     } else if (!task_registry.streams[0].main[0]) {
         task_registry.streams[0].main[0] = {};
     }
-  
-    const spec = task_registry.streams[0].main[0];
-    spec.target = streamSpec.target;
-    spec.type = streamSpec.type;
-    spec.clear = !!streamSpec.clear;
-    if ("source" in streamSpec) {
-        spec.source = streamSpec.source;
-    }
 
-    if ("content" in streamSpec) {
-        spec.content = streamSpec.content;
-    }
-  
+    const spec = task_registry.streams[0].main[0];
+    spec.target = "insights";
+    spec.type   = streamSpec.type;
+    spec.clear  = !!streamSpec.clear;
+
+    if ("source" in streamSpec)  spec.source  = streamSpec.source;
+    if ("content" in streamSpec) spec.content = streamSpec.content;
+    if ("output" in streamSpec)  spec.output  = streamSpec.output;
+
     task_registry.parameters = parameters || {};
     return $.ajax({
         type: "POST",
@@ -265,37 +294,155 @@ function set_insight_behaviour(task_registry, code_command, field_registry, isIn
     task_registry.parameters = field_registry;
 }
 
-/** Toggle console placeholder/mode per tab */
-function set_console_mode(taskIndex, mode) {
-    const $input = $(`#console_input_${taskIndex}`);
-    if (!$input.length) return;
-    if (mode === "gina") {
-        $input.attr("placeholder", "Message GINA…").data("console-mode", "gina");
-    }else if (mode === "data") {
-        $input.attr("placeholder", "Enter data command").data("console-mode", "data");
-    } else {
-        $input.attr("placeholder", "Enter Python command.").data("console-mode", "python");
-    }
-}
+/* ---------------------------------------------------------------------- */
+/* DATA MODE                                                               */
+/* ---------------------------------------------------------------------- */
 
-function get_console_mode(taskIndex) {
+/** Send a dataQuery via the Insights console to kernel (Data Inspector tab) */
+function cell_insights_data_run(cell_button, dataQuery) {
+    const taskIndex = (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
+    if (!taskIndex) { console.warn("Insights Data Inspector: No taskIndex found"); return; }
+  
+    // Only when the Data Inspector tab is active
     const $tabs = $(`#insightsTabs_${taskIndex}`);
-    const activeId = ($tabs.find('.nav-link.active').attr('id') || '');
-    return activeId.startsWith(`insights-chat-tab-`) ? 'gina' : 'python';
+    const activeTabId = ($tabs.find('.nav-link.active').attr('id') || '');
+    if (!activeTabId.startsWith(`insights-data-inspector-tab-`)) {
+        console.debug("Data run suppressed: not on Data Inspector tab");
+        return;
+    }
+  
+    // Take the TEXT FROM THE INSIGHTS CONSOLE
+    const $input = $(`#console_input_${taskIndex}`);
+    let query = String(dataQuery || "").trim();
+    if (!query && $input.length) query = String($input.val() || "").trim();
+    if (!query) return;
+    if ($input.is(':disabled')) return;
+    if ($input.length) $input.val("");
+  
+    function ensureStreamScaffold(task_registry) {
+        if (!task_registry.streams || !task_registry.streams[0]) task_registry.streams = [{ main: [{}] }];
+        if (!task_registry.streams[0].main) task_registry.streams[0].main = [{}];
+        if (!task_registry.streams[0].main[0]) task_registry.streams[0].main[0] = {};
+        return task_registry.streams[0].main[0];
+    }
+  
+    // Try SOURCE EDIT first: #task_step_{idx}_source exists for source cells
+    const sourceInputEl = document.getElementById(`task_step_${taskIndex}_source`);
+    let sourceVal = "";
+    let isSourceEditMode = false;
+  
+    if (sourceInputEl) {
+        sourceVal = String(sourceInputEl.value || '').trim();
+        isSourceEditMode = !!sourceVal || true; // presence of field implies source-edit cell
+    }
+  
+    // If not a source-edit cell, fall back to DATA cell’s active tab source
+    if (!isSourceEditMode) {
+        const container = document.querySelector(`#dataEditTabContentContainer_${taskIndex}`);
+        if (!container) { console.warn("No data editor container for task", taskIndex); return; }
+        let pane = container.querySelector('.tab-pane.show.active') || container.querySelector('.tab-pane');
+        if (!pane) { console.warn("No data editor tab-pane found for task", taskIndex); return; }
+    
+        const tabId = pane.getAttribute('data-tab-id') || '0';
+        const tabSourceInput = document.getElementById(`task_step_${taskIndex}_source_${tabId}`);
+        sourceVal = tabSourceInput ? String(tabSourceInput.value || '').trim() : '';
+    
+        // proceed with POST (tab-aware)
+        get_field_values({}, true, function (field_registry) {
+            field_registry.clarama_task_kill = false;
+    
+            const $cell = getCellByTask(taskIndex);
+            const task_registry = get_cell_fields($cell) || {};
+            const spec = ensureStreamScaffold(task_registry);
+    
+            // keep tabs array aligned to active tab
+            spec.tabs = Array.isArray(spec.tabs) ? spec.tabs : [];
+            let activeIdx = 0;
+            let foundIdx = spec.tabs.findIndex(t => String(t?.tab_id ?? '') === String(tabId));
+            if (foundIdx >= 0) activeIdx = foundIdx;
+            else if (spec.tabs.length) activeIdx = 0;
+            else spec.tabs = [{ tab_id: Number(tabId) || 0 }];
+    
+            // write console query + source for the active tab
+            spec.tabs[activeIdx] = Object.assign({}, spec.tabs[activeIdx], {
+                tab_id: Number(tabId) || 0,
+                source: sourceVal,
+                content: query
+            });
+    
+            // mirror for backends that read top-level fields
+            spec.source = sourceVal;
+            spec.content = query;
+    
+            // enforce data mode
+            spec.target = "insights";
+            spec.type   = "data";
+            spec.output = "table";
+            spec.clear  = true;
+    
+            task_registry.parameters = field_registry;
+    
+            const socket_div = $("#edit_socket");
+            const task_kernel_id = socket_div.attr("task_kernel_id");
+            const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
+            window.__insightsDataRoute = window.__insightsDataRoute || {};
+            window.__insightsDataRoute[taskIndex] = { active: true, at: Date.now() };
+
+            $.ajax({
+                type: "POST",
+                url,
+                dataType: "json",
+                contentType: "application/json",
+                data: JSON.stringify(task_registry)
+            }).fail(() => {
+                flash("Data query failed: access/network issue", "danger");
+            });
+        });
+    
+        return;
+    }
+  
+    // 4) SOURCE EDIT path (single source field)
+    get_field_values({}, true, function (field_registry) {
+        field_registry.clarama_task_kill = false;
+    
+        const $cell = getCellByTask(taskIndex);
+        const task_registry = get_cell_fields($cell) || {};
+        const spec = ensureStreamScaffold(task_registry);
+    
+        // For source-edit cells, do NOT force/create tabs; just set top-level fields
+        spec.source = sourceVal;
+        spec.content = query;
+        spec.target = "insights";
+        spec.type   = "data";
+        spec.output = "table";
+        spec.clear  = true;
+    
+        task_registry.parameters = field_registry;
+    
+        const socket_div = $("#edit_socket");
+        const task_kernel_id = socket_div.attr("task_kernel_id");
+        const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
+    
+        $.ajax({
+            type: "POST",
+            url,
+            dataType: "json",
+            contentType: "application/json",
+            data: JSON.stringify(task_registry)
+        }).fail(() => {
+            flash("Data query failed: access/network issue", "danger");
+        });
+    });
 }
-
-function is_chat_tab_active(taskIndex) {
-    return get_console_mode(taskIndex) === 'gina';
-}  
-
-/* ====================================================================== */
+  
+/* ---------------------------------------------------------------------- */
 /* CHAT WITH GINA (INSIGHTS PANE)                                         */
-/* ====================================================================== */
+/* ---------------------------------------------------------------------- */
 
-/** Send a message via the Insights console to GINA */
 function cell_insights_gina_run(cell_button, questionText) {
-    const taskIndex =
-        (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
+  const taskIndex =
+    (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
 
     if (!taskIndex) { console.warn("GINA chat: No taskIndex found"); return; }
 
@@ -307,10 +454,8 @@ function cell_insights_gina_run(cell_button, questionText) {
 
     // Resolve text (argument or console input)
     const $input = $(`#console_input_${taskIndex}`);
-    let text = questionText.trim();
-    if (!text && $input.length) {
-        text = ($input.val() || "").trim();
-    }
+    let text = String(questionText || "").trim();
+    if (!text && $input.length) text = String($input.val() || "").trim();
     if (!text) return;
     if ($input.is(':disabled')) return;
     if ($input.length) $input.val("");
@@ -324,16 +469,13 @@ function cell_insights_gina_run(cell_button, questionText) {
             field_registry.clarama_task_kill = false;
             postToKernel(taskIndex, {
                 target: "insights",
-                type: "question",
+                type:   "question",
                 source: text,
-                clear: false
-            }, field_registry).done((data) => {
-                console.log("GINA reset sent");
-            }).fail(() => {
+                clear:  false
+            }, field_registry).fail(() => {
                 flash("Couldn't process reset, network or access issue", "danger");
             });
         });
-
         return;
     }
 
@@ -376,11 +518,11 @@ function cell_insights_gina_run(cell_button, questionText) {
 function initaliseInsightsGina(taskIndex) {
     if (!taskIndex) return;
     if (window.__ginaInsightsHandshakeSent[taskIndex] || window.__ginaInsightsHandshakeDone[taskIndex]) return;
-  
+
     window.__ginaInsightsHandshakeSent[taskIndex] = true;
     window.__ginaChatActive[taskIndex] = true;
     window.__ginaStreamBuf[taskIndex] = "";
-  
+
     armStream(taskIndex, (s) => {
         // Create bubble lazily on first chunk
         let streamId = document.getElementById(`gina_stream_${taskIndex}`) ? `gina_stream_${taskIndex}` : ensureStreamBubble(taskIndex);
@@ -388,28 +530,26 @@ function initaliseInsightsGina(taskIndex) {
         setStreamText(streamId, window.__ginaStreamBuf[taskIndex], { append: false });
         scrollChatToBottom(taskIndex);
     });
-  
+
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
         postToKernel(
-            taskIndex, 
+            taskIndex,
             { 
                 target: "insights", 
                 type: "question", 
                 source: "/init", 
                 clear: false 
-            }, 
+            },
             field_registry
-        )
-        .always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
+        ).always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
     });
-}  
+}
 
-/* ====================================================================== */
+/* ---------------------------------------------------------------------- */
 /* VARIABLES TAB                                                           */
-/* ====================================================================== */
+/* ---------------------------------------------------------------------- */
 
-/** Create a plain variable button (direct) */
 function createVariableButtonDirect(varName, taskIndex) {
     const button = document.createElement("button");
     button.type = "button";
@@ -647,14 +787,19 @@ function cell_insights_variables_run(cell_button, outputCallback) {
     });
 }
 
-/* CONSOLE (PYTHON MODE)      
-                                                  */
-function insight_console_run(taskIndex, code) {
-    const $cell = getCellByTask(taskIndex);
-    if (!$cell.length) { console.error("Cell element not found for task index", taskIndex); return; }
+/* ---------------------------------------------------------------------- */
+/* CONSOLE (PYTHON MODE)                                                  */
+/* ---------------------------------------------------------------------- */
 
-    const shownIndex = $cell.closest("li.clarama-cell-item").find("button.step-label").text().trim();
-    const executionKey = `console_executing_${taskIndex}`;
+function cell_insights_code_run(taskIndex, code) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell.length) { 
+        console.error("Cell element not found for task index", taskIndex);
+        return;
+    }
+
+    const shownIndex    = $cell.closest("li.clarama-cell-item").find("button.step-label").text().trim();
+    const executionKey  = `console_executing_${taskIndex}`;
     if (window[executionKey]) {
         console.log("Console execution already in progress for task", taskIndex);
         return;
@@ -667,11 +812,17 @@ function insight_console_run(taskIndex, code) {
             console.warn(`Console input found via fallback; syncing ID for task ${taskIndex}.`);
             input.id = `console_input_${taskIndex}`;
         }
-        if (!input) { console.error("Console input not found for task", taskIndex); return; }
+        if (!input) {
+            console.error("Console input not found for task", taskIndex); return;
+        }
         code = (input.value || "").trim();
         input.value = "";
     }
-    if (!code) { console.log("No code to execute for task", taskIndex); return; }
+
+    if (!code) {
+        console.log("No code to execute for task", taskIndex);
+        return;
+    }
 
     window[executionKey] = true;
 
@@ -713,9 +864,9 @@ function insight_console_run(taskIndex, code) {
     });
 }
 
-/* ====================================================================== */
+/* ---------------------------------------------------------------------- */
 /* VARIABLE INSPECTION                                                     */
-/* ====================================================================== */
+/* ---------------------------------------------------------------------- */
 
 function inspectVariable(varName, taskIndex) {
     console.log("Inspecting variable:", varName, "in task:", taskIndex);
@@ -776,8 +927,8 @@ except Exception as e:
                 data: JSON.stringify(task_registry)
             }).done((data) => {
                 if (!(data && data.data === "ok")) {
-                    delete window[`cell_insights_callback_${tIdx}`];
-                    delete window[inspectionKey];
+                delete window[`cell_insights_callback_${tIdx}`];
+                delete window[inspectionKey];
                 }
             }).fail((error) => {
                 console.log("inspectVariable AJAX error for task", tIdx, ":", error);
@@ -789,12 +940,20 @@ except Exception as e:
     }, 200)(varName, taskIndex);
 }
 
+/* ---------------------------------------------------------------------- */
+/* Console UX helpers                                                      */
+/* ---------------------------------------------------------------------- */
+
 function resetConsole(taskIndex) {
     const el = document.getElementById(`console_input_${taskIndex}`);
     if (!el) return;
     el.value = "";
     el.style.height = "auto"; // collapse back to single-line height
 }
+
+/* ---------------------------------------------------------------------- */
+/* Tab + Console event wiring                                              */
+/* ---------------------------------------------------------------------- */
 
 $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function () {
     const id = this.id;
@@ -803,46 +962,50 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     if (id.startsWith("insights-chat-tab-")) {
         initaliseInsightsGina(taskIndex);
     }
-});  
+});
 
-// Click “play” on console
+/* Click “Run” on console */
 $(document).on("click", ".execute-console", function () {
     const taskIndex = $(this).data("task-index");
-    const $cell = getCellByTask(taskIndex);
     const mode = get_console_mode(taskIndex);
-  
-    if (mode === "gina") {
-        const $input = $(`#console_input_${taskIndex}`);
-        cell_insights_gina_run($cell, $input.val());
+    const $cellItem = getCellByTask(taskIndex);
+
+    if (mode === 'gina') {
+        cell_insights_gina_run($cellItem, "");
+    } else if (mode === 'data') {
+        cell_insights_data_run($cellItem, "");
     } else {
-        insight_console_run(taskIndex);
+        cell_insights_code_run(taskIndex, "");
     }
     resetConsole(taskIndex);
 });
 
-// Press Enter in console input (Shift+Enter for newline)
+/* Press Enter in console input (Shift+Enter for newline) */
 $(document).on("keydown", ".console-input", function (e) {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         const taskIndex = $(this).data("task-index");
-        const $cell = getCellByTask(taskIndex);
         const mode = get_console_mode(taskIndex);
+        const $cellItem = getCellByTask(taskIndex);
 
         if (mode === "gina") {
-            cell_insights_gina_run($cell, $(this).val());
+            cell_insights_gina_run($cellItem, $(this).val());
+        } else if (mode === "data") {
+            cell_insights_data_run($cellItem, $(this).val());
         } else {
-            insight_console_run(taskIndex);
+            cell_insights_code_run(taskIndex);
         }
         resetConsole(taskIndex);
     }
 });
 
+/* Auto-grow textarea */
 $(document).on("input", ".console-input", function () {
     this.style.height = "auto";
     this.style.height = this.scrollHeight + "px";
 });
 
-// On initial load: if a Chat tab is already active, set mode + /init
+/* On initial load: if a Chat tab is already active, set mode + /init */
 $(function () {
     $('[id^="insightsTabs_"]').each(function () {
         const taskIndex = this.id.replace("insightsTabs_", "");
@@ -852,4 +1015,4 @@ $(function () {
             initaliseInsightsGina(taskIndex);
         }
     });
-});  
+});

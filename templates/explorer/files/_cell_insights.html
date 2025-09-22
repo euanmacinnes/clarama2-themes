@@ -103,7 +103,10 @@
                 {% if task_step['type'] in ['data', 'source'] %}
                     <div class="tab-pane fade" id="insights-data-inspector-{{ task_index }}" role="tabpanel"
                         aria-labelledby="insights-data-inspector-tab-{{ task_index }}" tabindex="0">
-                        <div class="p-3" id="data_inspector_{{ task_index }}"></div>
+                        <div class="p-3" id="data_inspector_{{ task_index }}">
+                            <div class="inspector-results">
+                            </div>
+                        </div>
                     </div>
                 {% endif %}
 
