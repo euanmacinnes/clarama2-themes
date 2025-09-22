@@ -20,20 +20,22 @@
                         Variables
                     </button>
                 </li>
-                <!-- Code Inspector. Only for code cells -->
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-code-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-code-inspector-{{ task_index }}"
-                        type="button" role="tab" aria-controls="insights-code-inspector-{{ task_index }}" aria-selected="false">
-                        Code Inspector
-                    </button>
-                </li>
-                <!-- Data Inspector. Only for data & source cells. Data cell has tabs, use the currently selected one -->
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-data-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-data-inspector-{{ task_index }}" 
-                        type="button" role="tab" aria-controls="insights-data-inspector-{{ task_index }}" aria-selected="false">
-                        Data Inspector
-                    </button>
-                </li>
+                {% if task_step['type'] == 'code' %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="insights-code-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-code-inspector-{{ task_index }}"
+                            type="button" role="tab" aria-controls="insights-code-inspector-{{ task_index }}" aria-selected="false">
+                            Code Inspector
+                        </button>
+                    </li>
+                {% endif %}
+                {% if task_step['type'] in ['data', 'source'] %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="insights-data-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-data-inspector-{{ task_index }}" 
+                            type="button" role="tab" aria-controls="insights-data-inspector-{{ task_index }}" aria-selected="false">
+                            Data Inspector
+                        </button>
+                    </li>
+                {% endif %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="insights-preview-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-preview-{{ task_index }}"
                         type="button" role="tab" aria-controls="insights-preview-{{ task_index }}" aria-selected="false">
@@ -60,6 +62,26 @@
                 <div class="tab-pane fade" id="insights-variables-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-variables-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3">
+                        <!-- <ul class="nav nav-tabs" id="variablesTabs{{ task_index }}" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="variables-module-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#variables-modules-{{ task_index }}"
+                                    type="button" role="tab" aria-controls="variables-modules-{{ task_index }}" aria-selected="true">
+                                    Modules
+                                </button>
+                                <button class="nav-link active" id="variables-objects-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#variables-object-{{ task_index }}"
+                                    type="button" role="tab" aria-controls="variables-objects-{{ task_index }}" aria-selected="true">
+                                    Objects
+                                </button>
+                                <button class="nav-link active" id="variables-primitives-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#variables-primitives-{{ task_index }}"
+                                    type="button" role="tab" aria-controls="variables-primitives-{{ task_index }}" aria-selected="true">
+                                    Primitives
+                                </button>
+                                <button class="nav-link active" id="variables-data-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#variables-data-{{ task_index }}"
+                                    type="button" role="tab" aria-controls="variables-data-{{ task_index }}" aria-selected="true">
+                                    Data
+                                </button>
+                            </li>
+                        </ul> -->
                         <div class="variables-list" id="variables_{{ task_index }}">
                             <div class="text-muted d-flex align-items-center">
                                 <div class="spinner-border spinner-border-sm me-2 d-none insights-spinner" role="status">
@@ -71,17 +93,19 @@
                     </div>
                 </div>
         
-                <!-- Code Inspector (only for code cells) -->
-                <div class="tab-pane fade" id="insights-code-inspector-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-code-inspector-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="code_inspector_{{ task_index }}"></div>
-                </div>
-        
-                <!-- Data Inspector (Only for data & source cells. Data cell has tabs, use the currently selected one) -->
-                <div class="tab-pane fade" id="insights-data-inspector-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-data-inspector-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="data_inspector_{{ task_index }}"></div>
-                </div>
+                {% if task_step['type'] == 'code' %}
+                    <div class="tab-pane fade" id="insights-code-inspector-{{ task_index }}" role="tabpanel"
+                        aria-labelledby="insights-code-inspector-tab-{{ task_index }}" tabindex="0">
+                        <div class="p-3" id="code_inspector_{{ task_index }}"></div>
+                    </div>
+                {% endif %}
+
+                {% if task_step['type'] in ['data', 'source'] %}
+                    <div class="tab-pane fade" id="insights-data-inspector-{{ task_index }}" role="tabpanel"
+                        aria-labelledby="insights-data-inspector-tab-{{ task_index }}" tabindex="0">
+                        <div class="p-3" id="data_inspector_{{ task_index }}"></div>
+                    </div>
+                {% endif %}
 
                 <!-- Preview -->
                 <div class="tab-pane fade" id="insights-preview-{{ task_index }}" role="tabpanel"

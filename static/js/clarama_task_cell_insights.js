@@ -222,21 +222,31 @@ function postToKernel(taskIndex, streamSpec, parameters = null) {
     const socket_div = $("#edit_socket");
     const task_kernel_id = socket_div.attr("task_kernel_id");
     const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-
+  
     const $cell = getCellByTask(taskIndex);
-    const task_registry = get_cell_fields($cell);
-
-    // fill stream
+    const task_registry = get_cell_fields($cell) || {};
+  
+    if (!task_registry.streams || !task_registry.streams[0]) {
+        task_registry.streams = [{ main: [{}] }];
+    } else if (!task_registry.streams[0].main) {
+        task_registry.streams[0].main = [{}];
+    } else if (!task_registry.streams[0].main[0]) {
+        task_registry.streams[0].main[0] = {};
+    }
+  
     const spec = task_registry.streams[0].main[0];
     spec.target = streamSpec.target;
     spec.type = streamSpec.type;
     spec.clear = !!streamSpec.clear;
-    if ("source" in streamSpec) spec.source = streamSpec.source;
-    if ("content" in streamSpec) spec.content = streamSpec.content;
+    if ("source" in streamSpec) {
+        spec.source = streamSpec.source;
+    }
 
-    // parameters
+    if ("content" in streamSpec) {
+        spec.content = streamSpec.content;
+    }
+  
     task_registry.parameters = parameters || {};
-
     return $.ajax({
         type: "POST",
         url,
