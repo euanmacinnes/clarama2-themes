@@ -247,7 +247,7 @@ function toggleInsightsForCurrentCell(cell) {
     if (!cell) return false;
 
     const $cell = $(cell);
-    const insightsButton = $cell.find('.celleditinsights').first();
+    const insightsButton = $cell.find('.insights-toggle-bar').first();
     insightsButton.click();
 }
 
@@ -397,7 +397,7 @@ function initializeCellNavigation() {
         return false;
     }
 
-    function toggleinsightsForCurrentCell(cell) {
+    function toggleInsightsForCurrentCell(cell) {
         if (!cell) return false;
 
         const $cell = $(cell);
@@ -441,23 +441,26 @@ function initializeCellNavigation() {
         }
 
         // Shift+Enter: Run current cell and move to next
-        if ((e.shiftKey || e.metaKey) && e.keyCode === 13) {
-            e.preventDefault();
+        // if ((e.shiftKey || e.metaKey) && e.keyCode === 13) {
+        //     e.preventDefault();
 
-            const currentCell = getCurrentCell();
-            if (!currentCell) return;
+        //     const currentCell = getCurrentCell();
+        //     if (!currentCell) return;
 
-            const runSuccess = runCurrentCell(currentCell);
-        }
+        //     const runSuccess = runCurrentCell(currentCell);
+        // }
 
         // Ctrl+\ : Toggle insights for current cell
         if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
             e.preventDefault();
 
             const currentCell = getCurrentCell();
-            if (!currentCell) return;
+            if (!currentCell) {
+                console.log('no current cell');
+                return;
+            }
 
-            toggleinsightsForCurrentCell(currentCell);
+            toggleInsightsForCurrentCell(currentCell);
         }
     });
 }
@@ -718,7 +721,7 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
                     const editorElement = $(editor.container);
                     const currentCell = editorElement.closest('.clarama-cell-item')[0];
                     if (currentCell) {
-                        toggleinsightsForCurrentCell(currentCell);
+                        toggleInsightsForCurrentCell(currentCell);
                     }
                 }
             });

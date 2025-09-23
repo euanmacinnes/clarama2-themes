@@ -156,7 +156,6 @@
     font-size: 11px;
 }
 
-/* Console section stays at bottom with fixed height */
 .insights-console {
     background-color: #000000 !important;
     border-top: 1px solid #333333 !important;
@@ -180,18 +179,33 @@
 }
 
 .console-input {
-    font-family: 'Courier New', Monaco, monospace;
-    font-size: 12px;
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    border: 1px solid #333333 !important;
+    resize: none;
+    overflow: hidden;
+    transition: opacity 120ms ease, background-color 120ms ease, filter 120ms ease;
 }
 
-.console-input:focus {
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    border-color: #007bff !important;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+.console-input.console-disabled,
+.console-input:disabled {
+    opacity: 0.55;
+    background-color: #f2f2f2;
+    filter: grayscale(25%);
+    cursor: not-allowed;
+}
+
+.console-input.console-disabled::placeholder,
+.console-input:disabled::placeholder {
+    color: #9aa0a6;
+}
+
+.execute-console {
+    transition: opacity 120ms ease, filter 120ms ease;
+}
+
+.execute-console:disabled {
+    opacity: 0.5;
+    filter: grayscale(25%);
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .console-input::placeholder {
@@ -277,7 +291,6 @@
     background:#0d6efd; 
 }
 
-
 body.dragging {
     user-select: none;
     cursor: col-resize;
@@ -313,3 +326,56 @@ body.dragging {
     color: #ffc107;
     text-shadow: 0 0 6px rgba(255,193,7,0.8), 0 0 14px rgba(255,193,7,0.6);
 }
+
+.insights-gina-chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+    padding: 8px 12px;
+}
+
+.insights-gina-chat { 
+    display: flex; 
+    margin: 0;
+}
+
+.insights-gina-chat-user { 
+    justify-content: flex-end; 
+}
+
+.insights-gina-chat-reply { 
+    justify-content: flex-start; 
+}
+
+.insights-gina-chat-bubble {
+    max-width: 90%;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 14px;
+    background: #f8f9fa;
+    white-space: pre-line;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    display: inline-flex;
+}
+.insights-gina-chat-user .insights-gina-chat-bubble {
+    background: #e7f5ff;
+    border-color: #74c0fc;
+}
+
+.cell-insights .row:has(#gfe_dep_field) > [class^="col-"],
+.cell-insights .row:has(#gfe_to) > [class^="col-"],
+.cell-insights .row:has(#gfe_layout) > [class^="col-"],
+.cell-insights .row:has(#gfe_ext) > [class^="col-"],
+.cell-insights .row:has(#gfe_result_expr) > [class^="col-"],
+.cell-insights .row:has(#gfe_result_value) > [class^="col-"] {
+  flex: 0 0 100% !important;
+  max-width: 100% !important;
+}
+
+.cell-insights #gfe_insert { width: 100%; }
+
+.cell-insights .form-label { word-break: normal; overflow-wrap: anywhere; }
+
+.cell-insights .form-text { margin-top: .25rem; }

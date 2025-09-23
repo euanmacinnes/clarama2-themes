@@ -128,8 +128,6 @@ function initializeNewCellinsights(newElement) {
 
     var taskIndex = newElement.attr('step') || newElement.attr('data-task-index');
     if (taskIndex) {
-        setupConsoleHandlers(newElement, taskIndex);
-
         // Support both old button and new bar
         newElement.find('.celleditinsights, .insights-toggle-bar').attr('data-task-index', taskIndex);
 
@@ -138,43 +136,6 @@ function initializeNewCellinsights(newElement) {
 
         var executeButton = newElement.find('.execute-console');
         if (executeButton.length) executeButton.attr('data-task-index', taskIndex);
-    }
-}
-
-/**
- * Set up console handlers for a specific cell
- * @param {jQuery} cellElement - The cell element
- * @param {string} taskIndex - The task index
- */
-function setupConsoleHandlers(cellElement, taskIndex) {
-    var consoleInput = cellElement.find('.console-input');
-    var executeButton = cellElement.find('.execute-console');
-
-    if (consoleInput.length) {
-        consoleInput.off('keypress.console');
-
-        // Handle Enter key in console input
-        consoleInput.on('keypress.console', function (e) {
-            if (e.which == 13) { // Enter key
-                const currentCell = $(this).closest('.clarama-cell-item');
-                const currentTaskIdx = currentCell.attr('step') || currentCell.attr('data-task-index');
-                insights_console_run(currentTaskIdx);
-            }
-        });
-
-        consoleInput.attr('data-task-index', taskIndex);
-    }
-
-    if (executeButton.length) {
-        executeButton.off('click.console');
-
-        executeButton.on('click.console', function () {
-            const currentCell = $(this).closest('.clarama-cell-item');
-            const currentTaskIdx = currentCell.attr('step') || currentCell.attr('data-task-index');
-            insights_console_run(currentTaskIdx);
-        });
-
-        executeButton.attr('data-task-index', taskIndex);
     }
 }
 
@@ -296,9 +257,7 @@ function openinsights(cellItem, taskIndex) {
         notificationContents.removeClass('row').addClass('d-flex flex-column');
     }
 
-    setupConsoleHandlers(cellItem, taskIndex);
-
-    cell_insights_run(cellItem, function (output_text) {
+    cell_insights_variables_run(cellItem, function (output_text) {
         var idx = cellItem.attr('step') || cellItem.attr('data-task-index');
         populateVariablesList(output_text, idx);
     });

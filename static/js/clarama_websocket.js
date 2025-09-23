@@ -814,29 +814,40 @@ function onMessage(event, socket_url, webSocket, socket_div) {
             }
 
             if (dict['class'] === "insights_template") {
-                const step_id = dict['step_id'];
-                const output_text = dict?.values?.output;
-            
-                let taskIndex = null;
-                if (step_id) {
-                    const match = step_id.match(/step_(\d+)/);
-                    taskIndex = match ? match[1] : step_id.replace(/\D/g, '');
-                }
-            
-                if (taskIndex && output_text !== undefined) {
-                    const variablesCallbackKey = 'cell_insights_variables_callback_' + taskIndex;
-            
-                    if (typeof window[variablesCallbackKey] === "function") {
-                        try {
-                            window[variablesCallbackKey](output_text);
-                            delete window[variablesCallbackKey];
-                        } catch (e) { console.error("Error calling variables insights callback:", e); }
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+              
+                const output = dict.values.output || "";
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+              
+                if (taskIndex) {
+                    const cbChat = "cell_insights_chat_callback_" + taskIndex;
+                    const cbVars = "cell_insights_variables_callback_" + taskIndex;
+                    const cbCode = "cell_insights_callback_" + taskIndex;
+                
+                    // Prefer active gina insights chat stream first
+                    if (typeof window[cbChat] === "function") {
+                        try { window[cbChat](chunk); } catch(e){ console.error(e); } finally { delete window[cbChat]; }
+                        return; // handled by chat
+                    }
+                    // Otherwise deliver to variables
+                    if (typeof window[cbVars] === "function") {
+                        try { window[cbVars](chunk); } catch(e){ console.error(e); } finally { delete window[cbVars]; }
+                        return; // handled by variables
+                    }
+
+                    if (typeof window[cbCode] === "function") {
+                        try { window[cbCode](chunk); }
+                        catch (e) { console.error(e); }
+                        finally { delete window[cbCode]; }
+                        return; // handled by code console
                     }
                 }
-            
-                // Nothing to render via templates for insights; stop here.
-                return;
-            }            
+
+                return; // nothing to deliver
+            }              
 
             if (dict['class'] === "progress_bar") {
                 let resulter = "#" + dict['step_id'];

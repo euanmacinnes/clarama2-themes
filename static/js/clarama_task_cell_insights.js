@@ -1,641 +1,963 @@
-// ========================================
-// INSIGHTS FUNCTIONS
-// ========================================
+window.__ginaInsightsHandshakeSent = window.__ginaInsightsHandshakeSent || {};
+window.__ginaInsightsHandshakeDone = window.__ginaInsightsHandshakeDone || {};
+window.__ginaChatActive            = window.__ginaChatActive || {};
+window.__ginaStreamBuf             = window.__ginaStreamBuf || {};
+window.__ginaStreamIdleTimer       = window.__ginaStreamIdleTimer || {};
+window.__ginaIdleTimers            = window.__ginaIdleTimers || Object.create(null);
 
-/**
- * Sets up insight behavior for a task registry
- * @param {Object} task_registry - The task registry object
- * @param {string} code_command - The code to execute
- * @param {Object} field_registry - The field registry object
- */
-function set_insight_behaviour(task_registry, code_command, field_registry, isInspecting=false) {
-    if (!isInspecting) { // set if is not from inspecting the variable
-        task_registry['streams'][0]['main'][0]['target'] = 'insights';
-    }
-    task_registry['streams'][0]['main'][0]['type'] = 'code';
-    task_registry['streams'][0]['main'][0]['content'] = code_command;
-    task_registry['streams'][0]['main'][0]['clear'] = false;
-    task_registry['parameters'] = field_registry;
-}
+/* ---------------------------------------------------------------------- */
+/* Utilities                                                              */
+/* ---------------------------------------------------------------------- */
 
-/**
- * Executes the main cell insights to list variables
- * @param {jQuery} cell_button - The cell button element
- * @param {Function} outputCallback - Optional callback for output
- */
-function cell_insights_run(cell_button, outputCallback) {    
-    const taskIndex = cell_button.attr('step') || cell_button.attr('data-task-index');
-    const shownIndex = cell_button.closest('li.clarama-cell-item').find('button.step-label').text().trim();
-    
-    // Prevent multiple simultaneous runs
-    const runningKey = `cell_insights_running_${taskIndex}`;
-    if (window[runningKey]) {
-        console.log("Cell insights already running for task", taskIndex);
-        return;
-    }
-    window[runningKey] = true;
-    
-    window['cell_insights_variables_callback_' + taskIndex] = function(output) {
-        populateVariablesList(output, taskIndex);
-        
-        if (outputCallback) {
-            outputCallback(output);
-        }
-        
-        // Clear running flag
-        delete window[runningKey];
-    };
-
-    get_field_values({}, true, function (field_registry) {
-        const task_registry = get_cell_fields(cell_button);
-        set_insight_behaviour(task_registry, 'print(list(locals().keys()));', field_registry);
-        const socket_div = $("#edit_socket");
-        
-        field_registry['clarama_task_kill'] = false;
-        
-        const task_kernel_id = socket_div.attr("task_kernel_id");
-        const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-        
-        $.ajax({
-            type: 'POST',
-            url: url,
-            datatype: "html",
-            contentType: 'application/json',
-            data: JSON.stringify(task_registry),
-            success: function(data) {
-                if (data['data'] == 'ok') {
-                    console.log('CLARAMA_TASK_CELL_insights.js: insight submission was successful for task', shownIndex);
-                    flash(`Cell ${shownIndex} insight toggled on`, "success");
-                } else {
-                    console.log('CLARAMA_TASK_CELL_insights.js: insight submission was not successful for task', taskIndex);
-                    const variablesList = $('#variables_' + taskIndex);
-                    variablesList.html('<div class="text-danger p-3">Error loading variables: ' + data['error'] + '</div>');
-                    flash("Couldn't run insight content: " + data['error'], "danger");
-                    window['cell_insights_variables_callback_' + taskIndex] = null;
-                    delete window[runningKey];
-                }
-            },
-            error: function(data) {
-                console.log('An error occurred in insight run for task', taskIndex);
-                console.log(data);
-                const variablesList = $('#variables_' + taskIndex);
-                variablesList.html('<div class="text-danger p-3">Error loading variables</div>');
-                flash("Couldn't run insight content, access denied", "danger");
-                window['cell_insights_variables_callback_' + taskIndex] = null;
-                delete window[runningKey];
-            }
-        });
-    });
-}
-
-/**
- * Runs Python code from the insight console input
- * @param {string} taskIndex - The task index
- * @param {string} code - The Python code to execute (optional, will get from input if not provided)
- */
-function insight_console_run(taskIndex, code) {
-    const cellElement = $(`li.clarama-cell-item[step="${taskIndex}"]`);
-    if (!cellElement.length) {
-        console.error("Cell element not found for task index", taskIndex);
-        return;
-    }
-    
-    const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
-    const shownIndex = cellElement.closest('li.clarama-cell-item').find('button.step-label').text().trim();
-    const executionKey = `console_executing_${currentTaskIndex}`;
-    if (window[executionKey]) {
-        console.log("Console execution already in progress for task", currentTaskIndex);
-        return;
-    }
-    
-    if (!code) {
-        let consoleInput = document.getElementById(`console_input_${currentTaskIndex}`);
-        
-        if (!consoleInput) {
-            consoleInput = cellElement.find('.console-input')[0];
-            if (consoleInput) {
-                console.warn(`Console input found via fallback method for task ${currentTaskIndex}. IDs may be out of sync.`);
-                consoleInput.id = `console_input_${currentTaskIndex}`;
-            }
-        }
-        
-        if (!consoleInput) {
-            console.error("Console input not found for task", currentTaskIndex);
-            return;
-        }
-        
-        code = consoleInput.value.trim();
-        consoleInput.value = '';
-    }
-    
-    if (!code) {
-        console.log("No code to execute for task", taskIndex);
-        return;
-    }
-    
-    window[executionKey] = true;
-    
-    // Use the current task index for the callback function name
-    window[`cell_insights_callback_${currentTaskIndex}`] = function(output) {
-        console.log("Console callback received output for task", currentTaskIndex, ":", output);
-        
-        let consoleOutput = document.getElementById(`console_output_${currentTaskIndex}`);
-        
-        if (!consoleOutput) {
-            consoleOutput = cellElement.find('.console-output')[0];
-        }
-        
-        if (consoleOutput) {
-            consoleOutput.textContent = output;
-        }
-        
-        delete window[executionKey];
-    };
-
-    get_field_values({}, true, function(field_registry) {
-        const task_registry = get_cell_fields(cellElement);
-        set_insight_behaviour(task_registry, code, field_registry);
-        
-        const socket_div = $("#edit_socket");
-        field_registry['clarama_task_kill'] = false;
-        
-        const task_kernel_id = socket_div.attr("task_kernel_id");
-        const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-        const taskUrl = get_url(url, field_registry);
-        console.log("Console execution: Running code at", taskUrl, "for task", currentTaskIndex);
-
-        $.ajax({
-            type: 'POST',
-            url: url,
-            datatype: "json",
-            contentType: 'application/json',
-            data: JSON.stringify(task_registry),
-            success: function(data) {
-                if (data['data'] == 'ok') {
-                    console.log('Console code submitted successfully for task', currentTaskIndex);
-                } else {
-                    console.log('Console execution was not successful for task', currentTaskIndex);
-                    delete window[`cell_insights_callback_${currentTaskIndex}`];
-                    delete window[executionKey];
-                }
-            },
-            error: function(error) {
-                flash("Console execution failed: access denied", "danger");
-                delete window[`cell_insights_callback_${currentTaskIndex}`];
-                delete window[executionKey];
-            }
-        });
-    });
-}
-
-/**
- * Inspects a variable and displays its value
- * If variable is a class, display 'help(variable_name)' instead
- * @param {string} varName - The name of the variable to inspect
- * @param {string} taskIndex - The task index
- */
-function inspectVariable(varName, taskIndex) {
-    console.log("Inspecting variable:", varName, "in task:", taskIndex);
-    debounce(function(varName, taskIndex) {
-        const cellElement = $(`li.clarama-cell-item[step="${taskIndex}"]`);
-        if (!cellElement.length) {
-            console.error("Cell element not found for task index", taskIndex);
-            return;
-        }
-        
-        const currentTaskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
-        const inspectionKey = `variable_inspecting_${currentTaskIndex}`;
-        
-        window[inspectionKey] = true;
-    
-        // Clean up any existing callback
-        if (window[`cell_insights_callback_${currentTaskIndex}`]) {
-            delete window[`cell_insights_callback_${currentTaskIndex}`];
-        }
-    
-        window[`cell_insights_callback_${currentTaskIndex}`] = function(output) {
-            delete window[inspectionKey];
-        };
-    
-        get_field_values({}, true, function(field_registry) {
-            const task_registry = get_cell_fields(cellElement);
-    
-            // Python snippet that captures help() output or variable value, uses pprint for better formatting
-            const codeChecker = `
-from pprint import pprint
-import pandas as pd
-import inspect
-try:
-    val = ${varName}
-    
-    # Check if it's a pandas DataFrame
-    if isinstance(val, pd.DataFrame):
-        print(val.info())
-    # Check if it's a class, function, method, or module (not just string representation)
-    elif inspect.isclass(val) or inspect.isfunction(val) or inspect.ismethod(val) or inspect.ismodule(val) or inspect.isbuiltin(val):
-        help(${varName})
-    else:
-        # For everything else (including strings that happen to start with '<'), use pprint
-        pprint(${varName})
-except NameError:
-    print(f"Variable '${varName}' is not defined")
-except Exception as e:
-    print(f"Error inspecting variable '${varName}': {e}")
-    # Fallback - try to at least show the variable
-    try:
-        print(${varName})
-    except:
-        print(f"Could not display variable '${varName}'")
-`;
-
-            set_insight_behaviour(task_registry, codeChecker, field_registry, true);
-    
-            const socket_div = $("#edit_socket");
-            const task_kernel_id = socket_div.attr("task_kernel_id");
-            const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
-    
-            $.ajax({
-                type: 'POST',
-                url: url,
-                datatype: "json",
-                contentType: 'application/json',
-                data: JSON.stringify(task_registry),
-                success: function(data) {
-                    if (data['data'] !== 'ok') {
-                        console.log('Variable inspection was not successful for task', currentTaskIndex);
-                        delete window[`cell_insights_callback_${currentTaskIndex}`];
-                        delete window[inspectionKey];
-                    }
-                },
-                error: function(error) {
-                    console.log("InspectVariable AJAX error for task", currentTaskIndex, ":", error);
-                    flash("Couldn't inspect variable", "danger");
-                    delete window[`cell_insights_callback_${currentTaskIndex}`];
-                    delete window[inspectionKey];
-                }
-            });
-        });
-    }, 200)(varName, taskIndex);
-}
-
-/**
- * Debounce function to limit how often a function can be called
- * @param {Function} func - Function to debounce
- * @param {number} wait - Wait time in milliseconds
- * @param {boolean} immediate - Whether to execute immediately
- * @returns {Function} Debounced function
- */
-function debounce(func, wait, immediate) {
+function debounce(fn, wait, immediate) {
     let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            timeout = null;
-            if (!immediate) func.apply(this, args);
-        };
+    return function debounced(...args) {
+        const ctx = this;
         const callNow = immediate && !timeout;
         clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-        if (callNow) func.apply(this, args);
+        timeout = setTimeout(() => {
+            timeout = null;
+            if (!immediate) fn.apply(ctx, args);
+        }, wait);
+        if (callNow) fn.apply(ctx, args);
     };
 }
 
-// ========================================
-// UI CREATION FUNCTIONS
-// ========================================
+/** Normalize any incoming stream chunk to string */
+function normalizeChunk(chunk) {
+    if (Array.isArray(chunk)) return chunk.join("");
+    if (chunk && typeof chunk === "object") {
+        return chunk.text ? chunk.text : "";
+    }
+    return typeof chunk === "string" ? chunk : "";
+}
 
-/**
- * Creates a direct variable button (no template)
- * @param {string} varName - Variable name
- * @param {string} taskIndex - Task index
- * @returns {HTMLElement} Button element
- */
+/** Quick DOM helpers */
+function getCellByTask(taskIndex) {
+    return $(`li.clarama-cell-item[step="${taskIndex}"]`);
+}
+function getActiveTabId(taskIndex) {
+    const $tabs = $(`#insightsTabs_${taskIndex}`);
+    return ($tabs.find(".nav-link.active").attr("id") || "");
+}
+function tabIs(activeId, prefix) {
+    return activeId.startsWith(prefix);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Kernel Helpers                                                         */
+/* ---------------------------------------------------------------------- */
+
+function getKernelUrl() {
+    const socket_div = $("#edit_socket");
+    const task_kernel_id = socket_div.attr("task_kernel_id");
+    return $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
+}
+
+/** Read all fields from the current cell and return task_registry */
+function buildTaskRegistry($cell) {
+    // Prefer existing get_cell_fields() util if present
+    const reg = get_cell_fields($cell) || {};
+    if (!reg.streams || !reg.streams[0]) reg.streams = [{ main: [{}] }];
+    if (!reg.streams[0].main) reg.streams[0].main = [{}];
+    if (!reg.streams[0].main[0]) reg.streams[0].main[0] = {};
+    return reg;
+}
+
+/** Ensure stream scaffold (main[0]) and return it */
+function ensureStreamScaffold(task_registry) {
+    if (!task_registry.streams || !task_registry.streams[0]) task_registry.streams = [{ main: [{}] }];
+    if (!task_registry.streams[0].main) task_registry.streams[0].main = [{}];
+    if (!task_registry.streams[0].main[0]) task_registry.streams[0].main[0] = {};
+    return task_registry.streams[0].main[0];
+}
+
+/** Generic POST to kernel with given registry (returns jqXHR) */
+function ajaxRun(task_registry, failMsg = "Kernel request failed") {
+    const url = getKernelUrl();
+    return $.ajax({
+        type: "POST",
+        url,
+        dataType: "json",
+        contentType: "application/json",
+        data: JSON.stringify(task_registry)
+    }).fail(() => {
+        flash(failMsg, "danger");
+    });
+}
+
+/** Build and send a kernel post (shared shape) */
+function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kernel request failed") {
+    const $cell = getCellByTask(taskIndex);
+    const task_registry = buildTaskRegistry($cell);
+    const spec = ensureStreamScaffold(task_registry);
+
+    spec.target = "insights";
+    spec.type   = streamSpec.type;
+    spec.clear  = !!streamSpec.clear;
+
+    if ("source" in streamSpec)  spec.source  = streamSpec.source;
+    if ("content" in streamSpec) spec.content = streamSpec.content;
+    if ("output" in streamSpec)  spec.output  = streamSpec.output;
+    if ("tabs"   in streamSpec)  spec.tabs    = streamSpec.tabs;
+
+    task_registry.parameters = parameters || {};
+    return ajaxRun(task_registry, failMsg);
+}
+
+/** Configure Python execution spec for console/inspect */
+function set_insight_behaviour(task_registry, code_command, field_registry, isInspecting = false) {
+    const spec = ensureStreamScaffold(task_registry);
+    if (!isInspecting) spec.target = "insights";
+    spec.type    = "code";
+    spec.content = code_command;
+    spec.clear   = false;
+    task_registry.parameters = field_registry;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Console Controls                                                        */
+/* ---------------------------------------------------------------------- */
+
+function setConsoleEnabled(taskIndex, enabled) {
+    const $input  = $(`#console_input_${taskIndex}`);
+    const $sendBtn = $(`.execute-console[step="${taskIndex}"], .execute-console[data-task-index="${taskIndex}"]`);
+
+    $input
+        .prop("disabled", !enabled)
+        .attr("aria-disabled", String(!enabled))
+        .toggleClass("console-disabled", !enabled);
+
+    $sendBtn.prop("disabled", !enabled);
+}
+
+function setConsoleVisible(taskIndex, visible) {
+    const $wrap = $(`#insights_${taskIndex} .insights-console`);
+    $wrap.toggleClass("d-none", !visible);
+}
+
+function setConsolePlaceholder(taskIndex, text) {
+    const $input = $(`#console_input_${taskIndex}`);
+    if ($input.length) $input.attr("placeholder", text);
+}
+
+/** Toggle console placeholder/mode per tab */
+function set_console_mode(taskIndex, mode) {
+    const $input = $(`#console_input_${taskIndex}`);
+    if (!$input.length) return;
+    if (mode === "gina") {
+        $input.attr("placeholder", "Message GINA…").data("console-mode", "gina");
+    } else if (mode === "data") {
+        $input.attr("placeholder", "Enter data command").data("console-mode", "data");
+        $input.addClass("font-monospace");
+    } else {
+        $input.attr("placeholder", "Enter Python command.").data("console-mode", "python");
+        $input.addClass("font-monospace");
+    }
+}
+
+/** Determine console mode from active tab */
+function get_console_mode(taskIndex) {
+    const activeId = getActiveTabId(taskIndex);
+    if (tabIs(activeId, "insights-chat-tab-")) return "gina";
+    if (tabIs(activeId, "insights-data-inspector-tab-")) return "data";
+    return "python";
+}
+function is_chat_tab_active(taskIndex) {
+    return get_console_mode(taskIndex) === "gina";
+}
+
+/** Configure console for currently active tab id */
+function configureConsoleForActiveTab(taskIndex, activeTabId) {
+    if (tabIs(activeTabId, "insights-chat-tab-")) {
+        setConsoleVisible(taskIndex, true);
+        set_console_mode(taskIndex, "gina");
+        return;
+    }
+    if (tabIs(activeTabId, "insights-code-inspector-tab-") || tabIs(activeTabId, "insights-variables-tab-")) {
+        setConsoleVisible(taskIndex, true);
+        set_console_mode(taskIndex, "python");
+        return;
+    }
+    if (tabIs(activeTabId, "insights-data-inspector-tab-")) {
+        setConsoleVisible(taskIndex, true);
+        set_console_mode(taskIndex, "data");
+        return;
+    }
+    // Hide the console for "preview" and "global fields"
+    if (tabIs(activeTabId, "insights-preview-tab-") || tabIs(activeTabId, "insights-global-fields-tab-")) {
+        setConsoleVisible(taskIndex, false);
+        return;
+    }
+    setConsoleVisible(taskIndex, true);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Chat bubbles + streaming                                                */
+/* ---------------------------------------------------------------------- */
+
+function finalizePreviousReplyBubble(taskIndex) {
+    const $prev = $(`#insights_gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
+    if (!$prev.length) return;
+
+    const $span = $prev.find(".stream-text");
+    if ($span.length) {
+        const text = $span.text();
+        $span.replaceWith(document.createTextNode(text));
+    }
+    $prev.removeAttr("id").removeClass("insights-gina-chat-reply").addClass("insights-gina-chat-assistant");
+}
+
+/** Load a bubble template into chat area */
+function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
+    if (!$chat.length) return null;
+
+    const params = new URLSearchParams({ role, stream_id: streamId });
+    const chatBubble = $(`<div class="clarama-post-embedded clarama-replaceable">`)
+        .attr("url", `/template/render/explorer/files/_cell_insights_gina_chat_block?${params}`);
+
+    $chat.append(chatBubble);
+    enable_interactions($chat);
+    return chatBubble;
+}
+
+/** If no stream bubble, create one and return its id */
+function ensureStreamBubble(taskIndex) {
+    if (!is_chat_tab_active(taskIndex)) return null;
+    const streamId = `gina_stream_${taskIndex}`;
+    if (!document.getElementById(streamId)) {
+        appendChatBubbleViaTemplate(taskIndex, "reply", streamId);
+    }
+    return streamId;
+}
+
+/** Smooth scroll to bottom of chat if present */
+function scrollChatToBottom(taskIndex) {
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
+    if ($chat.length) $chat.scrollTop($chat[0].scrollHeight);
+}
+
+/** Minimal whitespace cleanup (kept for compatibility) */
+function cleanStreamText(text, append) {
+    if (!append) {
+        return String(text || "").replace(/^\s+/, "").replace(/\n{3,}/g, "\n\n");
+    }
+    return String(text || "");
+}
+
+/** Render streaming text into the current bubble (markdown aware) */
+function setStreamText(streamId, text, { append = false } = {}) {
+    const el = document.getElementById(streamId);
+    if (!el) { setTimeout(() => setStreamText(streamId, text, { append }), 16); return; }
+
+    const bubble = el.querySelector(".insights-gina-chat-bubble");
+    if (!bubble) return;
+
+    let htmlDiv = bubble.querySelector(".stream-html");
+    let textSpan = bubble.querySelector(".stream-text");
+
+    // Ensure HTML container (render markdown/code), remove text span to avoid duplication
+    if (!htmlDiv) {
+        htmlDiv = document.createElement("div");
+        htmlDiv.className = "stream-html";
+        if (textSpan) textSpan.remove();
+        bubble.appendChild(htmlDiv);
+    }
+
+    const next = String(text || "");
+    if (append && htmlDiv.__buffer) htmlDiv.__buffer += next;
+    else htmlDiv.__buffer = next;
+
+    // markdownToHtml is expected to be globally available
+    htmlDiv.innerHTML = markdownToHtml(htmlDiv.__buffer);
+}
+
+/** Stream loop: arms websocket callback key and handles idle close */
+function armStream(taskIndex, onChunk) {
+    const cbKey = `cell_insights_chat_callback_${taskIndex}`;
+    let sawFirstChunk = false;
+
+    function scheduleIdleClose() {
+        clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
+        window.__ginaStreamIdleTimer[taskIndex] = setTimeout(() => {
+            window.__ginaChatActive[taskIndex] = false;
+            try { delete window[cbKey]; } catch (_) {}
+            finalizePreviousReplyBubble(taskIndex);
+            setConsoleEnabled(taskIndex, true);
+        }, 1500);
+    }
+
+    const handler = function (chunk) {
+        const string = normalizeChunk(chunk);
+        if (string) {
+            onChunk(string);
+            if (!sawFirstChunk) { sawFirstChunk = true; }
+            scheduleIdleClose();
+        }
+        if (window.__ginaChatActive[taskIndex]) {
+            setTimeout(() => { window[cbKey] = handler; }, 0);
+        }
+    };
+
+    window[cbKey] = handler;
+}
+
+/** Clear all chat bubbles for a given task and reset stream state */
+function clear_insights_gina_chat(taskIndex) {
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
+    if ($chat.length) $chat.empty();
+
+    const cbKey = `cell_insights_variables_callback_${taskIndex}`;
+    try { delete window[cbKey]; } catch (_) {}
+    clearTimeout(window.__ginaStreamIdleTimer?.[taskIndex]);
+
+    if (window.__ginaStreamBuf) delete window.__ginaStreamBuf[taskIndex];
+    if (window.__ginaChatActive) delete window.__ginaChatActive[taskIndex];
+}
+
+/* ---------------------------------------------------------------------- */
+/* DATA MODE                                                               */
+/* ---------------------------------------------------------------------- */
+
+/** Resolve current Data Inspector "source" value depending on cell mode */
+function resolveDataSource(taskIndex) {
+    // Source-Edit mode: presence of the single source input implies source-edit
+    const sourceInputEl = document.getElementById(`task_step_${taskIndex}_source`);
+    if (sourceInputEl) {
+        return {
+            mode: "source-edit",
+            source: String(sourceInputEl.value || "").trim(),
+            tabId: null
+        };
+    }
+
+    // Data-Editor with tabs: use active tab's source field
+    const container = document.querySelector(`#dataEditTabContentContainer_${taskIndex}`);
+    if (!container) return { mode: "none", source: "", tabId: null };
+
+    const pane = container.querySelector(".tab-pane.show.active") || container.querySelector(".tab-pane");
+    const tabId = (pane && pane.getAttribute("data-tab-id")) || "0";
+    const tabSourceInput = document.getElementById(`task_step_${taskIndex}_source_${tabId}`);
+    const sourceVal = tabSourceInput ? String(tabSourceInput.value || "").trim() : "";
+
+    return { mode: "tabbed", source: sourceVal, tabId };
+}
+
+/** Send a dataQuery via the Insights console to kernel (Data Inspector tab) */
+function cell_insights_data_run(cell_button, dataQuery) {
+    const taskIndex = (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
+    if (!taskIndex) { console.warn("Insights Data Inspector: No taskIndex found"); return; }
+
+    const activeTabId = getActiveTabId(taskIndex);
+    if (!tabIs(activeTabId, "insights-data-inspector-tab-")) {
+        console.debug("Data run suppressed: not on Data Inspector tab");
+        return;
+    }
+
+    // Read command from argument or console
+    const $input = $(`#console_input_${taskIndex}`);
+    let query = String(dataQuery || "").trim();
+    if (!query && $input.length) query = String($input.val() || "").trim();
+    if (!query) return;
+    if ($input.is(":disabled")) return;
+
+    get_field_values({}, true, function (field_registry) {
+        field_registry.clarama_task_kill = false;
+
+        const { mode, source, tabId } = resolveDataSource(taskIndex);
+        const $cell = getCellByTask(taskIndex);
+        const task_registry = buildTaskRegistry($cell);
+        const spec = ensureStreamScaffold(task_registry);
+
+        spec.target = "insights";
+        spec.type   = "data";
+        spec.output = "table";
+        spec.clear  = true;
+        spec.source = source;
+        spec.content = query;
+
+        console.log("spec: ", spec);
+
+        // If tabbed, keep spec.tabs aligned to active tab
+        if (mode === "tabbed" && tabId != null) {
+            spec.tabs = Array.isArray(spec.tabs) ? spec.tabs : [];
+            let foundIdx = spec.tabs.findIndex(t => String(t?.tab_id ?? "") === String(tabId));
+            if (foundIdx < 0) {
+                spec.tabs.push({ tab_id: Number(tabId) || 0 });
+                foundIdx = spec.tabs.length - 1;
+            }
+            spec.tabs[foundIdx] = Object.assign({}, spec.tabs[foundIdx], {
+                tab_id: Number(tabId) || 0,
+                source,
+                content: query
+            });
+        }
+
+        task_registry.parameters = field_registry;
+
+        // Mark route for potential downstream logic/telemetry
+        window.__insightsDataRoute = window.__insightsDataRoute || {};
+        window.__insightsDataRoute[taskIndex] = { active: true, at: Date.now() };
+
+        ajaxRun(task_registry, "Data query failed: access/network issue");
+    });
+}
+
+/* ---------------------------------------------------------------------- */
+/* CHAT WITH GINA (INSIGHTS PANE)                                         */
+/* ---------------------------------------------------------------------- */
+
+function cell_insights_gina_run(cell_button, questionText) {
+    const taskIndex = (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
+    if (!taskIndex) { console.warn("GINA chat: No taskIndex found"); return; }
+
+    if (!is_chat_tab_active(taskIndex)) {
+        console.debug("GINA chat suppressed: not on Chat tab");
+        return;
+    }
+
+    // Resolve text (argument or console input)
+    const $input = $(`#console_input_${taskIndex}`);
+    let text = String(questionText || "").trim();
+    if (!text && $input.length) text = String($input.val() || "").trim();
+    if (!text) return;
+    if ($input.is(":disabled")) return;
+    if ($input.length) $input.val("");
+
+    if (text.trim().toLowerCase() === "/reset") {
+        clear_insights_gina_chat(taskIndex);
+        get_field_values({}, true, function (field_registry) {
+            field_registry.clarama_task_kill = false;
+            postToKernel(
+                taskIndex,
+                { 
+                    type: "question", 
+                    source: text, 
+                    clear: false 
+                },
+                field_registry,
+                "Couldn't process reset, network or access issue"
+            );
+        });
+        return;
+    }
+
+    // User bubble
+    try {
+        const bubbleId = `gina_user_${taskIndex}_${Date.now()}`;
+        appendChatBubbleViaTemplate(taskIndex, "user", bubbleId);
+        setStreamText(bubbleId, text, { append: false });
+        scrollChatToBottom(taskIndex);
+    } catch (e) {
+        console.warn("GINA chat: unable to render user bubble", e);
+    }
+
+    // Prepare reply streaming bubble
+    finalizePreviousReplyBubble(taskIndex);
+    const streamId = ensureStreamBubble(taskIndex);
+
+    window.__ginaChatActive[taskIndex] = true;
+    window.__ginaStreamBuf[taskIndex] = "";
+
+    setConsoleEnabled(taskIndex, false);
+    setStreamText(streamId, "thinking...", { append: false });
+    scrollChatToBottom(taskIndex);
+
+    // Stream handler
+    armStream(taskIndex, (s) => {
+        window.__ginaStreamBuf[taskIndex] += s;
+        setStreamText(streamId, window.__ginaStreamBuf[taskIndex], { append: false });
+        scrollChatToBottom(taskIndex);
+    });
+
+    // Send question to kernel
+    get_field_values({}, true, function (field_registry) {
+        field_registry.clarama_task_kill = false;
+        postToKernel(taskIndex, { type: "question", source: text, clear: false }, field_registry);
+    });
+}
+
+/** One-time /init handshake when Chat tab opens for a task */
+function initaliseInsightsGina(taskIndex) {
+    if (!taskIndex) return;
+    if (window.__ginaInsightsHandshakeSent[taskIndex] || window.__ginaInsightsHandshakeDone[taskIndex]) return;
+
+    window.__ginaInsightsHandshakeSent[taskIndex] = true;
+    window.__ginaChatActive[taskIndex] = true;
+    window.__ginaStreamBuf[taskIndex] = "";
+
+    armStream(taskIndex, (s) => {
+        const streamEl = document.getElementById(`gina_stream_${taskIndex}`);
+        const sid = streamEl ? `gina_stream_${taskIndex}` : ensureStreamBubble(taskIndex);
+        window.__ginaStreamBuf[taskIndex] += s;
+        setStreamText(sid, window.__ginaStreamBuf[taskIndex], { append: false });
+        scrollChatToBottom(taskIndex);
+    });
+
+    get_field_values({}, true, function (field_registry) {
+        field_registry.clarama_task_kill = false;
+        postToKernel(
+            taskIndex,
+            { type: "question", source: "/init", clear: false },
+            field_registry
+        ).always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
+    });
+}
+
+/* ---------------------------------------------------------------------- */
+/* VARIABLES TAB                                                           */
+/* ---------------------------------------------------------------------- */
+
 function createVariableButtonDirect(varName, taskIndex) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "variable-item";
     button.setAttribute("data-variable", varName);
     button.setAttribute("data-task-index", taskIndex);
-    
+
     const span = document.createElement("span");
     span.className = "variable-name";
     span.textContent = varName;
+
     button.appendChild(span);
-    
     return button;
 }
 
-/**
- * Creates a variable button with template support
- * @param {string} varName - Variable name
- * @param {string} taskIndex - Task index
- * @returns {HTMLElement} Button element
- */
+/** Template-based variable button (kept for compatibility if needed) */
 function createVariableButton(varName, taskIndex) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "variable-item clarama-post-embedded clarama-replaceable";
     button.setAttribute("data-variable", varName);
     button.setAttribute("data-task-index", taskIndex);
-    
-    const params = new URLSearchParams({
-        variable_name: varName,
-        task_index: taskIndex
-    });
-    
+
+    const params = new URLSearchParams({ variable_name: varName, task_index: taskIndex });
     button.setAttribute("url", `/template/render/explorer/files/_cell_insights_variable_button?${params.toString()}`);
     return button;
 }
 
-/**
- * Creates a container for variables
- * @param {string} taskIndex - Task index
- * @returns {HTMLElement} Container element
- */
 function createVariablesContainer(taskIndex) {
-    const container = document.createElement("div");
-    container.className = "variables-horizontal-container";
-    container.setAttribute("id", `variables_container_${taskIndex}`);
-    container.setAttribute("data-task-index", taskIndex);
-    return container;
+    const div = document.createElement("div");
+    div.className = "variables-horizontal-container";
+    div.id = `variables_container_${taskIndex}`;
+    div.setAttribute("data-task-index", taskIndex);
+    return div;
 }
 
-/**
- * Creates an empty variables message
- * @param {string} message - Message to display
- * @returns {HTMLElement} Message element
- */
 function createEmptyVariablesMessage(message = "No user variables found") {
-    const emptyDiv = document.createElement("div");
-    emptyDiv.className = "text-muted p-3";
-    emptyDiv.textContent = message;
-    return emptyDiv;
+    const div = document.createElement("div");
+    div.className = "text-muted p-3";
+    div.textContent = message;
+    return div;
 }
 
-// ========================================
-// VARIABLE POPULATION FUNCTIONS
-// ========================================
+/** Split respecting quotes (helper for parseVariableString) */
+function splitRespectingQuotes(str) {
+    const out = [];
+    let cur = "";
+    let inQuotes = false;
+    let quote = null;
 
-/**
- * Populates a variables container with variable buttons
- * @param {HTMLElement} container - Container element
- * @param {Array} variableNames - Array of variable names
- * @param {string} taskIndex - Task index
- */
+    for (let i = 0; i < str.length; i++) {
+        const ch = str[i];
+        if ((ch === '"' || ch === "'") && !inQuotes) { inQuotes = true; quote = ch; continue; }
+        if (ch === quote && inQuotes) { inQuotes = false; quote = null; continue; }
+        if (ch === "," && !inQuotes) { if (cur.trim()) out.push(cur.trim()); cur = ""; continue; }
+        if (ch !== '"' && ch !== "'") cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+}
+
+/** Parse Python list string to names */
+function parseVariableString(s) {
+    let str = String(s || "").trim();
+    if (str.startsWith("[") && str.endsWith("]")) {
+        const inner = str.slice(1, -1).trim();
+        if (!inner) return [];
+        return splitRespectingQuotes(inner);
+    }
+    return [str];
+}
+
+/** Populate a variables container with buttons */
 function populateVariablesContainer(container, variableNames, taskIndex) {
-    // Clear existing content and event listeners
-    const existingButtons = container.querySelectorAll('.variable-item');
-    existingButtons.forEach(button => {
-        if (button._variableClickHandler) {
-            button.removeEventListener('click', button._variableClickHandler);
-        }
+    // cleanup listeners
+    container.querySelectorAll(".variable-item").forEach(btn => {
+        if (btn._variableClickHandler) btn.removeEventListener("click", btn._variableClickHandler);
     });
-    
-    container.innerHTML = '';
-    const fragment = document.createDocumentFragment();
 
-    variableNames.forEach(varName => {
-        const button = createVariableButtonDirect(varName, taskIndex);
-        fragment.appendChild(button);
+    container.innerHTML = "";
+    const frag = document.createDocumentFragment();
+
+    variableNames.forEach(name => {
+        const btn = createVariableButtonDirect(name, taskIndex);
+        frag.appendChild(btn);
     });
-    
-    container.appendChild(fragment);
-    
+
+    container.appendChild(frag);
     attachVariableClickHandlers(container, taskIndex);
 }
 
-/**
- * Populates the variables list with parsed output
- * @param {*} output - Raw output from Python execution
- * @param {string} taskIndex - Task index
- */
+/** Parse & render variables list output */
 function populateVariablesList(output, taskIndex) {
-    const variablesList = $(`#variables_${taskIndex}`)[0];
-    
-    if (!variablesList) {
-        console.error("Variables list element not found for task", taskIndex);
-        return;
-    }
-    
-    try {
-        let variableNames = [];
+    const host = $(`#variables_${taskIndex}`)[0];
+    if (!host) { console.error("Variables list element not found for task", taskIndex); return; }
 
-        if (output === null || output === undefined || output === 'None' || output === '') {
-            console.log("No output or empty output received");
-            const emptyMessage = createEmptyVariablesMessage("No variables found");
-            variablesList.innerHTML = '';
-            variablesList.appendChild(emptyMessage);
+    try {
+        if (output === null || output === undefined || output === "None" || output === "") {
+            host.innerHTML = "";
+            host.appendChild(createEmptyVariablesMessage("No variables found"));
             return;
         }
 
-        let stringToParse = output;
-        
-        // Decode HTML entities first
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = stringToParse;
-        stringToParse = tempDiv.textContent || tempDiv.innerText || stringToParse;
-        
-        variableNames = parseVariableString(stringToParse);
+        // Decode HTML entities
+        const temp = document.createElement("div");
+        temp.innerHTML = String(output);
+        let decoded = temp.textContent || temp.innerText || String(output);
 
-        // Clean up variable names
-        variableNames = variableNames.map(name => {
+        // Split into names
+        let names = parseVariableString(decoded).map(name => {
             const div = document.createElement("div");
             div.innerHTML = name;
-            let decoded = div.textContent || div.innerText || "";
-    
-            // Remove surrounding quotes
-            if ((decoded.startsWith('"') && decoded.endsWith('"')) ||
-                (decoded.startsWith("'") && decoded.endsWith("'"))) {
-                decoded = decoded.slice(1, -1);
+            let n = div.textContent || div.innerText || "";
+            if ((n.startsWith('"') && n.endsWith('"')) || (n.startsWith("'") && n.endsWith("'"))) {
+                n = n.slice(1, -1);
             }
-            return decoded.trim();
+            return n.trim();
         });
 
-        // Filter out empty strings and system variables
-        variableNames = variableNames.filter(name => {
-            return name && 
-                   name.length > 0 && 
-                   typeof name === 'string' &&
-                   !name.startsWith('_') && 
-                   name !== 'In' && 
-                   name !== 'Out' && 
-                   name !== 'get_ipython' &&
-                   name !== 'exit' &&
-                   name !== 'quit';
-        });
+        // Filter internal/system names
+        names = names.filter(n =>
+            n && typeof n === "string" &&
+            !n.startsWith("_") && !["In", "Out", "get_ipython", "exit", "quit"].includes(n)
+        );
 
-        if (variableNames.length > 0) {
+        host.innerHTML = "";
+        if (names.length) {
             const container = createVariablesContainer(taskIndex);
-            populateVariablesContainer(container, variableNames, taskIndex);
-            
-            variablesList.innerHTML = '';
-            variablesList.appendChild(container);
+            populateVariablesContainer(container, names, taskIndex);
+            host.appendChild(container);
         } else {
-            const emptyMessage = createEmptyVariablesMessage();
-            variablesList.innerHTML = '';
-            variablesList.appendChild(emptyMessage);
+            host.appendChild(createEmptyVariablesMessage());
         }
-
     } catch (e) {
-        console.error('Error parsing variables:', e);
-        const errorMessage = createEmptyVariablesMessage(`Error parsing variables: ${e.message}`);
-        errorMessage.className = "text-danger p-3";
-        variablesList.innerHTML = '';
-        variablesList.appendChild(errorMessage);
-        flash('Error parsing variables: ' + e, 'danger');
+        console.error("Error parsing variables:", e);
+        const err = createEmptyVariablesMessage(`Error parsing variables: ${e.message}`);
+        err.className = "text-danger p-3";
+        host.innerHTML = "";
+        host.appendChild(err);
+        flash("Error parsing variables: " + e, "danger");
     }
 }
 
-/**
- * Parse a string representation of a Python list into individual variable names
- * @param {string} stringToParse - The string to parse (e.g., "['var1', 'var2', 'var3']")
- * @returns {string[]} Array of variable names
- */
-function parseVariableString(stringToParse) {
-    let variableNames = [];
-    
-    stringToParse = stringToParse.trim();
-    
-    if (stringToParse.startsWith("[") && stringToParse.endsWith("]")) {
-        let innerContent = stringToParse.slice(1, -1).trim();
-        
-        if (innerContent.length === 0) {
-            return [];
-        }
-        
-        variableNames = splitRespectingQuotes(innerContent);
-        
-        console.log("list of variables: ", variableNames);
-        
-    } else {
-        variableNames = [stringToParse];
-    }
-    
-    return variableNames;
-}
-
-/**
- * Split a string by commas while respecting quoted strings
- * @param {string} str - The string to split
- * @returns {string[]} Array of split strings
- */
-function splitRespectingQuotes(str) {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    let quoteChar = null;
-    
-    for (let i = 0; i < str.length; i++) {
-        const char = str[i];
-        
-        if ((char === '"' || char === "'") && !inQuotes) {
-            // Start of quoted string
-            inQuotes = true;
-            quoteChar = char;
-            // Don't include the quote in the result
-        } else if (char === quoteChar && inQuotes) {
-            // End of quoted string
-            inQuotes = false;
-            quoteChar = null;
-            // Don't include the quote in the result
-        } else if (char === ',' && !inQuotes) {
-            // Comma outside of quotes - split here
-            if (current.trim()) {
-                result.push(current.trim());
-            }
-            current = '';
-        } else if (char !== '"' && char !== "'") {
-            // Only add non-quote characters
-            current += char;
-        }
-    }
-    
-    if (current.trim()) {
-        result.push(current.trim());
-    }
-    
-    return result;
-}
-
-// ========================================
-// CLICK HANDLER FUNCTIONS
-// ========================================
-
-/**
- * Attaches click handlers to variable buttons with debouncing
- * @param {HTMLElement} container - Container element
- * @param {string} taskIndex - Task index
- */
+/** Attach debounced click handlers to variable buttons */
 function attachVariableClickHandlers(container, taskIndex) {
-    const variableButtons = container.querySelectorAll('.variable-item');
-    
-    variableButtons.forEach(button => {
-        // Remove existing handler if present
+    container.querySelectorAll(".variable-item").forEach(button => {
         if (button._variableClickHandler) {
-            button.removeEventListener('click', button._variableClickHandler);
+            button.removeEventListener("click", button._variableClickHandler);
         }
-        
-        // Create debounced click handler
-        button._variableClickHandler = debounce(function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
+        button._variableClickHandler = debounce(function (e) {
+            e.preventDefault(); e.stopPropagation();
             const varName = this.dataset.variable;
-            const taskIdx = this.dataset.taskIndex;
-            
-            container.querySelectorAll('.variable-item').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-            
-            this.classList.add('selected');
-            
-            inspectVariable(varName, taskIdx);
-        }, 150);
-        
-        button.addEventListener('click', button._variableClickHandler);
-    });
-}
-
-/**
- * Handles variable button click (legacy function, now uses debounced handler)
- * @param {HTMLElement} button - Button element
- */
-function handleVariableClick(button) {
-    const varName = button.dataset.variable;
-    const taskIndex = button.dataset.taskIndex;
-    const container = button.closest('.variables-horizontal-container');
-        
-    container.querySelectorAll('.variable-item').forEach(btn => {
-        btn.classList.remove('selected');
-    });
-    
-    button.classList.add('selected');
-    
-    inspectVariable(varName, taskIndex);
-}
-
-$.fn.interact_variable = function() {
-    return this.each(function() {
-        const $this = $(this);
-        
-        // Remove existing handlers
-        $this.off('click.variable');
-        
-        const debouncedHandler = debounce(function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const varName = this.dataset.variable;
-            const taskIndex = this.dataset.taskIndex;
-            const container = this.closest('.variables-horizontal-container');
-            
-            // Update UI immediately
-            $(container).find('.variable-item').removeClass('selected');
-            $(this).addClass('selected');
-            
-            // Inspect variable
+            container.querySelectorAll(".variable-item").forEach(b => b.classList.remove("selected"));
+            this.classList.add("selected");
             inspectVariable(varName, taskIndex);
         }, 150);
-        
-        $this.on('click.variable', debouncedHandler);
+        button.addEventListener("click", button._variableClickHandler);
+    });
+}
+
+/** Legacy jQuery plugin binding (kept for compatibility) */
+$.fn.interact_variable = function () {
+    return this.each(function () {
+        const $this = $(this);
+        $this.off("click.variable");
+        const handler = debounce(function (e) {
+            e.preventDefault(); e.stopPropagation();
+            const varName = this.dataset.variable;
+            const taskIndex = this.dataset.taskIndex;
+            const container = this.closest(".variables-horizontal-container");
+            $(container).find(".variable-item").removeClass("selected");
+            $(this).addClass("selected");
+            inspectVariable(varName, taskIndex);
+        }, 150);
+        $this.on("click.variable", handler);
     });
 };
+
+/** Execute “list variables” in the cell kernel and render them */
+function cell_insights_variables_run(cell_button, outputCallback) {
+    const taskIndex = cell_button.attr("step") || cell_button.attr("data-task-index");
+    const shownIndex = cell_button.closest("li.clarama-cell-item").find("button.step-label").text().trim();
+
+    const runningKey = `cell_insights_running_${taskIndex}`;
+    if (window[runningKey]) {
+        console.log("Cell insights already running for task", taskIndex);
+        return;
+    }
+    window[runningKey] = true;
+
+    window[`cell_insights_variables_callback_${taskIndex}`] = function (output) {
+        populateVariablesList(output, taskIndex);
+        if (outputCallback) outputCallback(output);
+        delete window[runningKey];
+    };
+
+    get_field_values({}, true, function (field_registry) {
+        const $cell = getCellByTask(taskIndex);
+        const task_registry = buildTaskRegistry($cell);
+        set_insight_behaviour(task_registry, "print(list(locals().keys()));", field_registry);
+
+        ajaxRun(task_registry).done((data) => {
+            if (data && data.data === "ok") {
+                console.log("Insights submission ok for task", shownIndex);
+                flash(`Cell ${shownIndex} insight toggled on`, "success");
+                set_console_mode(taskIndex, "gina");
+            } else {
+                const err = data && data.error ? data.error : "Unknown error";
+                console.log("Insights submission failed for task", taskIndex);
+                $(`#variables_${taskIndex}`).html(`<div class="text-danger p-3">Error loading variables: ${err}</div>`);
+                flash("Couldn't run insight content: " + err, "danger");
+                window[`cell_insights_variables_callback_${taskIndex}`] = null;
+                delete window[runningKey];
+            }
+        }).fail(() => {
+            console.log("Insights AJAX error for task", taskIndex);
+            $(`#variables_${taskIndex}`).html('<div class="text-danger p-3">Error loading variables</div>');
+            flash("Couldn't run insight content, access denied", "danger");
+            window[`cell_insights_variables_callback_${taskIndex}`] = null;
+            delete window[runningKey];
+        });
+    });
+}
+
+/* ---------------------------------------------------------------------- */
+/* CONSOLE (PYTHON MODE)                                                  */
+/* ---------------------------------------------------------------------- */
+
+function cell_insights_code_run(taskIndex, code) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell.length) {
+        console.error("Cell element not found for task index", taskIndex);
+        return;
+    }
+
+    const resultsElId = `code-results-${taskIndex}`;
+    const resultsEl = document.getElementById(resultsElId);
+
+    const legacyOutEl =
+        document.getElementById(`console_output_${taskIndex}`) ||
+        $cell.find(".console-output")[0] ||
+        null;
+
+    const writeTarget = resultsEl || legacyOutEl;
+    if (!writeTarget) {
+        console.warn(`No results container found for task ${taskIndex} (looked for #${resultsElId}).`);
+    }
+
+    // Resolve code from console if not provided
+    if (!code) {
+        let input = document.getElementById(`console_input_${taskIndex}`) || $cell.find(".console-input")[0];
+        if (input && !input.id) input.id = `console_input_${taskIndex}`;
+        if (!input) { console.error("Console input not found for task", taskIndex); return; }
+        code = String(input.value || "").trim();
+        input.value = "";
+    }
+    if (!code) { return; }
+
+    const executionKey = `console_executing_${taskIndex}`;
+    if (window[executionKey]) {
+        console.log("Console execution already in progress for task", taskIndex);
+        return;
+    }
+    window[executionKey] = true;
+
+    // Small helper to render into the Code Inspector results well
+    function renderToResults(text) {
+        if (!writeTarget) return;
+        // If we’re writing into the Code Inspector panel, clear it and show fresh <pre>
+        if (resultsEl) {
+            resultsEl.innerHTML = "";
+            const pre = document.createElement("pre");
+            pre.className = "code-response";
+            pre.textContent = String(text ?? "");
+            resultsEl.appendChild(pre);
+        } else {
+            // Legacy fallback
+            writeTarget.textContent = String(text ?? "");
+        }
+    }
+
+    // Unique callback (the kernel should call this when output is ready)
+    window[`cell_insights_callback_${taskIndex}`] = function (output) {
+        renderToResults(output);
+        delete window[executionKey];
+    };
+
+    // Fire the request
+    get_field_values({}, true, function (field_registry) {
+        const task_registry = buildTaskRegistry($cell);
+        set_insight_behaviour(task_registry, code, field_registry);
+
+        ajaxRun(task_registry, "Console execution failed: access denied")
+            .done((data) => {
+                if (!(data && data.data === "ok")) {
+                    // If the kernel didn’t accept the job, clear the callback + lock
+                    delete window[`cell_insights_callback_${taskIndex}`];
+                    delete window[executionKey];
+                    renderToResults("Error: kernel did not accept job.");
+                }
+            })
+            .fail(() => {
+                delete window[`cell_insights_callback_${taskIndex}`];
+                delete window[executionKey];
+                renderToResults("Network or access error while executing code.");
+            });
+    });
+}
+
+/* ---------------------------------------------------------------------- */
+/* VARIABLE INSPECTION                                                     */
+/* ---------------------------------------------------------------------- */
+
+function inspectVariable(varName, taskIndex) {
+    console.log("Inspecting variable:", varName, "in task:", taskIndex);
+
+    // clear the cell output before inspecting
+    const cell_output = $(`#results_${taskIndex}`);
+    cell_output.empty();
+
+    debounce(function (vName, tIdx) {
+        const $cell = getCellByTask(tIdx);
+        if (!$cell.length) { console.error("Cell not found for task", tIdx); return; }
+
+        const inspectionKey = `variable_inspecting_${tIdx}`;
+        window[inspectionKey] = true;
+
+        // unique callback
+        if (window[`cell_insights_callback_${tIdx}`]) delete window[`cell_insights_callback_${tIdx}`];
+        window[`cell_insights_callback_${tIdx}`] = function () {
+            delete window[inspectionKey];
+        };
+
+        get_field_values({}, true, function (field_registry) {
+            const task_registry = buildTaskRegistry($cell);
+
+            const codeChecker = `
+from pprint import pprint
+import pandas as pd
+import inspect
+try:
+    val = ${vName}
+    if isinstance(val, pd.DataFrame):
+        print(val.info())
+    elif inspect.isclass(val) or inspect.isclass(type(val)) or inspect.isfunction(val) or inspect.ismethod(val) or inspect.ismodule(val) or inspect.isbuiltin(val):
+        help(${vName})
+    else:
+        pprint(${vName})
+except NameError:
+    print(f"Variable '${vName}' is not defined")
+except Exception as e:
+    print(f"Error inspecting variable '${vName}': {e}")
+    try:
+        print(${vName})
+    except:
+        print(f"Could not display variable '${vName}'")
+`.trim();
+
+            set_insight_behaviour(task_registry, codeChecker, field_registry, true);
+
+            ajaxRun(task_registry, "Couldn't inspect variable")
+                .done((data) => {
+                    if (!(data && data.data === "ok")) {
+                        delete window[`cell_insights_callback_${tIdx}`];
+                        delete window[inspectionKey];
+                    }
+                })
+                .fail((error) => {
+                    console.log("inspectVariable AJAX error for task", tIdx, ":", error);
+                    delete window[`cell_insights_callback_${tIdx}`];
+                    delete window[inspectionKey];
+                });
+        });
+    }, 200)(varName, taskIndex);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Console UX helpers                                                      */
+/* ---------------------------------------------------------------------- */
+
+function resetConsole(taskIndex) {
+    const el = document.getElementById(`console_input_${taskIndex}`);
+    if (!el) return;
+    el.value = "";
+    el.style.height = "auto"; // collapse back to single-line height
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tab + Console event wiring                                              */
+/* ---------------------------------------------------------------------- */
+
+$(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function () {
+    const id = this.id;
+    const taskIndex = id.split("-").pop();
+    configureConsoleForActiveTab(taskIndex, id);
+    if (id.startsWith("insights-chat-tab-")) {
+        initaliseInsightsGina(taskIndex);
+    }
+});
+
+/* Click “Run” on console */
+$(document).on("click", ".execute-console", function () {
+    const taskIndex = $(this).data("task-index");
+    const mode = get_console_mode(taskIndex);
+    const $cellItem = getCellByTask(taskIndex);
+
+    if (mode === "gina") {
+        cell_insights_gina_run($cellItem, "");
+    } else if (mode === "data") {
+        cell_insights_data_run($cellItem, "");
+    } else {
+        cell_insights_code_run(taskIndex, "");
+    }
+    if (mode !== "data") resetConsole(taskIndex);
+});
+
+/* Press Enter in console input (Shift+Enter for newline) */
+$(document).on("keydown", ".console-input", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const taskIndex = $(this).data("task-index");
+        const mode = get_console_mode(taskIndex);
+        const $cellItem = getCellByTask(taskIndex);
+
+        if (mode === "gina") {
+            cell_insights_gina_run($cellItem, $(this).val());
+        } else if (mode === "data") {
+            cell_insights_data_run($cellItem, $(this).val());
+        } else {
+            cell_insights_code_run(taskIndex);
+        }
+        if (mode !== "data") resetConsole(taskIndex);
+    }
+});
+
+/* Auto-grow textarea */
+$(document).on("input", ".console-input", function () {
+    this.style.height = "auto";
+    this.style.height = this.scrollHeight + "px";
+});
+
+/* On initial load: if a Chat tab is already active, set mode + /init */
+$(function () {
+    $('[id^="insightsTabs_"]').each(function () {
+        const taskIndex = this.id.replace("insightsTabs_", "");
+        const activeId = ($(this).find(".nav-link.active").attr("id") || "");
+        configureConsoleForActiveTab(taskIndex, activeId);
+        if (activeId.startsWith("insights-chat-tab-")) {
+            initaliseInsightsGina(taskIndex);
+        }
+    });
+});
