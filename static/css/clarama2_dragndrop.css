@@ -416,12 +416,12 @@ button.btn-c2-play:hover {
     height: 100%;
 }
 
-.loop-edge {
-    width: 45px;
-    height: 15px;
+.loop-edge{
+    height: var(--loop-edge-height);
+    width: 40px;
     -ms-flex: 0 0 45px;
     flex: 0 0 45px;
-}
+}  
 
 .loop-hidden {
     display: none;
@@ -429,6 +429,34 @@ button.btn-c2-play:hover {
 
 .loop-show {
     display: block;
+}
+
+:root{
+    --loop-rail-width: 15px;
+    --loop-edge-height: 15px;
+}
+
+.row[data-task-index]{ 
+    position: relative; 
+}
+
+.col.loop-left{
+    position: absolute;
+    left: 0;
+    top: calc(-1 * var(--loop-edge-height));
+    bottom: calc(-1 * var(--loop-edge-height));
+    width: var(--loop-rail-width);
+    padding: 0;
+    z-index: 1;
+}
+
+.col.loop-left .loop{
+    width: 100%;
+    height: 100%;
+}
+
+.col-12.cell-split{
+    padding-left: var(--loop-rail-width);
 }
 
 .select2-select {
