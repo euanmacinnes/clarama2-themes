@@ -96,18 +96,15 @@
                 {% if task_step['type'] == 'code' %}
                     <div class="tab-pane fade" id="insights-code-inspector-{{ task_index }}" role="tabpanel"
                         aria-labelledby="insights-code-inspector-tab-{{ task_index }}" tabindex="0">
-                        <div class="p-3" id="code_inspector_{{ task_index }}"></div>
+                        <div class="p-3" id="code_inspector-{{ task_index }}"></div>
                     </div>
                 {% endif %}
 
                 {% if task_step['type'] in ['data', 'source'] %}
-                    <div class="tab-pane fade" id="insights-data-inspector-{{ task_index }}" role="tabpanel"
+                <div class="tab-pane fade" id="insights-data-inspector-{{ task_index }}" role="tabpanel"
                         aria-labelledby="insights-data-inspector-tab-{{ task_index }}" tabindex="0">
-                        <div class="p-3" id="data_inspector_{{ task_index }}">
-                            <div class="inspector-results">
-                            </div>
-                        </div>
-                    </div>
+                    <div class="p-3" id="data-inspector-{{ task_index }}"></div>
+                </div>           
                 {% endif %}
 
                 <!-- Preview -->
@@ -119,12 +116,15 @@
                 <!-- Global Fields -->
                 <div class="tab-pane fade" id="insights-global-fields-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-global-fields-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="global-fields_{{ task_index }}">
+                    <div class="p-3" id="global-fields-{{ task_index }}">
                         {% include theme("explorer/files/field_edit_fields.html") %}
                     </div>
                 </div>
             </div>
-        
+            
+            <!-- code results -->      
+            <div class="insights-results" id="code-results-{{ task_index }}"></div>
+
             <!-- Console -->
             <div class="insights-console border-top bg-light">
                 <div class="p-2">

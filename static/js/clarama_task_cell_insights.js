@@ -149,8 +149,10 @@ function set_console_mode(taskIndex, mode) {
         $input.attr("placeholder", "Message GINA…").data("console-mode", "gina");
     } else if (mode === "data") {
         $input.attr("placeholder", "Enter data command").data("console-mode", "data");
+        $input.addClass("font-monospace");
     } else {
         $input.attr("placeholder", "Enter Python command.").data("console-mode", "python");
+        $input.addClass("font-monospace");
     }
 }
 
@@ -359,7 +361,6 @@ function cell_insights_data_run(cell_button, dataQuery) {
     if (!query && $input.length) query = String($input.val() || "").trim();
     if (!query) return;
     if ($input.is(":disabled")) return;
-    if ($input.length) $input.val("");
 
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
@@ -369,13 +370,14 @@ function cell_insights_data_run(cell_button, dataQuery) {
         const task_registry = buildTaskRegistry($cell);
         const spec = ensureStreamScaffold(task_registry);
 
-        // Common data mode settings
         spec.target = "insights";
         spec.type   = "data";
         spec.output = "table";
         spec.clear  = true;
         spec.source = source;
         spec.content = query;
+
+        console.log("spec: ", spec);
 
         // If tabbed, keep spec.tabs aligned to active tab
         if (mode === "tabbed" && tabId != null) {
@@ -742,35 +744,59 @@ function cell_insights_code_run(taskIndex, code) {
         return;
     }
 
-    const shownIndex = $cell.closest("li.clarama-cell-item").find("button.step-label").text().trim();
-    const executionKey = `console_executing_${taskIndex}`;
-    if (window[executionKey]) {
-        console.log("Console execution already in progress for task", taskIndex);
-        return;
+    const resultsElId = `code-results-${taskIndex}`;
+    const resultsEl = document.getElementById(resultsElId);
+
+    const legacyOutEl =
+        document.getElementById(`console_output_${taskIndex}`) ||
+        $cell.find(".console-output")[0] ||
+        null;
+
+    const writeTarget = resultsEl || legacyOutEl;
+    if (!writeTarget) {
+        console.warn(`No results container found for task ${taskIndex} (looked for #${resultsElId}).`);
     }
 
     // Resolve code from console if not provided
     if (!code) {
         let input = document.getElementById(`console_input_${taskIndex}`) || $cell.find(".console-input")[0];
-        if (input && !input.id) {
-            console.warn(`Console input found via fallback; syncing ID for task ${taskIndex}.`);
-            input.id = `console_input_${taskIndex}`;
-        }
+        if (input && !input.id) input.id = `console_input_${taskIndex}`;
         if (!input) { console.error("Console input not found for task", taskIndex); return; }
-        code = (input.value || "").trim();
+        code = String(input.value || "").trim();
         input.value = "";
     }
-    if (!code) { console.log("No code to execute for task", taskIndex); return; }
+    if (!code) { return; }
 
+    const executionKey = `console_executing_${taskIndex}`;
+    if (window[executionKey]) {
+        console.log("Console execution already in progress for task", taskIndex);
+        return;
+    }
     window[executionKey] = true;
 
-    // Console result callback
+    // Small helper to render into the Code Inspector results well
+    function renderToResults(text) {
+        if (!writeTarget) return;
+        // If we’re writing into the Code Inspector panel, clear it and show fresh <pre>
+        if (resultsEl) {
+            resultsEl.innerHTML = "";
+            const pre = document.createElement("pre");
+            pre.className = "code-response";
+            pre.textContent = String(text ?? "");
+            resultsEl.appendChild(pre);
+        } else {
+            // Legacy fallback
+            writeTarget.textContent = String(text ?? "");
+        }
+    }
+
+    // Unique callback (the kernel should call this when output is ready)
     window[`cell_insights_callback_${taskIndex}`] = function (output) {
-        const outEl = document.getElementById(`console_output_${taskIndex}`) || $cell.find(".console-output")[0];
-        if (outEl) outEl.textContent = output;
+        renderToResults(output);
         delete window[executionKey];
     };
 
+    // Fire the request
     get_field_values({}, true, function (field_registry) {
         const task_registry = buildTaskRegistry($cell);
         set_insight_behaviour(task_registry, code, field_registry);
@@ -778,13 +804,16 @@ function cell_insights_code_run(taskIndex, code) {
         ajaxRun(task_registry, "Console execution failed: access denied")
             .done((data) => {
                 if (!(data && data.data === "ok")) {
+                    // If the kernel didn’t accept the job, clear the callback + lock
                     delete window[`cell_insights_callback_${taskIndex}`];
                     delete window[executionKey];
+                    renderToResults("Error: kernel did not accept job.");
                 }
             })
             .fail(() => {
                 delete window[`cell_insights_callback_${taskIndex}`];
                 delete window[executionKey];
+                renderToResults("Network or access error while executing code.");
             });
     });
 }
@@ -893,7 +922,7 @@ $(document).on("click", ".execute-console", function () {
     } else {
         cell_insights_code_run(taskIndex, "");
     }
-    resetConsole(taskIndex);
+    if (mode !== "data") resetConsole(taskIndex);
 });
 
 /* Press Enter in console input (Shift+Enter for newline) */
@@ -911,7 +940,7 @@ $(document).on("keydown", ".console-input", function (e) {
         } else {
             cell_insights_code_run(taskIndex);
         }
-        resetConsole(taskIndex);
+        if (mode !== "data") resetConsole(taskIndex);
     }
 });
 
