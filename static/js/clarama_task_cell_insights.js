@@ -147,6 +147,7 @@ function set_console_mode(taskIndex, mode) {
     if (!$input.length) return;
     if (mode === "gina") {
         $input.attr("placeholder", "Message GINA…").data("console-mode", "gina");
+        $input.removeClass("font-monospace");
     } else if (mode === "data") {
         $input.attr("placeholder", "Enter data command").data("console-mode", "data");
         $input.addClass("font-monospace");
@@ -271,6 +272,7 @@ function setStreamText(streamId, text, { append = false } = {}) {
 
     // markdownToHtml is expected to be globally available
     htmlDiv.innerHTML = markdownToHtml(htmlDiv.__buffer);
+    attachCodeInsertBars(htmlDiv);
 }
 
 /** Stream loop: arms websocket callback key and handles idle close */
@@ -303,13 +305,12 @@ function armStream(taskIndex, onChunk) {
     window[cbKey] = handler;
 }
 
-/** Clear all chat bubbles for a given task and reset stream state */
 function clear_insights_gina_chat(taskIndex) {
     const $chat = $(`#insights_gina_chat_${taskIndex}`);
     if ($chat.length) $chat.empty();
 
-    const cbKey = `cell_insights_variables_callback_${taskIndex}`;
-    try { delete window[cbKey]; } catch (_) {}
+    const chatKey = `cell_insights_chat_callback_${taskIndex}`;
+    try { delete window[chatKey]; } catch (_) {}
     clearTimeout(window.__ginaStreamIdleTimer?.[taskIndex]);
 
     if (window.__ginaStreamBuf) delete window.__ginaStreamBuf[taskIndex];
@@ -431,10 +432,10 @@ function cell_insights_gina_run(cell_button, questionText) {
             field_registry.clarama_task_kill = false;
             postToKernel(
                 taskIndex,
-                { 
-                    type: "question", 
-                    source: text, 
-                    clear: false 
+                {
+                    type: "question",
+                    source: text,
+                    clear: false
                 },
                 field_registry,
                 "Couldn't process reset, network or access issue"
@@ -478,8 +479,148 @@ function cell_insights_gina_run(cell_button, questionText) {
     });
 }
 
+function attachCodeInsertBars(rootEl) {
+    const pres = rootEl.querySelectorAll('pre.ginacode:not(.__barified)');
+    pres.forEach(pre => {
+        pre.classList.add('__barified');
+
+        let wrap = pre.closest('.ginacode-wrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.className = 'ginacode-wrap';
+            pre.parentNode.insertBefore(wrap, pre);
+            wrap.appendChild(pre);
+        }
+        if (wrap.querySelector('.code-insert-bar')) return;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'code-insert-bar';
+        btn.title = 'Insert code to the left editor';
+        btn.setAttribute('aria-label', 'Insert code to the left editor');
+        btn.innerHTML = '<i class="bi bi-arrow-bar-left" aria-hidden="true"></i>';
+
+        // Determine task index from the current chat pane
+        const taskIndex = resolveTaskIndexFromChat(rootEl);
+        if (taskIndex) {
+            if (!findAceInLeft(taskIndex)) {
+                btn.classList.add('disabled');
+                observeAceReady(taskIndex);
+            }
+        }
+
+        btn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+
+            if (btn.classList.contains('disabled')) return; // unclickable when disabled
+
+            const codeEl = pre.querySelector('code');
+            const codeText = codeEl ? codeEl.textContent : pre.textContent || '';
+            const idx = taskIndex || resolveTaskIndexFromChat(rootEl);
+            if (!idx) return;
+
+            insertCodeIntoAceEditor(idx, codeText);
+            btn.classList.add('active');
+            setTimeout(() => btn.classList.remove('active'), 180);
+        });
+
+        wrap.appendChild(btn);
+    });
+}
+
+function resolveTaskIndexFromChat(rootEl) {
+    const pane = rootEl.closest('[id^="insights-chat-"]');
+    if (!pane) return null;
+    const m = pane.id.match(/insights-chat-(\d+)/);
+    return m ? m[1] : null;
+}
+
+function insertCodeIntoAceEditor(taskIndex, text) {
+    if (!text) return;
+
+    // If a focused input/textarea inside left-content, insert at caret
+    const left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) return;
+
+    const active = document.activeElement;
+    if (active && left.contains(active) && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
+        const start = active.selectionStart ?? active.value.length;
+        const end   = active.selectionEnd ?? start;
+        const before = active.value.slice(0, start);
+        const after  = active.value.slice(end);
+        active.value = before + text + after;
+        const pos = start + text.length;
+        active.selectionStart = active.selectionEnd = pos;
+        active.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+    }
+
+    // Try to find an Ace host inside the left content
+    const aceHost = left.querySelector('.ace_editor');
+    if (aceHost && window.ace && typeof window.ace.edit === 'function') {
+        // ensure the host has an id for ace.edit
+        if (!aceHost.id) aceHost.id = `ace_${taskIndex}_${Date.now()}`;
+        const editor = window.ace.edit(aceHost.id);
+        try {
+            const Range = window.ace.require && window.ace.require("ace/range").Range;
+            // insert at current cursor (or end-of-doc)
+            const pos = editor.getCursorPosition();
+            editor.session.insert(pos, text);
+            editor.focus();
+            return;
+        } catch (_) {
+            // fall through to contentEditable / append
+        }
+    }
+}
+
+/** Return Ace editor host element for this task (or null if not ready) */
+function findAceInLeft(taskIndex) {
+    const left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) return null;
+
+    // Most robust search: look for the Ace host related to the specific editor div and general fallback
+    const container = left.querySelector(`#content_query_${taskIndex}`);
+    // Ace can be created inside the container, or as a sibling div .ace_editor
+    const direct = container && container.querySelector('.ace_editor');
+    const sibling = container && container.parentElement && container.parentElement.querySelector('.ace_editor');
+
+    return direct || sibling || left.querySelector('.ace_editor') || null;
+}
+
+/** Observe the left content until Ace appears, then enable any disabled bars for this task. */
+function observeAceReady(taskIndex) {
+    const left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) return;
+
+    // If already present, just enable right away.
+    if (findAceInLeft(taskIndex)) {
+        toggleBarsForTask(taskIndex, /*enabled=*/true);
+        return;
+    }
+
+    const obs = new MutationObserver(() => {
+        if (findAceInLeft(taskIndex)) {
+            toggleBarsForTask(taskIndex, /*enabled=*/true);
+            obs.disconnect();
+        }
+    });
+    obs.observe(left, { childList: true, subtree: true });
+}
+
+/** Enable/disable all insert bars that belong to this task's chat tab */
+function toggleBarsForTask(taskIndex, enabled) {
+    const pane = document.getElementById(`insights-chat-${taskIndex}`);
+    if (!pane) return;
+    pane.querySelectorAll('.code-insert-bar').forEach(btn => {
+        if (enabled) btn.classList.remove('disabled');
+        else btn.classList.add('disabled');
+    });
+}
+
 /** One-time /init handshake when Chat tab opens for a task */
-function initaliseInsightsGina(taskIndex) {
+function initialiseInsightsGina(taskIndex) {
     if (!taskIndex) return;
     if (window.__ginaInsightsHandshakeSent[taskIndex] || window.__ginaInsightsHandshakeDone[taskIndex]) return;
 
@@ -503,6 +644,10 @@ function initaliseInsightsGina(taskIndex) {
             field_registry
         ).always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
     });
+
+    // taskCell = getCellByTask(taskIndex)
+    // cellContent = JSON.stringify(extractCellContent(taskCell)); // strigify JSON content
+    // then call /suggest prompt:{{ cellContent }}
 }
 
 /* ---------------------------------------------------------------------- */
@@ -905,7 +1050,7 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     const taskIndex = id.split("-").pop();
     configureConsoleForActiveTab(taskIndex, id);
     if (id.startsWith("insights-chat-tab-")) {
-        initaliseInsightsGina(taskIndex);
+        initialiseInsightsGina(taskIndex);
     }
 });
 
@@ -957,7 +1102,7 @@ $(function () {
         const activeId = ($(this).find(".nav-link.active").attr("id") || "");
         configureConsoleForActiveTab(taskIndex, activeId);
         if (activeId.startsWith("insights-chat-tab-")) {
-            initaliseInsightsGina(taskIndex);
+            initialiseInsightsGina(taskIndex);
         }
     });
 });
