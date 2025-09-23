@@ -1306,6 +1306,22 @@
             + "&suggestions=" + encodeURIComponent(($('#suggestions').val() || '').split(/\r?\n/).filter(s => s.trim().length > 0).join('|'))
             + "&data_text=" + encodeURIComponent(code);
 
+        // For select-type fields, include column mapping indices in preview URL so the embedded can honor them
+        try {
+            var _t = String(key || '').toLowerCase();
+            if (_t === 'select' || _t === 'select_multiple') {
+                var _idc = $('#id_column').val() || '';
+                var _valc = $('#value_column').val() || '';
+                var _selc = $('#select_column').val() || '';
+                var _disabc = $('#disable_column').val() || '';
+                mainUrl += "&id_column=" + encodeURIComponent(_idc)
+                    + "&value_column=" + encodeURIComponent(_valc)
+                    + "&select_column=" + encodeURIComponent(_selc)
+                    + "&disable_column=" + encodeURIComponent(_disabc);
+            }
+        } catch (e) { /* ignore */
+        }
+
         function loadMainPreview() {
             $("#preview").attr("url", mainUrl);
             $("#preview").attr("clarama_loaded", false);
@@ -1410,6 +1426,8 @@
             }
         } catch (e) { /* ignore */
         }
+
+        console.log("Field save data", field_data);
 
         var url = "/content/save/" + $("#save").attr("url");
 
