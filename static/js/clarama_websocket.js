@@ -825,6 +825,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 if (taskIndex) {
                     const cbChat = "cell_insights_chat_callback_" + taskIndex;
                     const cbVars = "cell_insights_variables_callback_" + taskIndex;
+                    const cbCode = "cell_insights_callback_" + taskIndex;
                 
                     // Prefer active gina insights chat stream first
                     if (typeof window[cbChat] === "function") {
@@ -836,7 +837,15 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                         try { window[cbVars](chunk); } catch(e){ console.error(e); } finally { delete window[cbVars]; }
                         return; // handled by variables
                     }
+
+                    if (typeof window[cbCode] === "function") {
+                        try { window[cbCode](chunk); }
+                        catch (e) { console.error(e); }
+                        finally { delete window[cbCode]; }
+                        return; // handled by code console
+                    }
                 }
+
                 return; // nothing to deliver
             }              
 

@@ -1,0 +1,53 @@
+<!-- OPC-UA Server YAML example help -->
+<div class="container-fluid py-2">
+  <h5 class="mb-2">Example OPC-UA server configuration (YAML)</h5>
+  <p class="text-muted small mb-2">Copy this into the YAML Config box and adjust paths/values for your environment. You can also POST JSON with equivalent fields via the server step.</p>
+  <pre class="mb-0"><code class="language-yaml"># Instance-specific settings
+instance_id: default
+# Server endpoint to bind (use 0.0.0.0 to listen on all interfaces; the simulator normalizes to 127.0.0.1 when connecting)
+endpoint: opc.tcp://0.0.0.0:4840/clarama/opcua
+# Namespace URI for custom nodes (will be registered; must not be namespace 0)
+namespace_uri: urn:clarama:opcua
+
+# Optional: general server options
+server:
+  application_name: Clarama OPC-UA Server
+  product_uri: urn:clarama:product
+  security_policy: None           # None | Basic256Sha256 (requires certificates)
+  max_sessions: 20
+
+# Optional: publishing options
+publishing:
+  websocket: true                 # also publish via Clarama websocket/messenger
+  topic_prefix: ""                # prefix for pub-sub topics (default none)
+
+# Pre-configured nodes to create and publish
+nodes:
+  - path: /Sim/Node1              # full browse path from Objects
+    datatype: Float
+    initial_value: 40.0
+    sampling_interval_ms: 200
+    publish: true
+  - path: /Sim/Node2
+    datatype: Float
+    initial_value: 40.0
+    sampling_interval_ms: 200
+    publish: true
+  - path: /Sim/Node3
+    datatype: Float
+    initial_value: 20.0
+    sampling_interval_ms: 200
+    publish: true
+
+# Optional: persistence of this YAML
+config_file: files/runtime/opcua/default.yaml
+</code></pre>
+  <div class="text-muted small mt-2">
+    Notes:
+    <ul class="mb-0">
+      <li>Topic used for pub-sub is the full node path (e.g. /Sim/Node1).</li>
+      <li>Ensure namespace_uri is non-zero (custom namespace) to avoid parent-node errors.</li>
+      <li>When running in Kubernetes, expose the service/ingress via the step's K8s options.</li>
+    </ul>
+  </div>
+</div>

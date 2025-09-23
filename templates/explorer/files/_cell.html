@@ -79,14 +79,12 @@
                             {% include theme("explorer/files/_cell_insights.html") %}
                         </div>
 
-                        {% if task_step['type'] != "data" %}
-                            <button
-                                    type="button" class="insights-toggle-bar" data-task-index="{{ task_index }}"
-                                    data-bs-toggle="tooltip" data-bs-placement="left"
-                                    title="Insights (Ctrl-\\)" aria-label="Toggle insights (Ctrl-\\)" tabindex="0">
-                                <i class="bi bi-lightbulb-off"></i>
-                            </button>
-                        {% endif %}
+                        <button
+                                type="button" class="insights-toggle-bar" data-task-index="{{ task_index }}"
+                                data-bs-toggle="tooltip" data-bs-placement="left"
+                                title="Insights (Ctrl-\\)" aria-label="Toggle insights (Ctrl-\\)" tabindex="0">
+                            <i class="bi bi-lightbulb-off"></i>
+                        </button>
                     </div>
                 </div>
             </div>
