@@ -128,8 +128,7 @@ function initializeNewCellinsights(newElement) {
 
     var taskIndex = newElement.attr('step') || newElement.attr('data-task-index');
     if (taskIndex) {
-        // Support both old button and new bar
-        newElement.find('.celleditinsights, .insights-toggle-bar').attr('data-task-index', taskIndex);
+        newElement.find('.insights-toggle-bar').attr('data-task-index', taskIndex);
 
         var consoleInput = newElement.find('.console-input');
         if (consoleInput.length) consoleInput.attr('data-task-index', taskIndex);

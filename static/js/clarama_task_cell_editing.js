@@ -35,17 +35,12 @@ $.fn.enablesortcolor = function () {
                 $('.panel', panelList).each(function (index, elem) {
                     var listItem = $(elem);
 
-                    listItem.removeClass("bg-primary");
-                    listItem.addClass("bg-secondary");
-
                     $('.step-label', listItem).each(function () {
-                        var label = $(this)
-                        label.html('' + (index + 1))
+                        $(this).html('' + (index + 1))
                     });
                 });
 
-                $('.panel', panelList).last().removeClass("bg-secondary");
-                $('.panel', panelList).last().addClass("bg-primary");
+                $('.panel', panelList).last().css('background', '#6af');
             }
         });
     });
@@ -56,31 +51,22 @@ function sortUpdate(panelList) {
         var streamname = $(this).parent(".stream").attr('stream-name');
         var oldStep = $(this).attr('step');
         var newStep = index + 1;
-        
-        console.log("SORT UPDATE " + index + " with streamname " + streamname + " - changing step from " + oldStep + " to " + newStep);
-        
-        $(this).attr('id', streamname + '_' + newStep);
-        $(this).attr('step', newStep);
-        
-        if (oldStep !== newStep) {
-            updateInsightsIds($(this), oldStep, newStep);
-        }
+
+        $(this).attr('id', streamname + '_' + newStep).attr('step', newStep);
+        if (oldStep !== newStep) updateInsightsIds($(this), oldStep, newStep);
     });
 
     $('.panel', panelList).each(function (index, elem) {
         var listItem = $(elem);
 
-        listItem.removeClass("bg-primary");
-        listItem.addClass("bg-secondary");
+        listItem.css('background', '');
 
         $('.step-label', listItem).each(function () {
-            var label = $(this)
-            label.html('<p class="step-label">' + (index + 1) + '</p>')
+            $(this).html('<p class="step-label">' + (index + 1) + '</p>');
         });
     });
 
-    $('.panel', panelList).last().removeClass("bg-secondary");
-    $('.panel', panelList).last().addClass("bg-primary");
+    $('.panel', panelList).last().css('background', '#6af');
 }
 
 function updateInsightsIds(cellElement, oldStep, newStep) {

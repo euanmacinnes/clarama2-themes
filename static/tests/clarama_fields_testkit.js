@@ -59,10 +59,7 @@
         ].join('');
         $container.append(html);
 
-        // Initialize interactions and load
-        if(typeof global.enable_interactions === 'function'){
-            global.enable_interactions($(document.body));
-        }
+        enable_interactions($(document.body));
 
         // Wire capture
         $('#btnCapture').on('click', function(){

@@ -2,6 +2,11 @@
     padding: 0; 
     flex: 0 0 auto; 
     width: 6%;
+    background: rgb(234, 244, 255);
+}
+
+#stream_main > li.clarama-cell-item:last-of-type .cell-panel {
+    background: #6af;
 }
 
 .content-row{
