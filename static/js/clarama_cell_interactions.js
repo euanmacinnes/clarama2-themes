@@ -101,7 +101,7 @@ function cell_edit_run(parent) {
                     if (nextCell.length) {
                         var nextTaskIndex = nextCell.attr('step');
                         if (nextCell.find('.celleditinsights').length > 0) {
-                            openinsights(nextCell, nextTaskIndex);
+                            openInsights(nextCell, nextTaskIndex);
                         }
 
                         // Focus on the next cell's editor
@@ -136,6 +136,8 @@ function initializeNewCellinsights(newElement) {
         var executeButton = newElement.find('.execute-console');
         if (executeButton.length) executeButton.attr('data-task-index', taskIndex);
     }
+
+    syncInsightsConsole(taskIndex);
 }
 
 /**
@@ -213,7 +215,7 @@ function cell_insert_step(parent) {
  * @param {jQuery} cellItem - The cell item to open insights for
  * @param {string} taskIndex - The task index of the cell
  */
-function openinsights(cellItem, taskIndex) {
+function openInsights(cellItem, taskIndex) {
     closeAllinsights();
 
     var leftContent = cellItem.find('#left_content_' + taskIndex);
@@ -229,6 +231,7 @@ function openinsights(cellItem, taskIndex) {
 
     rightContent.removeClass('d-none');
     setupDragDivider(cellItem, taskIndex);
+    syncInsightsConsole(taskIndex);
 
     // Visual states / titles
     if (oldBtn.length) {
@@ -314,7 +317,7 @@ function cell_toggle_insights_view(parent) {
         if (isOpen) {
             closeAllinsights();
         } else {
-            openinsights(cellItem, taskIndex);
+            openInsights(cellItem, taskIndex);
         }
     });
 }
@@ -948,7 +951,7 @@ function taskCellPaste() {
         }
 
         if (lastMark === String(taskIndex)) return; // already opened for this one
-        openinsights(cellItem, taskIndex);
+        openInsights(cellItem, taskIndex);
         lastMark = String(taskIndex);
     }, OPEN_DEBOUNCE_MS);
 

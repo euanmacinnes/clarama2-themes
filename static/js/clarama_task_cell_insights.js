@@ -23,6 +23,55 @@ function debounce(fn, wait, immediate) {
     };
 }
 
+/**
+ * Stop piping messages into the Chat bubble for this task.
+ */
+function pauseChatStream(taskIndex) {
+    if (!taskIndex) return;
+    const cbKey = `cell_insights_chat_callback_${taskIndex}`;
+    window.__ginaChatActive[taskIndex] = false;
+    try { delete window[cbKey]; } catch (_) {}
+    try {
+        if (window.__ginaStreamIdleTimer && window.__ginaStreamIdleTimer[taskIndex]) {
+            clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
+        }
+    } catch (_) {}
+}
+
+/** Ensure console reflects the currently active tab for a task */
+function syncInsightsConsole(taskIndex) {
+    if (!taskIndex) return;
+    // Find the active tab button inside this task's tabs host
+    const tabsHost = document.getElementById(`insightsTabs_${taskIndex}`);
+    if (!tabsHost) return;
+    const activeBtn =
+        tabsHost.querySelector('.nav-link.active') ||
+        tabsHost.querySelector('[data-bs-toggle="tab"].active');
+    if (!activeBtn) return;
+
+    // Normalize a "role" from id/target/text for resilience
+    const id     = activeBtn.id || "";
+    const target = activeBtn.getAttribute('data-bs-target') || "";
+    const label  = (activeBtn.textContent || "").toLowerCase();
+    const blob   = `${id} ${target} ${label}`;
+
+    let role = "python"; // default for non-chat/non-data tabs
+    if (/chat/.test(blob))       role = "gina";
+    else if (/data\s*inspector|insights-data|data\-inspector/.test(blob)) role = "data";
+    else if (/code\s*inspector|insights-code|code\-inspector/.test(blob)) role = "python";
+    // Variables / Preview / Global Fields -> python mode as per your spec
+
+    // Apply mode
+    set_console_mode(taskIndex, role);
+    if (role === "gina") {
+        // Re-arm chat streaming when Chat tab is active
+        try { initialiseInsightsGina(taskIndex); } catch (_) {}
+    } else {
+        // Make sure chat stream doesn't grab stdout in non-chat tabs
+        try { pauseChatStream(taskIndex); } catch (_) {}
+    }
+}
+
 /** Normalize any incoming stream chunk to string */
 function normalizeChunk(chunk) {
     if (Array.isArray(chunk)) return chunk.join("");
@@ -164,8 +213,18 @@ function get_console_mode(taskIndex) {
     if (tabIs(activeId, "insights-data-inspector-tab-")) return "data";
     return "python";
 }
+
 function is_chat_tab_active(taskIndex) {
     return get_console_mode(taskIndex) === "gina";
+}
+
+/** Ensure console reflects the currently active tab for a task */
+function syncInsightsConsole(taskIndex) {
+    const activeId = getActiveTabId(taskIndex) || "";
+    configureConsoleForActiveTab(taskIndex, activeId);
+    if (activeId.startsWith("insights-chat-tab-")) {
+        initialiseInsightsGina(taskIndex);
+    }
 }
 
 /** Configure console for currently active tab id */
@@ -362,6 +421,8 @@ function cell_insights_data_run(cell_button, dataQuery) {
     if (!query && $input.length) query = String($input.val() || "").trim();
     if (!query) return;
     if ($input.is(":disabled")) return;
+
+    pauseChatStream(taskIndex);
 
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
@@ -854,6 +915,7 @@ function cell_insights_variables_run(cell_button, outputCallback) {
         const $cell = getCellByTask(taskIndex);
         const task_registry = buildTaskRegistry($cell);
         set_insight_behaviour(task_registry, "print(list(locals().keys()));", field_registry);
+        pauseChatStream(taskIndex);
 
         ajaxRun(task_registry).done((data) => {
             if (data && data.data === "ok") {
@@ -911,6 +973,8 @@ function cell_insights_code_run(taskIndex, code) {
         input.value = "";
     }
     if (!code) { return; }
+
+    pauseChatStream(taskIndex);
 
     const executionKey = `console_executing_${taskIndex}`;
     if (window[executionKey]) {
@@ -1106,3 +1170,15 @@ $(function () {
         }
     });
 });
+
+$(document)
+    .off('shown.bs.tab.insights')
+    .on('shown.bs.tab.insights', '[data-bs-toggle="tab"]', function () {
+        // Only react for tabs inside an Insights tabs host
+        const tabsHost = this.closest('[id^="insightsTabs_"]');
+        if (!tabsHost || !tabsHost.id) return;
+        const taskIndex = tabsHost.id.replace('insightsTabs_', '');
+        if (!taskIndex) return;
+    
+        syncInsightsConsole(taskIndex);
+    });
