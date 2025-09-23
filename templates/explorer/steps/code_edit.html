@@ -1,13 +1,42 @@
-<div id="content_query_{{ loop_index }}"
-     name="task_step_field_{{ loop_index }}"
-     editor="python"
-     class="clarama-cell-content source-editor clarama-field-editor"
-     celltype="code"
-     dataid="{{ loop_index }}"
-     style="min-height: 100px">{{ content }}</div>
+<div class="editor-wrapper">
+    <div id="content_query_{{ loop_index }}"
+         name="task_step_field_{{ loop_index }}"
+         editor="python"
+         class="clarama-cell-content source-editor clarama-field-editor"
+         celltype="code"
+         dataid="{{ loop_index }}"
+         style="min-height: 100px">{{ content }}</div>
+</div>
 
 <script type="text/javascript">
     $(document).ready(() => {
         $('.source-editor').editor();
     });
 </script>
+
+<style>
+    .editor-wrapper{
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+        background: #fff;
+        position: relative;
+    }
+
+    .editor-wrapper:focus-within{
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+    }
+
+    .editor-wrapper .ace_editor,
+    .editor-wrapper .CodeMirror{
+        height: 100%;
+    }
+
+    .editor-wrapper .ace_scroller{
+        padding-bottom: 6px;
+    }
+
+    .editor-wrapper .CodeMirror-scroll{
+        padding-bottom: 6px;
+    }
+</style>
