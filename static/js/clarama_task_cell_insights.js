@@ -229,27 +229,8 @@ function syncInsightsConsole(taskIndex) {
 
 /** Configure console for currently active tab id */
 function configureConsoleForActiveTab(taskIndex, activeTabId) {
-    if (tabIs(activeTabId, "insights-chat-tab-")) {
-        setConsoleVisible(taskIndex, true);
-        set_console_mode(taskIndex, "gina");
-        return;
-    }
-    if (tabIs(activeTabId, "insights-code-inspector-tab-") || tabIs(activeTabId, "insights-variables-tab-")) {
-        setConsoleVisible(taskIndex, true);
-        set_console_mode(taskIndex, "python");
-        return;
-    }
-    if (tabIs(activeTabId, "insights-data-inspector-tab-")) {
-        setConsoleVisible(taskIndex, true);
-        set_console_mode(taskIndex, "data");
-        return;
-    }
-    // Hide the console for "preview" and "global fields"
-    if (tabIs(activeTabId, "insights-preview-tab-") || tabIs(activeTabId, "insights-global-fields-tab-")) {
-        setConsoleVisible(taskIndex, false);
-        return;
-    }
-    setConsoleVisible(taskIndex, true);
+    const hide = tabIs(activeTabId, "insights-preview-tab-") || tabIs(activeTabId, "insights-global-fields-tab-");
+    setConsoleVisible(taskIndex, !hide);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1098,11 +1079,18 @@ except Exception as e:
 /* Console UX helpers                                                      */
 /* ---------------------------------------------------------------------- */
 
+function getActiveConsoleInput(taskIndex) {
+    const pane = document.querySelector(`#insightsTabsContent_${taskIndex} .tab-pane.show.active`);
+    if (!pane) return null;
+    const input = pane.querySelector('.console-input');
+    return input || null;
+}
+
 function resetConsole(taskIndex) {
-    const el = document.getElementById(`console_input_${taskIndex}`);
+    const el = getActiveConsoleInput(taskIndex);
     if (!el) return;
     el.value = "";
-    el.style.height = "auto"; // collapse back to single-line height
+    el.style.height = "auto";
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1121,17 +1109,28 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
 /* Click “Run” on console */
 $(document).on("click", ".execute-console", function () {
     const taskIndex = $(this).data("task-index");
-    const mode = get_console_mode(taskIndex);
+    const explicitMode = $(this).data("mode");
     const $cellItem = getCellByTask(taskIndex);
+    const input = getActiveConsoleInput(taskIndex);
+    const text = input ? String($(input).val() || "") : "";
+    const mode = explicitMode || $(input).data("mode") || get_console_mode(taskIndex);
 
     if (mode === "gina") {
-        cell_insights_gina_run($cellItem, "");
+        cell_insights_gina_run($cellItem, text);
+        resetConsole(taskIndex);
     } else if (mode === "data") {
-        cell_insights_data_run($cellItem, "");
+        cell_insights_data_run($cellItem, text);
     } else {
-        cell_insights_code_run(taskIndex, "");
+        cell_insights_code_run(taskIndex, text);
+        resetConsole(taskIndex);
     }
-    if (mode !== "data") resetConsole(taskIndex);
+});
+
+// Clear-chat button: mimic typing '/reset' in Chat with GINA
+$(document).on("click", ".clear-chat", function () {
+    const taskIndex = $(this).data("task-index");
+    const $cellItem = getCellByTask(taskIndex);
+    cell_insights_gina_run($cellItem, "/reset");
 });
 
 /* Press Enter in console input (Shift+Enter for newline) */
@@ -1139,17 +1138,18 @@ $(document).on("keydown", ".console-input", function (e) {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         const taskIndex = $(this).data("task-index");
-        const mode = get_console_mode(taskIndex);
+        const mode = $(this).data("mode") || get_console_mode(taskIndex);
         const $cellItem = getCellByTask(taskIndex);
 
         if (mode === "gina") {
             cell_insights_gina_run($cellItem, $(this).val());
+            resetConsole(taskIndex);
         } else if (mode === "data") {
             cell_insights_data_run($cellItem, $(this).val());
         } else {
-            cell_insights_code_run(taskIndex);
+            cell_insights_code_run(taskIndex, $(this).val());
+            resetConsole(taskIndex);
         }
-        if (mode !== "data") resetConsole(taskIndex);
     }
 });
 
@@ -1181,4 +1181,8 @@ $(document)
         if (!taskIndex) return;
     
         syncInsightsConsole(taskIndex);
+        const id = this.id || "";
+        if (id.startsWith("insights-chat-tab-")) {
+            try { initialiseInsightsGina(taskIndex); } catch (_){}
+        }
     });

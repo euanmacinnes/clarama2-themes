@@ -56,6 +56,27 @@
                 <div class="tab-pane fade show active" id="insights-chat-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-chat-tab-{{ task_index }}" tabindex="0">
                     <div id="insights_gina_chat_{{ task_index }}" class="insights-gina-chat-container"></div>
+                    <!-- Chat console -->
+                    <div class="insights-console border-top bg-light mt-2">
+                        <div class="p-2">
+                            <div class="input-group">
+                                <!-- Clear Chat -->
+                                <button class="btn btn-outline-danger clear-chat" type="button"
+                                        data-task-index="{{ task_index }}" title="Clear chat">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <!-- User input -->
+                                <textarea class="form-control console-input" id="console_input_{{ task_index }}_chat"
+                                          placeholder="Message GINA…" data-task-index="{{ task_index }}"
+                                          data-mode="gina" rows="1"></textarea>
+                                <!-- Send -->
+                                <button class="btn btn-outline-secondary execute-console" type="button"
+                                        data-task-index="{{ task_index }}" data-mode="gina" title="Send">
+                                    <i class="bi bi-arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
         
                 <!-- Variables -->
@@ -91,12 +112,40 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Variables console (python) -->
+                    <div class="insights-console border-top bg-light mt-2">
+                        <div class="p-2">
+                            <div class="input-group">
+                                <textarea class="form-control console-input" id="console_input_{{ task_index }}_vars"
+                                          placeholder="Enter Python command." data-task-index="{{ task_index }}"
+                                          data-mode="python" rows="1"></textarea>
+                                <button class="btn btn-outline-secondary execute-console" type="button"
+                                        data-task-index="{{ task_index }}" data-mode="python">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
         
                 {% if task_step['type'] == 'code' %}
                     <div class="tab-pane fade" id="insights-code-inspector-{{ task_index }}" role="tabpanel"
                         aria-labelledby="insights-code-inspector-tab-{{ task_index }}" tabindex="0">
                         <div class="p-3" id="code_inspector-{{ task_index }}"></div>
+                        <!-- Code Inspector console (python) -->
+                        <div class="insights-console border-top bg-light mt-2">
+                            <div class="p-2">
+                                <div class="input-group">
+                                    <textarea class="form-control console-input" id="console_input_{{ task_index }}_code"
+                                              placeholder="Enter Python command." data-task-index="{{ task_index }}"
+                                              data-mode="python" rows="1"></textarea>
+                                    <button class="btn btn-outline-secondary execute-console" type="button"
+                                            data-task-index="{{ task_index }}" data-mode="python">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 {% endif %}
 
@@ -104,6 +153,21 @@
                 <div class="tab-pane fade" id="insights-data-inspector-{{ task_index }}" role="tabpanel"
                         aria-labelledby="insights-data-inspector-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3" id="data-inspector-{{ task_index }}"></div>
+                    <!-- Data Inspector console (data) -->
+                    <div class="insights-console border-top bg-light mt-2">
+                        <div class="p-2">
+                            <div class="input-group">
+                                <textarea class="form-control console-input font-monospace"
+                                          id="console_input_{{ task_index }}_data"
+                                          placeholder="Enter data command" data-task-index="{{ task_index }}"
+                                          data-mode="data" rows="1"></textarea>
+                                <button class="btn btn-outline-secondary execute-console" type="button"
+                                        data-task-index="{{ task_index }}" data-mode="data">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>           
                 {% endif %}
 
@@ -122,21 +186,8 @@
                 </div>
             </div>
             
-            <!-- code results -->      
+            <!-- code results -->
             <div class="insights-results" id="code-results-{{ task_index }}"></div>
-
-            <!-- Console -->
-            <div class="insights-console border-top bg-light">
-                <div class="p-2">
-                    <div class="input-group">
-                        <textarea class="form-control console-input" id="console_input_{{ task_index }}"
-                            placeholder="Enter command." data-task-index="{{ task_index }}" rows="1"></textarea>
-                        <button class="btn btn-outline-secondary execute-console" type="button" data-task-index="{{ task_index }}">
-                            <i class="bi bi-play-fill"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
