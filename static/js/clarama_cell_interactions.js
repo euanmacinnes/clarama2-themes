@@ -137,6 +137,10 @@ function initializeNewCellinsights(newElement) {
         if (executeButton.length) executeButton.attr('data-task-index', taskIndex);
     }
 
+    initStickyFields(newElement);                 // ensure sticky defaults are restored
+    newElement.find('.clarama-field').initselect(); // wire select2 + AJAX
+    newElement.find('[editor]').editor();           // ACE editors inside the cell
+
     syncInsightsConsole(taskIndex);
 }
 
@@ -918,57 +922,3 @@ function taskCellPaste() {
         });
     }
 }
-
-// Auto-open/close Insights based on focused cell
-(function attachAutoOpenInsights() {
-    const OPEN_DEBOUNCE_MS = 120;
-    let lastMark = null;
-
-    function debounce(fn, wait) {
-        let t = null;
-        return function (...args) {
-            clearTimeout(t);
-            t = setTimeout(() => fn.apply(this, args), wait);
-        };
-    }
-
-    const maybeActivate = debounce(function (cellItem) {
-        if (!cellItem || !cellItem.length) return;
-
-        const taskIndex =
-            cellItem.attr('step') || cellItem.attr('data-task-index');
-        if (!taskIndex) return;
-
-        const hasInsights = cellItem.find('.celleditinsights, .insights-toggle-bar').length;
-
-        if (!hasInsights) {
-            const mark = `close:${taskIndex}`;
-            if (lastMark !== mark) {
-                closeAllinsights();
-                lastMark = mark;
-            }
-            return;
-        }
-
-        if (lastMark === String(taskIndex)) return; // already opened for this one
-        openInsights(cellItem, taskIndex);
-        lastMark = String(taskIndex);
-    }, OPEN_DEBOUNCE_MS);
-
-    // Focus anywhere inside the left pane
-    $(document).on('focusin.autoinsights', '.clarama-cell-item .left-content', function () {
-        maybeActivate($(this).closest('.clarama-cell-item'));
-    });
-
-    // Mouse clicking non-focusable parts of the left pane
-    $(document).on('mousedown.autoinsights', '.clarama-cell-item .left-content', function (e) {
-        if (document.activeElement && $(document.activeElement).closest(this).length) return;
-        maybeActivate($(this).closest('.clarama-cell-item'));
-    });
-
-    $(document).on('focusin.autoinsights', '.clarama-cell-item .ace_text-input', function () {
-        maybeActivate($(this).closest('.clarama-cell-item'));
-    });
-})();
-  
-  
