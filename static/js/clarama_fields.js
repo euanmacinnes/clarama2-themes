@@ -465,6 +465,18 @@ function initializeCellNavigation() {
     });
 }
 
+function defaultInt(value, default_value) {
+    if (value === undefined) return default_value;
+    if (value === null) return default_value;
+    if (value === '') return default_value;
+    if (value === 'null') return default_value;
+    if (value === 'undefined') return default_value;
+    if (value === 'None') return default_value;
+    if (value === 'false') return default_value;
+    if (value === 'True') return default_value;
+    return parseInt(value);
+}
+
 /**
  * Enable the custom daterange dropdown, using a custom attribute "data", parsed for JSON, to use to define custom
  * date ranges
@@ -551,10 +563,11 @@ $.fn.initselect = function () {
                 var close_on_select = embedded.attr("close_on_select");
 
                 // Allow column mapping attributes on the select element or its wrapper div
-                var user_id_column = embedded.attr("id_column") || embedded.attr('id_column');
-                var user_value_column = embedded.attr("value_column") || embedded.attr('value_column');
-                var user_select_column = embedded.attr("select_column") || embedded.attr('select_column');
-                var user_disable_column = embedded.attr("disable_column") || embedded.attr('disable_column');
+                var user_id_column = embedded.attr("id_column")
+                var user_value_column = embedded.attr("value_column")
+                var user_select_column = embedded.attr("select_column")
+                var user_disable_column = embedded.attr("disable_column")
+
 
                 if (close_on_select === undefined)
                     close_on_select = false
@@ -591,21 +604,39 @@ $.fn.initselect = function () {
 
 
                             var resultarr = [];
+                            var cols = data['results']['cols']
                             var rows = data['results']['rows'];
                             var headings = ['id', 'text', 'selected', 'disabled']
-                            var hcount = headings.length;
 
-                            var id_index = parseInt(user_id_column) || 0;
-                            var value_index = parseInt(user_value_column) || 1;
-                            var selected_index = parseInt(user_select_column) || 2;
-                            var disabled_index = parseInt(user_disable_column) || 3;
 
-                            if (hcount === 1) {
+                            console.log("user_id_column", user_id_column);
+                            console.log("user_value_column", user_value_column);
+                            var id_index = defaultInt(user_id_column, 0);
+                            var value_index = defaultInt(user_value_column, 1);
+                            var selected_index = defaultInt(user_select_column, -1);
+                            var disabled_index = defaultInt(user_disable_column, -1);
+
+                            console.log("id_index", id_index);
+                            console.log("value_index", value_index);
+                            console.log("selected_index", selected_index);
+                            console.log("disabled_index", disabled_index);
+
+                            if (cols.length === 1) {
                                 id_index = 0;
                                 value_index = 0;
                             }
 
-                            let column_index_mappings = [id_index, value_index, selected_index, disabled_index];
+                            let column_index_mappings = [id_index, value_index];
+                            if (selected_index >= 0) {
+                                column_index_mappings.push(selected_index);
+
+                                if (disabled_index >= 0)
+                                    column_index_mappings.push(disabled_index);
+                            }
+
+                            var hcount = column_index_mappings.length;
+                            console.log("hcount", hcount);
+
 
                             if (data['data'] != 'ok') {
                                 $('#clarama-query-result').html(data['error']);

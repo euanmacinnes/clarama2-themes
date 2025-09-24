@@ -1,36 +1,32 @@
 {# Custom options for select_multiple fields #}
 <div class="mb-3">
-    <div class="row g-3 align-items-start">
-        <div class="col-12">
-            <label class="form-label">Column mappings (indices)</label>
-            <div class="row g-2">
-                <div class="col-3">
-                    <label class="form-label">ID column</label>
-                    <input id="id_column" name="id_column" type="number" min="0" class="form-control clarama-field"
-                           fieldtype="html" placeholder="0" value="{{ get(field_config,'id_column','') }}"/>
-                </div>
-                <div class="col-3">
-                    <label class="form-label">Value column</label>
-                    <input id="value_column" name="value_column" type="number" min="0"
-                           class="form-control clarama-field" fieldtype="html" placeholder="1"
-                           value="{{ get(field_config,'value_column','') }}"/>
-                </div>
-                <div class="col-3">
-                    <label class="form-label">Selected column</label>
-                    <input id="select_column" name="select_column" type="number" min="0"
-                           class="form-control clarama-field" fieldtype="html" placeholder="2"
-                           value="{{ get(field_config,'select_column','') }}"/>
-                </div>
-                <div class="col-3">
-                    <label class="form-label">Disabled column</label>
-                    <input id="disable_column" name="disable_column" type="number" min="0"
-                           class="form-control clarama-field" fieldtype="html" placeholder="3"
-                           value="{{ get(field_config,'disable_column','') }}"/>
-                </div>
-            </div>
-            <div class="form-text">Specify which columns from your data source map to ID, Display Text, Selected and
-                Disabled states. Leave blank to use defaults (0,1,2,3).
-            </div>
-        </div>
+    <label class="form-label">Column mappings (indices)</label>
+    <div class="col-3 form-text">Specify which columns from your data source map to ID, Display Text, Selected and
+        Disabled states. Leave blank to use defaults (0,1,2,3).
     </div>
+
+    <div class="col-4">
+        <label class="form-label">ID column</label>
+        <input id="id_column" name="id_column" type="number" min="0" class="form-control clarama-field"
+               fieldtype="html" placeholder="0" value="{{ get(field_config,'id_column','') }}"/>
+    </div>
+    <div class="col-4">
+        <label class="form-label">Value column</label>
+        <input id="value_column" name="value_column" type="number" min="0"
+               class="form-control clarama-field" fieldtype="html" placeholder="1"
+               value="{{ get(field_config,'value_column','') }}"/>
+    </div>
+    <div class="col-4">
+        <label class="form-label">Selected column</label>
+        <input id="select_column" name="select_column" type="number" min="0"
+               class="form-control clarama-field" fieldtype="html" placeholder="2"
+               value="{{ get(field_config,'select_column','') }}"/>
+    </div>
+    <div class="col-4">
+        <label class="form-label">Disabled column</label>
+        <input id="disable_column" name="disable_column" type="number" min="0"
+               class="form-control clarama-field" fieldtype="html" placeholder="3"
+               value="{{ get(field_config,'disable_column','') }}"/>
+    </div>
+
 </div>
