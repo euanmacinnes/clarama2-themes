@@ -7,22 +7,22 @@
             </h6>
         </div>
         <div class="card-body insights-content p-0 d-flex flex-column">
-            <ul class="nav nav-tabs" id="insightsTabs_{{ task_index }}" role="tablist">
+            <ul class="nav nav-tabs nav-fill w-100" id="insightsTabs_{{ task_index }}" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="insights-chat-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-chat-{{ task_index }}"
+                    <button class="nav-link active w-100" id="insights-chat-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-chat-{{ task_index }}"
                         type="button" role="tab" aria-controls="insights-chat-{{ task_index }}" aria-selected="true">
                         Chat with GINA
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-variables-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-variables-{{ task_index }}"
+                    <button class="nav-link w-100" id="insights-variables-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-variables-{{ task_index }}"
                         type="button" role="tab" aria-controls="insights-variables-{{ task_index }}" aria-selected="false">
                         Variables
                     </button>
                 </li>
                 {% if task_step['type'] == 'code' %}
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="insights-code-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-code-inspector-{{ task_index }}"
+                        <button class="nav-link w-100" id="insights-code-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-code-inspector-{{ task_index }}"
                             type="button" role="tab" aria-controls="insights-code-inspector-{{ task_index }}" aria-selected="false">
                             Code Inspector
                         </button>
@@ -30,20 +30,20 @@
                 {% endif %}
                 {% if task_step['type'] in ['data', 'source'] %}
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="insights-data-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-data-inspector-{{ task_index }}" 
+                        <button class="nav-link w-100" id="insights-data-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-data-inspector-{{ task_index }}" 
                             type="button" role="tab" aria-controls="insights-data-inspector-{{ task_index }}" aria-selected="false">
                             Data Inspector
                         </button>
                     </li>
                 {% endif %}
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-preview-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-preview-{{ task_index }}"
+                    <button class="nav-link w-100" id="insights-preview-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-preview-{{ task_index }}"
                         type="button" role="tab" aria-controls="insights-preview-{{ task_index }}" aria-selected="false">
                         Preview
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-global-fields-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-global-fields-{{ task_index }}" 
+                    <button class="nav-link w-100" id="insights-global-fields-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-global-fields-{{ task_index }}" 
                         type="button" role="tab" aria-controls="insights-global-fields-{{ task_index }}" aria-selected="false">
                         Global Fields
                     </button>
@@ -83,9 +83,9 @@
                 <div class="tab-pane fade" id="insights-variables-{{ task_index }}" role="tabpanel"
                       aria-labelledby="insights-variables-tab-{{ task_index }}" tabindex="0">
                     <div class="p-3">
-                        <ul class="nav nav-tabs" id="variablesTabs_{{ task_index }}" role="tablist">
+                        <ul class="nav nav-tabs nav-fill w-100" id="variablesTabs_{{ task_index }}" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="variables-modules-tab-{{ task_index }}"
+                                <button class="nav-link active w-100" id="variables-modules-tab-{{ task_index }}"
                                         data-bs-toggle="tab" data-bs-target="#variables-modules-{{ task_index }}"
                                         type="button" role="tab" aria-controls="variables-modules-{{ task_index }}"
                                         aria-selected="true">
@@ -93,7 +93,7 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="variables-objects-tab-{{ task_index }}"
+                                <button class="nav-link w-100" id="variables-objects-tab-{{ task_index }}"
                                         data-bs-toggle="tab" data-bs-target="#variables-objects-{{ task_index }}"
                                         type="button" role="tab" aria-controls="variables-objects-{{ task_index }}"
                                         aria-selected="false">
@@ -101,7 +101,7 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="variables-primitives-tab-{{ task_index }}"
+                                <button class="nav-link w-100" id="variables-primitives-tab-{{ task_index }}"
                                         data-bs-toggle="tab" data-bs-target="#variables-primitives-{{ task_index }}"
                                         type="button" role="tab" aria-controls="variables-primitives-{{ task_index }}"
                                         aria-selected="false">
@@ -109,7 +109,7 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="variables-data-tab-{{ task_index }}"
+                                <button class="nav-link w-100" id="variables-data-tab-{{ task_index }}"
                                         data-bs-toggle="tab" data-bs-target="#variables-data-{{ task_index }}"
                                         type="button" role="tab" aria-controls="variables-data-{{ task_index }}"
                                         aria-selected="false">
