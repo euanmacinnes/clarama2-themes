@@ -729,10 +729,6 @@ function initialiseInsightsGina(taskIndex) {
             field_registry
         ).always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
     });
-
-    // taskCell = getCellByTask(taskIndex)
-    // cellContent = JSON.stringify(extractCellContent(taskCell)); // strigify JSON content
-    // then call /suggest prompt:{{ cellContent }}
 }
 
 /* ---------------------------------------------------------------------- */
@@ -830,56 +826,62 @@ function populateVariablesContainer(container, variableNames, taskIndex) {
     attachVariableClickHandlers(container, taskIndex);
 }
 
-/** Parse & render variables list output */
-function populateVariablesList(output, taskIndex) {
-    const host = $(`#variables_${taskIndex}`)[0];
-    if (!host) { console.error("Variables list element not found for task", taskIndex); return; }
+function categoryContainerIds(taskIndex) {
+    return {
+        modules:   `variables_modules_${taskIndex}`,
+        objects:   `variables_objects_${taskIndex}`,
+        primitives:`variables_primitives_${taskIndex}`,
+        data:      `variables_data_${taskIndex}`
+    };
+}
+
+function createEmptyMsg(msg) {
+    const div = document.createElement("div");
+    div.className = "text-muted p-3";
+    div.textContent = msg;
+    return div;
+}
+
+function renderCategoryList(targetId, names, taskIndex) {
+    const host = document.getElementById(targetId);
+    if (!host) return;
+    host.innerHTML = "";
+    if (!names || !names.length) {
+        host.appendChild(createEmptyMsg("Nothing here yet"));
+        return;
+    }
+    const container = createVariablesContainer(taskIndex);
+    populateVariablesContainer(container, names, taskIndex);
+    host.appendChild(container);
+}
+
+/** When we receive a mapping {name: "modules"|"objects"|"primitives"|"data"} */
+function populateVariablesByCategory(mapping, taskIndex) {
+    const ids = categoryContainerIds(taskIndex);
+    const buckets = { modules: [], objects: [], primitives: [], data: [] };
 
     try {
-        if (output === null || output === undefined || output === "None" || output === "") {
-            host.innerHTML = "";
-            host.appendChild(createEmptyVariablesMessage("No variables found"));
-            return;
-        }
-
-        // Decode HTML entities
-        const temp = document.createElement("div");
-        temp.innerHTML = String(output);
-        let decoded = temp.textContent || temp.innerText || String(output);
-
-        // Split into names
-        let names = parseVariableString(decoded).map(name => {
-            const div = document.createElement("div");
-            div.innerHTML = name;
-            let n = div.textContent || div.innerText || "";
-            if ((n.startsWith('"') && n.endsWith('"')) || (n.startsWith("'") && n.endsWith("'"))) {
-                n = n.slice(1, -1);
-            }
-            return n.trim();
+        // mapping may be a JSON string
+        const mapObj = (typeof mapping === "string") ? JSON.parse(mapping) : mapping;
+        Object.entries(mapObj || {}).forEach(([name, cat]) => {
+            const key = (String(cat || "").toLowerCase());
+            if (key === "modules")      buckets.modules.push(name);
+            else if (key === "objects") buckets.objects.push(name);
+            else if (key === "primitives") buckets.primitives.push(name);
+            else if (key === "data")    buckets.data.push(name);
+            else buckets.objects.push(name); // default bucket
         });
-
-        // Filter internal/system names
-        names = names.filter(n =>
-            n && typeof n === "string" &&
-            !n.startsWith("_") && !["In", "Out", "get_ipython", "exit", "quit"].includes(n)
-        );
-
-        host.innerHTML = "";
-        if (names.length) {
-            const container = createVariablesContainer(taskIndex);
-            populateVariablesContainer(container, names, taskIndex);
-            host.appendChild(container);
-        } else {
-            host.appendChild(createEmptyVariablesMessage());
-        }
     } catch (e) {
-        console.error("Error parsing variables:", e);
-        const err = createEmptyVariablesMessage(`Error parsing variables: ${e.message}`);
-        err.className = "text-danger p-3";
-        host.innerHTML = "";
-        host.appendChild(err);
-        flash("Error parsing variables: " + e, "danger");
+        // If parsing fails, dump everything into Objects so we still show something
+        console.warn("Failed to parse variables mapping; falling back:", e);
+        const names = Array.isArray(mapping) ? mapping : [];
+        buckets.objects = names;
     }
+
+    renderCategoryList(ids.modules,    buckets.modules,    taskIndex);
+    renderCategoryList(ids.objects,    buckets.objects,    taskIndex);
+    renderCategoryList(ids.primitives, buckets.primitives, taskIndex);
+    renderCategoryList(ids.data,       buckets.data,       taskIndex);
 }
 
 /** Attach debounced click handlers to variable buttons */
@@ -929,8 +931,9 @@ function cell_insights_variables_run(cell_button, outputCallback) {
     }
     window[runningKey] = true;
 
+    // Kernel callback: receives JSON mapping "name" -> category
     window[`cell_insights_variables_callback_${taskIndex}`] = function (output) {
-        populateVariablesList(output, taskIndex);
+        populateVariablesByCategory(output, taskIndex);
         if (outputCallback) outputCallback(output);
         delete window[runningKey];
     };
@@ -938,31 +941,92 @@ function cell_insights_variables_run(cell_button, outputCallback) {
     get_field_values({}, true, function (field_registry) {
         const $cell = getCellByTask(taskIndex);
         const task_registry = buildTaskRegistry($cell);
-        set_insight_behaviour(task_registry, "print(list(locals().keys()));", field_registry);
+
+        const code = `
+import sys, json, types, inspect
+try:
+    import numpy as _np
+except Exception:
+    class _FakeNP: pass
+    _np = _FakeNP()
+try:
+    import pandas as _pd
+except Exception:
+    class _FakePD: pass
+    _pd = _FakePD()
+
+def _is_np_array(x):
+    try:
+        return isinstance(x, _np.ndarray)
+    except Exception:
+        return False
+
+def _is_pd(x):
+    try:
+        import pandas as _pdx
+        return isinstance(x, (_pdx.DataFrame, _pdx.Series))
+    except Exception:
+        return False
+
+def _is_primitive(x):
+    return isinstance(x, (str, int, float, bool, bytes, complex))
+
+def _is_data(x):
+    # dict/list/tuple/set OR numpy/pandas
+    return isinstance(x, (dict, list, tuple, set)) or _is_np_array(x) or _is_pd(x)
+
+categories = {}
+for _name, _val in list(locals().items()):
+    if _name.startswith("_") or _name in ("In","Out","get_ipython","exit","quit"):
+        continue
+    try:
+        if inspect.ismodule(_val):
+            categories[_name] = "modules"
+        elif _is_primitive(_val):
+            categories[_name] = "primitives"
+        elif _is_data(_val):
+            categories[_name] = "data"
+        else:
+            # functions/classes/instances/etc.
+            categories[_name] = "objects"
+    except Exception:
+        categories[_name] = "objects"
+
+print(json.dumps(categories))
+        `.trim();
+
+        set_insight_behaviour(task_registry, code, field_registry);
         pauseChatStream(taskIndex);
 
         ajaxRun(task_registry).done((data) => {
             if (data && data.data === "ok") {
-                console.log("Insights submission ok for task", shownIndex);
-                flash(`Cell ${shownIndex} insight toggled on`, "success");
-                set_console_mode(taskIndex, "gina");
+                console.log("Variables classification submitted for task", shownIndex);
             } else {
                 const err = data && data.error ? data.error : "Unknown error";
-                console.log("Insights submission failed for task", taskIndex);
-                $(`#variables_${taskIndex}`).html(`<div class="text-danger p-3">Error loading variables: ${err}</div>`);
-                flash("Couldn't run insight content: " + err, "danger");
+                console.log("Variables classification failed for task", taskIndex);
+                const ids = categoryContainerIds(taskIndex);
+                [ids.modules, ids.objects, ids.primitives, ids.data].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = `<div class="text-danger p-3">Error loading variables: ${err}</div>`;
+                });
+                flash("Couldn't run variables classification: " + err, "danger");
                 window[`cell_insights_variables_callback_${taskIndex}`] = null;
                 delete window[runningKey];
             }
         }).fail(() => {
-            console.log("Insights AJAX error for task", taskIndex);
-            $(`#variables_${taskIndex}`).html('<div class="text-danger p-3">Error loading variables</div>');
-            flash("Couldn't run insight content, access denied", "danger");
+            console.log("Variables AJAX error for task", taskIndex);
+            const ids = categoryContainerIds(taskIndex);
+            [ids.modules, ids.objects, ids.primitives, ids.data].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '<div class="text-danger p-3">Error loading variables</div>';
+            });
+            flash("Couldn't run variables classification, access denied", "danger");
             window[`cell_insights_variables_callback_${taskIndex}`] = null;
             delete window[runningKey];
         });
     });
 }
+
 
 /* ---------------------------------------------------------------------- */
 /* CONSOLE (PYTHON MODE)                                                  */
@@ -1080,23 +1144,96 @@ function inspectVariable(varName, taskIndex) {
 
             const codeChecker = `
 from pprint import pprint
-import pandas as pd
-import inspect
+import inspect, io
+
+# Optional imports for detection (don’t fail if missing)
+try:
+    import numpy as _np
+except Exception:
+    _np = None
+try:
+    import pandas as _pd
+except Exception:
+    _pd = None
+
+def _is_np_array(x):
+    return (_np is not None) and isinstance(x, _np.ndarray)
+
+def _is_pd_df(x):
+    return (_pd is not None) and isinstance(x, _pd.DataFrame)
+
+def _is_pd_series(x):
+    return (_pd is not None) and isinstance(x, _pd.Series)
+
+def _is_primitive(x):
+    return isinstance(x, (str, int, float, bool, bytes, complex))
+
+def _is_data(x):
+    return (
+        isinstance(x, (dict, list, tuple, set))
+        or _is_np_array(x) or _is_pd_df(x) or _is_pd_series(x)
+    )
+
 try:
     val = ${vName}
-    if isinstance(val, pd.DataFrame):
-        print(val.info())
-    elif inspect.isclass(val) or inspect.isclass(type(val)) or inspect.isfunction(val) or inspect.ismethod(val) or inspect.ismodule(val) or inspect.isbuiltin(val):
-        help(${vName})
+    # --- DATA PREVIEWS ---
+    if _is_pd_df(val):
+        buf = io.StringIO()
+        # capture df.info() into buffer to avoid printing "None"
+        val.info(buf=buf)
+        info_str = buf.getvalue().rstrip()
+        try:
+            head_str = val.head(5).to_string(index=False, max_rows=5, max_cols=10)
+        except Exception:
+            head_str = str(val.head(5))
+        print(info_str)
+        print("\\nPreview (head):")
+        print(head_str)
+    elif _is_pd_series(val):
+        try:
+            print(val.head(10).to_string(index=False))
+        except Exception:
+            print(val.head(10))
+    elif _is_np_array(val):
+        shape = getattr(val, "shape", None)
+        dtype = getattr(val, "dtype", None)
+        print(f"numpy.ndarray  shape={shape}  dtype={dtype}")
+        # safe small slice preview
+        try:
+            print(val[:5])
+        except Exception:
+            pass
+    elif isinstance(val, (dict, list, tuple, set)):
+        try:
+            preview_len = len(val)
+        except Exception:
+            preview_len = "?"
+        try:
+            if isinstance(val, dict):
+                items = list(val.items())[:10]
+                pprint(dict(items))
+            else:
+                pprint(list(val)[:10])
+        except Exception:
+            pprint(val)
+
+    # --- CODE-ISH / DEFS / MODULES ---
+    elif inspect.ismodule(val) or inspect.isfunction(val) or inspect.ismethod(val) or inspect.isbuiltin(val) or isinstance(val, type) or inspect.isclass(val):
+        help(val)
+
+    # --- PRIMITIVES / EVERYTHING ELSE ---
+    elif _is_primitive(val):
+        pprint(val)
     else:
-        pprint(${vName})
+        help(val)
+
 except NameError:
     print(f"Variable '${vName}' is not defined")
 except Exception as e:
     print(f"Error inspecting variable '${vName}': {e}")
     try:
-        print(${vName})
-    except:
+        pprint(${vName})
+    except Exception:
         print(f"Could not display variable '${vName}'")
 `.trim();
 
