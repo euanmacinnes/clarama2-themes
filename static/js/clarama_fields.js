@@ -399,11 +399,10 @@ function initializeCellNavigation() {
 
     function toggleInsightsForCurrentCell(cell) {
         if (!cell) return false;
-
         const $cell = $(cell);
-        const insightsButton = $cell.find('.celleditinsights').first();
-        if (insightsButton.length > 0) {
-            insightsButton.click();
+        const toggleBar = $cell.find('.insights-toggle-bar').first();
+        if (toggleBar.length > 0) {
+            toggleBar.trigger('click');
             return true;
         }
         return false;
@@ -424,7 +423,7 @@ function initializeCellNavigation() {
     });
 
     $(document).on('keydown', function (e) {
-        // Ctrl+Enter: Run current cell and move to next
+        // Ctrl + Enter: Run current cell and move to next
         if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
             e.preventDefault();
 
@@ -450,7 +449,7 @@ function initializeCellNavigation() {
         //     const runSuccess = runCurrentCell(currentCell);
         // }
 
-        // Ctrl+\ : Toggle insights for current cell
+        // Ctrl + \ : Toggle insights for current cell
         if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
             e.preventDefault();
 
