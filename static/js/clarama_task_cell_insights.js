@@ -81,6 +81,30 @@ function normalizeChunk(chunk) {
     return typeof chunk === "string" ? chunk : "";
 }
 
+function resolveTaskIndexFromNode(node) {
+    if (!node) return null;
+    const cellItem = node.closest ? node.closest('li.clarama-cell-item') : null;
+    if (cellItem) {
+        // Prefer right/left content ids like right_content_12 / left_content_12
+        const right = cellItem.querySelector('.right-content[id^="right_content_"]');
+        const left  = cellItem.querySelector('.left-content[id^="left_content_"]');
+        const idFrom = (el) => {
+            if (!el || !el.id) return null;
+            const m = el.id.match(/_(\d+)$/);
+            return m ? m[1] : null;
+        };
+        const idx = idFrom(right) || idFrom(left);
+        if (idx) return idx;
+    }
+    // Fallback: nearest chat tab pane id `insights-chat-{i}`
+    const chatPane = node.closest ? node.closest('[id^="insights-chat-"]') : null;
+    if (chatPane && chatPane.id) {
+        const m = chatPane.id.match(/insights-chat-(\d+)$/);
+        if (m) return m[1];
+    }
+    return null;
+}    
+
 /** Quick DOM helpers */
 function getCellByTask(taskIndex) {
     return $(`li.clarama-cell-item[step="${taskIndex}"]`);
@@ -542,27 +566,32 @@ function attachCodeInsertBars(rootEl) {
         btn.setAttribute('aria-label', 'Insert code to the left editor');
         btn.innerHTML = '<i class="bi bi-arrow-bar-left" aria-hidden="true"></i>';
 
-        // Determine task index from the current chat pane
-        const taskIndex = resolveTaskIndexFromChat(rootEl);
-        if (taskIndex) {
-            if (!findAceInLeft(taskIndex)) {
+        (function primeDisabled() {
+            const idx = resolveTaskIndexFromNode(btn);
+            if (idx && !findEditorInLeft(idx)) {
                 btn.classList.add('disabled');
-                observeAceReady(taskIndex);
+                observeEditorReady(idx);
             }
-        }
+        })();
 
         btn.addEventListener('click', (ev) => {
             ev.preventDefault();
             ev.stopPropagation();
 
-            if (btn.classList.contains('disabled')) return; // unclickable when disabled
-
-            const codeEl = pre.querySelector('code');
-            const codeText = codeEl ? codeEl.textContent : pre.textContent || '';
-            const idx = taskIndex || resolveTaskIndexFromChat(rootEl);
+            const idx = resolveTaskIndexFromNode(btn);
             if (!idx) return;
 
+            if (!findEditorInLeft(idx)) {
+                btn.classList.add('disabled');
+                observeEditorReady(idx);
+                return;
+            }
+            btn.classList.remove('disabled');
+
+            const codeEl = pre.querySelector('code');
+            const codeText = codeEl ? codeEl.textContent : (pre.textContent || '');
             insertCodeIntoAceEditor(idx, codeText);
+
             btn.classList.add('active');
             setTimeout(() => btn.classList.remove('active'), 180);
         });
@@ -582,7 +611,14 @@ function insertCodeIntoAceEditor(taskIndex, text) {
     if (!text) return;
 
     // If a focused input/textarea inside left-content, insert at caret
-    const left = document.getElementById(`left_content_${taskIndex}`);
+    let left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) {
+        // Fallback: find the left pane inside this cell’s DOM
+        const cell = getCellByTask(taskIndex);
+        if (cell && cell.length) {
+            left = cell[0].querySelector('.left-content[id^="left_content_"]') || null;
+        }
+    }
     if (!left) return;
 
     const active = document.activeElement;
@@ -617,43 +653,50 @@ function insertCodeIntoAceEditor(taskIndex, text) {
     }
 }
 
-/** Return Ace editor host element for this task (or null if not ready) */
-function findAceInLeft(taskIndex) {
+function findEditorInLeft(taskIndex) {
     const left = document.getElementById(`left_content_${taskIndex}`);
     if (!left) return null;
 
-    // Most robust search: look for the Ace host related to the specific editor div and general fallback
-    const container = left.querySelector(`#content_query_${taskIndex}`);
-    // Ace can be created inside the container, or as a sibling div .ace_editor
-    const direct = container && container.querySelector('.ace_editor');
-    const sibling = container && container.parentElement && container.parentElement.querySelector('.ace_editor');
+    // 1) Ace host (preferred)
+    const ace = left.querySelector('.ace_editor');
+    if (ace) return ace;
 
-    return direct || sibling || left.querySelector('.ace_editor') || null;
+    return null;
 }
 
-/** Observe the left content until Ace appears, then enable any disabled bars for this task. */
-function observeAceReady(taskIndex) {
-    const left = document.getElementById(`left_content_${taskIndex}`);
-    if (!left) return;
+function observeEditorReady(taskIndex) {
+    let left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) {
+        // If left pane isn't mounted yet, poll briefly and then bail out cleanly
+        setTimeout(() => observeEditorReady(taskIndex), 60);
+        return;
+    }
 
     // If already present, just enable right away.
-    if (findAceInLeft(taskIndex)) {
+    if (findEditorInLeft(taskIndex)) {
         toggleBarsForTask(taskIndex, /*enabled=*/true);
         return;
     }
 
     const obs = new MutationObserver(() => {
-        if (findAceInLeft(taskIndex)) {
+        if (findEditorInLeft(taskIndex)) {
             toggleBarsForTask(taskIndex, /*enabled=*/true);
             obs.disconnect();
         }
     });
     obs.observe(left, { childList: true, subtree: true });
-}
+}    
 
 /** Enable/disable all insert bars that belong to this task's chat tab */
 function toggleBarsForTask(taskIndex, enabled) {
-    const pane = document.getElementById(`insights-chat-${taskIndex}`);
+    let pane = document.getElementById(`insights-chat-${taskIndex}`);
+    if (!pane) {
+        const cell = getCellByTask(taskIndex);
+        if (cell && cell.length) {
+            pane = cell[0].querySelector(`#insights-chat-${taskIndex}`) ||
+                   cell[0].querySelector('[id^="insights-chat-"]');
+        }
+    }
     if (!pane) return;
     pane.querySelectorAll('.code-insert-bar').forEach(btn => {
         if (enabled) btn.classList.remove('disabled');

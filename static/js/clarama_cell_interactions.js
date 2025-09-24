@@ -141,6 +141,12 @@ function initializeNewCellinsights(newElement) {
     newElement.find('.clarama-field').initselect(); // wire select2 + AJAX
     newElement.find('[editor]').editor();           // ACE editors inside the cell
 
+    const host = findEditorInLeft(taskIndex);
+    if (host) {
+        toggleBarsForTask(taskIndex, /*enabled=*/true);
+    } else if (typeof observeEditorReady === 'function') {
+        observeEditorReady(taskIndex);
+    }
     syncInsightsConsole(taskIndex);
 }
 
@@ -222,8 +228,20 @@ function cell_insert_step(parent) {
 function openInsights(cellItem, taskIndex) {
     closeAllinsights();
 
-    var leftContent = cellItem.find('#left_content_' + taskIndex);
-    var rightContent = cellItem.find('#right_content_' + taskIndex);
+    var leftContent  = cellItem.find('.left-content[id^="left_content_"]').first();
+    var rightContent = cellItem.find('.right-content[id^="right_content_"]').first();
+
+    var deriveIndex = function(el) {
+        if (!el || !el.attr('id')) return null;
+        var m = el.attr('id').match(/_(\d+)$/);
+        return m ? m[1] : null;
+    };
+    var realIndex =
+        deriveIndex(rightContent) ||
+        deriveIndex(leftContent)  ||
+        String(taskIndex || '');
+    taskIndex = realIndex;
+
     var oldBtn = cellItem.find('.celleditinsights');       // may or may not exist
     var bar = cellItem.find('.insights-toggle-bar');    // new vertical bar
     var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
@@ -243,6 +261,7 @@ function openInsights(cellItem, taskIndex) {
     }
     if (bar.length) {
         bar.addClass('open').attr('title', 'Hide insights (Ctrl-\\)');
+        bar.attr('data-task-index', taskIndex);
         var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
         if (headerBulb.length) {
             headerBulb
@@ -308,16 +327,24 @@ function cell_delete_step(parent) {
 function cell_toggle_insights_view(parent) {
     parent.find(".celleditinsights, .insights-toggle-bar").off('click.insights');
     parent.find(".celleditinsights, .insights-toggle-bar").on("click.insights", function () {
-        var insightsControl = $(this);
-        var cellItem = insightsControl.closest('.clarama-cell-item');
-
-        var taskIndex = insightsControl.attr('data-task-index') ||
-            cellItem.attr('step') ||
+        const insightsControl = $(this);
+        const cellItem = insightsControl.closest('.clarama-cell-item');
+        const idFrom = (sel) => {
+            const el = cellItem.find(sel)[0];
+            if (!el || !el.id) return null;
+            const m = el.id.match(/_(\d+)$/);
+            return m ? m[1] : null;
+        };
+        let taskIndex =
+            idFrom('.right-content[id^="right_content_"]') ||
+            idFrom('.left-content[id^="left_content_"]')  ||
+            insightsControl.attr('data-task-index')        ||
+            cellItem.attr('step')                          ||
             cellItem.attr('data-task-index');
-
-        var rightContent = cellItem.find('#right_content_' + taskIndex);
-        var isOpen = !rightContent.hasClass('d-none');
-
+        // Fall back 
+        taskIndex = String(taskIndex || '');
+        const rightContent = cellItem.find('.right-content[id^="right_content_"]').first();
+        const isOpen = rightContent.length && !rightContent.hasClass('d-none');
         if (isOpen) {
             closeAllinsights();
         } else {
