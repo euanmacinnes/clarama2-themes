@@ -19,7 +19,7 @@ window.exampleAxisConfig = {
 // Per-canvas setup (generalized datasets + primitives)
 // ------------------------------------------------------------
 function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
-    flash("initCube");
+    // flash("initCube");
     console.log("initCube DATASETS", datasets);
     console.log("initCube PRIMITIVES", primitives);
     canvas.dataset.cubeInit = "1";
@@ -1274,7 +1274,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         let textureUrl = prim['obj-texture-absolute'];
         let initialTexture;
         if (usesTex && textureUrl) {
-            flash("Loading texture " + textureUrl);
+            // flash("Loading texture " + textureUrl);
             initialTexture = getOrLoadTexture(textureUrl, (tex) => {
                 // after load, update the compiled object's texture reference
                 const obj = compiled.find(x => x.name === name);
