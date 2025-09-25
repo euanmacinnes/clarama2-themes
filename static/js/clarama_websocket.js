@@ -71,6 +71,29 @@ function processTaskMessages() {
     socket_taskQueue = [];
 }
 
+
+/**
+ * Subscribe to topics and flush the queued task messages once the socket is open.
+ */
+function add_topic(topic) {
+    if (socket_topics.indexOf(topic) === -1) {
+        socket_topics.push(topic);
+        console.log("CLARAMA_WEBSOCKET.js: TOPICS");
+        console.log(socket_topics);
+    }
+
+    if (task_active_socket !== undefined)
+        if (task_active_socket.readyState === WebSocket.OPEN) {
+            task_active_socket.send(JSON.stringify({topics: socket_topics}));
+            return;
+        } else {
+            console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket was not open");
+        }
+    else {
+        console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket undefined, pushing on queue");
+    }
+}
+
 /**
  * Queue or immediately execute a task message depending on socket state.
  *
@@ -714,6 +737,7 @@ window.ClaramaStream = window.ClaramaStream || (function () {
 
     function dispatch(topic, msg) {
         const t = topic || '*';
+        console.log('ClaramaStream.dispatch', t, msg, handlers);
         const hs = handlers[t];
         if (hs) {
             hs.forEach(fn => {
@@ -968,6 +992,26 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 bChart(dict['values']['chart_id'], dict['results']);
             }
 
+            if (dict['class'] === "template_table_stream") {
+                let resulter = "#" + dict['step_id'];
+                console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET TABLE MESSAGE:" + webSocket.url);
+                process_template(dict['type'], dict['values'], $(resulter));
+                var options = dict['values']
+                var handle = bTableStream(dict['values']['table_id'], options);
+                console.log("WEBSOCKET TABLE STREAM OPTIONS: ", options);
+                add_topic(options['topic'])
+                startLiveStream(false, options['query'], options['topic'], options['url']);
+
+            }
+
+            if (dict['class'] === "template_chart_stream") {
+                let resulter = "#" + dict['step_id'];
+                console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART MESSAGE:" + webSocket.url + " " + dict['step_id']);
+                console.log($(resulter));
+                process_template(dict['type'], dict['values'], $(resulter));
+                bChartStream(dict['values']['chart_id'], dict['values']);
+            }
+
             if (dict['class'] === "template_chart3d") {
                 let resulter = "#" + dict['step_id'];
                 console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART3D MESSAGE:" + webSocket.url + " " + dict['step_id']);
@@ -1019,6 +1063,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
         try {
             const t = (socket_div && socket_div.attr) ? (socket_div.attr('topic') || '') : '';
             if (dict && typeof dict === 'object' && (dict.type === 'start' || dict.type === 'chunk' || dict.type === 'end' || dict.type === 'error')) {
+                console.log("CLARAMA_WEBSOCKET.js: Routing raw stream frame to ClaramaStream", dict);
                 if (window.ClaramaStream && typeof window.ClaramaStream.dispatch === 'function') {
                     window.ClaramaStream.dispatch(t, dict);
                     return;

@@ -132,7 +132,9 @@
             const key = axisId || 'y';
             const sc = chart.options.scales[key];
             return sc && sc.type;
-        } catch (e) { return undefined; }
+        } catch (e) {
+            return undefined;
+        }
     }
 
     function isLogScaleForDataset(ds) {
@@ -369,7 +371,8 @@
                         }
                         chart._claramaFirstChunkHandled = true;
                     }
-                } catch (e) { /* noop */ }
+                } catch (e) { /* noop */
+                }
 
                 const axisId = (uv !== undefined && uv !== null && uv !== '') ? ensureYAxisForUnit(uv) : null;
 
@@ -397,7 +400,7 @@
                             if (catMode) {
                                 const catLabel = String(xv);
                                 const catIdx = ensureCategoryLabel(catLabel);
-                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li>=0?r[li]:undefined), (zi>=0?r[zi]:undefined));
+                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li >= 0 ? r[li] : undefined), (zi >= 0 ? r[zi] : undefined));
                             } else {
                                 const point = {x: xv, y: yv};
                                 if (li >= 0) point.l = r[li];
@@ -423,7 +426,7 @@
                             if (catMode) {
                                 const catLabel = String(xv);
                                 const catIdx = ensureCategoryLabel(catLabel);
-                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li>=0?r[li]:undefined), (zi>=0?r[zi]:undefined));
+                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li >= 0 ? r[li] : undefined), (zi >= 0 ? r[zi] : undefined));
                             } else {
                                 const point = {x: xv, y: yv};
                                 if (li >= 0) point.l = r[li];
@@ -447,7 +450,7 @@
                             if (catMode) {
                                 const catLabel = String(xv);
                                 const catIdx = ensureCategoryLabel(catLabel);
-                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li>=0?r[li]:undefined), (zi>=0?r[zi]:undefined));
+                                setDatasetValueAt(ds, catIdx, catLabel, yv, (li >= 0 ? r[li] : undefined), (zi >= 0 ? r[zi] : undefined));
                             } else {
                                 const point = {x: xv, y: yv};
                                 if (li >= 0) point.l = r[li];
@@ -477,28 +480,41 @@
 
             const data = {datasets};
             // Persist axis type name for downstream logic (e.g., category_grouped/bulk behaviors)
-            try { chart && (chart._claramaXAxisTypeName = xAxisTypeName || (startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time')); } catch (e) {}
-            try { if (xAxisTypeName === 'category_grouped' || xAxisTypeName === 'category_bulk' || xaxisType === 'category_grouped' || xaxisType === 'category_bulk') { if (!data.labels) data.labels = []; } } catch (e) {}
+            try {
+                chart && (chart._claramaXAxisTypeName = xAxisTypeName || (startChartCfg['xaxis-type'] || xaxisTypeDefault || 'time'));
+            } catch (e) {
+            }
+            try {
+                if (xAxisTypeName === 'category_grouped' || xAxisTypeName === 'category_bulk' || xaxisType === 'category_grouped' || xaxisType === 'category_bulk') {
+                    if (!data.labels) data.labels = [];
+                }
+            } catch (e) {
+            }
             const baseOptions = {
                 // Enable index-based parsing for category alignment when labels are provided
                 parsing: true,
                 maintainAspectRatio: maintain,
                 aspectRatio: aspect_ratio,
                 scales: {
-                    x: {type: x_scale_type, time: (x_scale_type === 'time' || x_scale_type === 'timeseries') ? {unit: 'auto'} : undefined}
+                    x: {
+                        type: x_scale_type,
+                        time: (x_scale_type === 'time' || x_scale_type === 'timeseries') ? {unit: 'auto'} : undefined
+                    }
                     // Intentionally omit default 'y' axis at start; will be created on first chunk if needed
                 },
                 plugins: {
                     legend: {display: legend_display},
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 try {
                                     const dsLabel = context.dataset && context.dataset.label ? context.dataset.label + ': ' : '';
                                     const y = context.parsed && context.parsed.y != null ? context.parsed.y : (context.raw && context.raw.y);
                                     const l = context.raw && context.raw.l ? String(context.raw.l) : '';
                                     return l ? (dsLabel + y + ' (' + l + ')') : (dsLabel + y);
-                                } catch (e) { return undefined; }
+                                } catch (e) {
+                                    return undefined;
+                                }
                             }
                         }
                     },
@@ -747,7 +763,31 @@
         };
     }
 
+    function startLiveStream(isChart, query, topic, sourceFile) {
+        // Trigger data/execute/stream_query on the selected source file
+        const url = '/web' + encodeURIComponent(sourceFile);
+        const body = {query: query, topic: topic, chunk_size: 200};
+
+        console.log("DATA/STREAMING/START", url, body);
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        }).then(r => r.json()).then(j => {
+            console.log('stream_query response', j);
+        }).catch(err => {
+            console.error('stream_query call failed', err);
+            alert('Failed to call stream_query: ' + err);
+        });
+    }
+
+
     global.bChartStream = bChartStream;
+    global.startLiveStream = startLiveStream;
     global.ClaramaStreamAssembler = global.ClaramaStreamAssembler || ClaramaStreamAssembler;
 
+
 })(window);
+
