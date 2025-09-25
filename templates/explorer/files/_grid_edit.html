@@ -717,8 +717,26 @@
     }
 
     function saveGrid() {
-        savedgrid = {{ grid_id }}grid.save(false, true);
-        const currentColCount = {{ grid_id }}grid.getColumn();
+        console.log('saving grid {{ grid_id }}grid');
+        var grid = {{ grid_id }}grid;
+
+        // Before saving, log each element's position (x, y, width, height)
+        try {
+            const nodes = (grid && grid['engine'] && grid['engine']['nodes']) ? grid['engine']['nodes'] : [];
+            nodes.forEach(n => {
+                // Some gridstack versions use w/h, others width/height; prefer w/h and fallback
+                const x = n.x ?? n['gs-x'] ?? n.left ?? 0;
+                const y = n.y ?? n['gs-y'] ?? n.top ?? 0;
+                const w = n.w ?? n.width ?? n['gs-w'] ?? 0;
+                const h = n.h ?? n.height ?? n['gs-h'] ?? 0;
+                console.log(`element ${n.id}: x=${x}, y=${y}, width=${w}, height=${h}`);
+            });
+        } catch (e) {
+            console.warn('Could not log element positions prior to save:', e);
+        }
+
+        savedgrid = grid.save(false, true);
+        const currentColCount = grid.getColumn();
         console.log("currentColCount", currentColCount);
 
         serializedData = {
