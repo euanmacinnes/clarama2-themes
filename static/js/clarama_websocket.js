@@ -725,8 +725,9 @@ window.ClaramaStream = window.ClaramaStream || (function () {
     const handlers = {}; // topic -> Set<function>
     function register(topic, fn) {
         const t = topic || '*';
-        if (!handlers[t]) handlers[t] = new Set();
-        handlers[t].add(fn);
+        console.log('ClaramaStream.register', t, fn, handlers);
+        //if (!handlers[t]) handlers[t] = new Set();
+        handlers[t] = fn;
         return function unregister() {
             try {
                 handlers[t].delete(fn);
@@ -740,13 +741,13 @@ window.ClaramaStream = window.ClaramaStream || (function () {
         console.log('ClaramaStream.dispatch', t, msg, handlers);
         const hs = handlers[t];
         if (hs) {
-            hs.forEach(fn => {
-                try {
-                    fn(msg, t);
-                } catch (e) {
-                    console.error('Stream handler error', e);
-                }
-            });
+            //  hs.forEach(fn => {
+            try {
+                hs(msg, t);
+            } catch (e) {
+                console.error('Stream handler error', e);
+            }
+            // });
         }
         // Also dispatch to wildcard handlers
         const ws = handlers['*'];
@@ -803,11 +804,12 @@ function onMessage(event, socket_url, webSocket, socket_div) {
     let message_event = socket_div.attr('onmessage');
 
     if (message_event !== undefined) {
-        console.log("Message event: " + message_event, dict);
         dict = window[message_event](dict, socket_url, webSocket, socket_div);
 
         if (dict === undefined)
             return;
+
+        console.log("Message event: ", dict);
     }
 
     if ('class' in dict) {
@@ -1061,15 +1063,16 @@ function onMessage(event, socket_url, webSocket, socket_div) {
     } else {
         // Attempt to route raw stream frames (start/chunk/end/error) through ClaramaStream
         try {
-            const t = (socket_div && socket_div.attr) ? (socket_div.attr('topic') || '') : '';
-            if (dict && typeof dict === 'object' && (dict.type === 'start' || dict.type === 'chunk' || dict.type === 'end' || dict.type === 'error')) {
-                console.log("CLARAMA_WEBSOCKET.js: Routing raw stream frame to ClaramaStream", dict);
+            if (dict.type === 'start' || dict.type === 'chunk' || dict.type === 'end' || dict.type === 'error') {
+                const t = dict.topic;
+                console.log("CLARAMA_WEBSOCKET.js: Routing raw stream frame to ClaramaStream", dict, t);
                 if (window.ClaramaStream && typeof window.ClaramaStream.dispatch === 'function') {
                     window.ClaramaStream.dispatch(t, dict);
                     return;
                 }
             }
         } catch (e) { /* fallthrough to log */
+            console.error('CLARAMA_WEBSOCKET.js ClaramaStream error', e);
         }
         console.log("CLARAMA_WEBSOCKET.js: WTF was this: ", dict);
     }
