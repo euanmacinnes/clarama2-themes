@@ -8,6 +8,10 @@ CELL LAYOUT
     background: rgb(234, 244, 255);
 }
 
+.last-panel {
+    background: #6af !important;
+}
+
 #stream_main > li.clarama-cell-item:last-of-type .cell-panel {
     background: #6af;
 }
@@ -389,7 +393,6 @@ body.dragging {
     border-color: #74c0fc;
 }
 
-/* Force bubble content to respect bubble width */
 .insights-gina-chat-bubble .clarama-markdown,
 .insights-gina-chat-bubble .stream-html {
     max-width: 100%;
@@ -407,7 +410,7 @@ body.dragging {
 
 .insights-gina-chat-container .code-insert-bar {
     position: absolute;
-    inset-inline-start: .25rem; /* logical start edge */
+    inset-inline-start: .25rem; 
     top: 8px;
     bottom: 8px;
     width: 18px;

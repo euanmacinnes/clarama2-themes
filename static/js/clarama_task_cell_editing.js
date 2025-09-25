@@ -46,9 +46,39 @@ $.fn.enablesortcolor = function () {
     });
 };
 
+function applyLastPanel(panelList) {
+    $('.panel', panelList).removeClass('last-panel');
+    $('.panel', panelList).last().addClass('last-panel');
+}
+
+$.fn.enablesortcolor = function () {
+    return this.each(function () {
+        var panelList = $(this);
+
+        panelList.sortable({
+            handle: '.draggable-heading',
+            update: function () {
+                var streamname = $(this).closest('.stream').attr('stream-name');
+
+                $('.clarama-cell-item', panelList).each(function (index) {
+                    $(this).attr('id', streamname + '_' + (index + 1));
+                });
+
+                $('.panel', panelList).each(function (index) {
+                    $('.step-label', this).html('' + (index + 1));
+                });
+
+                applyLastPanel(panelList);
+            }
+        });
+
+        applyLastPanel(panelList);
+    });
+};
+
 function sortUpdate(panelList) {
-    $('.clarama-cell-item', panelList).each(function (index, elem) {
-        var streamname = $(this).parent(".stream").attr('stream-name');
+    $('.clarama-cell-item', panelList).each(function (index) {
+        var streamname = $(this).closest('.stream').attr('stream-name');
         var oldStep = $(this).attr('step');
         var newStep = index + 1;
 
@@ -56,17 +86,11 @@ function sortUpdate(panelList) {
         if (oldStep !== newStep) updateInsightsIds($(this), oldStep, newStep);
     });
 
-    $('.panel', panelList).each(function (index, elem) {
-        var listItem = $(elem);
-
-        listItem.css('background', '');
-
-        $('.step-label', listItem).each(function () {
-            $(this).html('<p class="step-label">' + (index + 1) + '</p>');
-        });
+    $('.panel', panelList).each(function (index) {
+        $('.step-label', this).html('<p class="step-label">' + (index + 1) + '</p>');
     });
 
-    $('.panel', panelList).last().css('background', '#6af');
+    applyLastPanel(panelList);
 }
 
 function updateInsightsIds(cellElement, oldStep, newStep) {
@@ -188,9 +212,10 @@ $.fn.enablesort = function () {
             handle: '.draggable-heading'
         });
 
-        panelList.on('sortupdate'), function () {
+        panelList.on('sortupdate', function () {
             sortUpdate(panelList);
+        });
 
-        };
+        applyLastPanel(panelList);
     });
 };
