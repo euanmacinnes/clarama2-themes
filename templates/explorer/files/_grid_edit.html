@@ -720,6 +720,7 @@
         console.log('saving grid {{ grid_id }}grid');
         var grid = {{ grid_id }}grid;
 
+        var elements = [];
         // Before saving, log each element's position (x, y, width, height)
         try {
             const nodes = (grid && grid['engine'] && grid['engine']['nodes']) ? grid['engine']['nodes'] : [];
@@ -730,17 +731,26 @@
                 const w = n.w ?? n.width ?? n['gs-w'] ?? 0;
                 const h = n.h ?? n.height ?? n['gs-h'] ?? 0;
                 console.log(`element ${n.id}: x=${x}, y=${y}, width=${w}, height=${h}`);
+                var element = {
+                    'id': n.id,
+                    'x': x,
+                    'y': y,
+                    'w': w,
+                    'h': h
+                };
+
+                elements.push(element);
             });
         } catch (e) {
             console.warn('Could not log element positions prior to save:', e);
         }
 
-        savedgrid = grid.save(false, true);
+        // savedgrid = grid.save(false, true);
         const currentColCount = grid.getColumn();
         console.log("currentColCount", currentColCount);
 
         serializedData = {
-            'grid': savedgrid,
+            'grid': { 'children': elements },
             'elements': {{ grid_id }}elements,
             'settings': {{ grid_id }}settings
         };
