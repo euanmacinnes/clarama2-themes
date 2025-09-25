@@ -463,11 +463,88 @@ function cell_insights_data_run(cell_button, dataQuery) {
 
         task_registry.parameters = field_registry;
 
-        // Mark route for potential downstream logic/telemetry
         window.__insightsDataRoute = window.__insightsDataRoute || {};
         window.__insightsDataRoute[taskIndex] = { active: true, at: Date.now() };
 
         ajaxRun(task_registry, "Data query failed: access/network issue");
+    });
+}
+
+/* ---------------------------------------------------------------------- */
+/* CODE INSPECTOR                                                         */
+/* ---------------------------------------------------------------------- */
+
+function getAceEditorForTask(taskIndex) {
+    const left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) return null;
+    const aceHost = left.querySelector('.ace_editor');
+    if (!aceHost || !window.ace || typeof window.ace.edit !== 'function') return null;
+    if (!aceHost.id) aceHost.id = `ace_${taskIndex}_${Date.now()}`;
+    return window.ace.edit(aceHost.id);
+}
+
+function getCurrentCodeAndCursor(taskIndex) {
+    const editor = getAceEditorForTask(taskIndex);
+    if (!editor) return { code: "", row: 1, column: 1, ok: false };
+    const code = editor.getValue();
+    const pos = editor.getCursorPosition();
+    return { code, row: (pos.row ?? 0) + 1, column: (pos.column ?? 0) + 1, ok: true };
+}
+
+function renderCodeInspectorResult(taskIndex, text) {
+    const host = document.getElementById(`code-inspector-results-${taskIndex}`);
+    if (!host) return;
+    host.innerHTML = "";
+    const pre = document.createElement("pre");
+    pre.className = "code-response font-monospace mb-0";
+    pre.textContent = String(text ?? "");
+    host.appendChild(pre);
+}
+
+function cell_insights_code_inspect_reload(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell.length) { console.error("Cell not found for task", taskIndex); return; }
+
+    // Pull latest code + cursor from Ace
+    const { code, row, column, ok } = getCurrentCodeAndCursor(taskIndex);
+    if (!ok) {
+        renderCodeInspectorResult(taskIndex, "Editor not ready. Click Reload again once the editor has mounted.");
+        observeEditorReady(taskIndex);
+        return;
+    }
+
+    const cbName = `cell_insights_code_inspector_callback_${taskIndex}`;
+    window[cbName] = function (output) {
+        renderCodeInspectorResult(taskIndex, output);
+    };
+
+    // kernel function "inspect_code" is not exposed yet
+    const py = `
+_code = ${JSON.stringify(code)}
+_row = ${row}
+_col = ${column}
+try:
+    _out = inspect_code(_code, _row, _col)
+    print("" if _out is None else str(_out))
+except Exception as e:
+    print(str(e))
+`.trim();
+
+    // Send to kernel
+    get_field_values({}, true, function (field_registry) {
+        const task_registry = buildTaskRegistry($cell);
+        set_insight_behaviour(task_registry, py, field_registry);
+        pauseChatStream(taskIndex);
+
+        renderCodeInspectorResult(taskIndex, "… inspecting at row " + row + ", col " + column + " …");
+
+        ajaxRun(task_registry, "Code inspection failed: access/network issue").done((data) => {
+            if (!(data && data.data === "ok")) {
+                renderCodeInspectorResult(taskIndex, "Could not inspect code");
+            }
+        }).fail(() => {
+            renderCodeInspectorResult(taskIndex, "Could not inspect code");
+        });
     });
 }
 
@@ -836,10 +913,12 @@ function populateVariablesContainer(container, variableNames, taskIndex) {
 
 function categoryContainerIds(taskIndex) {
     return {
-        modules:   `variables_modules_${taskIndex}`,
-        objects:   `variables_objects_${taskIndex}`,
-        primitives:`variables_primitives_${taskIndex}`,
-        data:      `variables_data_${taskIndex}`
+        modules:    `variables_modules_${taskIndex}`,
+        classes:    `variables_classes_${taskIndex}`,
+        methods:    `variables_methods_${taskIndex}`,
+        objects:    `variables_objects_${taskIndex}`,
+        primitives: `variables_primitives_${taskIndex}`,
+        data:       `variables_data_${taskIndex}`
     };
 }
 
@@ -866,7 +945,7 @@ function renderCategoryList(targetId, names, taskIndex) {
 /** When we receive a mapping {name: "modules"|"objects"|"primitives"|"data"} */
 function populateVariablesByCategory(mapping, taskIndex) {
     const ids = categoryContainerIds(taskIndex);
-    const buckets = { modules: [], objects: [], primitives: [], data: [] };
+    const buckets = { modules: [], classes: [], methods: [], objects: [], primitives: [], data: [] };
 
     try {
         // mapping may be a JSON string
@@ -874,6 +953,8 @@ function populateVariablesByCategory(mapping, taskIndex) {
         Object.entries(mapObj || {}).forEach(([name, cat]) => {
             const key = (String(cat || "").toLowerCase());
             if (key === "modules")      buckets.modules.push(name);
+            else if (key === "classes") buckets.classes.push(name);
+            else if (key === "methods") buckets.methods.push(name);
             else if (key === "objects") buckets.objects.push(name);
             else if (key === "primitives") buckets.primitives.push(name);
             else if (key === "data")    buckets.data.push(name);
@@ -887,6 +968,8 @@ function populateVariablesByCategory(mapping, taskIndex) {
     }
 
     renderCategoryList(ids.modules,    buckets.modules,    taskIndex);
+    renderCategoryList(ids.classes,    buckets.classes,    taskIndex);
+    renderCategoryList(ids.methods,    buckets.methods,    taskIndex);
     renderCategoryList(ids.objects,    buckets.objects,    taskIndex);
     renderCategoryList(ids.primitives, buckets.primitives, taskIndex);
     renderCategoryList(ids.data,       buckets.data,       taskIndex);
@@ -976,6 +1059,20 @@ def _is_pd(x):
     except Exception:
         return False
 
+def _is_classlike(x):
+    return inspect.isclass(x) or isinstance(x, type)
+
+def _is_methodlike(x):
+    return (
+        inspect.isfunction(x)
+        or inspect.ismethod(x)
+        or inspect.isbuiltin(x)
+        or inspect.ismethoddescriptor(x)
+        or inspect.isroutine(x)
+        or isinstance(x, types.BuiltinFunctionType)
+        or isinstance(x, types.MethodType)
+    )
+
 def _is_primitive(x):
     return isinstance(x, (str, int, float, bool, bytes, complex))
 
@@ -990,12 +1087,17 @@ for _name, _val in list(locals().items()):
     try:
         if inspect.ismodule(_val):
             categories[_name] = "modules"
+        elif _is_classlike(_val):
+            categories[_name] = "classes"
+        elif _is_methodlike(_val):
+            categories[_name] = "methods"
         elif _is_primitive(_val):
             categories[_name] = "primitives"
         elif _is_data(_val):
             categories[_name] = "data"
+        elif hasattr(_val, "__class__") and _val.__class__ is not object:
+            categories[_name] = "classes"
         else:
-            # functions/classes/instances/etc.
             categories[_name] = "objects"
     except Exception:
         categories[_name] = "objects"
@@ -1013,7 +1115,7 @@ print(json.dumps(categories))
                 const err = data && data.error ? data.error : "Unknown error";
                 console.log("Variables classification failed for task", taskIndex);
                 const ids = categoryContainerIds(taskIndex);
-                [ids.modules, ids.objects, ids.primitives, ids.data].forEach(id => {
+                [ids.modules, ids.classes, ids.methods, ids.objects, ids.primitives, ids.data].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.innerHTML = `<div class="text-danger p-3">Error loading variables: ${err}</div>`;
                 });
@@ -1024,7 +1126,7 @@ print(json.dumps(categories))
         }).fail(() => {
             console.log("Variables AJAX error for task", taskIndex);
             const ids = categoryContainerIds(taskIndex);
-            [ids.modules, ids.objects, ids.primitives, ids.data].forEach(id => {
+            [ids.modules, ids.classes, ids.methods, ids.objects, ids.primitives, ids.data].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = '<div class="text-danger p-3">Error loading variables</div>';
             });
@@ -1292,6 +1394,24 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     if (id.startsWith("insights-chat-tab-")) {
         initialiseInsightsGina(taskIndex);
     }
+});
+
+// Click: Reload button in Code Inspector
+$(document).on('click', '.code-inspector-reload', function (ev) {
+    ev.preventDefault();
+    const taskIndex = $(this).data('taskIndex') || $(this).attr('data-task-index');
+    if (taskIndex) cell_insights_code_inspect_reload(taskIndex);
+});
+
+// When user switches to the Code Inspector tab, reload automatically
+document.addEventListener('shown.bs.tab', function (e) {
+    const btn = e.target; // newly activated tab button
+    if (!btn.id) return;
+    const m = btn.id.match(/^insights-code-inspector-tab-(\d+)$/);
+    if (!m) return;
+    const taskIndex = m[1];
+    // Console should be python for this tab already; refresh inspector now
+    cell_insights_code_inspect_reload(taskIndex);
 });
 
 /* Click “Run” on console */

@@ -93,6 +93,22 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
+                                <button class="nav-link w-100" id="variables-classes-tab-{{ task_index }}" 
+                                        data-bs-toggle="tab" data-bs-target="#variables-classes-{{ task_index }}" 
+                                        type="button" role="tab" aria-controls="variables-classes-{{ task_index }}"
+                                        aria-selected="false">
+                                    Classes
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link w-100" id="variables-methods-tab-{{ task_index }}" 
+                                        data-bs-toggle="tab" data-bs-target="#variables-methods-{{ task_index }}" 
+                                        type="button" role="tab" aria-controls="variables-methods-{{ task_index }}"
+                                        aria-selected="false">
+                                    Methods
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
                                 <button class="nav-link w-100" id="variables-objects-tab-{{ task_index }}"
                                         data-bs-toggle="tab" data-bs-target="#variables-objects-{{ task_index }}"
                                         type="button" role="tab" aria-controls="variables-objects-{{ task_index }}"
@@ -129,6 +145,20 @@
                                         </div>
                                         <span>There are no Modules...</span>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="variables-classes-{{ task_index }}" role="tabpanel"
+                                  aria-labelledby="variables-classes-tab-{{ task_index }}">
+                                <div class="variables-list" id="variables_classes_{{ task_index }}">
+                                    <div class="text-muted">There are no Classes...</div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="variables-methods-{{ task_index }}" role="tabpanel"
+                                  aria-labelledby="variables-methods-tab-{{ task_index }}">
+                                <div class="variables-list" id="variables_methods_{{ task_index }}">
+                                    <div class="text-muted">There are no Methods...</div>
                                 </div>
                             </div>
 
@@ -174,7 +204,20 @@
                 {% if task_step['type'] == 'code' %}
                     <div class="tab-pane fade" id="insights-code-inspector-{{ task_index }}" role="tabpanel"
                         aria-labelledby="insights-code-inspector-tab-{{ task_index }}" tabindex="0">
-                        <div class="p-3" id="code_inspector-{{ task_index }}"></div>
+                        <div class="p-3" id="code_inspector-{{ task_index }}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="small text-muted">Code Inspector</div>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary code-inspector-reload"
+                                        data-task-index="{{ task_index }}"
+                                        title="Reload inspector from current cursor">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Reload
+                                </button>
+                            </div>
+                            <div class="border rounded p-2 bg-light-subtle" id="code-inspector-results-{{ task_index }}">
+                                <em class="text-muted">No inspection yet. Click Reload.</em>
+                            </div>
+                        </div>
                         <!-- Code Inspector console (python) -->
                         <div class="insights-console border-top bg-light mt-2">
                             <div class="p-2">

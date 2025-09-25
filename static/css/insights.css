@@ -61,7 +61,7 @@ CELL LAYOUT
     INSIGHTS PANEL
     ===================================================================== */
 .cell-insights {
-    height: 100%;
+    height: auto;
     display: flex;
     flex-direction: column;
 }
