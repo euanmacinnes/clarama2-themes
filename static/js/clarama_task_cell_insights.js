@@ -704,11 +704,10 @@ function toggleBarsForTask(taskIndex, enabled) {
     });
 }
 
-/** One-time /init handshake when Chat tab opens for a task */
-function initialiseInsightsGina(taskIndex) {
+/** (/init) handshake for Chat with GINA. If `force` is true, always send. */
+function initialiseInsightsGina(taskIndex, force = false) {
     if (!taskIndex) return;
-    if (window.__ginaInsightsHandshakeSent[taskIndex] || window.__ginaInsightsHandshakeDone[taskIndex]) return;
-
+    if (!force && (window.__ginaInsightsHandshakeSent[taskIndex] || window.__ginaInsightsHandshakeDone[taskIndex])) return;
     window.__ginaInsightsHandshakeSent[taskIndex] = true;
     window.__ginaChatActive[taskIndex] = true;
     window.__ginaStreamBuf[taskIndex] = "";
@@ -721,11 +720,20 @@ function initialiseInsightsGina(taskIndex) {
         scrollChatToBottom(taskIndex);
     });
 
+    // Build JSON payload from the cell
+    let cellContent = "{}";
+    const $cell = getCellByTask(taskIndex);
+    if ($cell && $cell.length) {
+        cellContent = JSON.stringify(extractCellContent($cell));
+    }
+    const initCommand = `/init ${cellContent}`;
+    // console.log('initCommand: ', initCommand);
+
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
-            { type: "question", source: "/init", clear: false },
+            { type: "question", source: initCommand, clear: false },
             field_registry
         ).always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
     });

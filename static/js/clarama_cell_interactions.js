@@ -255,6 +255,11 @@ function openInsights(cellItem, taskIndex) {
     setupDragDivider(cellItem, taskIndex);
     syncInsightsConsole(taskIndex);
 
+    // Ensure /init runs EVERY time this cell's Insights opens:
+    if (window.__ginaInsightsHandshakeSent) delete window.__ginaInsightsHandshakeSent[taskIndex];
+    if (window.__ginaInsightsHandshakeDone) delete window.__ginaInsightsHandshakeDone[taskIndex];
+    initialiseInsightsGina(taskIndex, /*force=*/true);
+
     // Visual states / titles
     if (oldBtn.length) {
         oldBtn.addClass('btn-warning').attr('title', 'Hide insights (Ctrl-\\)');
@@ -284,7 +289,6 @@ function openInsights(cellItem, taskIndex) {
 
     cell_insights_variables_run(cellItem, function (output_text) {
         var idx = cellItem.attr('step') || cellItem.attr('data-task-index');
-        populateVariablesList(output_text, idx);
     });
 }
 
