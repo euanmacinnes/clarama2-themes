@@ -753,7 +753,26 @@ window.ClaramaStream = window.ClaramaStream || (function () {
  * @param {WebSocket} webSocket
  */
 function onMessage(event, socket_url, webSocket, socket_div) {
-    let dict = JSON.parse(event.data);
+    // Detect simple heartbeat pong messages before any JSON parsing
+    try {
+        if (typeof event.data === 'string') {
+            const trimmed = event.data.trim().toLowerCase();
+            if (trimmed === 'pong') {
+                // Received pong heartbeat; no further action required
+                console.log('CLARAMA_WEBSOCKET.js: Received pong heartbeat');
+                return;
+            }
+        }
+    } catch (e) { /* noop */
+    }
+
+    let dict;
+    try {
+        dict = JSON.parse(event.data);
+    } catch (e) {
+        // Not JSON (e.g., control frames or plain text heartbeat); ignore
+        return;
+    }
     //console.log("WEBSOCKET.js: onMessage " + dict['class']);
     // console.log("dict: ", dict);
 
@@ -817,37 +836,53 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const stepId = String(dict.step_id || "");
                 const m = stepId.match(/step_(\d+)/);
                 const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
-              
+
                 const output = dict.values.output || "";
                 let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
                 chunk = html_decode(chunk);
-              
+
                 if (taskIndex) {
                     const cbChat = "cell_insights_chat_callback_" + taskIndex;
                     const cbVars = "cell_insights_variables_callback_" + taskIndex;
                     const cbCode = "cell_insights_callback_" + taskIndex;
-                
+
                     // Prefer active gina insights chat stream first
                     if (typeof window[cbChat] === "function") {
-                        try { window[cbChat](chunk); } catch(e){ console.error(e); } finally { delete window[cbChat]; }
+                        try {
+                            window[cbChat](chunk);
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            delete window[cbChat];
+                        }
                         return; // handled by chat
                     }
                     // Otherwise deliver to variables
                     if (typeof window[cbVars] === "function") {
-                        try { window[cbVars](chunk); } catch(e){ console.error(e); } finally { delete window[cbVars]; }
+                        try {
+                            window[cbVars](chunk);
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            delete window[cbVars];
+                        }
                         return; // handled by variables
                     }
 
                     if (typeof window[cbCode] === "function") {
-                        try { window[cbCode](chunk); }
-                        catch (e) { console.error(e); }
-                        finally { delete window[cbCode]; }
+                        try {
+                            window[cbCode](chunk);
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            delete window[cbCode];
+                        }
                         return; // handled by code console
                     }
                 }
 
                 return; // nothing to deliver
-            }              
+            }
 
             if (dict['class'] === "progress_bar") {
                 let resulter = "#" + dict['step_id'];
