@@ -787,6 +787,26 @@
                 group.find('input.' + field).prop('disabled', true);
             });
         }
+        
+        function hideDataCellPanelById(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            try {
+                const inst = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+                inst.hide();
+            } catch (e) {
+                el.classList.remove('show');
+                el.style.height = '';
+            }
+        }
+        
+        function closeAllOptionPanels() {
+            hideDataCellPanelById(`collapseTableOptions_${loopIndex}`);
+            hideDataCellPanelById(`collapseChartOptions_${loopIndex}`);
+            hideDataCellPanelById(`collapseDiagramOptions_${loopIndex}`);
+            hideDataCellPanelById(`collapseChart3dOptions_${loopIndex}`);
+            hideDataCellPanelById(`collapseCodeOptions_${loopIndex}`);
+        }
 
         function updateAllTabDropdowns(loopIndex) {
             const currentTabs = [];
@@ -1130,6 +1150,20 @@
             if ($firstTab.length) {
                 activateTab($firstTab[0]);
                 updateAllTabDropdowns(loopIndex);
+            }
+        }
+
+        const contentRow = $(`#dataEditTabContentContainer_${loopIndex}`).closest('.cell-split').find('.content-row').get(0);
+        if (contentRow) {
+            const mo = new MutationObserver((muts) => {
+                if (contentRow.classList.contains('split-active')) {
+                    closeAllOptionPanels();
+                }
+            });
+            mo.observe(contentRow, { attributes: true, attributeFilter: ['class'] });
+            // If already open on load, close immediately
+            if (contentRow.classList.contains('split-active')) {
+                closeAllOptionPanels();
             }
         }
     });
