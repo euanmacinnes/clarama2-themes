@@ -71,6 +71,29 @@ function processTaskMessages() {
     socket_taskQueue = [];
 }
 
+
+/**
+ * Subscribe to topics and flush the queued task messages once the socket is open.
+ */
+function add_topic(topic) {
+    if (socket_topics.indexOf(topic) === -1) {
+        socket_topics.push(topic);
+        console.log("CLARAMA_WEBSOCKET.js: TOPICS");
+        console.log(socket_topics);
+    }
+
+    if (task_active_socket !== undefined)
+        if (task_active_socket.readyState === WebSocket.OPEN) {
+            task_active_socket.send(JSON.stringify({topics: socket_topics}));
+            return;
+        } else {
+            console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket was not open");
+        }
+    else {
+        console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket undefined, pushing on queue");
+    }
+}
+
 /**
  * Queue or immediately execute a task message depending on socket state.
  *
@@ -702,8 +725,9 @@ window.ClaramaStream = window.ClaramaStream || (function () {
     const handlers = {}; // topic -> Set<function>
     function register(topic, fn) {
         const t = topic || '*';
-        if (!handlers[t]) handlers[t] = new Set();
-        handlers[t].add(fn);
+        console.log('ClaramaStream.register', t, fn, handlers);
+        //if (!handlers[t]) handlers[t] = new Set();
+        handlers[t] = fn;
         return function unregister() {
             try {
                 handlers[t].delete(fn);
@@ -714,15 +738,16 @@ window.ClaramaStream = window.ClaramaStream || (function () {
 
     function dispatch(topic, msg) {
         const t = topic || '*';
+        console.log('ClaramaStream.dispatch', t, msg, handlers);
         const hs = handlers[t];
         if (hs) {
-            hs.forEach(fn => {
-                try {
-                    fn(msg, t);
-                } catch (e) {
-                    console.error('Stream handler error', e);
-                }
-            });
+            //  hs.forEach(fn => {
+            try {
+                hs(msg, t);
+            } catch (e) {
+                console.error('Stream handler error', e);
+            }
+            // });
         }
         // Also dispatch to wildcard handlers
         const ws = handlers['*'];
@@ -753,18 +778,38 @@ window.ClaramaStream = window.ClaramaStream || (function () {
  * @param {WebSocket} webSocket
  */
 function onMessage(event, socket_url, webSocket, socket_div) {
-    let dict = JSON.parse(event.data);
+    // Detect simple heartbeat pong messages before any JSON parsing
+    try {
+        if (typeof event.data === 'string') {
+            const trimmed = event.data.trim().toLowerCase();
+            if (trimmed === 'pong') {
+                // Received pong heartbeat; no further action required
+                console.log('CLARAMA_WEBSOCKET.js: Received pong heartbeat');
+                return;
+            }
+        }
+    } catch (e) { /* noop */
+    }
+
+    let dict;
+    try {
+        dict = JSON.parse(event.data);
+    } catch (e) {
+        // Not JSON (e.g., control frames or plain text heartbeat); ignore
+        return;
+    }
     //console.log("WEBSOCKET.js: onMessage " + dict['class']);
     // console.log("dict: ", dict);
 
     let message_event = socket_div.attr('onmessage');
 
     if (message_event !== undefined) {
-        console.log("Message event: " + message_event, dict);
         dict = window[message_event](dict, socket_url, webSocket, socket_div);
 
         if (dict === undefined)
             return;
+
+        console.log("Message event: ", dict);
     }
 
     if ('class' in dict) {
@@ -817,37 +862,53 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const stepId = String(dict.step_id || "");
                 const m = stepId.match(/step_(\d+)/);
                 const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
-              
+
                 const output = dict.values.output || "";
                 let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
                 chunk = html_decode(chunk);
-              
+
                 if (taskIndex) {
                     const cbChat = "cell_insights_chat_callback_" + taskIndex;
                     const cbVars = "cell_insights_variables_callback_" + taskIndex;
                     const cbCode = "cell_insights_callback_" + taskIndex;
-                
+
                     // Prefer active gina insights chat stream first
                     if (typeof window[cbChat] === "function") {
-                        try { window[cbChat](chunk); } catch(e){ console.error(e); } finally { delete window[cbChat]; }
+                        try {
+                            window[cbChat](chunk);
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            delete window[cbChat];
+                        }
                         return; // handled by chat
                     }
                     // Otherwise deliver to variables
                     if (typeof window[cbVars] === "function") {
-                        try { window[cbVars](chunk); } catch(e){ console.error(e); } finally { delete window[cbVars]; }
+                        try {
+                            window[cbVars](chunk);
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            delete window[cbVars];
+                        }
                         return; // handled by variables
                     }
 
                     if (typeof window[cbCode] === "function") {
-                        try { window[cbCode](chunk); }
-                        catch (e) { console.error(e); }
-                        finally { delete window[cbCode]; }
+                        try {
+                            window[cbCode](chunk);
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            delete window[cbCode];
+                        }
                         return; // handled by code console
                     }
                 }
 
                 return; // nothing to deliver
-            }              
+            }
 
             if (dict['class'] === "progress_bar") {
                 let resulter = "#" + dict['step_id'];
@@ -933,6 +994,26 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 bChart(dict['values']['chart_id'], dict['results']);
             }
 
+            if (dict['class'] === "template_table_stream") {
+                let resulter = "#" + dict['step_id'];
+                console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET TABLE MESSAGE:" + webSocket.url);
+                process_template(dict['type'], dict['values'], $(resulter));
+                var options = dict['values']
+                var handle = bTableStream(dict['values']['table_id'], options);
+                console.log("WEBSOCKET TABLE STREAM OPTIONS: ", options);
+                add_topic(options['topic'])
+                startLiveStream(false, options['query'], options['topic'], options['url']);
+
+            }
+
+            if (dict['class'] === "template_chart_stream") {
+                let resulter = "#" + dict['step_id'];
+                console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART MESSAGE:" + webSocket.url + " " + dict['step_id']);
+                console.log($(resulter));
+                process_template(dict['type'], dict['values'], $(resulter));
+                bChartStream(dict['values']['chart_id'], dict['values']);
+            }
+
             if (dict['class'] === "template_chart3d") {
                 let resulter = "#" + dict['step_id'];
                 console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART3D MESSAGE:" + webSocket.url + " " + dict['step_id']);
@@ -982,14 +1063,16 @@ function onMessage(event, socket_url, webSocket, socket_div) {
     } else {
         // Attempt to route raw stream frames (start/chunk/end/error) through ClaramaStream
         try {
-            const t = (socket_div && socket_div.attr) ? (socket_div.attr('topic') || '') : '';
-            if (dict && typeof dict === 'object' && (dict.type === 'start' || dict.type === 'chunk' || dict.type === 'end' || dict.type === 'error')) {
+            if (dict.type === 'start' || dict.type === 'chunk' || dict.type === 'end' || dict.type === 'error') {
+                const t = dict.topic;
+                console.log("CLARAMA_WEBSOCKET.js: Routing raw stream frame to ClaramaStream", dict, t);
                 if (window.ClaramaStream && typeof window.ClaramaStream.dispatch === 'function') {
                     window.ClaramaStream.dispatch(t, dict);
                     return;
                 }
             }
         } catch (e) { /* fallthrough to log */
+            console.error('CLARAMA_WEBSOCKET.js ClaramaStream error', e);
         }
         console.log("CLARAMA_WEBSOCKET.js: WTF was this: ", dict);
     }

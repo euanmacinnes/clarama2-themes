@@ -590,6 +590,20 @@ function get_test_cell(cell) {
     return {};
 }
 
+// Streaming data cell: reuse data cell extraction but change type
+function get_data_stream_cell(cell) {
+    try {
+        var obj = get_data_cell(cell);
+        if (obj && typeof obj === 'object') {
+            obj.type = 'data_stream';
+        }
+        return obj;
+    } catch (e) {
+        console.error('get_data_stream_cell failed', e);
+        return { type: 'data_stream', output: 'table', tabs: [], table: {}, chart: {} };
+    }
+}
+
 /**
  * Calls the specific get_<cell_type>_cell function to extract the entire cell information
  * @param {jQuery} cell - jQuery object representing the cell

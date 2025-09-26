@@ -729,6 +729,10 @@ function extractCellContent(cell) {
             content = get_data_cell(targetCell);
             break;
 
+        case 'data_stream':
+            content = get_data_stream_cell(targetCell);
+            break;
+
         case 'test':
             content = get_test_cell(targetCell);
             break;
