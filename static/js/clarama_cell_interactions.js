@@ -135,6 +135,9 @@ function initializeNewCellinsights(newElement) {
 
         var executeButton = newElement.find('.execute-console');
         if (executeButton.length) executeButton.attr('data-task-index', taskIndex);
+
+        var reloadBtn = newElement.find('.code-inspector-reload');
+        if (reloadBtn.length) reloadBtn.attr('data-task-index', taskIndex);
     }
 
     initStickyFields(newElement);                 // ensure sticky defaults are restored

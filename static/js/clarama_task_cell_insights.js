@@ -105,9 +105,13 @@ function resolveTaskIndexFromNode(node) {
     return null;
 }    
 
-/** Quick DOM helpers */
+/** DOM helpers */
+function getStepNumber(taskIndex) {
+    return taskIndex > 100000000 ? taskIndex - 100000000 : taskIndex
+}
+
 function getCellByTask(taskIndex) {
-    return $(`li.clarama-cell-item[step="${taskIndex}"]`);
+    return $(`li.clarama-cell-item[step="${getStepNumber(taskIndex)}"]`);
 }
 function getActiveTabId(taskIndex) {
     const $tabs = $(`#insightsTabs_${taskIndex}`);
@@ -475,7 +479,7 @@ function cell_insights_data_run(cell_button, dataQuery) {
 /* ---------------------------------------------------------------------- */
 
 function getAceEditorForTask(taskIndex) {
-    const left = document.getElementById(`left_content_${taskIndex}`);
+    const left = document.getElementById(`left_content_${getStepNumber(taskIndex)}`);
     if (!left) return null;
     const aceHost = left.querySelector('.ace_editor');
     if (!aceHost || !window.ace || typeof window.ace.edit !== 'function') return null;
@@ -566,7 +570,7 @@ function renderCodeInspectorResult(taskIndex, text) {
     // None present
     const em = document.createElement("em");
     em.className = "text-muted";
-    em.textContent = "No docstring, suggestions, or symbol information.";
+    em.textContent = "No information.";
     host.appendChild(em);    
 }
 
