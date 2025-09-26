@@ -196,9 +196,26 @@ function set_insight_behaviour(task_registry, code_command, field_registry, isIn
 /* Console Controls                                                        */
 /* ---------------------------------------------------------------------- */
 
+function getActiveConsole(taskIndex) {
+    const activeId = getActiveTabId(taskIndex);
+    let $pane = $();
+    if (activeId) {
+        const paneId = activeId.replace("-tab-", "-");
+        $pane = $(`#${paneId}`);
+        if (!$pane.length) {
+            $pane = $(`#insights_${taskIndex}`);
+        }
+    } else {
+        $pane = $(`#insights_${taskIndex}`);
+    }
+
+    const $input = $pane.find(`#console_input_${taskIndex}, textarea.console-input[data-task-index="${taskIndex}"]`).first();
+    const $send  = $pane.find(`.execute-console[data-task-index="${taskIndex}"]`).first();
+    return { $pane, $input, $send };
+}
+    
 function setConsoleEnabled(taskIndex, enabled) {
-    const $input  = $(`#console_input_${taskIndex}`);
-    const $sendBtn = $(`.execute-console[step="${taskIndex}"], .execute-console[data-task-index="${taskIndex}"]`);
+    const { $input, $send: $sendBtn } = getActiveConsole(taskIndex);
 
     $input
         .prop("disabled", !enabled)
@@ -209,18 +226,19 @@ function setConsoleEnabled(taskIndex, enabled) {
 }
 
 function setConsoleVisible(taskIndex, visible) {
-    const $wrap = $(`#insights_${taskIndex} .insights-console`);
+    const { $pane } = getActiveConsole(taskIndex);
+    const $wrap = $pane.find('.insights-console');
     $wrap.toggleClass("d-none", !visible);
 }
 
 function setConsolePlaceholder(taskIndex, text) {
-    const $input = $(`#console_input_${taskIndex}`);
+    const { $input } = getActiveConsole(taskIndex);
     if ($input.length) $input.attr("placeholder", text);
 }
 
 /** Toggle console placeholder/mode per tab */
 function set_console_mode(taskIndex, mode) {
-    const $input = $(`#console_input_${taskIndex}`);
+    const { $input } = getActiveConsole(taskIndex);
     if (!$input.length) return;
     if (mode === "gina") {
         $input.attr("placeholder", "Message GINA…").data("console-mode", "gina");
