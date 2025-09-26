@@ -485,20 +485,89 @@ function getAceEditorForTask(taskIndex) {
 
 function getCurrentCodeAndCursor(taskIndex) {
     const editor = getAceEditorForTask(taskIndex);
-    if (!editor) return { code: "", row: 1, column: 1, ok: false };
+    if (!editor) return { code: "", row: 1, column: 0, ok: false };
     const code = editor.getValue();
     const pos = editor.getCursorPosition();
-    return { code, row: (pos.row ?? 0) + 1, column: (pos.column ?? 0) + 1, ok: true };
+    return { code, row: (pos.row ?? 0) + 1, column: (pos.column ?? 0), ok: true };
 }
 
 function renderCodeInspectorResult(taskIndex, text) {
     const host = document.getElementById(`code-inspector-results-${taskIndex}`);
     if (!host) return;
     host.innerHTML = "";
-    const pre = document.createElement("pre");
-    pre.className = "code-response font-monospace mb-0";
-    pre.textContent = String(text ?? "");
-    host.appendChild(pre);
+
+    let payload = null;
+    try {
+        payload = (typeof text === "string") ? JSON.parse(text) : text;
+    } catch {
+        const pre = document.createElement("pre");
+        pre.className = "code-response font-monospace mb-0";
+        pre.textContent = String(text ?? "");
+        host.appendChild(pre);
+        return;
+    }
+
+    // Context header
+    if (payload?.context_type || payload?.context_name) {
+        const hdr = document.createElement("div");
+        hdr.className = "mb-2 small text-muted";
+        hdr.textContent = [payload?.context_type, payload?.context_name].filter(Boolean).join(" · ");
+        host.appendChild(hdr);
+    }
+
+    const hasSuggestions = Array.isArray(payload?.suggestions) && payload.suggestions.length > 0;
+    const hasSymbol     = !!(payload?.symbol || payload?.symbol_attributes || payload?.symbol_value);
+    const hasDocstring  = !!payload?.docstring;
+    
+    if (hasSuggestions) {
+        const wrap = document.createElement("div");
+        wrap.className = "mb-3";
+        wrap.innerHTML = `<div class="fw-semibold mb-1">Suggestions</div>`;
+        const ul = document.createElement("ul");
+        ul.className = "mb-0";
+        payload.suggestions.forEach(s => {
+            const li = document.createElement("li");
+            li.textContent = typeof s === "string" ? s : JSON.stringify(s);
+            ul.appendChild(li);
+        });
+        wrap.appendChild(ul);
+        host.appendChild(wrap);
+        return; // stop here
+    }
+    
+    if (hasSymbol) {
+        const wrap = document.createElement("div");
+        wrap.className = "mb-3";
+        wrap.innerHTML = `<div class="fw-semibold mb-1">Symbol</div>`;
+        const pre = document.createElement("pre");
+        pre.className = "code-response font-monospace mb-0";
+        pre.textContent = JSON.stringify({
+            symbol: payload?.symbol,
+            attributes: payload?.symbol_attributes,
+            value: payload?.symbol_value
+        }, null, 2);
+        wrap.appendChild(pre);
+        host.appendChild(wrap);
+        return; // stop here
+    }
+    
+    if (hasDocstring) {
+        const wrap = document.createElement("div");
+        wrap.className = "mb-3";
+        wrap.innerHTML = `<div class="fw-semibold mb-1">Docstring</div>`;
+        const pre = document.createElement("pre");
+        pre.className = "code-response font-monospace mb-0";
+        pre.textContent = String(payload.docstring || "");
+        wrap.appendChild(pre);
+        host.appendChild(wrap);
+        return; // stop here
+    }
+    
+    // None present
+    const em = document.createElement("em");
+    em.className = "text-muted";
+    em.textContent = "No docstring, suggestions, or symbol information.";
+    host.appendChild(em);    
 }
 
 function cell_insights_code_inspect_reload(taskIndex) {
@@ -513,21 +582,24 @@ function cell_insights_code_inspect_reload(taskIndex) {
         return;
     }
 
-    const cbName = `cell_insights_code_inspector_callback_${taskIndex}`;
-    window[cbName] = function (output) {
+    window[`cell_insights_callback_${taskIndex}`] = function (output) {
         renderCodeInspectorResult(taskIndex, output);
-    };
+    };        
 
-    // kernel function "inspect_code" is not exposed yet
     const py = `
+import json as _json
+
 _code = ${JSON.stringify(code)}
 _row = ${row}
 _col = ${column}
-try:
-    _out = inspect_code(_code, _row, _col)
-    print("" if _out is None else str(_out))
-except Exception as e:
-    print(str(e))
+_res = inspect_code(_code, _row, _col)
+if isinstance(_res, (dict, list)):
+        _ALLOW = {"docstring","suggestions","symbol","symbol_value"}
+        if isinstance(_res, dict):
+            _res = {k: v for k, v in _res.items() if k in _ALLOW}
+        print(_json.dumps(_res))
+else:
+    print(str(_res))
 `.trim();
 
     // Send to kernel
