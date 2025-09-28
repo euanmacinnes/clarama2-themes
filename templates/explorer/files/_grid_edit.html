@@ -829,18 +829,31 @@
     });
 
     function saveElementParams(target) {
+        if (!target) return;
+        // Ensure the grid elements map and target object exist
+        const elemsMap = {{ grid_id }}elements || {};
+        if (!(target in elemsMap)) {
+            // Try to derive from DOM: if a container with this id exists, initialize minimal object
+            const host = document.getElementById(target);
+            if (host) {
+                {{ grid_id }}elements[target] = {{ grid_id }}elements[target] || { links: [] };
+            } else {
+                // Unknown target, ignore silently
+                return;
+            }
+        }
         const params = $("#" + target + "_paramsInput").val();
         const refresh = $("#" + target + "_refresh").is(":checked");
         const fit = $("#" + target + "_fit").is(":checked");
         const layout = $("#" + target + "_layout option:selected").attr('id');
 
         if (params !== undefined) {{ grid_id }}elements[target]['params'] = params;
-        if (refresh !== undefined) {{ grid_id }}elements[target]['refresh'] = refresh;
-        if (fit !== undefined) {{ grid_id }}elements[target]['autofill'] = fit;
+        if (refresh !== undefined) {{ grid_id }}elements[target]['refresh'] = !!refresh;
+        if (fit !== undefined) {{ grid_id }}elements[target]['autofill'] = !!fit;
         if (layout !== undefined) {{ grid_id }}elements[target]['layout'] = layout;
 
-        console.log("updated element " + target, {{ grid_id }}elements[target]);
-        enable_interactions($(`#${target}`).parent(), true);
+        try { console.log("updated element " + target, {{ grid_id }}elements[target]); } catch(_) {}
+        try { enable_interactions($(`#${target}`).parent(), true); } catch(_) {}
     }
 
     function handle_interaction_settings() {
@@ -1007,14 +1020,18 @@
 
     function getLinkIndexByUid(targetId, uid) {
         const links = ({{ grid_id }}elements[targetId] && {{ grid_id }}elements[targetId].links) ? {{ grid_id }}elements[targetId].links : [];
-        let idx = links.findIndex(l => (l.uid == uid));
-        if (idx === -1) idx = parseInt(uid);
-        return idx;
+        // Try to find by explicit UID on the link objects first
+        let idx = links.findIndex(l => (l && (l.uid == uid)));
+        if (idx !== -1) return idx;
+        // Fallback: if UID is a numeric index, validate and use it
+        const n = Number(uid);
+        if (Number.isInteger(n) && n >= 0 && n < links.length) return n;
+        // Not found
+        return -1;
     }
 
     function update_interaction_field(targetId, uid, field, value) {
         if (!(targetId in {{ grid_id }}elements)) return;
-
 
         const links = {{ grid_id }}elements[targetId].links = {{ grid_id }}elements[targetId].links || [];
         const idx = getLinkIndexByUid(targetId, uid);
@@ -1025,13 +1042,11 @@
             links[idx]['menu_item_name'] = value;
             links[idx]['contextMenu'] = true;
         } else if (field === 'url' || field === 'params') {
-            flash(links);
+
             links[idx][field] = value;
 
             if (field === 'url') {
                 const wrap = document.getElementById(`interaction-params-wrap-${targetId}-${uid}`);
-
-
 
                 if (wrap) {
                     // Normalize falsy or literal nullish strings to hide params
@@ -1039,8 +1054,9 @@
 
                     const lower = v.toLowerCase();
                     const show = v !== '' && lower !== 'null' && lower !== 'none';
-                    // Explicitly use inline-flex to ensure correct layout when showing
-                    wrap.style.display = show ? 'inline-flex' : 'none';
+
+                    // Explicitly use inline-flex to ensure correct layout when showing; apply !important to win over CSS
+                    wrap.style.setProperty('display', show ? 'inline-flex' : 'none', 'important');
                 }
             }
         } else {

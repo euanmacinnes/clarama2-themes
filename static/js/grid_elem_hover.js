@@ -67,14 +67,25 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     const gridId = trigger.getAttribute('elems');
     refreshElementSelectorsInDropdown(dropdownMenu, gridId);
 
-    // add listener to each input to handle parameter-saving when typing
-    const inputs = dropdownMenu.querySelectorAll('input');
-    inputs.forEach(input => {
-        input.addEventListener('input', () => {
-            let inputId = input.id;
-            let target = inputId.replace(/_paramsInput/g, ''); 
-            saveElementParams(target);
-        });
+    // add listeners only to element-related controls to handle parameter-saving when typing/toggling
+    const paramInputs = dropdownMenu.querySelectorAll('input[id$="_paramsInput"], input[id$="_refresh"], input[id$="_fit"]');
+    paramInputs.forEach(input => {
+        const handler = () => {
+            const inputId = input.id || '';
+            let target = null;
+            if (/_paramsInput$/.test(inputId)) {
+                target = inputId.replace(/_paramsInput$/, '');
+            } else if (/_refresh$/.test(inputId)) {
+                target = inputId.replace(/_refresh$/, '');
+            } else if (/_fit$/.test(inputId)) {
+                target = inputId.replace(/_fit$/, '');
+            }
+            if (target) {
+                try { saveElementParams(target); } catch(e) { try { console.warn('saveElementParams failed', e); } catch(_) {} }
+            }
+        };
+        input.addEventListener('input', handler);
+        input.addEventListener('change', handler);
     });
     
     // add hover listeners to items in the dropdown to highlight associated grid element on the grid
