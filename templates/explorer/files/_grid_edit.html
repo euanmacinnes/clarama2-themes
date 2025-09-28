@@ -1047,6 +1047,220 @@
             console.log("updated element", {{ grid_id }}elements);
         }
     }
+
+    // === Inline interaction editing ===
+    function next_interaction_uid(target) {
+        const el = {{ grid_id }}elements[target] || {};
+        const links = el.links || [];
+        if (links.length === 0) return '0';
+        const lastUid = links[links.length - 1].uid || (links.length - 1).toString();
+        return (parseInt(lastUid) + 1).toString();
+    }
+
+    function add_interaction_row(target, toContext) {
+        if (!({{ grid_id }}elements[target])) return;
+        if (!Array.isArray({{ grid_id }}elements[target].links)) {
+            {{ grid_id }}elements[target].links = [];
+        }
+        const uid = next_interaction_uid(target);
+        const li = document.createElement('li');
+        li.className = 'dropdown-item slate-elem-dropdown-item';
+        li.setAttribute('loop-index', uid);
+        li.setAttribute('target-id', target);
+        li.setAttribute('draggable', 'true');
+
+        // Build element options from known elements
+        const elements = {{ grid_id }}elements;
+        const elemOptions = Object.keys(elements).map(e => `<option value="${e}">${e}</option>`).join('');
+
+        li.innerHTML = `
+        <div class="list-group-item d-flex align-items-start gap-2 align-middle w-100">
+            <i class="bi bi-grip-vertical draggable-heading p-0 mt-2" draggable="true"></i>
+            <div class="flex-grow-1 w-100">
+                <div class="row g-1 align-items-center">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label mb-0 small">Type</label>
+                        <select class="form-select form-select-sm interaction-type" aria-label="Interaction type">
+                            <option value="element" selected>Element</option>
+                            <option value="popup">Popup</option>
+                            <option value="modal">Modal</option>
+                            <option value="tab">Tab</option>
+                            <option value="hidden">Hidden</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3 element-select-wrapper">
+                        <label class="form-label mb-0 small">Element</label>
+                        <select class="form-select form-select-sm interaction-element">${elemOptions}</select>
+                    </div>
+                    <div class="col-12 col-md-4 url-wrapper d-none">
+                        <label class="form-label mb-0 small">Element URL</label>
+                        <input type="text" class="form-control form-control-sm interaction-url" value="" placeholder="/path/to.file.yaml">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label mb-0 small">Params</label>
+                        <input type="text" class="form-control form-control-sm interaction-params" value="" placeholder="my_param=something">
+                    </div>
+                    <div class="col-6 col-md-2 form-check mt-3">
+                        <input class="form-check-input interaction-wait" type="checkbox" id="wait-${target}-${uid}">
+                        <label class="form-check-label small" for="wait-${target}-${uid}">Wait</label>
+                    </div>
+                    <div class="col-6 col-md-3 form-check mt-3">
+                        <input class="form-check-input interaction-context" type="checkbox" id="ctx-${target}-${uid}" ${toContext ? 'checked' : ''}>
+                        <label class="form-check-label small" for="ctx-${target}-${uid}">Context Menu</label>
+                    </div>
+                    <div class="col-12 col-md-4 context-name-wrapper ${toContext ? '' : 'd-none'}">
+                        <label class="form-label mb-0 small">Menu Item Name</label>
+                        <input type="text" class="form-control form-control-sm interaction-menu-name" value="" placeholder="Menu item label">
+                    </div>
+                    <div class="col-12 col-md-12 mt-2 d-flex gap-2">
+                        <button class="btn btn-sm btn-c2" type="button" onclick="save_inline_interaction('${target}','${uid}', this)"><i class="bi bi-floppy"></i> Save</button>
+                        <button class="btn btn-sm btn-outline-danger delete-grid-interaction" type="button" onClick="delete_interaction('${target}', '${uid}');"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        const containerId = toContext ? `#grid_element_context-${target}` : `#grid_element_inline-${target}`;
+        const container = document.querySelector(containerId);
+        if (container) container.appendChild(li);
+        initializeGridInteractionsDragDrop();
+    }
+
+    function save_inline_interaction(target, uid, btn) {
+        const row = btn.closest('.slate-elem-dropdown-item');
+        if (!row) return;
+        const typeSel = row.querySelector('.interaction-type');
+        const type = typeSel ? typeSel.value : 'element';
+        const elemSel = row.querySelector('.interaction-element');
+        const urlInput = row.querySelector('.interaction-url');
+        const paramsInput = row.querySelector('.interaction-params');
+        const waitCb = row.querySelector('.interaction-wait');
+        const ctxCb = row.querySelector('.interaction-context');
+        const nameInput = row.querySelector('.interaction-menu-name');
+
+        let checkedType = type;
+        let url = '';
+        if (type === 'element') {
+            checkedType = elemSel ? elemSel.value : '';
+            if (!checkedType) { alert('Please select an element'); return; }
+        } else {
+            url = urlInput ? urlInput.value.trim() : '';
+            if (!url) { alert('Please provide an Element URL'); return; }
+        }
+        const params = paramsInput ? paramsInput.value : '';
+        const doWait = !!(waitCb && waitCb.checked);
+        const isContextMenu = !!(ctxCb && ctxCb.checked);
+        const menuItem = nameInput ? nameInput.value.trim() : '';
+        if (isContextMenu && !menuItem) { alert('Please input the menu item name'); return; }
+
+        const el = {{ grid_id }}elements[target];
+        if (!el.links) el.links = [];
+        let linkIdx = el.links.findIndex(l => l.uid == uid);
+        const linkData = {
+            uid: uid,
+            wait: doWait,
+            element: checkedType,
+            url: url,
+            params: params
+        };
+        if (isContextMenu) {
+            linkData['menu_item_name'] = menuItem;
+        } else {
+            delete linkData['menu_item_name'];
+        }
+
+        if (linkIdx === -1) {
+            el.links.push(linkData);
+        } else {
+            el.links[linkIdx] = linkData;
+        }
+
+        // Move row between groups if needed
+        const inlineList = document.querySelector(`#grid_element_inline-${target}`);
+        const contextList = document.querySelector(`#grid_element_context-${target}`);
+        const parentList = row.parentElement;
+        if (isContextMenu && parentList !== contextList && contextList) {
+            contextList.appendChild(row);
+        } else if (!isContextMenu && parentList !== inlineList && inlineList) {
+            inlineList.appendChild(row);
+        }
+
+        updateGridInteractionsOrder(target);
+        flash('Interaction saved', 'success');
+    }
+
+    // Toggle inputs visibility within inline rows
+    $(document).on('change', '.interaction-type', function () {
+        const row = this.closest('.slate-elem-dropdown-item');
+        const showElement = this.value === 'element';
+        row.querySelector('.element-select-wrapper')?.classList.toggle('d-none', !showElement);
+        row.querySelector('.url-wrapper')?.classList.toggle('d-none', showElement);
+    });
+
+    $(document).on('change', '.interaction-context', function () {
+        const row = this.closest('.slate-elem-dropdown-item');
+        const wrap = row.querySelector('.context-name-wrapper');
+        if (wrap) wrap.classList.toggle('d-none', !this.checked);
+    });
+
+    // Enhance DnD to support 2 groups
+    function initializeGridInteractionsDragDrop() {
+        // initialize sortable on both lists
+        $('.grid-element-interaction-list').each(function () {
+            const $list = $(this);
+            const id = $list.attr('id') || '';
+            const targetId = id.substring(id.lastIndexOf('-') + 1);
+            if (!$list.hasClass('ui-sortable')) {
+                $list.sortable({
+                    items: '.slate-elem-dropdown-item',
+                    handle: '.draggable-heading',
+                    connectWith: '.grid-element-interaction-list',
+                    start: function (event, ui) {
+                        ui.placeholder.height(ui.item.height());
+                        ui.placeholder.addClass('bg-light border border-dashed');
+                    },
+                    stop: function (event, ui) {
+                        updateGridInteractionsOrder(targetId);
+                    }
+                });
+            }
+        });
+    }
+
+    function updateGridInteractionsOrder(targetId) {
+        const inlineItems = $(`#grid_element_inline-${targetId} .slate-elem-dropdown-item`);
+        const contextItems = $(`#grid_element_context-${targetId} .slate-elem-dropdown-item`);
+        const combined = inlineItems.add(contextItems);
+
+        if (!{{ grid_id }}elements[targetId] || !{{ grid_id }}elements[targetId].links) {
+            return;
+        }
+
+        const newOrderedLinks = [];
+        combined.each(function (newIndex) {
+            const $item = $(this);
+            const currentLoopIndex = $item.attr('loop-index');
+            const linkData = {{ grid_id }}elements[targetId].links.find(l => l.uid == currentLoopIndex);
+            if (linkData) {
+                newOrderedLinks.push({ ...linkData, uid: newIndex.toString() });
+            }
+        });
+
+        {{ grid_id }}elements[targetId].links = newOrderedLinks;
+
+        combined.each(function (newIndex) {
+            const $item = $(this);
+            $item.attr('loop-index', newIndex);
+            const deleteBtn = $item.find('.delete-grid-interaction');
+            const onclickAttr = deleteBtn.attr('onClick');
+            if (onclickAttr) {
+                const updatedOnclick = onclickAttr.replace(/delete_interaction\([^,]+,\s*'?\d+'?\)/, `delete_interaction('${targetId}', '${newIndex}')`);
+                deleteBtn.attr('onClick', updatedOnclick);
+            }
+        });
+
+        console.log('Updated order for', targetId, {{ grid_id }}elements[targetId].links);
+    }
 </script>
 
 {% include theme("explorer/files/browse_file_modal.html") %}

@@ -271,7 +271,7 @@
     function addRestEndpoint() {
         const idx = (window._restEndpoints?.length || 0);
         if (!window._restEndpoints) window._restEndpoints = [];
-        const ep = {name: 'endpoint_' + (idx + 1), method: 'get', endpoint_url: '/', inputs: {}, transformation: ''};
+        const ep = {name: 'endpoint_' + (idx + 1), method: 'get', endpoint_url: '/', inputs: [], transformation: ''};
         window._restEndpoints.push(ep);
         renderRestEndpoints();
     }
@@ -288,6 +288,13 @@
         <div class="col-12 col-md-2"><select class="form-select" id="ep-method-${i}">${['get', 'post', 'put', 'delete', 'patch', 'head'].map(m => `<option ${ep.method === m ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
         <div class="col-12 col-md-7"><input class="form-control" id="ep-url-${i}" value="${ep.endpoint_url}" placeholder="/path"></div>
       </div>
+      <div class="mb-2">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="form-label mb-0">Inputs</label>
+          <button class="btn btn-sm btn-outline-secondary" onclick="addRestInput(${i});return false;">Add Input</button>
+        </div>
+        <div id="ep-inputs-${i}"></div>
+      </div>
       <div class="row g-2 mb-2">
         <div class="col-12"><label class="form-label">Transformation (Python)</label>
           <textarea class="form-control" rows="4" id="ep-tx-${i}" placeholder="# return transformed object">${ep.transformation || ''}</textarea>
@@ -296,7 +303,48 @@
       <div class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="removeRestEndpoint(${i});return false;">Remove</button></div>
     `;
             cont.appendChild(card);
+            renderInputsForEndpoint(i);
         });
+    }
+
+    function renderInputsForEndpoint(i) {
+        const ep = (window._restEndpoints || [])[i] || {inputs: []};
+        const cont = document.getElementById('ep-inputs-' + i);
+        if (!cont) return;
+        const inputs = Array.isArray(ep.inputs) ? ep.inputs : [];
+        cont.innerHTML = inputs.map((inp, j) => {
+            const name = inp.name || '';
+            const type = inp.type || 'string';
+            const req = !!inp.required;
+            const def = (inp.default ?? '');
+            const desc = inp.description || '';
+            const typeOptions = ['string','number','integer','boolean','array','object','file','any']
+                .map(t => `<option value="${t}" ${type===t?'selected':''}>${t}</option>`).join('');
+            return `
+      <div class="row g-2 align-items-end ep-inp-row" id="ep-inp-row-${i}-${j}" data-ep="${i}" data-idx="${j}">
+        <div class="col-12 col-md-3"><input class="form-control" id="ep-inp-name-${i}-${j}" placeholder="name" value="${name}"></div>
+        <div class="col-6 col-md-2"><select class="form-select" id="ep-inp-type-${i}-${j}">${typeOptions}</select></div>
+        <div class="col-6 col-md-2"><div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="ep-inp-req-${i}-${j}" ${req?'checked':''}><label class="form-check-label">Required</label></div></div>
+        <div class="col-12 col-md-3"><input class="form-control" id="ep-inp-def-${i}-${j}" placeholder="default" value="${def}"></div>
+        <div class="col-12 col-md-10"><input class="form-control" id="ep-inp-desc-${i}-${j}" placeholder="description" value="${desc}"></div>
+        <div class="col-12 col-md-2 text-end"><button class="btn btn-sm btn-outline-danger" onclick="removeRestInput(${i}, ${j});return false;">Remove</button></div>
+      </div>`;
+        }).join('');
+    }
+
+    function addRestInput(i) {
+        if (!window._restEndpoints) return;
+        const ep = window._restEndpoints[i];
+        if (!ep.inputs) ep.inputs = [];
+        ep.inputs.push({name: '', type: 'string', required: false, default: '', description: ''});
+        renderInputsForEndpoint(i);
+    }
+
+    function removeRestInput(i, j) {
+        const ep = window._restEndpoints?.[i];
+        if (!ep || !Array.isArray(ep.inputs)) return;
+        ep.inputs.splice(j, 1);
+        renderInputsForEndpoint(i);
     }
 
     function removeRestEndpoint(i) {
@@ -310,10 +358,21 @@
         const endpoints = {};
         (window._restEndpoints || []).forEach((_, i) => {
             const name = document.getElementById('ep-name-' + i).value || ('endpoint_' + (i + 1));
+            const inputRows = Array.from(document.querySelectorAll('#ep-inputs-' + i + ' .ep-inp-row'));
+            const inputs = inputRows.map(row => {
+                const j = row.dataset.idx;
+                return {
+                    name: document.getElementById('ep-inp-name-' + i + '-' + j).value || '',
+                    type: document.getElementById('ep-inp-type-' + i + '-' + j).value || 'string',
+                    required: !!document.getElementById('ep-inp-req-' + i + '-' + j).checked,
+                    default: document.getElementById('ep-inp-def-' + i + '-' + j).value || '',
+                    description: document.getElementById('ep-inp-desc-' + i + '-' + j).value || ''
+                };
+            }).filter(inp => inp.name);
             endpoints[name] = {
                 method: document.getElementById('ep-method-' + i).value || 'get',
                 endpoint_url: document.getElementById('ep-url-' + i).value || '/',
-                inputs: {},
+                inputs: inputs,
                 transformation: document.getElementById('ep-tx-' + i).value || ''
             };
         });

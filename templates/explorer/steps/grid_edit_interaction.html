@@ -1,23 +1,53 @@
 <li class="dropdown-item slate-elem-dropdown-item" loop-index="{{ uid }}" elem-id="{{ current_element }}"
     target-id="{{ target }}" draggable="true">
-    <div class="list-group-item d-flex align-items-center">
-        <i class="bi bi-grip-vertical draggable-heading p-0" draggable="true"></i>
-        <div class="cElem mx-2 flex-grow-1 w-100 align-middle ">
-            {{ element_summary(current_element, current_element_url, target) | safe }}
+    <div class="list-group-item d-flex align-items-start gap-2 align-middle w-100">
+        <i class="bi bi-grip-vertical draggable-heading p-0 mt-2" draggable="true"></i>
+        <div class="flex-grow-1 w-100">
+            <div class="row g-1 align-items-center">
+                <div class="col-12 col-md-3">
+                    <label class="form-label mb-0 small">Type</label>
+                    <select class="form-select form-select-sm interaction-type" aria-label="Interaction type">
+                        <option value="element" {% if current_element not in ['popup','modal','tab','hidden'] %}selected{% endif %}>Element</option>
+                        <option value="popup" {% if current_element == 'popup' %}selected{% endif %}>Popup</option>
+                        <option value="modal" {% if current_element == 'modal' %}selected{% endif %}>Modal</option>
+                        <option value="tab" {% if current_element == 'tab' %}selected{% endif %}>Tab</option>
+                        <option value="hidden" {% if current_element == 'hidden' %}selected{% endif %}>Hidden</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3 element-select-wrapper {% if current_element in ['popup','modal','tab','hidden'] %}d-none{% endif %}">
+                    <label class="form-label mb-0 small">Element</label>
+                    <select class="form-select form-select-sm interaction-element">
+                        {% for elem_id, elem_val in elements.items() %}
+                            <option value="{{ elem_id }}" {% if elem_id == current_element %}selected{% endif %}>{{ elem_id }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-4 url-wrapper {% if current_element not in ['popup','modal','tab','hidden'] %}d-none{% endif %}">
+                    <label class="form-label mb-0 small">Element URL</label>
+                    <input type="text" class="form-control form-control-sm interaction-url" value="{{ current_element_url }}" placeholder="/path/to.file.yaml">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-0 small">Params</label>
+                    <input type="text" class="form-control form-control-sm interaction-params" value="{{ current_element_params }}" placeholder="my_param=something">
+                </div>
+                <div class="col-6 col-md-2 form-check mt-3">
+                    <input class="form-check-input interaction-wait" type="checkbox" id="wait-{{ target }}-{{ uid }}" {% if do_wait %}checked{% endif %}>
+                    <label class="form-check-label small" for="wait-{{ target }}-{{ uid }}">Wait</label>
+                </div>
+                <div class="col-6 col-md-3 form-check mt-3">
+                    {% set is_ctx = menu_item_name is defined and menu_item_name %}
+                    <input class="form-check-input interaction-context" type="checkbox" id="ctx-{{ target }}-{{ uid }}" {% if is_ctx %}checked{% endif %}>
+                    <label class="form-check-label small" for="ctx-{{ target }}-{{ uid }}">Context Menu</label>
+                </div>
+                <div class="col-12 col-md-4 context-name-wrapper {% if not is_ctx %}d-none{% endif %}">
+                    <label class="form-label mb-0 small">Menu Item Name</label>
+                    <input type="text" class="form-control form-control-sm interaction-menu-name" value="{% if is_ctx %}{{ menu_item_name }}{% endif %}" placeholder="Menu item label">
+                </div>
+                <div class="col-12 col-md-12 mt-2 d-flex gap-2">
+                    <button class="btn btn-sm btn-c2" type="button" onclick="save_inline_interaction('{{ target }}','{{ uid }}', this)"><i class="bi bi-floppy"></i> Save</button>
+                    <button class="btn btn-sm btn-outline-danger delete-grid-interaction" type="button" onClick="delete_interaction('{{ target }}', '{{ uid }}');"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>
         </div>
-
-        <i class="bi bi-gear mx-1 mx-2"
-           data-bs-toggle="modal"
-           data-bs-target="#interactionSettingsModal"
-           data-index="{{ uid }}"
-           data-element="{{ current_element }}"
-           data-target="{{ target }}"
-           data-url="{{ current_element_url }}"
-           data-params="{{ current_element_params }}"
-           data-wait="{{ do_wait }}"
-           data-menuName="{{ menu_item_name }}"
-           onclick="openInteractionSettings(this)"></i>
-        <i class="bi bi-trash p-0 delete-grid-interaction"
-           onClick="delete_interaction('{{ target }}', '{{ uid }}');"></i>
     </div>
 </li>
