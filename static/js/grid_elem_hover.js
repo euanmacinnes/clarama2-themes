@@ -1,5 +1,49 @@
 var activeDropdownId = null; // track currently opened dropdown menu's id
 
+// Refresh the Element selects inside a grid element interactions dropdown to match current elements
+function refreshElementSelectorsInDropdown(dropdownMenu, gridId) {
+    try {
+        if (!gridId) return;
+        const elementsMap = window[gridId + 'elements'] || {};
+        const elemIds = Object.keys(elementsMap);
+        if (!elemIds.length) return;
+        const rows = dropdownMenu.querySelectorAll('.slate-elem-dropdown-item');
+        rows.forEach(row => {
+            const targetId = row.getAttribute('target-id');
+            const uid = row.getAttribute('loop-index');
+            if (!targetId || !uid) return;
+            const kindSel = dropdownMenu.querySelector(`#interaction-kind-${CSS.escape(targetId)}-${CSS.escape(uid)}`);
+            // Only update the element selector when current kind is 'element'
+            if (kindSel && kindSel.value && kindSel.value !== 'element') return;
+            const sel = dropdownMenu.querySelector(`#interaction-element-${CSS.escape(targetId)}-${CSS.escape(uid)}`);
+            if (!sel) return;
+            const prev = sel.value;
+            // Rebuild options
+            sel.innerHTML = '';
+            elemIds.forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = id;
+                sel.appendChild(opt);
+            });
+            // Try restore previous selection
+            if (prev && elemIds.includes(prev)) {
+                sel.value = prev;
+            } else {
+                // If kind is element and previous no longer exists, pick first and update model
+                if (kindSel && kindSel.value === 'element' && elemIds.length) {
+                    sel.value = elemIds[0];
+                    if (typeof update_interaction_field === 'function') {
+                        update_interaction_field(targetId, uid, 'element', sel.value);
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        try { console.error('Failed to refresh element selectors in dropdown', e); } catch(_e) {}
+    }
+}
+
 document.addEventListener('shown.bs.dropdown', function (event) {
     if (event.target.id == 'navbarAlertDropdown') {
         const $bellIcon = $('#alertsmenu i.bi');
@@ -18,6 +62,10 @@ document.addEventListener('shown.bs.dropdown', function (event) {
 
     const dropdownMenu = dropdown.querySelector('.dropdown-menu');
     if (!dropdownMenu) return;
+
+    // ensure the Element listboxes reflect the latest grid elements on each open
+    const gridId = trigger.getAttribute('elems');
+    refreshElementSelectorsInDropdown(dropdownMenu, gridId);
 
     // add listener to each input to handle parameter-saving when typing
     const inputs = dropdownMenu.querySelectorAll('input');
@@ -55,6 +103,65 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     }
 });
 
+// When embedded interaction rows finish rendering, repopulate their Element selectors
+// This handles the case where the dropdown was opened before the async template loaded.
+document.addEventListener('clarama:load:success', function (e) {
+    try {
+        const target = e.target;
+        if (!target || !target.classList) return;
+        // Only handle our interaction row renderer loads
+        const url = (typeof target.getAttribute === 'function') ? (target.getAttribute('url') || '') : '';
+        if (!/explorer\/steps\/grid_edit_interaction/.test(url)) return;
+        const dropdownMenu = target.closest('.embedded-dropdown-menu');
+        if (!dropdownMenu) return;
+        const toggle = dropdownMenu.parentElement ? dropdownMenu.parentElement.querySelector('.grid-elem-menu') : null;
+        const gridId = toggle ? toggle.getAttribute('elems') : null;
+        // Defer to allow DOM replacement to complete
+        setTimeout(() => refreshElementSelectorsInDropdown(dropdownMenu, gridId), 0);
+    } catch(err) {
+        try { console.warn('Failed to handle clarama:load:success for interaction row', err); } catch(_) {}
+    }
+});
+
+// Lazy-fill safeguard: if a user focuses an Element selector that has no options yet, populate it on demand
+document.addEventListener('focusin', function (e) {
+    try {
+        const sel = e.target;
+        if (!(sel && sel.matches && sel.matches('select[id^="interaction-element-"]'))) return;
+        const dropdownMenu = sel.closest('.embedded-dropdown-menu');
+        if (!dropdownMenu) return;
+        const toggle = dropdownMenu.parentElement ? dropdownMenu.parentElement.querySelector('.grid-elem-menu') : null;
+        const gridId = toggle ? toggle.getAttribute('elems') : null;
+        if (!gridId) return;
+        const elementsMap = window[gridId + 'elements'] || {};
+        const ids = Object.keys(elementsMap);
+        if (!sel.options.length && ids.length) {
+            sel.innerHTML = '';
+            ids.forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = id;
+                sel.appendChild(opt);
+            });
+            // Try to preserve the existing linked element or select the first
+            const row = sel.closest('.slate-elem-dropdown-item');
+            const targetId = row ? row.getAttribute('target-id') : null;
+            const uid = row ? row.getAttribute('loop-index') : null;
+            const current = row ? row.getAttribute('elem-id') : null;
+            if (current && elementsMap[current]) {
+                sel.value = current;
+            } else {
+                sel.value = ids[0];
+                if (typeof update_interaction_field === 'function' && targetId && uid) {
+                    update_interaction_field(targetId, uid, 'element', sel.value);
+                }
+            }
+        }
+    } catch(err) {
+        try { console.warn('Lazy-fill for interaction element select failed', err); } catch(_) {}
+    }
+});
+
 // removes the interaction in the ui
 $(document).on('click', '.delete-grid-interaction', function () {
     $(this).closest('li').remove();
@@ -66,9 +173,27 @@ $(document).on('click', '.delete-grid-interaction', function () {
 // selectedValueUrl - url of selected interaction
 // urlParams - extra params to send
 // menuItemName - (optional, only for context menu) context menu item label
-function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, wait, menuItemName="") {
+
+// newIndex - unique index or id for the interaction
+// gelem_target - target grid element id
+// selectedValue - selected interaction (type)
+// selectedValueUrl - url of selected interaction
+// urlParams - extra params to send
+// menuItemName - (optional, only for context menu) context menu item label
+function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, wait, menuItemName) {
     const newGI = document.createElement("div");
     newGI.className = "clarama-post-embedded clarama-replaceable";
-    newGI.setAttribute("url", `/template/render/explorer/steps/grid_edit_interaction?uid=${newIndex}&current_element=${selectedValue}&target=${gelem_target}&current_element_url=${selectedValueUrl}&current_element_params=${urlParams}&do_wait=${wait}&menu_item_name=${menuItemName}`);
+    let url = `/template/render/explorer/steps/grid_edit_interaction?uid=${newIndex}` +
+              `&current_element=${encodeURIComponent(selectedValue||'')}` +
+              `&target=${encodeURIComponent(gelem_target)}` +
+              `&current_element_url=${encodeURIComponent(selectedValueUrl||'')}` +
+              `&current_element_params=${encodeURIComponent(urlParams||'')}` +
+              `&do_wait=${wait? 'true':'false'}`;
+    if (menuItemName === '__menu__') {
+        url += `&is_menu=true`;
+    } else if (typeof menuItemName !== 'undefined' && menuItemName !== null && menuItemName !== '') {
+        url += `&menu_item_name=${encodeURIComponent(menuItemName)}`;
+    }
+    newGI.setAttribute("url", url);
     return newGI;
 }

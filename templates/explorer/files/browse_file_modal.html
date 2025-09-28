@@ -158,6 +158,16 @@
                 } else {
                     targetInput.value = newSource;
                 }
+                if (typeof inputId === 'string' && inputId.indexOf('interaction-url-') === 0) {
+                    try {
+                        const ev = new Event('input', { bubbles: true });
+                        if (targetInput.jquery) {
+                            targetInput[0].dispatchEvent(ev);
+                        } else {
+                            targetInput.dispatchEvent(ev);
+                        }
+                    } catch (e) { /* no-op */ }
+                }
             }
 
             if (inputId !== "grid-elem" && (!inputId.includes('_elemInput'))) {

@@ -354,9 +354,8 @@
     }
 
     function initializeGridInteractionsDragDrop() {
-        $('[id^="grid_element_target-"]').each(function () {
+        $('[id^="grid_element_target_"]').each(function () {
             const container = $(this);
-            const targetId = container.attr('id').replace('grid_element_target-', '');
 
             if (!container.hasClass('ui-sortable')) {
                 container.sortable({
@@ -367,56 +366,56 @@
                         ui.placeholder.addClass('bg-light border border-dashed');
                     },
                     stop: function (event, ui) {
-                        updateGridInteractionsOrder(targetId);
+                        updateGridInteractionsOrderFlexible(container);
                     }
                 });
             }
         });
     }
 
-    function updateGridInteractionsOrder(targetId) {
-        const container = $(`#grid_element_target-${targetId}`);
+    function updateGridInteractionsOrderFlexible($container) {
+        const container = $container;
+        const items = container.find('.slate-elem-dropdown-item');
+        if (items.length === 0) return;
 
-        if (!{{ grid_id }}elements[targetId] || !{{ grid_id }}elements[targetId].links) {
-            return;
-        }
+        const targetId = items.first().attr('target-id');
+        if (!targetId || !{{ grid_id }}elements[targetId] || !{{ grid_id }}elements[targetId].links) return;
 
-        const newOrderedLinks = [];
+        const isMenuContainer = container.attr('id').includes('_menu-');
 
-        container.find('.slate-elem-dropdown-item').each(function (newIndex) {
+        // Extract current links split by group
+        const allLinks = {{ grid_id }}elements[targetId].links || [];
+        const actions = [];
+        const menu = [];
+        allLinks.forEach(l => (l.contextMenu ? menu : actions).push(l));
+
+        const newGroup = [];
+        items.each(function (newIndex) {
             const $item = $(this);
-            const currentLoopIndex = parseInt($item.attr('loop-index'));
-
-            const linkData = {{ grid_id }}elements[targetId].links[currentLoopIndex];
-
-            if (linkData) {
-                const newLink = {
-                    ...linkData,
-                    uid: newIndex.toString()
-                };
-                newOrderedLinks.push(newLink);
+            const uid = $item.attr('loop-index');
+            const linkObj = allLinks.find(l => (l.uid == uid));
+            if (linkObj) {
+                const cloned = {...linkObj, uid: newIndex.toString()};
+                newGroup.push(cloned);
             }
         });
 
-        {{ grid_id }}elements[targetId].links = newOrderedLinks;
+        const merged = isMenuContainer ? [...actions, ...newGroup] : [...newGroup, ...menu];
+        {{ grid_id }}elements[targetId].links = merged;
 
-        container.find('.slate-elem-dropdown-item').each(function (newIndex) {
+        // Update DOM attributes to reflect new indices in this group
+        items.each(function (newIndex) {
             const $item = $(this);
-
             $item.attr('loop-index', newIndex);
-
             const deleteBtn = $item.find('.delete-grid-interaction');
             const onclickAttr = deleteBtn.attr('onClick');
             if (onclickAttr) {
                 const updatedOnclick = onclickAttr.replace(/delete_interaction\([^,]+,\s*'?\d+'?\)/, `delete_interaction('${targetId}', '${newIndex}')`);
                 deleteBtn.attr('onClick', updatedOnclick);
             }
-
-            const gearIcon = $item.find('.bi-gear');
-            gearIcon.attr('data-index', newIndex);
         });
 
-        console.log('Updated order for', targetId, {{ grid_id }}elements[targetId].links);
+        console.log('Updated order for', targetId, 'menu?', isMenuContainer, {{ grid_id }}elements[targetId].links);
     }
 
     function updateTextElement(target, gridId) {
@@ -750,7 +749,7 @@
         console.log("currentColCount", currentColCount);
 
         serializedData = {
-            'grid': { 'children': elements },
+            'grid': {'children': elements},
             'elements': {{ grid_id }}elements,
             'settings': {{ grid_id }}settings
         };
@@ -1006,6 +1005,104 @@
         })
     }
 
+    function getLinkIndexByUid(targetId, uid) {
+        const links = ({{ grid_id }}elements[targetId] && {{ grid_id }}elements[targetId].links) ? {{ grid_id }}elements[targetId].links : [];
+        let idx = links.findIndex(l => (l.uid == uid));
+        if (idx === -1) idx = parseInt(uid);
+        return idx;
+    }
+
+    function update_interaction_field(targetId, uid, field, value) {
+        if (!(targetId in {{ grid_id }}elements)) return;
+
+
+        const links = {{ grid_id }}elements[targetId].links = {{ grid_id }}elements[targetId].links || [];
+        const idx = getLinkIndexByUid(targetId, uid);
+        if (idx === -1) return;
+        if (field === 'wait') {
+            links[idx]['wait'] = !!value;
+        } else if (field === 'menu_item_name') {
+            links[idx]['menu_item_name'] = value;
+            links[idx]['contextMenu'] = true;
+        } else if (field === 'url' || field === 'params') {
+            flash(links);
+            links[idx][field] = value;
+
+            if (field === 'url') {
+                const wrap = document.getElementById(`interaction-params-wrap-${targetId}-${uid}`);
+
+
+
+                if (wrap) {
+                    // Normalize falsy or literal nullish strings to hide params
+                    const v = (value === null || value === undefined) ? '' : String(value).trim();
+
+                    const lower = v.toLowerCase();
+                    const show = v !== '' && lower !== 'null' && lower !== 'none';
+                    // Explicitly use inline-flex to ensure correct layout when showing
+                    wrap.style.display = show ? 'inline-flex' : 'none';
+                }
+            }
+        } else {
+            links[idx][field] = value;
+        }
+        console.log('updated interaction', targetId, uid, field, value, links[idx]);
+    }
+
+    function clear_interaction_input(targetId, uid, field, event = null) {
+        if (event) event.stopPropagation();
+        const inputId = field === 'url' ? `interaction-url-${targetId}-${uid}` : `interaction-params-${targetId}-${uid}`;
+        const el = document.getElementById(inputId);
+        if (el) el.value = '';
+        update_interaction_field(targetId, uid, field, '');
+    }
+
+    function update_interaction_kind(targetId, uid, kind) {
+        if (!(targetId in {{ grid_id }}elements)) return;
+        const links = {{ grid_id }}elements[targetId].links = {{ grid_id }}elements[targetId].links || [];
+        const idx = getLinkIndexByUid(targetId, uid);
+        if (idx === -1) return;
+        const sel = document.getElementById(`interaction-element-${targetId}-${uid}`);
+        if (kind === 'element') {
+            if (sel) {
+                sel.style.display = '';
+                sel.disabled = false;
+                const val = sel.value || '';
+                links[idx]['element'] = val;
+            }
+        } else {
+            links[idx]['element'] = kind;
+            if (sel) {
+                sel.disabled = true;
+                sel.style.display = 'none';
+            }
+        }
+        console.log('updated interaction kind', targetId, uid, kind, links[idx]);
+    }
+
+    function add_interaction(targetId, isMenu) {
+        if (!(targetId in {{ grid_id }}elements)) return;
+        const elem = {{ grid_id }}elements[targetId];
+        elem.links = elem.links || [];
+        const nextUid = elem.links.length ? (parseInt(elem.links[elem.links.length - 1].uid || (elem.links.length - 1)) + 1).toString() : '0';
+        const newLink = {uid: nextUid, wait: false, element: '', url: '', params: ''};
+        if (isMenu) {
+            newLink.contextMenu = true;
+            newLink.menu_item_name = '';
+        }
+        elem.links.push(newLink);
+
+        // Render via client-side template renderer used elsewhere
+        const containerId = isMenu ? `#grid_element_target_menu-${targetId}` : `#grid_element_target_actions-${targetId}`;
+        const container = document.querySelector(containerId);
+        if (container) {
+            const placeholder = addGridInteraction(nextUid, targetId, newLink.element || '', newLink.url || '', newLink.params || '', newLink.wait || false, isMenu ? '__menu__' : undefined);
+            container.appendChild(placeholder);
+            enable_interactions($(containerId));
+            initializeGridInteractionsDragDrop();
+        }
+    }
+
     function link_elements(target, linked) {
         if (linked in {{ grid_id }}elements) {
             if (target in {{ grid_id }}elements) {
@@ -1025,7 +1122,7 @@
 
     function delete_interaction(target, link_index) {
         if (target in {{ grid_id }}elements) {
-            var element_links = {{ grid_id }}elements[target]['links'];
+            var element_links = {{ grid_id }}elements[target]['links'] || [];
             console.log("element_links", element_links);
 
             let linkIdx = element_links.findIndex(link => link.uid == link_index);
@@ -1036,11 +1133,8 @@
             if (linkIdx !== -1 && linkIdx < element_links.length) {
                 element_links.splice(linkIdx, 1);
 
-                const container = $(`#grid_element_target-${target}`);
-                const itemToRemove = container.find(`.slate-elem-dropdown-item[loop-index="${link_index}"]`);
+                const itemToRemove = $(`.slate-elem-dropdown-item[loop-index="${link_index}"][target-id="${target}"]`);
                 itemToRemove.remove();
-
-                updateGridInteractionsOrder(target);
             }
 
             flash("interaction in " + target + " deleted");
