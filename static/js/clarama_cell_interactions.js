@@ -554,7 +554,7 @@ function datacell_setOutput(id_template, value, Options) {
     if (!value) value = 'table';
     $('#' + id_template + '_output').val(value);
 
-    const types = ['table', 'chart', 'chart3d', 'code'];
+    const types = ['table', 'chart', 'chart3d', 'code', 'diagram'];
 
     types.forEach(t => {
         const $btn = $('#' + id_template + '_' + t);
