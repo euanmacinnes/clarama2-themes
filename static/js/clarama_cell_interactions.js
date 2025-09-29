@@ -231,17 +231,17 @@ function cell_insert_step(parent) {
 function openInsights(cellItem, taskIndex) {
     closeAllinsights();
 
-    var leftContent  = cellItem.find('.left-content[id^="left_content_"]').first();
+    var leftContent = cellItem.find('.left-content[id^="left_content_"]').first();
     var rightContent = cellItem.find('.right-content[id^="right_content_"]').first();
 
-    var deriveIndex = function(el) {
+    var deriveIndex = function (el) {
         if (!el || !el.attr('id')) return null;
         var m = el.attr('id').match(/_(\d+)$/);
         return m ? m[1] : null;
     };
     var realIndex =
         deriveIndex(rightContent) ||
-        deriveIndex(leftContent)  ||
+        deriveIndex(leftContent) ||
         String(taskIndex || '');
     taskIndex = realIndex;
 
@@ -352,9 +352,9 @@ function cell_toggle_insights_view(parent) {
         };
         let taskIndex =
             idFrom('.right-content[id^="right_content_"]') ||
-            idFrom('.left-content[id^="left_content_"]')  ||
-            insightsControl.attr('data-task-index')        ||
-            cellItem.attr('step')                          ||
+            idFrom('.left-content[id^="left_content_"]') ||
+            insightsControl.attr('data-task-index') ||
+            cellItem.attr('step') ||
             cellItem.attr('data-task-index');
         // Fall back 
         taskIndex = String(taskIndex || '');
@@ -742,6 +742,10 @@ function extractCellContent(cell) {
 
         case 'data_stream':
             content = get_data_stream_cell(targetCell);
+            break;
+
+        case 'server':
+            content = get_server_cell(targetCell);
             break;
 
         case 'test':
