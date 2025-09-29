@@ -781,10 +781,9 @@ function resolveTaskIndexFromChat(rootEl) {
 function insertCodeIntoAceEditor(taskIndex, text) {
     if (!text) return;
 
-    // If a focused input/textarea inside left-content, insert at caret
+    // If a focused input/textarea inside left-content, keep existing caret behavior
     let left = document.getElementById(`left_content_${taskIndex}`);
     if (!left) {
-        // Fallback: find the left pane inside this cell’s DOM
         const cell = getCellByTask(taskIndex);
         if (cell && cell.length) {
             left = cell[0].querySelector('.left-content[id^="left_content_"]') || null;
@@ -805,22 +804,36 @@ function insertCodeIntoAceEditor(taskIndex, text) {
         return;
     }
 
-    // Try to find an Ace host inside the left content
+    // Ace editor path: insert on the line BELOW the current cursor
     const aceHost = left.querySelector('.ace_editor');
     if (aceHost && window.ace && typeof window.ace.edit === 'function') {
-        // ensure the host has an id for ace.edit
         if (!aceHost.id) aceHost.id = `ace_${taskIndex}_${Date.now()}`;
         const editor = window.ace.edit(aceHost.id);
-        try {
-            const Range = window.ace.require && window.ace.require("ace/range").Range;
-            // insert at current cursor (or end-of-doc)
-            const pos = editor.getCursorPosition();
-            editor.session.insert(pos, text);
-            editor.focus();
-            return;
-        } catch (_) {
-            // fall through to contentEditable / append
+
+        const session = editor.session;
+        const pos = editor.getCursorPosition(); // {row, column}
+        const lastRow = session.getLength() - 1;
+
+        // If on the last line, ensure there is a newline to allow inserting on the next line
+        if (pos.row === lastRow) {
+            const lineLen = session.getLine(pos.row).length;
+            session.insert({ row: pos.row, column: lineLen }, "\n");
         }
+
+        // Insert at the start of the next line
+        const target = { row: pos.row + 1, column: 0 };
+        session.insert(target, text);
+
+        // Move cursor to the end of the inserted block
+        const lines = String(text).split("\n");
+        const endRow = target.row + lines.length - 2;
+        const endCol = lines[lines.length - 2].length;
+
+        editor.moveCursorTo(endRow, endCol);
+        editor.clearSelection(); // ensure nothing remains selected
+        editor.renderer.scrollCursorIntoView({ row: endRow, column: endCol }, 0.5);
+        editor.focus();
+        return;
     }
 }
 
