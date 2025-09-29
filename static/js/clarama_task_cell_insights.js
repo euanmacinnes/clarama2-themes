@@ -7,6 +7,7 @@ window.__ginaIdleTimers = window.__ginaIdleTimers || Object.create(null);
 
 /* ---------------------------------------------------------------------- */
 /* Utilities                                                              */
+
 /* ---------------------------------------------------------------------- */
 
 function debounce(fn, wait, immediate) {
@@ -30,12 +31,16 @@ function pauseChatStream(taskIndex) {
     if (!taskIndex) return;
     const cbKey = `cell_insights_chat_callback_${taskIndex}`;
     window.__ginaChatActive[taskIndex] = false;
-    try { delete window[cbKey]; } catch (_) {}
+    try {
+        delete window[cbKey];
+    } catch (_) {
+    }
     try {
         if (window.__ginaStreamIdleTimer && window.__ginaStreamIdleTimer[taskIndex]) {
             clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
         }
-    } catch (_) {}
+    } catch (_) {
+    }
 }
 
 /** Ensure console reflects the currently active tab for a task */
@@ -50,13 +55,13 @@ function syncInsightsConsole(taskIndex) {
     if (!activeBtn) return;
 
     // Normalize a "role" from id/target/text for resilience
-    const id     = activeBtn.id || "";
+    const id = activeBtn.id || "";
     const target = activeBtn.getAttribute('data-bs-target') || "";
-    const label  = (activeBtn.textContent || "").toLowerCase();
-    const blob   = `${id} ${target} ${label}`;
+    const label = (activeBtn.textContent || "").toLowerCase();
+    const blob = `${id} ${target} ${label}`;
 
     let role = "python"; // default for non-chat/non-data tabs
-    if (/chat/.test(blob))       role = "gina";
+    if (/chat/.test(blob)) role = "gina";
     else if (/data\s*inspector|insights-data|data\-inspector/.test(blob)) role = "data";
     else if (/code\s*inspector|insights-code|code\-inspector/.test(blob)) role = "python";
     // Variables / Preview / Global Fields -> python mode as per your spec
@@ -65,10 +70,16 @@ function syncInsightsConsole(taskIndex) {
     set_console_mode(taskIndex, role);
     if (role === "gina") {
         // Re-arm chat streaming when Chat tab is active
-        try { initialiseInsightsGina(taskIndex); } catch (_) {}
+        try {
+            initialiseInsightsGina(taskIndex);
+        } catch (_) {
+        }
     } else {
         // Make sure chat stream doesn't grab stdout in non-chat tabs
-        try { pauseChatStream(taskIndex); } catch (_) {}
+        try {
+            pauseChatStream(taskIndex);
+        } catch (_) {
+        }
     }
 }
 
@@ -87,7 +98,7 @@ function resolveTaskIndexFromNode(node) {
     if (cellItem) {
         // Prefer right/left content ids like right_content_12 / left_content_12
         const right = cellItem.querySelector('.right-content[id^="right_content_"]');
-        const left  = cellItem.querySelector('.left-content[id^="left_content_"]');
+        const left = cellItem.querySelector('.left-content[id^="left_content_"]');
         const idFrom = (el) => {
             if (!el || !el.id) return null;
             const m = el.id.match(/_(\d+)$/);
@@ -103,7 +114,7 @@ function resolveTaskIndexFromNode(node) {
         if (m) return m[1];
     }
     return null;
-}    
+}
 
 /** DOM helpers */
 function getStepNumber(taskIndex) {
@@ -113,16 +124,19 @@ function getStepNumber(taskIndex) {
 function getCellByTask(taskIndex) {
     return $(`li.clarama-cell-item[step="${getStepNumber(taskIndex)}"]`);
 }
+
 function getActiveTabId(taskIndex) {
     const $tabs = $(`#insightsTabs_${taskIndex}`);
     return ($tabs.find(".nav-link.active").attr("id") || "");
 }
+
 function tabIs(activeId, prefix) {
     return activeId.startsWith(prefix);
 }
 
 /* ---------------------------------------------------------------------- */
 /* Kernel Helpers                                                         */
+
 /* ---------------------------------------------------------------------- */
 
 function getKernelUrl() {
@@ -135,7 +149,7 @@ function getKernelUrl() {
 function buildTaskRegistry($cell) {
     // Prefer existing get_cell_fields() util if present
     const reg = get_cell_fields($cell) || {};
-    if (!reg.streams || !reg.streams[0]) reg.streams = [{ main: [{}] }];
+    if (!reg.streams || !reg.streams[0]) reg.streams = [{main: [{}]}];
     if (!reg.streams[0].main) reg.streams[0].main = [{}];
     if (!reg.streams[0].main[0]) reg.streams[0].main[0] = {};
     return reg;
@@ -143,7 +157,7 @@ function buildTaskRegistry($cell) {
 
 /** Ensure stream scaffold (main[0]) and return it */
 function ensureStreamScaffold(task_registry) {
-    if (!task_registry.streams || !task_registry.streams[0]) task_registry.streams = [{ main: [{}] }];
+    if (!task_registry.streams || !task_registry.streams[0]) task_registry.streams = [{main: [{}]}];
     if (!task_registry.streams[0].main) task_registry.streams[0].main = [{}];
     if (!task_registry.streams[0].main[0]) task_registry.streams[0].main[0] = {};
     return task_registry.streams[0].main[0];
@@ -170,13 +184,13 @@ function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kerne
     const spec = ensureStreamScaffold(task_registry);
 
     spec.target = "insights";
-    spec.type   = streamSpec.type;
-    spec.clear  = !!streamSpec.clear;
+    spec.type = streamSpec.type;
+    spec.clear = !!streamSpec.clear;
 
-    if ("source" in streamSpec)  spec.source  = streamSpec.source;
+    if ("source" in streamSpec) spec.source = streamSpec.source;
     if ("content" in streamSpec) spec.content = streamSpec.content;
-    if ("output" in streamSpec)  spec.output  = streamSpec.output;
-    if ("tabs"   in streamSpec)  spec.tabs    = streamSpec.tabs;
+    if ("output" in streamSpec) spec.output = streamSpec.output;
+    if ("tabs" in streamSpec) spec.tabs = streamSpec.tabs;
 
     task_registry.parameters = parameters || {};
     return ajaxRun(task_registry, failMsg);
@@ -186,14 +200,15 @@ function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kerne
 function set_insight_behaviour(task_registry, code_command, field_registry, isInspecting = false) {
     const spec = ensureStreamScaffold(task_registry);
     if (!isInspecting) spec.target = "insights";
-    spec.type    = "code";
+    spec.type = "code";
     spec.content = code_command;
-    spec.clear   = false;
+    spec.clear = false;
     task_registry.parameters = field_registry;
 }
 
 /* ---------------------------------------------------------------------- */
 /* Console Controls                                                        */
+
 /* ---------------------------------------------------------------------- */
 
 function getActiveConsole(taskIndex) {
@@ -210,12 +225,12 @@ function getActiveConsole(taskIndex) {
     }
 
     const $input = $pane.find(`#console_input_${taskIndex}, textarea.console-input[data-task-index="${taskIndex}"]`).first();
-    const $send  = $pane.find(`.execute-console[data-task-index="${taskIndex}"]`).first();
-    return { $pane, $input, $send };
+    const $send = $pane.find(`.execute-console[data-task-index="${taskIndex}"]`).first();
+    return {$pane, $input, $send};
 }
-    
+
 function setConsoleEnabled(taskIndex, enabled) {
-    const { $input, $send: $sendBtn } = getActiveConsole(taskIndex);
+    const {$input, $send: $sendBtn} = getActiveConsole(taskIndex);
 
     $input
         .prop("disabled", !enabled)
@@ -226,19 +241,19 @@ function setConsoleEnabled(taskIndex, enabled) {
 }
 
 function setConsoleVisible(taskIndex, visible) {
-    const { $pane } = getActiveConsole(taskIndex);
+    const {$pane} = getActiveConsole(taskIndex);
     const $wrap = $pane.find('.insights-console');
     $wrap.toggleClass("d-none", !visible);
 }
 
 function setConsolePlaceholder(taskIndex, text) {
-    const { $input } = getActiveConsole(taskIndex);
+    const {$input} = getActiveConsole(taskIndex);
     if ($input.length) $input.attr("placeholder", text);
 }
 
 /** Toggle console placeholder/mode per tab */
 function set_console_mode(taskIndex, mode) {
-    const { $input } = getActiveConsole(taskIndex);
+    const {$input} = getActiveConsole(taskIndex);
     if (!$input.length) return;
     if (mode === "gina") {
         $input.attr("placeholder", "Message GINA…").data("console-mode", "gina");
@@ -281,6 +296,7 @@ function configureConsoleForActiveTab(taskIndex, activeTabId) {
 
 /* ---------------------------------------------------------------------- */
 /* Chat bubbles + streaming                                                */
+
 /* ---------------------------------------------------------------------- */
 
 function finalizePreviousReplyBubble(taskIndex) {
@@ -300,7 +316,7 @@ function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
     const $chat = $(`#insights_gina_chat_${taskIndex}`);
     if (!$chat.length) return null;
 
-    const params = new URLSearchParams({ role, stream_id: streamId });
+    const params = new URLSearchParams({role, stream_id: streamId});
     const chatBubble = $(`<div class="clarama-post-embedded clarama-replaceable">`)
         .attr("url", `/template/render/explorer/files/_cell_insights_gina_chat_block?${params}`);
 
@@ -334,9 +350,12 @@ function cleanStreamText(text, append) {
 }
 
 /** Render streaming text into the current bubble (markdown aware) */
-function setStreamText(streamId, text, { append = false } = {}) {
+function setStreamText(streamId, text, {append = false} = {}) {
     const el = document.getElementById(streamId);
-    if (!el) { setTimeout(() => setStreamText(streamId, text, { append }), 16); return; }
+    if (!el) {
+        setTimeout(() => setStreamText(streamId, text, {append}), 16);
+        return;
+    }
 
     const bubble = el.querySelector(".insights-gina-chat-bubble");
     if (!bubble) return;
@@ -370,7 +389,10 @@ function armStream(taskIndex, onChunk) {
         clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
         window.__ginaStreamIdleTimer[taskIndex] = setTimeout(() => {
             window.__ginaChatActive[taskIndex] = false;
-            try { delete window[cbKey]; } catch (_) {}
+            try {
+                delete window[cbKey];
+            } catch (_) {
+            }
             finalizePreviousReplyBubble(taskIndex);
             setConsoleEnabled(taskIndex, true);
         }, 1500);
@@ -380,11 +402,15 @@ function armStream(taskIndex, onChunk) {
         const string = normalizeChunk(chunk);
         if (string) {
             onChunk(string);
-            if (!sawFirstChunk) { sawFirstChunk = true; }
+            if (!sawFirstChunk) {
+                sawFirstChunk = true;
+            }
             scheduleIdleClose();
         }
         if (window.__ginaChatActive[taskIndex]) {
-            setTimeout(() => { window[cbKey] = handler; }, 0);
+            setTimeout(() => {
+                window[cbKey] = handler;
+            }, 0);
         }
     };
 
@@ -396,7 +422,10 @@ function clear_insights_gina_chat(taskIndex) {
     if ($chat.length) $chat.empty();
 
     const chatKey = `cell_insights_chat_callback_${taskIndex}`;
-    try { delete window[chatKey]; } catch (_) {}
+    try {
+        delete window[chatKey];
+    } catch (_) {
+    }
     clearTimeout(window.__ginaStreamIdleTimer?.[taskIndex]);
 
     if (window.__ginaStreamBuf) delete window.__ginaStreamBuf[taskIndex];
@@ -405,6 +434,7 @@ function clear_insights_gina_chat(taskIndex) {
 
 /* ---------------------------------------------------------------------- */
 /* DATA MODE                                                               */
+
 /* ---------------------------------------------------------------------- */
 
 /** Resolve current Data Inspector "source" value depending on cell mode */
@@ -421,20 +451,23 @@ function resolveDataSource(taskIndex) {
 
     // Data-Editor with tabs: use active tab's source field
     const container = document.querySelector(`#dataEditTabContentContainer_${taskIndex}`);
-    if (!container) return { mode: "none", source: "", tabId: null };
+    if (!container) return {mode: "none", source: "", tabId: null};
 
     const pane = container.querySelector(".tab-pane.show.active") || container.querySelector(".tab-pane");
     const tabId = (pane && pane.getAttribute("data-tab-id")) || "0";
     const tabSourceInput = document.getElementById(`task_step_${taskIndex}_source_${tabId}`);
     const sourceVal = tabSourceInput ? String(tabSourceInput.value || "").trim() : "";
 
-    return { mode: "tabbed", source: sourceVal, tabId };
+    return {mode: "tabbed", source: sourceVal, tabId};
 }
 
 /** Send a dataQuery via the Insights console to kernel (Data Inspector tab) */
 function cell_insights_data_run(cell_button, dataQuery) {
     const taskIndex = (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
-    if (!taskIndex) { console.warn("Insights Data Inspector: No taskIndex found"); return; }
+    if (!taskIndex) {
+        console.warn("Insights Data Inspector: No taskIndex found");
+        return;
+    }
 
     const activeTabId = getActiveTabId(taskIndex);
     if (!tabIs(activeTabId, "insights-data-inspector-tab-")) {
@@ -454,15 +487,15 @@ function cell_insights_data_run(cell_button, dataQuery) {
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
 
-        const { mode, source, tabId } = resolveDataSource(taskIndex);
+        const {mode, source, tabId} = resolveDataSource(taskIndex);
         const $cell = getCellByTask(taskIndex);
         const task_registry = buildTaskRegistry($cell);
         const spec = ensureStreamScaffold(task_registry);
 
         spec.target = "insights";
-        spec.type   = "data";
+        spec.type = "data";
         spec.output = "table";
-        spec.clear  = true;
+        spec.clear = true;
         spec.source = source;
         spec.content = query;
 
@@ -473,7 +506,7 @@ function cell_insights_data_run(cell_button, dataQuery) {
             spec.tabs = Array.isArray(spec.tabs) ? spec.tabs : [];
             let foundIdx = spec.tabs.findIndex(t => String(t?.tab_id ?? "") === String(tabId));
             if (foundIdx < 0) {
-                spec.tabs.push({ tab_id: Number(tabId) || 0 });
+                spec.tabs.push({tab_id: Number(tabId) || 0});
                 foundIdx = spec.tabs.length - 1;
             }
             spec.tabs[foundIdx] = Object.assign({}, spec.tabs[foundIdx], {
@@ -486,7 +519,7 @@ function cell_insights_data_run(cell_button, dataQuery) {
         task_registry.parameters = field_registry;
 
         window.__insightsDataRoute = window.__insightsDataRoute || {};
-        window.__insightsDataRoute[taskIndex] = { active: true, at: Date.now() };
+        window.__insightsDataRoute[taskIndex] = {active: true, at: Date.now()};
 
         ajaxRun(task_registry, "Data query failed: access/network issue");
     });
@@ -494,6 +527,7 @@ function cell_insights_data_run(cell_button, dataQuery) {
 
 /* ---------------------------------------------------------------------- */
 /* CODE INSPECTOR                                                         */
+
 /* ---------------------------------------------------------------------- */
 
 function getAceEditorForTask(taskIndex) {
@@ -507,10 +541,10 @@ function getAceEditorForTask(taskIndex) {
 
 function getCurrentCodeAndCursor(taskIndex) {
     const editor = getAceEditorForTask(taskIndex);
-    if (!editor) return { code: "", row: 1, column: 0, ok: false };
+    if (!editor) return {code: "", row: 1, column: 0, ok: false};
     const code = editor.getValue();
     const pos = editor.getCursorPosition();
-    return { code, row: (pos.row ?? 0) + 1, column: (pos.column ?? 0), ok: true };
+    return {code, row: (pos.row ?? 0) + 1, column: (pos.column ?? 0), ok: true};
 }
 
 function renderCodeInspectorResult(taskIndex, text) {
@@ -538,9 +572,9 @@ function renderCodeInspectorResult(taskIndex, text) {
     }
 
     const hasSuggestions = Array.isArray(payload?.suggestions) && payload.suggestions.length > 0;
-    const hasSymbol     = !!(payload?.symbol || payload?.symbol_attributes || payload?.symbol_value);
-    const hasDocstring  = !!payload?.docstring;
-    
+    const hasSymbol = !!(payload?.symbol || payload?.symbol_attributes || payload?.symbol_value);
+    const hasDocstring = !!payload?.docstring;
+
     if (hasSuggestions) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
@@ -556,7 +590,7 @@ function renderCodeInspectorResult(taskIndex, text) {
         host.appendChild(wrap);
         return; // stop here
     }
-    
+
     if (hasSymbol) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
@@ -572,7 +606,7 @@ function renderCodeInspectorResult(taskIndex, text) {
         host.appendChild(wrap);
         return; // stop here
     }
-    
+
     if (hasDocstring) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
@@ -584,20 +618,23 @@ function renderCodeInspectorResult(taskIndex, text) {
         host.appendChild(wrap);
         return; // stop here
     }
-    
+
     // None present
     const em = document.createElement("em");
     em.className = "text-muted";
     em.textContent = "No information.";
-    host.appendChild(em);    
+    host.appendChild(em);
 }
 
 function cell_insights_code_inspect_reload(taskIndex) {
     const $cell = getCellByTask(taskIndex);
-    if (!$cell.length) { console.error("Cell not found for task", taskIndex); return; }
+    if (!$cell.length) {
+        console.error("Cell not found for task", taskIndex);
+        return;
+    }
 
     // Pull latest code + cursor from Ace
-    const { code, row, column, ok } = getCurrentCodeAndCursor(taskIndex);
+    const {code, row, column, ok} = getCurrentCodeAndCursor(taskIndex);
     if (!ok) {
         renderCodeInspectorResult(taskIndex, "Editor not ready. Click Reload again once the editor has mounted.");
         observeEditorReady(taskIndex);
@@ -606,7 +643,7 @@ function cell_insights_code_inspect_reload(taskIndex) {
 
     window[`cell_insights_callback_${taskIndex}`] = function (output) {
         renderCodeInspectorResult(taskIndex, output);
-    };        
+    };
 
     const py = `
 import json as _json
@@ -644,11 +681,15 @@ else:
 
 /* ---------------------------------------------------------------------- */
 /* CHAT WITH GINA (INSIGHTS PANE)                                         */
+
 /* ---------------------------------------------------------------------- */
 
 function cell_insights_gina_run(cell_button, questionText) {
     const taskIndex = (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
-    if (!taskIndex) { console.warn("GINA chat: No taskIndex found"); return; }
+    if (!taskIndex) {
+        console.warn("GINA chat: No taskIndex found");
+        return;
+    }
 
     if (!is_chat_tab_active(taskIndex)) {
         console.debug("GINA chat suppressed: not on Chat tab");
@@ -685,7 +726,7 @@ function cell_insights_gina_run(cell_button, questionText) {
     try {
         const bubbleId = `gina_user_${taskIndex}_${Date.now()}`;
         appendChatBubbleViaTemplate(taskIndex, "user", bubbleId);
-        setStreamText(bubbleId, text, { append: false });
+        setStreamText(bubbleId, text, {append: false});
         scrollChatToBottom(taskIndex);
     } catch (e) {
         console.warn("GINA chat: unable to render user bubble", e);
@@ -699,20 +740,20 @@ function cell_insights_gina_run(cell_button, questionText) {
     window.__ginaStreamBuf[taskIndex] = "";
 
     setConsoleEnabled(taskIndex, false);
-    setStreamText(streamId, "thinking...", { append: false });
+    setStreamText(streamId, "thinking...", {append: false});
     scrollChatToBottom(taskIndex);
 
     // Stream handler
     armStream(taskIndex, (s) => {
         window.__ginaStreamBuf[taskIndex] += s;
-        setStreamText(streamId, window.__ginaStreamBuf[taskIndex], { append: false });
+        setStreamText(streamId, window.__ginaStreamBuf[taskIndex], {append: false});
         scrollChatToBottom(taskIndex);
     });
 
     // Send question to kernel
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
-        postToKernel(taskIndex, { type: "question", source: text, clear: false }, field_registry);
+        postToKernel(taskIndex, {type: "question", source: text, clear: false}, field_registry);
     });
 }
 
@@ -794,13 +835,13 @@ function insertCodeIntoAceEditor(taskIndex, text) {
     const active = document.activeElement;
     if (active && left.contains(active) && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
         const start = active.selectionStart ?? active.value.length;
-        const end   = active.selectionEnd ?? start;
+        const end = active.selectionEnd ?? start;
         const before = active.value.slice(0, start);
-        const after  = active.value.slice(end);
+        const after = active.value.slice(end);
         active.value = before + text + after;
         const pos = start + text.length;
         active.selectionStart = active.selectionEnd = pos;
-        active.dispatchEvent(new Event('input', { bubbles: true }));
+        active.dispatchEvent(new Event('input', {bubbles: true}));
         return;
     }
 
@@ -817,11 +858,11 @@ function insertCodeIntoAceEditor(taskIndex, text) {
         // If on the last line, ensure there is a newline to allow inserting on the next line
         if (pos.row === lastRow) {
             const lineLen = session.getLine(pos.row).length;
-            session.insert({ row: pos.row, column: lineLen }, "\n");
+            session.insert({row: pos.row, column: lineLen}, "\n");
         }
 
         // Insert at the start of the next line
-        const target = { row: pos.row + 1, column: 0 };
+        const target = {row: pos.row + 1, column: 0};
         session.insert(target, text);
 
         // Move cursor to the end of the inserted block
@@ -831,7 +872,7 @@ function insertCodeIntoAceEditor(taskIndex, text) {
 
         editor.moveCursorTo(endRow, endCol);
         editor.clearSelection(); // ensure nothing remains selected
-        editor.renderer.scrollCursorIntoView({ row: endRow, column: endCol }, 0.5);
+        editor.renderer.scrollCursorIntoView({row: endRow, column: endCol}, 0.5);
         editor.focus();
         return;
     }
@@ -868,8 +909,8 @@ function observeEditorReady(taskIndex) {
             obs.disconnect();
         }
     });
-    obs.observe(left, { childList: true, subtree: true });
-}    
+    obs.observe(left, {childList: true, subtree: true});
+}
 
 /** Enable/disable all insert bars that belong to this task's chat tab */
 function toggleBarsForTask(taskIndex, enabled) {
@@ -878,7 +919,7 @@ function toggleBarsForTask(taskIndex, enabled) {
         const cell = getCellByTask(taskIndex);
         if (cell && cell.length) {
             pane = cell[0].querySelector(`#insights-chat-${taskIndex}`) ||
-                   cell[0].querySelector('[id^="insights-chat-"]');
+                cell[0].querySelector('[id^="insights-chat-"]');
         }
     }
     if (!pane) return;
@@ -900,31 +941,47 @@ function initialiseInsightsGina(taskIndex, force = false) {
         const streamEl = document.getElementById(`gina_stream_${taskIndex}`);
         const sid = streamEl ? `gina_stream_${taskIndex}` : ensureStreamBubble(taskIndex);
         window.__ginaStreamBuf[taskIndex] += s;
-        setStreamText(sid, window.__ginaStreamBuf[taskIndex], { append: false });
+        setStreamText(sid, window.__ginaStreamBuf[taskIndex], {append: false});
         scrollChatToBottom(taskIndex);
     });
 
-    // Build JSON payload from the cell
-    let cellContent = "{}";
+    // Build JSON payload from the cell, include agent file based on cell type
+    let payload = {};
+    var payload_file = '';
     const $cell = getCellByTask(taskIndex);
     if ($cell && $cell.length) {
-        cellContent = JSON.stringify(extractCellContent($cell));
+        try {
+            payload = extractCellContent($cell) || {};
+        } catch (_) {
+            payload = {};
+        }
+        try {
+            const cellType = $cell.attr('steptype');
+            if (cellType && typeof cellType === 'string' && cellType.trim()) {
+                // Build agent filename based on current cell type, e.g., code -> gina-task-code.agent.yaml
+                payload_file = `file=gina-task-${cellType}.agent.yaml`;
+            }
+        } catch (_) { /* ignore */
+        }
     }
-    const initCommand = `/init ${cellContent}`;
+    const initCommand = `/init ${payload_file}\n${JSON.stringify(payload)}`;
     // console.log('initCommand: ', initCommand);
 
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
-            { type: "question", source: initCommand, clear: false },
+            {type: "question", source: initCommand, clear: false},
             field_registry
-        ).always(() => { window.__ginaInsightsHandshakeDone[taskIndex] = true; });
+        ).always(() => {
+            window.__ginaInsightsHandshakeDone[taskIndex] = true;
+        });
     });
 }
 
 /* ---------------------------------------------------------------------- */
 /* VARIABLES TAB                                                           */
+
 /* ---------------------------------------------------------------------- */
 
 function createVariableButtonDirect(varName, taskIndex) {
@@ -950,7 +1007,7 @@ function createVariableButton(varName, taskIndex) {
     button.setAttribute("data-variable", varName);
     button.setAttribute("data-task-index", taskIndex);
 
-    const params = new URLSearchParams({ variable_name: varName, task_index: taskIndex });
+    const params = new URLSearchParams({variable_name: varName, task_index: taskIndex});
     button.setAttribute("url", `/template/render/explorer/files/_cell_insights_variable_button?${params.toString()}`);
     return button;
 }
@@ -979,9 +1036,21 @@ function splitRespectingQuotes(str) {
 
     for (let i = 0; i < str.length; i++) {
         const ch = str[i];
-        if ((ch === '"' || ch === "'") && !inQuotes) { inQuotes = true; quote = ch; continue; }
-        if (ch === quote && inQuotes) { inQuotes = false; quote = null; continue; }
-        if (ch === "," && !inQuotes) { if (cur.trim()) out.push(cur.trim()); cur = ""; continue; }
+        if ((ch === '"' || ch === "'") && !inQuotes) {
+            inQuotes = true;
+            quote = ch;
+            continue;
+        }
+        if (ch === quote && inQuotes) {
+            inQuotes = false;
+            quote = null;
+            continue;
+        }
+        if (ch === "," && !inQuotes) {
+            if (cur.trim()) out.push(cur.trim());
+            cur = "";
+            continue;
+        }
         if (ch !== '"' && ch !== "'") cur += ch;
     }
     if (cur.trim()) out.push(cur.trim());
@@ -1059,12 +1128,12 @@ function populateVariablesByCategory(mapping, taskIndex) {
         const mapObj = (typeof mapping === "string") ? JSON.parse(mapping) : mapping;
         Object.entries(mapObj || {}).forEach(([name, cat]) => {
             const key = (String(cat || "").toLowerCase());
-            if (key === "modules")      buckets.modules.push(name);
+            if (key === "modules") buckets.modules.push(name);
             else if (key === "classes") buckets.classes.push(name);
             else if (key === "methods") buckets.methods.push(name);
             else if (key === "objects") buckets.objects.push(name);
             else if (key === "primitives") buckets.primitives.push(name);
-            else if (key === "data")    buckets.data.push(name);
+            else if (key === "data") buckets.data.push(name);
             else buckets.objects.push(name); // default bucket
         });
     } catch (e) {
@@ -1089,7 +1158,8 @@ function attachVariableClickHandlers(container, taskIndex) {
             button.removeEventListener("click", button._variableClickHandler);
         }
         button._variableClickHandler = debounce(function (e) {
-            e.preventDefault(); e.stopPropagation();
+            e.preventDefault();
+            e.stopPropagation();
             const varName = this.dataset.variable;
             container.querySelectorAll(".variable-item").forEach(b => b.classList.remove("selected"));
             this.classList.add("selected");
@@ -1105,7 +1175,8 @@ $.fn.interact_variable = function () {
         const $this = $(this);
         $this.off("click.variable");
         const handler = debounce(function (e) {
-            e.preventDefault(); e.stopPropagation();
+            e.preventDefault();
+            e.stopPropagation();
             const varName = this.dataset.variable;
             const taskIndex = this.dataset.taskIndex;
             const container = this.closest(".variables-horizontal-container");
@@ -1247,6 +1318,7 @@ print(json.dumps(categories))
 
 /* ---------------------------------------------------------------------- */
 /* CONSOLE (PYTHON MODE)                                                  */
+
 /* ---------------------------------------------------------------------- */
 
 function cell_insights_code_run(taskIndex, code) {
@@ -1273,11 +1345,16 @@ function cell_insights_code_run(taskIndex, code) {
     if (!code) {
         let input = document.getElementById(`console_input_${taskIndex}`) || $cell.find(".console-input")[0];
         if (input && !input.id) input.id = `console_input_${taskIndex}`;
-        if (!input) { console.error("Console input not found for task", taskIndex); return; }
+        if (!input) {
+            console.error("Console input not found for task", taskIndex);
+            return;
+        }
         code = String(input.value || "").trim();
         input.value = "";
     }
-    if (!code) { return; }
+    if (!code) {
+        return;
+    }
 
     pauseChatStream(taskIndex);
 
@@ -1334,6 +1411,7 @@ function cell_insights_code_run(taskIndex, code) {
 
 /* ---------------------------------------------------------------------- */
 /* VARIABLE INSPECTION                                                     */
+
 /* ---------------------------------------------------------------------- */
 
 function inspectVariable(varName, taskIndex) {
@@ -1345,7 +1423,10 @@ function inspectVariable(varName, taskIndex) {
 
     debounce(function (vName, tIdx) {
         const $cell = getCellByTask(tIdx);
-        if (!$cell.length) { console.error("Cell not found for task", tIdx); return; }
+        if (!$cell.length) {
+            console.error("Cell not found for task", tIdx);
+            return;
+        }
 
         const inspectionKey = `variable_inspecting_${tIdx}`;
         window[inspectionKey] = true;
@@ -1474,6 +1555,7 @@ except Exception as e:
 
 /* ---------------------------------------------------------------------- */
 /* Console UX helpers                                                      */
+
 /* ---------------------------------------------------------------------- */
 
 function getActiveConsoleInput(taskIndex) {
@@ -1594,10 +1676,13 @@ $(document)
         if (!tabsHost || !tabsHost.id) return;
         const taskIndex = tabsHost.id.replace('insightsTabs_', '');
         if (!taskIndex) return;
-    
+
         syncInsightsConsole(taskIndex);
         const id = this.id || "";
         if (id.startsWith("insights-chat-tab-")) {
-            try { initialiseInsightsGina(taskIndex); } catch (_){}
+            try {
+                initialiseInsightsGina(taskIndex);
+            } catch (_) {
+            }
         }
     });
