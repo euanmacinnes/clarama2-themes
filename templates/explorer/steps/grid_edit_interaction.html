@@ -1,23 +1,80 @@
-<li class="dropdown-item slate-elem-dropdown-item" loop-index="{{ uid }}" elem-id="{{ current_element }}"
-    target-id="{{ target }}" draggable="true">
-    <div class="list-group-item d-flex align-items-center">
-        <i class="bi bi-grip-vertical draggable-heading p-0" draggable="true"></i>
-        <div class="cElem mx-2 flex-grow-1 w-100 align-middle ">
-            {{ element_summary(current_element, current_element_url, target) | safe }}
+<li class="dropdown-item slate-elem-dropdown-item" loop-index="{{ uid }}" elem-id="{{ current_element }}" target-id="{{ target }}">
+    <div class="list-group-item d-flex align-items-center w-100">
+        <i class="bi bi-grip-vertical draggable-heading p-0 me-2" draggable="true" title="Drag" style="cursor: grab;"></i>
+
+        {# Determine current kind: 'element' when current_element is not a special type #}
+        {% set special_types = ['popup','modal','tab','hidden'] %}
+        {% set current_kind = (current_element in special_types) and current_element or 'element' %}
+
+        <!-- Interaction kind selector -->
+        <select class="form-select form-select-sm me-2" style="width: 110px;" id="interaction-kind-{{ target }}-{{ uid }}"
+                onchange="update_interaction_kind('{{ target }}','{{ uid }}', this.value)">
+            <option value="element" {% if current_kind == 'element' %}selected{% endif %}>Element</option>
+            <option value="popup" {% if current_kind == 'popup' %}selected{% endif %}>Popup</option>
+            <option value="modal" {% if current_kind == 'modal' %}selected{% endif %}>Modal</option>
+            <option value="tab" {% if current_kind == 'tab' %}selected{% endif %}>Tab</option>
+            <option value="hidden" {% if current_kind == 'hidden' %}selected{% endif %}>Hidden</option>
+        </select>
+
+        <!-- Element selector (shown only when kind = Element) -->
+        {% set show_elem_select = (current_kind == 'element') %}
+        <select class="form-select form-select-sm me-2" style="width: 160px;{% if not show_elem_select %} display:none;{% endif %}"
+                id="interaction-element-{{ target }}-{{ uid }}"
+                onchange="update_interaction_field('{{ target }}','{{ uid }}','element', this.value)"
+                {% if not show_elem_select %}disabled{% endif %}>
+            {% set elements_map = elements if elements is defined else {} %}
+            {% for elem_id, val in elements_map.items() %}
+                <option value="{{ elem_id }}" {% if current_kind == 'element' and current_element == elem_id %}selected{% endif %}>{{ elem_id }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- URL + params inline editor (reuses compact input-group layout) -->
+        <div class="input-group input-group-sm flex-grow-1 me-2" style="min-width: 320px;">
+            <button type="button" class="btn btn-outline-primary input-group-text p-1" data-bs-toggle="modal"
+                    data-bs-target="#browseFileModal"
+                    inputId="interaction-url-{{ target }}-{{ uid }}"
+                    filters="*.task.yaml">
+                <i class="bi bi-folder2-open"></i>
+            </button>
+            <input id="interaction-url-{{ target }}-{{ uid }}" type="text" class="form-control removeInputFocus"
+                   placeholder="Data Source Filename" value="{{ current_element_url or '' }}"
+                   oninput="update_interaction_field('{{ target }}','{{ uid }}','url', this.value)">
+            <button type="button" class="btn btn-outline-secondary border-end-0 p-1"
+                    onclick="clear_interaction_input('{{ target }}','{{ uid }}','url', event)" style="font-size: 1rem;border-color: #dee2e6;">
+                <i class="bi bi-x"></i>
+            </button>
+            {# Show params only if URL is non-empty and not the literal strings 'null'/'none' #}
+            <span id="interaction-params-wrap-{{ target }}-{{ uid }}" style="display: {% if current_element_url and (current_element_url|string|lower not in ['null','none']) %}inline-flex{% else %}none{% endif %};" class="d-inline-flex align-items-stretch">
+                <span class="input-group-text">?</span>
+                <input type="text" class="form-control removeInputFocus" id="interaction-params-{{ target }}-{{ uid }}"
+                       placeholder="my_param=something" value="{{ current_element_params or '' }}"
+                       oninput="update_interaction_field('{{ target }}','{{ uid }}','params', this.value)">
+                <button type="button" class="btn btn-outline-secondary p-1"
+                        onclick="clear_interaction_input('{{ target }}','{{ uid }}','params', event)" style="font-size: 1rem;border-color: #dee2e6;">
+                    <i class="bi bi-x"></i>
+                </button>
+            </span>
         </div>
 
-        <i class="bi bi-gear mx-1 mx-2"
-           data-bs-toggle="modal"
-           data-bs-target="#interactionSettingsModal"
-           data-index="{{ uid }}"
-           data-element="{{ current_element }}"
-           data-target="{{ target }}"
-           data-url="{{ current_element_url }}"
-           data-params="{{ current_element_params }}"
-           data-wait="{{ do_wait }}"
-           data-menuName="{{ menu_item_name }}"
-           onclick="openInteractionSettings(this)"></i>
-        <i class="bi bi-trash p-0 delete-grid-interaction"
-           onClick="delete_interaction('{{ target }}', '{{ uid }}');"></i>
+        <!-- Wait checkbox -->
+        <div class="form-check form-switch me-3">
+            <input class="form-check-input" type="checkbox" id="interaction-wait-{{ target }}-{{ uid }}" {% if do_wait %}checked{% endif %}
+                   onchange="update_interaction_field('{{ target }}','{{ uid }}','wait', this.checked)">
+            <label class="form-check-label small" for="interaction-wait-{{ target }}-{{ uid }}">Wait</label>
+        </div>
+
+        <!-- Optional Menu item name (shown if this row is for context menu) -->
+        {% if (menu_item_name is defined) or (is_menu is defined) %}
+        <div class="input-group input-group-sm me-2" style="width: 220px;">
+            <span class="input-group-text">Menu</span>
+            <input type="text" class="form-control" id="interaction-menu-{{ target }}-{{ uid }}" value="{{ menu_item_name or '' }}"
+                   placeholder="Menu item" oninput="update_interaction_field('{{ target }}','{{ uid }}','menu_item_name', this.value)">
+        </div>
+        {% endif %}
+
+        <!-- Delete -->
+        <button class="btn btn-outline-danger btn-sm delete-grid-interaction" title="Delete" onclick="delete_interaction('{{ target }}', '{{ uid }}');">
+            <i class="bi bi-trash"></i>
+        </button>
     </div>
 </li>

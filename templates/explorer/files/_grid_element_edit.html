@@ -5,7 +5,7 @@
     </div>
     <div id="grid-elem-dropdown-{{ target }}" class="dropdown col-auto align-middle tight"
         style="position: absolute; top: 4px; right: 3px;">
-        <i class="bi bi-three-dots-vertical element_editor grid-elem-menu" data-bs-toggle="dropdown"
+        <i class="bi bi-three-dots-vertical element_editor grid-elem-menu" data-bs-toggle="dropdown" data-bs-auto-close="outside"
             aria-expanded="false" target="{{ target }}" elems="{{ grid_id }}" title="{{ target }}"></i>
         <ul class="dropdown-menu embedded-dropdown-menu grid-element-dropdown-menu">
             <li class="dropdown-item">
@@ -71,43 +71,58 @@
                 <hr class="dropdown-divider">
             </li>
             <li>
-                <h6 class="dropdown-header">Interactions: <i class="bi bi-plus-circle grid-interaction-add" data-bs-toggle="modal"
-                    data-bs-target="#interactionSettingsModal" onclick="openInteractionSettings('{{ target }}')" style="cursor: pointer;"></i></h6>
+                <h6 class="dropdown-header mb-1">Interactions</h6>
+                <!-- Column headers for all rows -->
+                <div class="px-3 py-1 small text-muted d-flex align-items-center">
+                    <div class="me-2" style="width: 18px;"></div>
+                    <div class="me-2" style="width: 110px;">Type</div>
+                    <div class="me-2" style="width: 160px;">Element</div>
+                    <div class="flex-grow-1 me-2">Source & Params</div>
+                    <div class="me-3" style="width: 80px;">Wait</div>
+                    <div class="" style="width: 220px;">Menu</div>
+                </div>
             </li>
-            <div id="grid_element_target-{{ target }}">
-                <!-- 
-                    need to check if link.element is defined bec the old ver bef the interaction was implemented will hv smth like this:
-                        (i cnt rmb if last time got params in the element, iirc thr isnt but jic ill j check for it)
-                        element_6:
-                            links:
-                            - element_5
-                            url: ./End Date.field.yaml
 
-                    meanwhile with the interactions its like this:
-                        element_0:
-                            links:
-                            -   element: element_0
-                                params: ''
-                                uid: '0'
-                                url: ''
-                                wait: false
-                            spacing: '5'
-                            url: ./11_1sf.field.yaml
-                -->
+            <!-- Actions group (non-menu interactions) -->
+            <li class="dropdown-item">
+                <div class="d-flex align-items-center justify-content-between">
+                    <strong class="me-2">Actions</strong>
+                    <i class="bi bi-plus-circle grid-interaction-add" title="Add Action" style="cursor: pointer;"
+                       onclick="add_interaction('{{ target }}', false)"></i>
+                </div>
+            </li>
+            <div id="grid_element_target_actions-{{ target }}">
                 {% for link in elements[target]['links'] %}
-                    {% set uid = link.uid %}
-                    {% if link.element is defined %}
-                        {% set current_element = link.element %}
-                        {% set current_element_url = link.url %}
-                        {% set current_element_params = link.params %}
-                        {% set do_wait = link.wait %}
-                        {% set menu_item_name = link.menu_item_name %}
-                    {% else %}
-                        {% set current_element = link %}
-                        {% set current_element_url = elements[link]['url'] %}
-                        {% set current_element_params = elements[link]['params'] %}
+                    {% if not link.contextMenu %}
+                        {% set uid = link.uid %}
+                        {% set current_element = link.element if link.element is defined else link %}
+                        {% set current_element_url = link.url if link.element is defined else elements[link]['url'] %}
+                        {% set current_element_params = link.params if link.element is defined else elements[link]['params'] %}
+                        {% set do_wait = link.wait if link.wait is defined else false %}
+                        {% include theme("explorer/steps/grid_edit_interaction.html") %}
                     {% endif %}
-                    {% include theme("explorer/steps/grid_edit_interaction.html") %}
+                {% endfor %}
+            </div>
+
+            <!-- Menu group (context menu items) -->
+            <li class="dropdown-item">
+                <div class="d-flex align-items-center justify-content-between">
+                    <strong class="me-2">Menu</strong>
+                    <i class="bi bi-plus-circle grid-interaction-add" title="Add Menu Item" style="cursor: pointer;"
+                       onclick="add_interaction('{{ target }}', true)"></i>
+                </div>
+            </li>
+            <div id="grid_element_target_menu-{{ target }}">
+                {% for link in elements[target]['links'] %}
+                    {% if link.contextMenu %}
+                        {% set uid = link.uid %}
+                        {% set current_element = link.element if link.element is defined else link %}
+                        {% set current_element_url = link.url if link.element is defined else elements[link]['url'] %}
+                        {% set current_element_params = link.params if link.element is defined else elements[link]['params'] %}
+                        {% set do_wait = link.wait if link.wait is defined else false %}
+                        {% set menu_item_name = link.menu_item_name %}
+                        {% include theme("explorer/steps/grid_edit_interaction.html") %}
+                    {% endif %}
                 {% endfor %}
             </div>
             {% endif %}
