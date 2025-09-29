@@ -1,9 +1,9 @@
 window.__ginaInsightsHandshakeSent = window.__ginaInsightsHandshakeSent || {};
 window.__ginaInsightsHandshakeDone = window.__ginaInsightsHandshakeDone || {};
-window.__ginaChatActive            = window.__ginaChatActive || {};
-window.__ginaStreamBuf             = window.__ginaStreamBuf || {};
-window.__ginaStreamIdleTimer       = window.__ginaStreamIdleTimer || {};
-window.__ginaIdleTimers            = window.__ginaIdleTimers || Object.create(null);
+window.__ginaChatActive = window.__ginaChatActive || {};
+window.__ginaStreamBuf = window.__ginaStreamBuf || {};
+window.__ginaStreamIdleTimer = window.__ginaStreamIdleTimer || {};
+window.__ginaIdleTimers = window.__ginaIdleTimers || Object.create(null);
 
 /* ---------------------------------------------------------------------- */
 /* Utilities                                                              */
@@ -1020,12 +1020,12 @@ function populateVariablesContainer(container, variableNames, taskIndex) {
 
 function categoryContainerIds(taskIndex) {
     return {
-        modules:    `variables_modules_${taskIndex}`,
-        classes:    `variables_classes_${taskIndex}`,
-        methods:    `variables_methods_${taskIndex}`,
-        objects:    `variables_objects_${taskIndex}`,
+        modules: `variables_modules_${taskIndex}`,
+        classes: `variables_classes_${taskIndex}`,
+        methods: `variables_methods_${taskIndex}`,
+        objects: `variables_objects_${taskIndex}`,
         primitives: `variables_primitives_${taskIndex}`,
-        data:       `variables_data_${taskIndex}`
+        data: `variables_data_${taskIndex}`
     };
 }
 
@@ -1052,7 +1052,7 @@ function renderCategoryList(targetId, names, taskIndex) {
 /** When we receive a mapping {name: "modules"|"objects"|"primitives"|"data"} */
 function populateVariablesByCategory(mapping, taskIndex) {
     const ids = categoryContainerIds(taskIndex);
-    const buckets = { modules: [], classes: [], methods: [], objects: [], primitives: [], data: [] };
+    const buckets = {modules: [], classes: [], methods: [], objects: [], primitives: [], data: []};
 
     try {
         // mapping may be a JSON string
@@ -1074,12 +1074,12 @@ function populateVariablesByCategory(mapping, taskIndex) {
         buckets.objects = names;
     }
 
-    renderCategoryList(ids.modules,    buckets.modules,    taskIndex);
-    renderCategoryList(ids.classes,    buckets.classes,    taskIndex);
-    renderCategoryList(ids.methods,    buckets.methods,    taskIndex);
-    renderCategoryList(ids.objects,    buckets.objects,    taskIndex);
+    renderCategoryList(ids.modules, buckets.modules, taskIndex);
+    renderCategoryList(ids.classes, buckets.classes, taskIndex);
+    renderCategoryList(ids.methods, buckets.methods, taskIndex);
+    renderCategoryList(ids.objects, buckets.objects, taskIndex);
     renderCategoryList(ids.primitives, buckets.primitives, taskIndex);
-    renderCategoryList(ids.data,       buckets.data,       taskIndex);
+    renderCategoryList(ids.data, buckets.data, taskIndex);
 }
 
 /** Attach debounced click handlers to variable buttons */
