@@ -1,22 +1,58 @@
+#gina-wrapper {
+    display: block;
+    min-height: auto;
+}
+
+#gina-wrapper:not(.is-open) #gina-chat-container {
+    margin: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+#gina-center {
+    display: block;
+}
+
+#gina-wrapper.is-open {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#gina-wrapper.is-open #gina-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+  
 #gina-chat-container {
     --gina-input-min: 51px;
     --gina-input-max: 240px;
-    --splash-shift: -20%;
-
-    position: fixed;
-    top: 51%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.9);
-
+  
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+  
     display: flex;
     flex-direction: column;
-
-    min-height: var(--gina-empty-height, 250px);
+  
+    min-height: var(--gina-empty-height, 100px);
     height: auto;
     max-height: none;
+    margin: 0 auto;
+  
     width: 75vw;
     max-width: 1500px;
-
+  
     /* look & feel */
     padding: 18px;
     border-radius: 16px;
@@ -25,27 +61,41 @@
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-
+  
     /* behavior */
-    overflow: hidden;
-    transition: height 0.3s ease, transform 0.4s ease, opacity 0.4s ease;
+    overflow: visible;
     opacity: 0;
     pointer-events: none;
     z-index: 800;
+  
+    --gina-vpad: 8px;
+    margin: calc(var(--navbar-offset, 72px) + var(--gina-vpad)) auto 40px;
+  
+    /* smooth, no-jitter transitions */
+    transition: margin-top .25s ease, opacity .2s ease;
 }
 
 #gina-chat-container.active {
-    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
     pointer-events: auto;
 }
 
-#gina-chat-container.mode-floating .gina-input-container {
+#gina-chat-container.active.mode-docked {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    margin: calc(var(--navbar-offset, 72px) + var(--gina-vpad)) auto 40px;
+    overflow: visible;
+    height: auto;
+}
+
+/* #gina-chat-container.mode-floating .gina-input-container {
     min-height: var(--gina-empty-height, 200px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-}
+} */
 
 .gina-splash {
     position: absolute;

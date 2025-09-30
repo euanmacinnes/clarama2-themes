@@ -475,6 +475,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- DOM refs -------------------------------------------------------------
     const ginaButton = document.getElementById("gina-button");
     const mainContent = document.getElementById("main-content");
+    const ginaWrapper = document.getElementById('gina-wrapper');
     const ginaContainer = document.getElementById("gina-chat-container");
     const ginaButtonGroup = document.querySelector(".gina-button-group");
     const ginaSaveBtn = document.querySelector(".gina-save-btn");
@@ -491,73 +492,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function navbarOffsetPx() {
         const h = (navbar && navbar.getBoundingClientRect && navbar.getBoundingClientRect().height)
-            ? navbar.getBoundingClientRect().height : 64;
+          ? navbar.getBoundingClientRect().height : 64;
         return Math.max(0, Math.round(h)) + 8; // breathing room
     }
-
+    
     function setNavbarOffsetVar() {
         const px = navbarOffsetPx();
         document.documentElement.style.setProperty("--navbar-offset", px + "px");
     }
 
-    function floatingMaxHeight() {
-        return window.innerHeight - navbarOffsetPx() - 20;
-    }
-
-    function isFloating() {
-        return ginaContainer.classList.contains("mode-floating");
-    }
-
-    function enterDocked() {
-        ginaContainer.classList.add("mode-docked");
-        ginaContainer.classList.remove("mode-floating");
-        syncMainCollapse();
-        // Once docked, the page is the only scroller
-        window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
-    }
-
     function checkDocking() {
         if (!ginaContainer.classList.contains("active")) return;
-
+      
         setNavbarOffsetVar();
-
-        if (!isFloating()) { // already docked
-            syncMainCollapse();
-            return;
-        }
-
-        const maxH = floatingMaxHeight();
-        const rect = ginaContainer.getBoundingClientRect();
-
-        // Measure untransformed content height (not affected by the 0.9 scale)
-        const inputCol = ginaContainer.querySelector(".gina-input-container");
-        const controls = ginaContainer.querySelector(".gina-controls");
-        const contentH =
-            (controls?.scrollHeight || 0) +
-            (historyHost?.scrollHeight || 0) +
-            (latestHost?.scrollHeight || 0) + 24;
-
-        // Take the largest of all available measurements
-        const h = Math.max(
-            ginaContainer.scrollHeight || 0,
-            inputCol?.scrollHeight || 0,
-            rect.height || 0,
-            contentH
+      
+        const col = ginaContainer.querySelector(".gina-input-container");
+        const contentH = Math.max(
+          col?.scrollHeight || 0,
+          ginaContainer.scrollHeight || 0
         );
-
-        // Visual cues while floating
-        const bottomOver = rect.bottom >= (window.innerHeight - 8);
-        const spaceBelow = window.innerHeight - rect.bottom;
-
-        const latestInput = ginaContainer.querySelector("#gina-latest .gina-input");
-        const inputFull = latestInput ? latestInput.scrollHeight : 0;
-
-        if ((h > maxH + 4) || bottomOver || spaceBelow < 12 || (inputFull + 40 > maxH)) {
-            enterDocked();
-        } else {
-            syncMainCollapse();
-        }
-    }
+      
+        const avail = Math.max(0, window.innerHeight - navbarOffsetPx() - 40);
+      
+        // Target vertical pad to visually center short containers
+        let vpad = Math.floor((avail - contentH) / 2);
+        if (!Number.isFinite(vpad)) vpad = 8;
+        vpad = Math.max(8, vpad); // never less than 8px
+      
+        ginaContainer.style.setProperty("--gina-vpad", vpad + "px");
+      
+        syncMainCollapse();
+      }
 
     function historyCount() {
         return historyHost.querySelectorAll(".gina-block").length;
@@ -839,23 +804,29 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function openGina() {
-        mainContent?.classList.add("hidden");
-        ginaContainer.classList.add("active", "mode-floating");
+        mainContent?.classList.add("hidden", "collapsed");
+      
+        ginaContainer.classList.add("active", "mode-docked");
+        ginaContainer.classList.remove("mode-floating");
         ginaButtonGroup?.classList.add("gina-active");
+        ginaWrapper?.classList.add('is-open');
+      
         setNavbarOffsetVar();
         requestAnimationFrame(checkDocking);
+      
         const firstInput = ginaContainer.querySelector(".gina-input");
         setTimeout(() => {
-            if (firstInput) {
-                firstInput.focus();
-                autoSize(firstInput);
-            }
+          if (firstInput) {
+            firstInput.focus();
+            autoSize(firstInput);
+          }
         }, 200);
-    }
+    }      
 
     function closeGina() {
         ginaContainer.classList.remove("active", "mode-floating", "mode-docked");
         ginaButtonGroup?.classList.remove("gina-active");
+        ginaWrapper?.classList.remove('is-open');
         mainContent?.classList.remove("collapsed");
         setTimeout(() => mainContent?.classList.remove("hidden"), 0);
     }
@@ -1213,11 +1184,11 @@ document.addEventListener("DOMContentLoaded", () => {
     ginaNewChatBtn?.addEventListener("click", async (e) => {
         e.preventDefault();
 
-        // Force floating mode
-        ginaContainer.classList.add("active", "mode-floating");
-        ginaContainer.classList.remove("mode-docked");
+        // Stay in docked mode
+        ginaContainer.classList.add("active", "mode-docked");
+        ginaContainer.classList.remove("mode-floating");
 
-        // Hide & collapse the page content while floating
+        // Keep the page collapsed while GINA is open
         mainContent?.classList.add("hidden", "collapsed");
 
         // Ensure CSS vars and layout are up to date
@@ -1299,9 +1270,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Keep scroller/height feeling right on viewport changes
     window.addEventListener("resize", () => {
-        checkDocking();
-        if (historyCount() > 0) stickHistoryToBottom();
+        if (ginaContainer.classList.contains("active")) checkDocking();
     });
+      
+    // Make it react when the conversation grows
+    const mo = new MutationObserver(() => checkDocking());
+    mo.observe(document.getElementById("gina-latest"), { childList: true, subtree: true });
+    mo.observe(document.getElementById("gina-conversations"), { childList: true, subtree: true });
 
     // Expose helpers for websocket callbacks
     window.__ginaSetInputsEnabled = setInputsEnabled;
