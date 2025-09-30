@@ -19,11 +19,14 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
 
     // 1) Handshake → unlock inputs
     if (dict && dict.type === "ai_user_input") {
+        if (dict.clear)
+            resetConversation();
+
         console.log("GINA user input requested.");
         window.__ginaHandshakeDone = true;
         window.waitingForAiUserInput = false;
         window.__ginaSetInputsEnabled(true, "Type your question.");
-        
+
         // for unlocking insights console since the dict for gina is going throught this function
         const stepId = String(dict.step_id || "");
         const m = stepId.match(/step_(\d+)/);
@@ -799,7 +802,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function resetConversation() {
         // Stop any voice capture
         stopListening();
-        runQuestionThroughKernel('/reset'); // reset the session
+        runQuestionThroughKernel('/clear'); // reset the session. /reset is a hard reset and wipes out the agent prompt too, which is bad, and likely to be removed.
 
         historyHost.innerHTML = "";
         latestHost.innerHTML = "";
