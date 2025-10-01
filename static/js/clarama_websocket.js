@@ -858,19 +858,91 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 flash(dict['message'], dict['category']);
             }
 
-            if (dict['class'] === "insights_template") {
+
+            if (dict['class'] === "insights_inspector_template") {
                 const stepId = String(dict.step_id || "");
                 const m = stepId.match(/step_(\d+)/);
                 const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
 
-                const output = dict.values.output || "";
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+
+                const cbInspect = "cell_insights_inspect_callback_" + taskIndex;
+
+                if (typeof window[cbInspect] === "function") {
+                    try {
+                        window[cbInspect](chunk);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    return; // handled by code console (keep callback for subsequent chunks)
+                }
+            }
+
+            if (dict['class'] === "insights_code_template") {
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+
+                const cbCode = "cell_insights_code_callback_" + taskIndex;
+
+                if (typeof window[cbCode] === "function") {
+                    try {
+                        window[cbCode](chunk);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    return; // handled by code console (keep callback for subsequent chunks)
+                }
+            }
+
+            if (dict['class'] === "insights_variables_template") {
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+
+                const cbVars = "cell_insights_variables_callback_" + taskIndex;
+
+                // Otherwise deliver to variables
+                if (typeof window[cbVars] === "function") {
+                    try {
+                        window[cbVars](chunk);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    return; // handled by variables (keep callback for subsequent chunks)
+                }
+            }
+
+            if (dict['class'] === "insights_chat_template") {
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
                 let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
                 chunk = html_decode(chunk);
 
                 if (taskIndex) {
                     const cbChat = "cell_insights_chat_callback_" + taskIndex;
-                    const cbVars = "cell_insights_variables_callback_" + taskIndex;
-                    const cbCode = "cell_insights_callback_" + taskIndex;
+
 
                     // Prefer active gina insights chat stream first
                     if (typeof window[cbChat] === "function") {
@@ -880,24 +952,6 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                             console.error(e);
                         }
                         return; // handled by chat (keep callback for subsequent chunks)
-                    }
-                    // Otherwise deliver to variables
-                    if (typeof window[cbVars] === "function") {
-                        try {
-                            window[cbVars](chunk);
-                        } catch (e) {
-                            console.error(e);
-                        }
-                        return; // handled by variables (keep callback for subsequent chunks)
-                    }
-
-                    if (typeof window[cbCode] === "function") {
-                        try {
-                            window[cbCode](chunk);
-                        } catch (e) {
-                            console.error(e);
-                        }
-                        return; // handled by code console (keep callback for subsequent chunks)
                     }
                 }
 

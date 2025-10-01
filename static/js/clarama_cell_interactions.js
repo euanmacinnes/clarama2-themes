@@ -68,13 +68,13 @@ function closeAllinsights() {
                 }
             }
 
-            // Clean up any insights-specific callbacks
-            if (window[`cell_insights_variables_callback_${taskIndex}`]) {
-                window[`cell_insights_variables_callback_${taskIndex}`] = null;
-            }
-            if (window[`cell_insights_callback_${taskIndex}`]) {
-                window[`cell_insights_callback_${taskIndex}`] = null;
-            }
+            // // Clean up any insights-specific callbacks
+            // if (window[`cell_insights_variables_callback_${taskIndex}`]) {
+            //     window[`cell_insights_variables_callback_${taskIndex}`] = null;
+            // }
+            // if (window[`cell_insights_callback_${taskIndex}`]) {
+            //     window[`cell_insights_callback_${taskIndex}`] = null;
+            // }
 
             disarmCodeInspectorAutoReload(taskIndex);
         }
@@ -266,8 +266,11 @@ function openInsights(cellItem, taskIndex) {
 
     setTimeout(() => {
         // Arm if Code Inspector tab is currently active
-        try { armCodeInspectorAutoReload(taskIndex, 150); } catch (_) {}
-    
+        try {
+            armCodeInspectorAutoReload(taskIndex, 150);
+        } catch (_) {
+        }
+
         const tabsHost = document.getElementById(`insightsTabs_${taskIndex}`);
         if (tabsHost) {
             tabsHost.addEventListener('shown.bs.tab', (ev) => {
@@ -278,7 +281,7 @@ function openInsights(cellItem, taskIndex) {
                 } else {
                     disarmCodeInspectorAutoReload(taskIndex);
                 }
-            }, { once: false });
+            }, {once: false});
         }
     }, 0);
 
@@ -314,6 +317,23 @@ function openInsights(cellItem, taskIndex) {
     });
 }
 
+function cleanup(taskIndex) {
+    if (taskIndex) {
+        if (window[`cell_insights_variables_callback_${taskIndex}`]) {
+            window[`cell_insights_variables_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_code_callback_${taskIndex}`]) {
+            window[`cell_insights_code_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_inspect_callback_${taskIndex}`]) {
+            window[`cell_insights_inspect_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_chat_callback_${taskIndex}`]) {
+            window[`cell_insights_chat_callback_${taskIndex}`] = null;
+        }
+    }
+}
+
 /**
  * Sets up handlers for deleting steps
  * @param {jQuery} parent - jQuery object representing the parent container
@@ -327,14 +347,7 @@ function cell_delete_step(parent) {
         var step_parent = step_type.parents(".clarama-cell-item");
         var taskIndex = step_parent.attr('step') || step_parent.attr('data-task-index');
 
-        if (taskIndex) {
-            if (window[`cell_insights_variables_callback_${taskIndex}`]) {
-                window[`cell_insights_variables_callback_${taskIndex}`] = null;
-            }
-            if (window[`cell_insights_callback_${taskIndex}`]) {
-                window[`cell_insights_callback_${taskIndex}`] = null;
-            }
-        }
+        cleanup(taskIndex);
 
         var step_stream = step_parent.parents(".stream");
         step_parent.remove();

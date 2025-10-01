@@ -626,8 +626,8 @@ function runQuestionThroughKernel(questionText, forBlock) {
 
         const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
         const task_registry = {
-            streams: [{main: [{source: questionText, type: "question"}]}],
-            parameters: field_registry
+            streams: [{main: [{source: questionText, type: "question", agent_id: 'GINA'}]}],
+            parameters: field_registry,
         };
 
         $.ajax({

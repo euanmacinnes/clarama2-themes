@@ -28,6 +28,24 @@ function debounce(fn, wait, immediate) {
  * Stop piping messages into the Chat bubble for this task.
  */
 function pauseChatStream(taskIndex) {
+    return;
+    
+    if (!taskIndex) return;
+    const cbKey = `cell_insights_chat_callback_${taskIndex}`;
+    window.__ginaChatActive[taskIndex] = false;
+    try {
+        delete window[cbKey];
+    } catch (_) {
+    }
+    try {
+        if (window.__ginaStreamIdleTimer && window.__ginaStreamIdleTimer[taskIndex]) {
+            clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
+        }
+    } catch (_) {
+    }
+}
+
+function ressumeChatStream(taskIndex) {
     if (!taskIndex) return;
     const cbKey = `cell_insights_chat_callback_${taskIndex}`;
     window.__ginaChatActive[taskIndex] = false;
@@ -178,18 +196,19 @@ function ajaxRun(task_registry, failMsg = "Kernel request failed") {
 }
 
 /** Build and send a kernel post (shared shape) */
-function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kernel request failed") {
+function postToKernel(taskIndex, target, streamSpec, parameters = null, failMsg = "Kernel request failed") {
     const $cell = getCellByTask(taskIndex);
     const task_registry = buildTaskRegistry($cell);
     const spec = ensureStreamScaffold(task_registry);
 
-    spec.target = "insights";
+    spec.target = "insights_" + target;
     spec.type = streamSpec.type;
     spec.clear = !!streamSpec.clear;
 
     if ("source" in streamSpec) spec.source = streamSpec.source;
     if ("content" in streamSpec) spec.content = streamSpec.content;
     if ("output" in streamSpec) spec.output = streamSpec.output;
+    if ("agent_id" in streamSpec) spec.agent_id = streamSpec.agent_id;
     if ("tabs" in streamSpec) spec.tabs = streamSpec.tabs;
 
     task_registry.parameters = parameters || {};
@@ -197,9 +216,9 @@ function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kerne
 }
 
 /** Configure Python execution spec for console/inspect */
-function set_insight_behaviour(task_registry, code_command, field_registry, isInspecting = false) {
+function set_insight_behaviour(task_registry, target, code_command, field_registry, isInspecting = false) {
     const spec = ensureStreamScaffold(task_registry);
-    if (!isInspecting) spec.target = "insights";
+    if (!isInspecting) spec.target = "insights_" + target;
     spec.type = "code";
     spec.content = code_command;
     spec.clear = false;
@@ -491,7 +510,7 @@ function cell_insights_data_run(cell_button, dataQuery) {
         const task_registry = buildTaskRegistry($cell);
         const spec = ensureStreamScaffold(task_registry);
 
-        spec.target = "insights";
+        spec.target = "insights_variables";
         spec.type = "data";
         spec.output = "table";
         spec.clear = true;
@@ -574,7 +593,8 @@ function disarmCodeInspectorAutoReload(taskIndex) {
         if (entry.editor && entry.onCursor) {
             entry.editor.selection.off('changeCursor', entry.onCursor);
         }
-    } catch (_) {}
+    } catch (_) {
+    }
     delete window.__codeInspectorAutoReload[taskIndex];
 }
 
@@ -601,8 +621,12 @@ function armCodeInspectorAutoReload(taskIndex, delayMs = 150) {
         cell_insights_code_inspect_reload(taskIndex);
     }, delayMs);
 
-    const onChange = function () { debouncedReload(); };                 // typing
-    const onCursor = function () { debouncedReload(); };                 // clicks / arrow keys
+    const onChange = function () {
+        debouncedReload();
+    };                 // typing
+    const onCursor = function () {
+        debouncedReload();
+    };                 // clicks / arrow keys
 
     editor.session.on('change', onChange);
     editor.selection.on('changeCursor', onCursor);
@@ -672,8 +696,8 @@ function renderCodeInspectorResult(taskIndex, text) {
         const info = [
             `Symbol: ${payload?.symbol ?? '—'}`,
             `Value: ${payload?.symbol_value ?? '—'}`
-          ].join('\n');
-          
+        ].join('\n');
+
         pre.textContent = info;
         wrap.appendChild(pre);
         host.appendChild(wrap);
@@ -718,7 +742,7 @@ function cell_insights_code_inspect_reload(taskIndex) {
         return;
     }
 
-    window[`cell_insights_callback_${taskIndex}`] = function (output) {
+    window[`cell_insights_inspect_callback_${taskIndex}`] = function (output) {
         renderCodeInspectorResult(taskIndex, output);
     };
 
@@ -741,7 +765,7 @@ else:
     // Send to kernel
     get_field_values({}, true, function (field_registry) {
         const task_registry = buildTaskRegistry($cell);
-        set_insight_behaviour(task_registry, py, field_registry);
+        set_insight_behaviour(task_registry, "inspector", py, field_registry);
         pauseChatStream(taskIndex);
 
         renderCodeInspectorResult(taskIndex, "… inspecting at row " + row + ", col " + column + " …");
@@ -787,9 +811,11 @@ function cell_insights_gina_run(cell_button, questionText) {
             field_registry.clarama_task_kill = false;
             postToKernel(
                 taskIndex,
+                "chat",
                 {
                     type: "question",
                     source: text,
+                    agent_id: "insights_" + taskIndex,
                     clear: false
                 },
                 field_registry,
@@ -830,7 +856,12 @@ function cell_insights_gina_run(cell_button, questionText) {
     // Send question to kernel
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
-        postToKernel(taskIndex, {type: "question", source: text, clear: false}, field_registry);
+        postToKernel(taskIndex, "chat", {
+            type: "question",
+            source: text,
+            clear: false,
+            agent_id: "insights_" + taskIndex
+        }, field_registry);
     });
 }
 
@@ -847,8 +878,13 @@ function attachCodeInsertBars(rootEl) {
         let lang = '';
         if (codeEl) {
             for (const c of codeEl.classList) {
-                if (c.startsWith('language-')) { lang = c.slice(9).toLowerCase(); break; }
-                if (c === 'hljs') { lang = lang || ''; }
+                if (c.startsWith('language-')) {
+                    lang = c.slice(9).toLowerCase();
+                    break;
+                }
+                if (c === 'hljs') {
+                    lang = lang || '';
+                }
             }
         }
         if (!lang && pre.dataset && typeof pre.dataset.lang === 'string') {
@@ -863,21 +899,21 @@ function attachCodeInsertBars(rootEl) {
             /\[[^\]]+\]\([^)]+\)/m.test(raw) ||     // [link](url)
             /(\*\*|__)[^*]+(\*\*|__)/m.test(raw) || // bold ** **
             /(\*|_)[^*]+(\*|_)/m.test(raw);         // italic * * or _ _
-        
+
         const looksLikeCode =
             /(^|\n)\s*(def |class |function |#include\b|import\b|from\b|SELECT\b|WITH\b|INSERT\b|UPDATE\b|BEGIN\b|try\s*:|catch\s*\(|if\s*\(|for\s*\(|while\s*\(|const\s+|let\s+|var\s+|=>|:=|=\s*["'`[{(]|{\s*$)/m
-            .test(raw) ||
+                .test(raw) ||
             /;\s*$|}\s*$|\)\s*{/.test(raw); // punctuation cues
 
         // Known code languages
         const CODE_LANGS = new Set([
-            'python','py','javascript','js','typescript','ts','java','c','cpp','csharp','go','rust','php',
-            'ruby','kotlin','swift','scala','r','matlab','sql','bash','shell','powershell','ps1',
-            'html','xml','css','json','yaml','yml','ini','dockerfile','makefile'
+            'python', 'py', 'javascript', 'js', 'typescript', 'ts', 'java', 'c', 'cpp', 'csharp', 'go', 'rust', 'php',
+            'ruby', 'kotlin', 'swift', 'scala', 'r', 'matlab', 'sql', 'bash', 'shell', 'powershell', 'ps1',
+            'html', 'xml', 'css', 'json', 'yaml', 'yml', 'ini', 'dockerfile', 'makefile'
         ]);
-        
+
         const langLooksCode = !!lang && CODE_LANGS.has(lang);
-        
+
         // Count markdown signals (don’t let a single '#' line sink real code)
         let mdSignals = 0;
         if (/^\s{0,3}([*-+]|\d+\.)\s/m.test(raw)) mdSignals++;    // lists
@@ -886,11 +922,11 @@ function attachCodeInsertBars(rootEl) {
         if (/(\*\*|__)[^*]+(\*\*|__)/m.test(raw)) mdSignals++;     // bold
         if (/(\*|_)[^*]+(\*|_)/m.test(raw)) mdSignals++;           // italic
         if (/^\s*\|[^|\n]+\|/m.test(raw)) mdSignals++;             // table row
-        
+
         // Only treat leading `#` as Markdown headings when NOT a declared code lang
         const hasMarkdownHeading = /^\s{0,3}#{1,6}\s/m.test(raw);
         if (!langLooksCode && hasMarkdownHeading) mdSignals++;
-        
+
         // - If explicitly non-code lang → not code
         // - If declared code lang → show bar unless there are multiple markdown signals AND no code signals
         // - If no declared code → require code-like tokens and few/no markdown signals
@@ -901,7 +937,7 @@ function attachCodeInsertBars(rootEl) {
             } else {
                 isRealCode = looksLikeCode && mdSignals === 0;
             }
-        }  
+        }
 
         let wrap = pre.closest('.ginacode-wrap');
         if (!isRealCode) {
@@ -1125,7 +1161,8 @@ function initialiseInsightsGina(taskIndex, force = false) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
-            {type: "question", source: initCommand, clear: false},
+            "chat",
+            {type: "question", source: initCommand, clear: false, agent_id: "insights_" + taskIndex},
             field_registry
         ).always(() => {
             window.__ginaInsightsHandshakeDone[taskIndex] = true;
@@ -1437,7 +1474,7 @@ for _name, _val in list(locals().items()):
 print(json.dumps(categories))
         `.trim();
 
-        set_insight_behaviour(task_registry, code, field_registry);
+        set_insight_behaviour(task_registry, "variables", code, field_registry);
         pauseChatStream(taskIndex);
 
         ajaxRun(task_registry).done((data) => {
@@ -1536,7 +1573,7 @@ function cell_insights_code_run(taskIndex, code) {
     }
 
     // Unique callback (the kernel should call this when output is ready)
-    window[`cell_insights_callback_${taskIndex}`] = function (output) {
+    window[`cell_insights_code_callback_${taskIndex}`] = function (output) {
         renderToResults(output);
         delete window[executionKey];
     };
@@ -1544,19 +1581,19 @@ function cell_insights_code_run(taskIndex, code) {
     // Fire the request
     get_field_values({}, true, function (field_registry) {
         const task_registry = buildTaskRegistry($cell);
-        set_insight_behaviour(task_registry, code, field_registry);
+        set_insight_behaviour(task_registry, "code", code, field_registry);
 
         ajaxRun(task_registry, "Console execution failed: access denied")
             .done((data) => {
                 if (!(data && data.data === "ok")) {
                     // If the kernel didn’t accept the job, clear the callback + lock
-                    delete window[`cell_insights_callback_${taskIndex}`];
+                    delete window[`cell_insights_code_callback_${taskIndex}`];
                     delete window[executionKey];
                     renderToResults("Error: kernel did not accept job.");
                 }
             })
             .fail(() => {
-                delete window[`cell_insights_callback_${taskIndex}`];
+                delete window[`cell_insights_code_callback_${taskIndex}`];
                 delete window[executionKey];
                 renderToResults("Network or access error while executing code.");
             });
@@ -1586,8 +1623,8 @@ function inspectVariable(varName, taskIndex) {
         window[inspectionKey] = true;
 
         // unique callback
-        if (window[`cell_insights_callback_${tIdx}`]) delete window[`cell_insights_callback_${tIdx}`];
-        window[`cell_insights_callback_${tIdx}`] = function () {
+        if (window[`cell_insights_code_callback_${tIdx}`]) delete window[`cell_insights_code_callback_${tIdx}`];
+        window[`cell_insights_code_callback_${tIdx}`] = function () {
             delete window[inspectionKey];
         };
 
@@ -1689,18 +1726,18 @@ except Exception as e:
         print(f"Could not display variable '${vName}'")
 `.trim();
 
-            set_insight_behaviour(task_registry, codeChecker, field_registry, true);
+            set_insight_behaviour(task_registry, "code", codeChecker, field_registry, true);
 
             ajaxRun(task_registry, "Couldn't inspect variable")
                 .done((data) => {
                     if (!(data && data.data === "ok")) {
-                        delete window[`cell_insights_callback_${tIdx}`];
+                        delete window[`cell_insights_code_callback_${tIdx}`];
                         delete window[inspectionKey];
                     }
                 })
                 .fail((error) => {
                     console.log("inspectVariable AJAX error for task", tIdx, ":", error);
-                    delete window[`cell_insights_callback_${tIdx}`];
+                    delete window[`cell_insights_code_callback_${tIdx}`];
                     delete window[inspectionKey];
                 });
         });
@@ -1716,7 +1753,7 @@ window.__cellRepromptLastPayload = window.__cellRepromptLastPayload || Object.cr
 
 function repromptCommandForCell($cell) {
     let payload = extractCellContent($cell);
-    return `/reprompt ${JSON.stringify(payload)}`;
+    return `/reprompt\n${JSON.stringify(payload)}`;
 }
 
 function sendCellReprompt(taskIndex) {
@@ -1731,16 +1768,17 @@ function sendCellReprompt(taskIndex) {
     }
     window.__cellRepromptLastPayload[taskIndex] = payloadStr;
 
-    const reprompt = `/reprompt ${payloadStr}`;
+    const reprompt = `/reprompt\n${payloadStr}`;
 
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
-            { 
-                type: "question", 
-                source: reprompt, 
-                clear: false 
+            "chat",
+            {
+                type: "question",
+                source: reprompt,
+                clear: false
             },
             field_registry,
             "Couldn't send reprompt"
@@ -1807,7 +1845,10 @@ function bindAceReprompt(taskIndex) {
     }
     // Clear previous to prevent multiple bindings
     if (editor.__cellRepromptHandler) {
-        try { editor.off('change', editor.__cellRepromptHandler); } catch (_){}
+        try {
+            editor.off('change', editor.__cellRepromptHandler);
+        } catch (_) {
+        }
     }
     const debounced = getCellRepromptDebouncer(taskIndex);
     editor.__cellRepromptHandler = function () {
@@ -1821,14 +1862,17 @@ function safeObserveCellMutations(taskIndex, targetNode, onChange) {
         if (!(targetNode && typeof targetNode === 'object' && targetNode.nodeType === 1)) return; // must be Element
         const obsKey = `__cellRepromptObserver_${taskIndex}`;
         if (targetNode[obsKey]) {
-            try { targetNode[obsKey].disconnect(); } catch (_){}
+            try {
+                targetNode[obsKey].disconnect();
+            } catch (_) {
+            }
         }
         const obs = new MutationObserver((records) => {
             for (const rec of records) {
                 if (typeof onChange === 'function') onChange(rec);
             }
         });
-        obs.observe(targetNode, { childList: true, subtree: true});
+        obs.observe(targetNode, {childList: true, subtree: true});
         targetNode[obsKey] = obs;
     } catch (_) {
         // swallow;
