@@ -190,6 +190,7 @@ function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kerne
     if ("source" in streamSpec) spec.source = streamSpec.source;
     if ("content" in streamSpec) spec.content = streamSpec.content;
     if ("output" in streamSpec) spec.output = streamSpec.output;
+    if ("agent_id" in streamSpec) spec.agent_id = streamSpec.agent_id;
     if ("tabs" in streamSpec) spec.tabs = streamSpec.tabs;
 
     task_registry.parameters = parameters || {};
@@ -713,6 +714,7 @@ function cell_insights_gina_run(cell_button, questionText) {
                 {
                     type: "question",
                     source: text,
+                    agent_id: "insights_" + taskIndex,
                     clear: false
                 },
                 field_registry,
@@ -753,7 +755,12 @@ function cell_insights_gina_run(cell_button, questionText) {
     // Send question to kernel
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
-        postToKernel(taskIndex, {type: "question", source: text, clear: false}, field_registry);
+        postToKernel(taskIndex, {
+            type: "question",
+            source: text,
+            clear: false,
+            agent_id: "insights_" + taskIndex
+        }, field_registry);
     });
 }
 
@@ -971,7 +978,7 @@ function initialiseInsightsGina(taskIndex, force = false) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
-            {type: "question", source: initCommand, clear: false},
+            {type: "question", source: initCommand, clear: false, agent_id: "insights_" + taskIndex},
             field_registry
         ).always(() => {
             window.__ginaInsightsHandshakeDone[taskIndex] = true;
