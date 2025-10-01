@@ -965,7 +965,7 @@ function initialiseInsightsGina(taskIndex, force = false) {
         }
     }
     const initCommand = `/init ${payload_file}\n${JSON.stringify(payload)}`;
-    // console.log('initCommand: ', initCommand);
+    console.log('initCommand: ', initCommand);
 
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
