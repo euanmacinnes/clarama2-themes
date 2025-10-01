@@ -682,12 +682,13 @@ function renderCodeInspectorResult(taskIndex, text) {
         wrap.className = "mb-3";
         wrap.innerHTML = `<div class="fw-semibold mb-1">Symbol</div>`;
         const pre = document.createElement("pre");
-        pre.className = "code-response font-monospace mb-0";
-        pre.textContent = JSON.stringify({
-            symbol: payload?.symbol,
-            attributes: payload?.symbol_attributes,
-            value: payload?.symbol_value
-        }, null, 2);
+        pre.className = "code-response mb-0";
+        const info = [
+            `Symbol: ${payload?.symbol ?? '—'}`,
+            `Value: ${payload?.symbol_value ?? '—'}`
+          ].join('\n');
+          
+        pre.textContent = info;
         wrap.appendChild(pre);
         host.appendChild(wrap);
         renderedAnything = true;
