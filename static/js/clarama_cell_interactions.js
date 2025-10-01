@@ -75,6 +75,8 @@ function closeAllinsights() {
             if (window[`cell_insights_callback_${taskIndex}`]) {
                 window[`cell_insights_callback_${taskIndex}`] = null;
             }
+
+            disarmCodeInspectorAutoReload(taskIndex);
         }
     });
 }
@@ -264,6 +266,24 @@ function openInsights(cellItem, taskIndex) {
     if (window.__ginaInsightsHandshakeDone) delete window.__ginaInsightsHandshakeDone[taskIndex];
     initialiseInsightsGina(taskIndex, /*force=*/true);
     initialiseCellReprompt(taskIndex);
+
+    setTimeout(() => {
+        // Arm if Code Inspector tab is currently active
+        try { armCodeInspectorAutoReload(taskIndex, 150); } catch (_) {}
+    
+        const tabsHost = document.getElementById(`insightsTabs_${taskIndex}`);
+        if (tabsHost) {
+            tabsHost.addEventListener('shown.bs.tab', (ev) => {
+                const btn = ev.target; // activated tab button
+                const id = btn && btn.id ? String(btn.id) : "";
+                if (id.startsWith('insights-code-inspector-tab-')) {
+                    armCodeInspectorAutoReload(taskIndex, 150);
+                } else {
+                    disarmCodeInspectorAutoReload(taskIndex);
+                }
+            }, { once: false });
+        }
+    }, 0);
 
     // Visual states / titles
     if (oldBtn.length) {
