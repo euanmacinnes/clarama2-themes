@@ -643,9 +643,9 @@ function renderCodeInspectorResult(taskIndex, text) {
     const hasSymbol = !!(payload?.symbol || payload?.symbol_attributes || payload?.symbol_value);
     const hasDocstring = typeof payload?.docstring === "string" && payload.docstring.trim().length > 0;
 
-    let renderedAnything = false;
+    let rendered = false;
 
-    // 1) Suggestions (top)
+    // 1) Suggestions
     if (hasSuggestions) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
@@ -662,21 +662,7 @@ function renderCodeInspectorResult(taskIndex, text) {
         renderedAnything = true;
     }
 
-    // 2) Documentation (Markdown) — show whenever present, including alongside Suggestions
-    if (hasDocstring) {
-        const wrap = document.createElement("div");
-        wrap.className = "mb-3";
-        wrap.innerHTML = `<div class="fw-semibold mb-1">Documentation</div>`;
-        const md = String(payload.docstring || "");
-        const div = document.createElement("div");
-        div.className = "docstring-markdown";
-        div.innerHTML = markdownToHtml(md);
-        wrap.appendChild(div);
-        host.appendChild(wrap);
-        renderedAnything = true;
-    }
-
-    // 3) Symbol — show only if we didn’t already show Suggestions (keeps panel concise)
+    // 2) Symbol
     if (!hasSuggestions && hasSymbol) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
@@ -694,7 +680,21 @@ function renderCodeInspectorResult(taskIndex, text) {
         renderedAnything = true;
     }
 
-    // 4) If none of the above
+    // 3) Documentation — ALWAYS below Suggestions/Symbol if present
+    if (hasDocstring) {
+        const wrap = document.createElement("div");
+        wrap.className = "mb-3";
+        wrap.innerHTML = `<div class="fw-semibold mb-1">Documentation</div>`;
+        const md = String(payload.docstring || "");
+        const div = document.createElement("div");
+        div.className = "docstring-markdown";
+        div.innerHTML = markdownToHtml(md);
+        wrap.appendChild(div);
+        host.appendChild(wrap);
+        renderedAnything = true;
+    }
+
+    // Nothing to show
     if (!renderedAnything) {
         const em = document.createElement("em");
         em.className = "text-muted";
