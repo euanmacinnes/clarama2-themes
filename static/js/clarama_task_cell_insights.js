@@ -704,7 +704,7 @@ function cell_insights_gina_run(cell_button, questionText) {
     if ($input.is(":disabled")) return;
     if ($input.length) $input.val("");
 
-    if (text.trim().toLowerCase() === "/reset") {
+    if (text.trim().toLowerCase() === "/clear") {
         clear_insights_gina_chat(taskIndex);
         get_field_values({}, true, function (field_registry) {
             field_registry.clarama_task_kill = false;
@@ -1627,7 +1627,7 @@ $(document).on("click", ".execute-console", function () {
 $(document).on("click", ".clear-chat", function () {
     const taskIndex = $(this).data("task-index");
     const $cellItem = getCellByTask(taskIndex);
-    cell_insights_gina_run($cellItem, "/reset");
+    cell_insights_gina_run($cellItem, "/clear");
 });
 
 /* Press Enter in console input (Shift+Enter for newline) */
