@@ -178,12 +178,12 @@ function ajaxRun(task_registry, failMsg = "Kernel request failed") {
 }
 
 /** Build and send a kernel post (shared shape) */
-function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kernel request failed") {
+function postToKernel(taskIndex, target, streamSpec, parameters = null, failMsg = "Kernel request failed") {
     const $cell = getCellByTask(taskIndex);
     const task_registry = buildTaskRegistry($cell);
     const spec = ensureStreamScaffold(task_registry);
 
-    spec.target = "insights";
+    spec.target = "insights_" + target;
     spec.type = streamSpec.type;
     spec.clear = !!streamSpec.clear;
 
@@ -198,9 +198,9 @@ function postToKernel(taskIndex, streamSpec, parameters = null, failMsg = "Kerne
 }
 
 /** Configure Python execution spec for console/inspect */
-function set_insight_behaviour(task_registry, code_command, field_registry, isInspecting = false) {
+function set_insight_behaviour(task_registry, target, code_command, field_registry, isInspecting = false) {
     const spec = ensureStreamScaffold(task_registry);
-    if (!isInspecting) spec.target = "insights";
+    if (!isInspecting) spec.target = "insights_" + target;
     spec.type = "code";
     spec.content = code_command;
     spec.clear = false;
@@ -492,7 +492,7 @@ function cell_insights_data_run(cell_button, dataQuery) {
         const task_registry = buildTaskRegistry($cell);
         const spec = ensureStreamScaffold(task_registry);
 
-        spec.target = "insights";
+        spec.target = "insights_variables";
         spec.type = "data";
         spec.output = "table";
         spec.clear = true;
@@ -724,7 +724,7 @@ function cell_insights_code_inspect_reload(taskIndex) {
         return;
     }
 
-    window[`cell_insights_callback_${taskIndex}`] = function (output) {
+    window[`cell_insights_inspect_callback_${taskIndex}`] = function (output) {
         renderCodeInspectorResult(taskIndex, output);
     };
 
@@ -747,7 +747,7 @@ else:
     // Send to kernel
     get_field_values({}, true, function (field_registry) {
         const task_registry = buildTaskRegistry($cell);
-        set_insight_behaviour(task_registry, py, field_registry);
+        set_insight_behaviour(task_registry, "inspector", py, field_registry);
         pauseChatStream(taskIndex);
 
         renderCodeInspectorResult(taskIndex, "… inspecting at row " + row + ", col " + column + " …");
@@ -793,6 +793,7 @@ function cell_insights_gina_run(cell_button, questionText) {
             field_registry.clarama_task_kill = false;
             postToKernel(
                 taskIndex,
+                "chat",
                 {
                     type: "question",
                     source: text,
@@ -837,7 +838,7 @@ function cell_insights_gina_run(cell_button, questionText) {
     // Send question to kernel
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
-        postToKernel(taskIndex, {
+        postToKernel(taskIndex, "chat", {
             type: "question",
             source: text,
             clear: false,
@@ -1142,6 +1143,7 @@ function initialiseInsightsGina(taskIndex, force = false) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
+            "chat",
             {type: "question", source: initCommand, clear: false, agent_id: "insights_" + taskIndex},
             field_registry
         ).always(() => {
@@ -1454,7 +1456,7 @@ for _name, _val in list(locals().items()):
 print(json.dumps(categories))
         `.trim();
 
-        set_insight_behaviour(task_registry, code, field_registry);
+        set_insight_behaviour(task_registry, "variables", code, field_registry);
         pauseChatStream(taskIndex);
 
         ajaxRun(task_registry).done((data) => {
@@ -1553,7 +1555,7 @@ function cell_insights_code_run(taskIndex, code) {
     }
 
     // Unique callback (the kernel should call this when output is ready)
-    window[`cell_insights_callback_${taskIndex}`] = function (output) {
+    window[`cell_insights_code_callback_${taskIndex}`] = function (output) {
         renderToResults(output);
         delete window[executionKey];
     };
@@ -1561,19 +1563,19 @@ function cell_insights_code_run(taskIndex, code) {
     // Fire the request
     get_field_values({}, true, function (field_registry) {
         const task_registry = buildTaskRegistry($cell);
-        set_insight_behaviour(task_registry, code, field_registry);
+        set_insight_behaviour(task_registry, "code", code, field_registry);
 
         ajaxRun(task_registry, "Console execution failed: access denied")
             .done((data) => {
                 if (!(data && data.data === "ok")) {
                     // If the kernel didn’t accept the job, clear the callback + lock
-                    delete window[`cell_insights_callback_${taskIndex}`];
+                    delete window[`cell_insights_code_callback_${taskIndex}`];
                     delete window[executionKey];
                     renderToResults("Error: kernel did not accept job.");
                 }
             })
             .fail(() => {
-                delete window[`cell_insights_callback_${taskIndex}`];
+                delete window[`cell_insights_code_callback_${taskIndex}`];
                 delete window[executionKey];
                 renderToResults("Network or access error while executing code.");
             });
@@ -1603,8 +1605,8 @@ function inspectVariable(varName, taskIndex) {
         window[inspectionKey] = true;
 
         // unique callback
-        if (window[`cell_insights_callback_${tIdx}`]) delete window[`cell_insights_callback_${tIdx}`];
-        window[`cell_insights_callback_${tIdx}`] = function () {
+        if (window[`cell_insights_code_callback_${tIdx}`]) delete window[`cell_insights_code_callback_${tIdx}`];
+        window[`cell_insights_code_callback_${tIdx}`] = function () {
             delete window[inspectionKey];
         };
 
@@ -1706,18 +1708,18 @@ except Exception as e:
         print(f"Could not display variable '${vName}'")
 `.trim();
 
-            set_insight_behaviour(task_registry, codeChecker, field_registry, true);
+            set_insight_behaviour(task_registry, "code", codeChecker, field_registry, true);
 
             ajaxRun(task_registry, "Couldn't inspect variable")
                 .done((data) => {
                     if (!(data && data.data === "ok")) {
-                        delete window[`cell_insights_callback_${tIdx}`];
+                        delete window[`cell_insights_code_callback_${tIdx}`];
                         delete window[inspectionKey];
                     }
                 })
                 .fail((error) => {
                     console.log("inspectVariable AJAX error for task", tIdx, ":", error);
-                    delete window[`cell_insights_callback_${tIdx}`];
+                    delete window[`cell_insights_code_callback_${tIdx}`];
                     delete window[inspectionKey];
                 });
         });
@@ -1754,6 +1756,7 @@ function sendCellReprompt(taskIndex) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
+            "chat",
             {
                 type: "question",
                 source: reprompt,
