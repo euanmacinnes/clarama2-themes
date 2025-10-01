@@ -869,8 +869,39 @@ function attachCodeInsertBars(rootEl) {
             .test(raw) ||
             /;\s*$|}\s*$|\)\s*{/.test(raw); // punctuation cues
 
-        const hasLangClass = !!lang;
-        const isRealCode = !explicitlyNonCode && (hasLangClass || (looksLikeCode && !looksMarkdownish));
+        // Known code languages
+        const CODE_LANGS = new Set([
+            'python','py','javascript','js','typescript','ts','java','c','cpp','csharp','go','rust','php',
+            'ruby','kotlin','swift','scala','r','matlab','sql','bash','shell','powershell','ps1',
+            'html','xml','css','json','yaml','yml','ini','dockerfile','makefile'
+        ]);
+        
+        const langLooksCode = !!lang && CODE_LANGS.has(lang);
+        
+        // Count markdown signals (don’t let a single '#' line sink real code)
+        let mdSignals = 0;
+        if (/^\s{0,3}([*-+]|\d+\.)\s/m.test(raw)) mdSignals++;    // lists
+        if (/^\s{0,3}>\s/m.test(raw)) mdSignals++;                 // blockquote
+        if (/\[[^\]]+\]\([^)]+\)/m.test(raw)) mdSignals++;         // [link](url)
+        if (/(\*\*|__)[^*]+(\*\*|__)/m.test(raw)) mdSignals++;     // bold
+        if (/(\*|_)[^*]+(\*|_)/m.test(raw)) mdSignals++;           // italic
+        if (/^\s*\|[^|\n]+\|/m.test(raw)) mdSignals++;             // table row
+        
+        // Only treat leading `#` as Markdown headings when NOT a declared code lang
+        const hasMarkdownHeading = /^\s{0,3}#{1,6}\s/m.test(raw);
+        if (!langLooksCode && hasMarkdownHeading) mdSignals++;
+        
+        // - If explicitly non-code lang → not code
+        // - If declared code lang → show bar unless there are multiple markdown signals AND no code signals
+        // - If no declared code → require code-like tokens and few/no markdown signals
+        let isRealCode = false;
+        if (!explicitlyNonCode) {
+            if (langLooksCode) {
+                isRealCode = looksLikeCode || mdSignals < 2;
+            } else {
+                isRealCode = looksLikeCode && mdSignals === 0;
+            }
+        }  
 
         let wrap = pre.closest('.ginacode-wrap');
         if (!isRealCode) {
