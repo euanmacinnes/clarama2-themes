@@ -1733,7 +1733,7 @@ window.__cellRepromptLastPayload = window.__cellRepromptLastPayload || Object.cr
 
 function repromptCommandForCell($cell) {
     let payload = extractCellContent($cell);
-    return `/reprompt ${JSON.stringify(payload)}`;
+    return `/reprompt\n${JSON.stringify(payload)}`;
 }
 
 function sendCellReprompt(taskIndex) {
