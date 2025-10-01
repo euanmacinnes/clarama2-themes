@@ -151,6 +151,7 @@ function initializeNewCellinsights(newElement) {
         observeEditorReady(taskIndex);
     }
     syncInsightsConsole(taskIndex);
+    initialiseCellReprompt(taskIndex);
 }
 
 /**
@@ -262,6 +263,7 @@ function openInsights(cellItem, taskIndex) {
     if (window.__ginaInsightsHandshakeSent) delete window.__ginaInsightsHandshakeSent[taskIndex];
     if (window.__ginaInsightsHandshakeDone) delete window.__ginaInsightsHandshakeDone[taskIndex];
     initialiseInsightsGina(taskIndex, /*force=*/true);
+    initialiseCellReprompt(taskIndex);
 
     // Visual states / titles
     if (oldBtn.length) {
