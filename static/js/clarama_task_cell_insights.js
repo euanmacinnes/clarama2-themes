@@ -375,7 +375,6 @@ function setStreamText(streamId, text, {append = false} = {}) {
     if (append && htmlDiv.__buffer) htmlDiv.__buffer += next;
     else htmlDiv.__buffer = next;
 
-    // markdownToHtml is expected to be globally available
     htmlDiv.innerHTML = markdownToHtml(htmlDiv.__buffer);
     attachCodeInsertBars(htmlDiv);
 }
@@ -529,6 +528,7 @@ function cell_insights_data_run(cell_button, dataQuery) {
 /* CODE INSPECTOR                                                         */
 
 /* ---------------------------------------------------------------------- */
+window.__codeInspectorAutoReload = window.__codeInspectorAutoReload || Object.create(null);
 
 function getAceEditorForTask(taskIndex) {
     const left = document.getElementById(`left_content_${getStepNumber(taskIndex)}`);
@@ -547,6 +547,74 @@ function getCurrentCodeAndCursor(taskIndex) {
     return {code, row: (pos.row ?? 0) + 1, column: (pos.column ?? 0), ok: true};
 }
 
+function isCodeInspectorTabActive(taskIndex) {
+    const id = getActiveTabId(taskIndex) || "";
+    return id.startsWith("insights-code-inspector-tab-");
+}
+
+function isInsightsOpen(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell.length) return false;
+    const $right = $cell.find(`#right_content_${taskIndex}`);
+    return $right.length && !$right.hasClass('d-none');
+}
+
+function getAceForAuto(taskIndex) {
+    // Reuse existing editor resolver
+    return getAceEditorForTask(taskIndex) || null;
+}
+
+function disarmCodeInspectorAutoReload(taskIndex) {
+    const entry = window.__codeInspectorAutoReload[taskIndex];
+    if (!entry) return;
+    try {
+        if (entry.editor && entry.onChange) {
+            entry.editor.session.off('change', entry.onChange);
+        }
+        if (entry.editor && entry.onCursor) {
+            entry.editor.selection.off('changeCursor', entry.onCursor);
+        }
+    } catch (_) {}
+    delete window.__codeInspectorAutoReload[taskIndex];
+}
+
+function armCodeInspectorAutoReload(taskIndex, delayMs = 150) {
+    if (window.__codeInspectorAutoReload[taskIndex]) {
+        window.__codeInspectorAutoReload[taskIndex].enabled = true;
+        return;
+    }
+
+    if (!isInsightsOpen(taskIndex) || !isCodeInspectorTabActive(taskIndex)) return;
+
+    const editor = getAceForAuto(taskIndex);
+    if (!editor) {
+        observeEditorReady(taskIndex);
+        setTimeout(() => armCodeInspectorAutoReload(taskIndex, delayMs), 200);
+        return;
+    }
+
+    // Debounced refresher
+    const debouncedReload = debounce(() => {
+        // extra guard: only when still on Code Inspector and insights open
+        if (!isInsightsOpen(taskIndex) || !isCodeInspectorTabActive(taskIndex)) return;
+        // Call your existing reload
+        cell_insights_code_inspect_reload(taskIndex);
+    }, delayMs);
+
+    const onChange = function () { debouncedReload(); };                 // typing
+    const onCursor = function () { debouncedReload(); };                 // clicks / arrow keys
+
+    editor.session.on('change', onChange);
+    editor.selection.on('changeCursor', onCursor);
+
+    window.__codeInspectorAutoReload[taskIndex] = {
+        editor,
+        onChange,
+        onCursor,
+        enabled: true
+    };
+}
+
 function renderCodeInspectorResult(taskIndex, text) {
     const host = document.getElementById(`code-inspector-results-${taskIndex}`);
     if (!host) return;
@@ -563,7 +631,7 @@ function renderCodeInspectorResult(taskIndex, text) {
         return;
     }
 
-    // Context header
+    // context header
     if (payload?.context_type || payload?.context_name) {
         const hdr = document.createElement("div");
         hdr.className = "mb-2 small text-muted";
@@ -573,8 +641,11 @@ function renderCodeInspectorResult(taskIndex, text) {
 
     const hasSuggestions = Array.isArray(payload?.suggestions) && payload.suggestions.length > 0;
     const hasSymbol = !!(payload?.symbol || payload?.symbol_attributes || payload?.symbol_value);
-    const hasDocstring = !!payload?.docstring;
+    const hasDocstring = typeof payload?.docstring === "string" && payload.docstring.trim().length > 0;
 
+    let renderedAnything = false;
+
+    // 1) Suggestions (top)
     if (hasSuggestions) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
@@ -588,10 +659,25 @@ function renderCodeInspectorResult(taskIndex, text) {
         });
         wrap.appendChild(ul);
         host.appendChild(wrap);
-        return; // stop here
+        renderedAnything = true;
     }
 
-    if (hasSymbol) {
+    // 2) Documentation (Markdown) — show whenever present, including alongside Suggestions
+    if (hasDocstring) {
+        const wrap = document.createElement("div");
+        wrap.className = "mb-3";
+        wrap.innerHTML = `<div class="fw-semibold mb-1">Documentation</div>`;
+        const md = String(payload.docstring || "");
+        const div = document.createElement("div");
+        div.className = "docstring-markdown";
+        div.innerHTML = markdownToHtml(md);
+        wrap.appendChild(div);
+        host.appendChild(wrap);
+        renderedAnything = true;
+    }
+
+    // 3) Symbol — show only if we didn’t already show Suggestions (keeps panel concise)
+    if (!hasSuggestions && hasSymbol) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
         wrap.innerHTML = `<div class="fw-semibold mb-1">Symbol</div>`;
@@ -604,26 +690,16 @@ function renderCodeInspectorResult(taskIndex, text) {
         }, null, 2);
         wrap.appendChild(pre);
         host.appendChild(wrap);
-        return; // stop here
+        renderedAnything = true;
     }
 
-    if (hasDocstring) {
-        const wrap = document.createElement("div");
-        wrap.className = "mb-3";
-        wrap.innerHTML = `<div class="fw-semibold mb-1">Docstring</div>`;
-        const pre = document.createElement("pre");
-        pre.className = "code-response font-monospace mb-0";
-        pre.textContent = String(payload.docstring || "");
-        wrap.appendChild(pre);
-        host.appendChild(wrap);
-        return; // stop here
+    // 4) If none of the above
+    if (!renderedAnything) {
+        const em = document.createElement("em");
+        em.className = "text-muted";
+        em.textContent = "No information.";
+        host.appendChild(em);
     }
-
-    // None present
-    const em = document.createElement("em");
-    em.className = "text-muted";
-    em.textContent = "No information.";
-    host.appendChild(em);
 }
 
 function cell_insights_code_inspect_reload(taskIndex) {
@@ -636,7 +712,7 @@ function cell_insights_code_inspect_reload(taskIndex) {
     // Pull latest code + cursor from Ace
     const {code, row, column, ok} = getCurrentCodeAndCursor(taskIndex);
     if (!ok) {
-        renderCodeInspectorResult(taskIndex, "Editor not ready. Click Reload again once the editor has mounted.");
+        renderCodeInspectorResult(taskIndex, "Editor not ready yet. Move your cursor or type once the editor mounts.");
         observeEditorReady(taskIndex);
         return;
     }
@@ -1723,13 +1799,6 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     if (id.startsWith("insights-chat-tab-")) {
         initialiseInsightsGina(taskIndex);
     }
-});
-
-// Click: Reload button in Code Inspector
-$(document).on('click', '.code-inspector-reload', function (ev) {
-    ev.preventDefault();
-    const taskIndex = $(this).data('taskIndex') || $(this).attr('data-task-index');
-    if (taskIndex) cell_insights_code_inspect_reload(taskIndex);
 });
 
 // When user switches to the Code Inspector tab, reload automatically

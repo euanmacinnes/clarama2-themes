@@ -207,15 +207,9 @@
                         <div class="p-3" id="code_inspector-{{ task_index }}">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="small text-muted">Code Inspector</div>
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-secondary code-inspector-reload"
-                                        data-task-index="{{ task_index }}"
-                                        title="Reload inspector from current cursor">
-                                    <i class="bi bi-arrow-clockwise me-1"></i> Reload
-                                </button>
                             </div>
                             <div class="border rounded p-2 bg-light-subtle" id="code-inspector-results-{{ task_index }}">
-                                <em class="text-muted">No inspection yet. Click Reload.</em>
+                                <em class="text-muted">Move your cursor or type in the editor to inspect.</em>
                             </div>
                         </div>
                         <!-- Code Inspector console (python) -->
