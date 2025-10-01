@@ -1554,6 +1554,147 @@ except Exception as e:
 }
 
 /* ---------------------------------------------------------------------- */
+/* Cell re-prompt on idle typing                                          */
+/* ---------------------------------------------------------------------- */
+window.__cellRepromptTimers = window.__cellRepromptTimers || Object.create(null);
+window.__cellRepromptDebouncers = window.__cellRepromptDebouncers || Object.create(null);
+window.__cellRepromptLastPayload = window.__cellRepromptLastPayload || Object.create(null);
+
+function repromptCommandForCell($cell) {
+    let payload = extractCellContent($cell);
+    return `/reprompt ${JSON.stringify(payload)}`;
+}
+
+function sendCellReprompt(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell || !$cell.length) return;
+
+    // Build payload and dedupe by content
+    const payload = extractCellContent($cell);
+    const payloadStr = JSON.stringify(payload);
+    if (window.__cellRepromptLastPayload[taskIndex] === payloadStr) {
+        return;
+    }
+    window.__cellRepromptLastPayload[taskIndex] = payloadStr;
+
+    const reprompt = `/reprompt ${payloadStr}`;
+
+    get_field_values({}, true, function (field_registry) {
+        field_registry.clarama_task_kill = false;
+        postToKernel(
+            taskIndex,
+            { 
+                type: "question", 
+                source: reprompt, 
+                clear: false 
+            },
+            field_registry,
+            "Couldn't send reprompt"
+        );
+    });
+
+    // console.log('/reprompt: ', reprompt);
+}
+
+/** Returns a single per-task debounced function (idle: 700ms) */
+function getCellRepromptDebouncer(taskIndex) {
+    if (!window.__cellRepromptDebouncers[taskIndex]) {
+        window.__cellRepromptDebouncers[taskIndex] = debounce(
+            () => sendCellReprompt(taskIndex),
+            700 /* idle delay */
+        );
+    }
+    return window.__cellRepromptDebouncers[taskIndex];
+}
+
+/** Attach listeners to *all* mutable inputs within this cell */
+function attachCellTypingListeners(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell || !$cell.length) return;
+
+    const debounced = getCellRepromptDebouncer(taskIndex);
+
+    // 1) Plain inputs/textarea/select/contenteditable → user edits only
+    const INPUT_SELECTOR = `
+        input:not([type="hidden"]),
+        textarea,
+        select,
+        [contenteditable=""],
+        [contenteditable="true"]
+    `.replace(/\s+/g, ' ');
+
+    // Remove prior handlers then bind fresh
+    $cell.off('.cellReprompt');
+    $cell.on(
+        'input.cellReprompt change.cellReprompt keyup.cellReprompt paste.cellReprompt cut.cellReprompt',
+        INPUT_SELECTOR,
+        function () {
+            debounced(); // user changed a value
+        }
+    );
+
+    // 2) Ace editor text changes → user edits only
+    bindAceReprompt(taskIndex);
+
+    // 3) Watch for editors being added; do NOT reprompt for structural/attribute changes
+    safeObserveCellMutations(taskIndex, $cell[0], (rec) => {
+        if (containsAceHost(rec.addedNodes)) {
+            bindAceReprompt(taskIndex);
+        }
+    });
+}
+
+/** Attach to Ace editor 'change' for this task, when available */
+function bindAceReprompt(taskIndex) {
+    const editor = getAceEditorForTask(taskIndex);
+    if (!editor) {
+        // Ensure we try again when Ace mounts
+        observeEditorReady(taskIndex);
+        return;
+    }
+    // Clear previous to prevent multiple bindings
+    if (editor.__cellRepromptHandler) {
+        try { editor.off('change', editor.__cellRepromptHandler); } catch (_){}
+    }
+    const debounced = getCellRepromptDebouncer(taskIndex);
+    editor.__cellRepromptHandler = function () {
+        debounced();
+    };
+    editor.on('change', editor.__cellRepromptHandler);
+}
+
+function safeObserveCellMutations(taskIndex, targetNode, onChange) {
+    try {
+        if (!(targetNode && typeof targetNode === 'object' && targetNode.nodeType === 1)) return; // must be Element
+        const obsKey = `__cellRepromptObserver_${taskIndex}`;
+        if (targetNode[obsKey]) {
+            try { targetNode[obsKey].disconnect(); } catch (_){}
+        }
+        const obs = new MutationObserver((records) => {
+            for (const rec of records) {
+                if (typeof onChange === 'function') onChange(rec);
+            }
+        });
+        obs.observe(targetNode, { childList: true, subtree: true});
+        targetNode[obsKey] = obs;
+    } catch (_) {
+        // swallow;
+    }
+}
+
+function containsAceHost(nodeList) {
+    for (const n of nodeList || []) {
+        if (n && n.querySelector && n.querySelector('.ace_editor')) return true;
+        if (n && n.classList && n.classList.contains('ace_editor')) return true;
+    }
+    return false;
+}
+
+function initialiseCellReprompt(taskIndex) {
+    attachCellTypingListeners(taskIndex);
+}
+
+/* ---------------------------------------------------------------------- */
 /* Console UX helpers                                                      */
 
 /* ---------------------------------------------------------------------- */
