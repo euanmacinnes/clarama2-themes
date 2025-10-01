@@ -835,18 +835,67 @@ function cell_insights_gina_run(cell_button, questionText) {
 }
 
 function attachCodeInsertBars(rootEl) {
-    const pres = rootEl.querySelectorAll('pre.ginacode:not(.__barified)');
+    if (!rootEl) return;
+
+    const NON_CODE_LANGS = new Set(['markdown', 'md', 'text', 'plain', 'plaintext', 'txt']);
+
+    const pres = rootEl.querySelectorAll('pre');
     pres.forEach(pre => {
-        pre.classList.add('__barified');
+        const codeEl = pre.querySelector('code');
+        const raw = (codeEl ? codeEl.textContent : pre.textContent || '').trim();
+
+        let lang = '';
+        if (codeEl) {
+            for (const c of codeEl.classList) {
+                if (c.startsWith('language-')) { lang = c.slice(9).toLowerCase(); break; }
+                if (c === 'hljs') { lang = lang || ''; }
+            }
+        }
+        if (!lang && pre.dataset && typeof pre.dataset.lang === 'string') {
+            lang = pre.dataset.lang.trim().toLowerCase();
+        }
+
+        const explicitlyNonCode = lang && NON_CODE_LANGS.has(lang);
+        const looksMarkdownish =
+            /^\s{0,3}#{1,6}\s/m.test(raw) ||        // headings
+            /^\s{0,3}([*-+]|\d+\.)\s/m.test(raw) || // lists
+            /^\s{0,3}>\s/m.test(raw) ||             // blockquote
+            /\[[^\]]+\]\([^)]+\)/m.test(raw) ||     // [link](url)
+            /(\*\*|__)[^*]+(\*\*|__)/m.test(raw) || // bold ** **
+            /(\*|_)[^*]+(\*|_)/m.test(raw);         // italic * * or _ _
+        
+        const looksLikeCode =
+            /(^|\n)\s*(def |class |function |#include\b|import\b|from\b|SELECT\b|WITH\b|INSERT\b|UPDATE\b|BEGIN\b|try\s*:|catch\s*\(|if\s*\(|for\s*\(|while\s*\(|const\s+|let\s+|var\s+|=>|:=|=\s*["'`[{(]|{\s*$)/m
+            .test(raw) ||
+            /;\s*$|}\s*$|\)\s*{/.test(raw); // punctuation cues
+
+        const hasLangClass = !!lang;
+        const isRealCode = !explicitlyNonCode && (hasLangClass || (looksLikeCode && !looksMarkdownish));
 
         let wrap = pre.closest('.ginacode-wrap');
+        if (!isRealCode) {
+            // Remove any accidental bar if present
+            if (wrap) {
+                const btn = wrap.querySelector('.code-insert-bar');
+                if (btn) btn.remove();
+                // unwrap if we created the wrapper only for the button
+                if (wrap.children.length === 1 && wrap.firstElementChild === pre) {
+                    wrap.replaceWith(pre);
+                }
+            }
+            pre.classList.remove('ginacode');
+            return;
+        }
+
         if (!wrap) {
             wrap = document.createElement('div');
             wrap.className = 'ginacode-wrap';
             pre.parentNode.insertBefore(wrap, pre);
             wrap.appendChild(pre);
         }
-        if (wrap.querySelector('.code-insert-bar')) return;
+        pre.classList.add('ginacode');
+
+        if (wrap.querySelector('.code-insert-bar')) return; // already added
 
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -866,10 +915,8 @@ function attachCodeInsertBars(rootEl) {
         btn.addEventListener('click', (ev) => {
             ev.preventDefault();
             ev.stopPropagation();
-
             const idx = resolveTaskIndexFromNode(btn);
             if (!idx) return;
-
             if (!findEditorInLeft(idx)) {
                 btn.classList.add('disabled');
                 observeEditorReady(idx);
@@ -877,9 +924,8 @@ function attachCodeInsertBars(rootEl) {
             }
             btn.classList.remove('disabled');
 
-            const codeEl = pre.querySelector('code');
-            const codeText = codeEl ? codeEl.textContent : (pre.textContent || '');
-            insertCodeIntoAceEditor(idx, codeText);
+            const text = (codeEl ? codeEl.textContent : pre.textContent || '');
+            insertCodeIntoAceEditor(idx, text);
 
             btn.classList.add('active');
             setTimeout(() => btn.classList.remove('active'), 180);
