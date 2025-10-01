@@ -863,7 +863,9 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const m = stepId.match(/step_(\d+)/);
                 const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
 
-                const output = dict.values.output || "";
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
                 let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
                 chunk = html_decode(chunk);
 
