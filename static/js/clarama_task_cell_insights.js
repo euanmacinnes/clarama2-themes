@@ -1593,15 +1593,14 @@ function sendCellReprompt(taskIndex) {
         );
     });
 
-    // console.log('/reprompt: ', reprompt);
+    console.log('/reprompt: ', reprompt);
 }
 
-/** Returns a single per-task debounced function (idle: 700ms) */
 function getCellRepromptDebouncer(taskIndex) {
     if (!window.__cellRepromptDebouncers[taskIndex]) {
         window.__cellRepromptDebouncers[taskIndex] = debounce(
             () => sendCellReprompt(taskIndex),
-            700 /* idle delay */
+            150 /* idle delay */
         );
     }
     return window.__cellRepromptDebouncers[taskIndex];
