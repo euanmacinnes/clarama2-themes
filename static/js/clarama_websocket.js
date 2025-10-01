@@ -878,10 +878,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                             window[cbChat](chunk);
                         } catch (e) {
                             console.error(e);
-                        } finally {
-                            delete window[cbChat];
                         }
-                        return; // handled by chat
+                        return; // handled by chat (keep callback for subsequent chunks)
                     }
                     // Otherwise deliver to variables
                     if (typeof window[cbVars] === "function") {
@@ -889,10 +887,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                             window[cbVars](chunk);
                         } catch (e) {
                             console.error(e);
-                        } finally {
-                            delete window[cbVars];
                         }
-                        return; // handled by variables
+                        return; // handled by variables (keep callback for subsequent chunks)
                     }
 
                     if (typeof window[cbCode] === "function") {
@@ -900,10 +896,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                             window[cbCode](chunk);
                         } catch (e) {
                             console.error(e);
-                        } finally {
-                            delete window[cbCode];
                         }
-                        return; // handled by code console
+                        return; // handled by code console (keep callback for subsequent chunks)
                     }
                 }
 
