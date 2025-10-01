@@ -193,52 +193,58 @@ function markdownToHtml(text) {
     // Split on triple backticks to preserve code fences exactly
     const parts = input.split(/```/g);
 
-    // Sanitize URL protocols
+    // ---------- Helpers ----------
     const sanitizeUrl = (url) => {
         try {
             const u = String(url || '').trim();
             if (!u) return '#';
             const lower = u.toLowerCase();
-            if (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('mailto:') || lower.startsWith('tel:')) {
-                return u;
-            }
+            if (
+                lower.startsWith('http://') ||
+                lower.startsWith('https://') ||
+                lower.startsWith('mailto:') ||
+                lower.startsWith('tel:')
+            ) return u;
             return '#';
         } catch (_) {
             return '#';
         }
     };
 
-    // Escape HTML
     const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[c]));
 
-    // Inline markdown (bold, italic, code, links, images, strikethrough)
+    // Inline markdown (bold, italic, code, links, images, strike)
     const renderInline = (s) => {
         let t = esc(s);
-        // Images ![alt](url)
+
+        // Images: ![alt](url "title")
         t = t.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, alt, url, title) => {
             const u = sanitizeUrl(url);
-            // alt and title are already escaped by the initial esc(s)
-            const a = alt;
-            const ti = title ? ` title=\"${title}\"` : '';
-            return `<img src="${u}" alt="${a}"${ti}>`;
+            const ti = title ? ` title="${esc(title)}"` : '';
+            return `<img src="${u}" alt="${alt}"${ti}>`;
         });
-        // Links [text](url)
+
+        // Links: [text](url "title")
         t = t.replace(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, txt, url, title) => {
             const u = sanitizeUrl(url);
-            const ti = title ? ` title=\"${title}\"` : '';
-            // txt is already escaped; don't escape again to avoid double-encoding
+            const ti = title ? ` title="${esc(title)}"` : '';
             return `<a href="${u}" target="_blank" rel="noopener"${ti}>${txt}</a>`;
         });
-        // Inline code `code`
+
+        // Inline code: `code`
         t = t.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
-        // Bold **text** or __text__
+
+        // Bold: **text** or __text__
         t = t.replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, (m, a, b) => `<strong>${(a || b)}</strong>`);
-        // Italic *text* or _text_
+
+        // Italic: *text* or _text_
         t = t.replace(/\*(?!\*)([^*]+)\*|_([^_]+)_/g, (m, a, b) => `<em>${(a || b)}</em>`);
-        // Strikethrough ~~text~~
+
+        // Strikethrough: ~~text~~
         t = t.replace(/~~([^~]+)~~/g, (m, s) => `<del>${s}</del>`);
+
         return t;
     };
 
@@ -248,32 +254,31 @@ function markdownToHtml(text) {
         let i = 0;
         let html = '';
 
-        const flushParagraph = (buf) => {
-            if (!buf.length) return;
-            const text = buf.join('\n');
-            html += `<p>${renderInline(text)}</p>`;
-            buf.length = 0;
-        };
-
         const renderTable = (start) => {
-            // Very simple table: header | header \n --- | --- \n rows ...
+            // header | header
+            // ---   | ---
             const rows = [];
             let idx = start;
             while (idx < lines.length && /\|/.test(lines[idx])) {
                 rows.push(lines[idx]);
                 idx++;
             }
-            if (rows.length < 2 || !/^\s*[:\-\| ]+\s*$/.test(rows[1])) {
-                return null; // not a table
-            }
+            if (rows.length < 2 || !/^\s*[:\-\| ]+\s*$/.test(rows[1])) return null;
+
             const th = rows[0].split('|').map(s => s.trim());
-            const bodyRows = rows.slice(2).map(r => r.split('|').map(s => s.trim()))
-            let t = '<table class="gina-md-table"><thead><tr>' + th.map(h => `<th>${renderInline(h)}</th>`).join('') + '</tr></thead>';
+            const bodyRows = rows.slice(2).map(r => r.split('|').map(s => s.trim()));
+
+            let t = '<table class="gina-md-table"><thead><tr>' +
+                th.map(h => `<th>${renderInline(h)}</th>`).join('') +
+                '</tr></thead>';
+
             if (bodyRows.length) {
-                t += '<tbody>' + bodyRows.map(cells => `<tr>${cells.map(c => `<td>${renderInline(c)}</td>`).join('')}</tr>`).join('') + '</tbody>';
+                t += '<tbody>' + bodyRows.map(cells =>
+                    `<tr>${cells.map(c => `<td>${renderInline(c)}</td>`).join('')}</tr>`
+                ).join('') + '</tbody>';
             }
             t += '</table>';
-            return {html: t, next: idx};
+            return { html: t, next: idx };
         };
 
         while (i < lines.length) {
@@ -282,8 +287,7 @@ function markdownToHtml(text) {
             // Horizontal rule
             if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
                 html += '<hr>';
-                i++;
-                continue;
+                i++; continue;
             }
 
             // Headings #..######
@@ -291,8 +295,7 @@ function markdownToHtml(text) {
             if (h) {
                 const level = h[1].length;
                 html += `<h${level}>${renderInline(h[2])}</h${level}>`;
-                i++;
-                continue;
+                i++; continue;
             }
 
             // Blockquote
@@ -306,7 +309,7 @@ function markdownToHtml(text) {
                 continue;
             }
 
-            // Code block indented by 4 spaces
+            // Code block indented by 4 spaces → treat as code
             if (/^\s{4}/.test(line)) {
                 const buf = [];
                 while (i < lines.length && /^\s{4}/.test(lines[i])) {
@@ -320,11 +323,7 @@ function markdownToHtml(text) {
             // Table
             if (/\|/.test(line)) {
                 const table = renderTable(i);
-                if (table) {
-                    html += table.html;
-                    i = table.next;
-                    continue;
-                }
+                if (table) { html += table.html; i = table.next; continue; }
             }
 
             // Lists (unordered and ordered)
@@ -335,7 +334,9 @@ function markdownToHtml(text) {
                 const tag = ordered ? 'ol' : 'ul';
                 html += `<${tag}>`;
                 while (i < lines.length) {
-                    const m = ordered ? lines[i].match(/^\s*\d+\.\s+(.+)/) : lines[i].match(/^\s*[*+-]\s+(.+)/);
+                    const m = ordered
+                        ? lines[i].match(/^\s*\d+\.\s+(.+)/)
+                        : lines[i].match(/^\s*[*+-]\s+(.+)/);
                     if (!m) break;
                     html += `<li>${renderInline(m[1])}</li>`;
                     i++;
@@ -344,17 +345,16 @@ function markdownToHtml(text) {
                 continue;
             }
 
-            // Paragraphs: collect until blank line
+            // Paragraphs / line breaks
             if (line.trim().length === 0) {
                 html += '<br>';
-                i++;
-                continue;
+                i++; continue;
             }
             const pbuf = [line];
             i++;
             while (i < lines.length && lines[i].trim().length > 0 && !/^\s*(#{1,6})\s+/.test(lines[i])) {
-                // stop on heading or blank handled in loop; also stop on list/table/blockquote indicators
-                if (/^\s*[*+-]\s+/.test(lines[i]) || /^\s*\d+\.\s+/.test(lines[i]) || /^\s*>\s?/.test(lines[i]) || /\|/.test(lines[i])) break;
+                if (/^\s*[*+-]\s+/.test(lines[i]) || /^\s*\d+\.\s+/.test(lines[i]) ||
+                    /^\s*>\s?/.test(lines[i]) || /\|/.test(lines[i])) break;
                 pbuf.push(lines[i]);
                 i++;
             }
@@ -364,11 +364,13 @@ function markdownToHtml(text) {
         return html;
     };
 
+    // ---------- Main parse ----------
     let html = '';
     for (let i = 0; i < parts.length; i++) {
         const segment = parts[i];
+
         if (i % 2 === 1) {
-            // code fence: detect optional language on first line
+            // Code fence segment (may start with language line)
             let lang = '';
             let body = segment;
             const firstNl = segment.indexOf('\n');
@@ -376,6 +378,7 @@ function markdownToHtml(text) {
                 lang = segment.slice(0, firstNl).trim().toLowerCase();
                 body = segment.slice(firstNl + 1);
             }
+
             // Normalise common aliases
             const map = {
                 'py': 'python', 'python': 'python',
@@ -385,26 +388,18 @@ function markdownToHtml(text) {
                 'js': 'javascript', 'javascript': 'javascript',
                 'ts': 'typescript', 'typescript': 'typescript',
                 'json': 'json', 'html': 'html', 'xml': 'xml',
-                'yaml': 'yaml', 'yml': 'yaml', 'ini': 'ini', 'txt': 'text', 'text': 'text',
+                'yaml': 'yaml', 'yml': 'yaml', 'ini': 'ini',
+                'txt': 'text', 'text': 'text',
                 'mermaid': 'mermaid'
             };
             const norm = map[lang] || (lang && /^[a-z0-9_+-]+$/.test(lang) ? lang : '');
 
             if (norm === 'mermaid') {
-                // Render Mermaid block; content should not be HTML-escaped for Mermaid parsing
-                const safe = body.replace(/<\//g, '<\\/'); // avoid accidental closing tags
-                // Base64 encode the raw body for safe attribute storage (handles unicode)
+                // Mermaid: raw (not HTML-escaped) content inside .mermaid
+                const safe = body.replace(/<\//g, '<\\/');
                 let b64 = '';
-                try {
-                    b64 = btoa(unescape(encodeURIComponent(body)));
-                } catch (e) {
-                    try {
-                        b64 = btoa(body);
-                    } catch (_) {
-                        b64 = '';
-                    }
-                }
-                // Wrap with a positioned container and a small copy button in the bottom-right
+                try { b64 = btoa(unescape(encodeURIComponent(body))); }
+                catch (e) { try { b64 = btoa(body); } catch (_) { b64 = ''; } }
                 html += `
 <div class="mermaid-wrap" style="position:relative;">
   <div class="mermaid">${safe}</div>
@@ -414,14 +409,59 @@ function markdownToHtml(text) {
   </button>
 </div>`;
             } else {
-                // Render as code with language class for highlighters (Prism/HLJS)
-                const cls = norm ? `language-${norm} hljs` : 'hljs';
-                html += `<pre class="ginacode"><code class="${cls}">${esc(body)}</code></pre>`;
+                // --- Language-aware code vs markdown fence decision ---
+                const NON_CODE_LANGS = new Set(['markdown','md','text','plain','plaintext','txt']);
+                const CODE_LANGS = new Set([
+                    'python','py','javascript','js','typescript','ts','java','c','cpp','csharp','go','rust','php',
+                    'ruby','kotlin','swift','scala','r','matlab','sql','bash','shell','powershell','ps1',
+                    'html','xml','css','json','yaml','yml','ini','dockerfile','makefile'
+                ]);
+
+                // markdown-ish cues (excluding headings for now)
+                let mdSignals = 0;
+                if (/^\s{0,3}([*-+]|\d+\.)\s/m.test(body)) mdSignals++;   // lists
+                if (/^\s{0,3}>\s/m.test(body)) mdSignals++;                // blockquote
+                if (/\[[^\]]+\]\([^)]+\)/m.test(body)) mdSignals++;        // [link](url)
+                if (/(\*\*|__)[^*]+(\*\*|__)/m.test(body)) mdSignals++;    // bold
+                if (/(\*|_)[^*]+(\*|_)/m.test(body)) mdSignals++;          // italic
+                if (/^\s*\|[^|\n]+\|/m.test(body)) mdSignals++;            // table row
+
+                const looksLikeCode =
+                    /(^|\n)\s*(def |class |function |#include\b|import\b|from\b|SELECT\b|WITH\b|INSERT\b|UPDATE\b|BEGIN\b|try\s*:|except\b|catch\s*\(|if\s*\(|for\s*\(|while\s*\(|return\b|const\s+|let\s+|var\s+|=>|:=|=\s*["'`[{(]|{\s*$)/m
+                        .test(body)
+                    || /;\s*$|}\s*$|\)\s*{/.test(body);
+
+                const explicitlyNonCode = norm && NON_CODE_LANGS.has(norm);
+                const langLooksCode = !!norm && CODE_LANGS.has(norm);
+
+                // Treat leading '#' as markdown heading only when NOT a declared code lang
+                const hasMarkdownHeading = /^\s{0,3}#{1,6}\s/m.test(body);
+                if (!langLooksCode && hasMarkdownHeading) mdSignals++;
+
+                let isRealCode = false;
+                if (!explicitlyNonCode) {
+                    if (langLooksCode) {
+                        // generous to declared code: allow 0/1 markdown signals
+                        isRealCode = looksLikeCode || mdSignals < 2;
+                    } else {
+                        // no declared lang: require code-ish and zero markdown signals
+                        isRealCode = looksLikeCode && mdSignals === 0;
+                    }
+                }
+
+                if (isRealCode) {
+                    const cls = norm ? `language-${norm} hljs` : 'hljs';
+                    html += `<pre class="ginacode"><code class="${cls}">${esc(body)}</code></pre>`;
+                } else {
+                    html += `<pre class="mdfence"><code class="language-text">${esc(body)}</code></pre>`;
+                }
             }
         } else {
+            // Normal (non-fence) text: render block markdown
             html += renderBlocks(segment);
         }
     }
+
     return `<div class="clarama-markdown">${html}</div>`;
 }
 
