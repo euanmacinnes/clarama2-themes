@@ -575,7 +575,8 @@ function disarmCodeInspectorAutoReload(taskIndex) {
         if (entry.editor && entry.onCursor) {
             entry.editor.selection.off('changeCursor', entry.onCursor);
         }
-    } catch (_) {}
+    } catch (_) {
+    }
     delete window.__codeInspectorAutoReload[taskIndex];
 }
 
@@ -602,8 +603,12 @@ function armCodeInspectorAutoReload(taskIndex, delayMs = 150) {
         cell_insights_code_inspect_reload(taskIndex);
     }, delayMs);
 
-    const onChange = function () { debouncedReload(); };                 // typing
-    const onCursor = function () { debouncedReload(); };                 // clicks / arrow keys
+    const onChange = function () {
+        debouncedReload();
+    };                 // typing
+    const onCursor = function () {
+        debouncedReload();
+    };                 // clicks / arrow keys
 
     editor.session.on('change', onChange);
     editor.selection.on('changeCursor', onCursor);
@@ -673,8 +678,8 @@ function renderCodeInspectorResult(taskIndex, text) {
         const info = [
             `Symbol: ${payload?.symbol ?? '—'}`,
             `Value: ${payload?.symbol_value ?? '—'}`
-          ].join('\n');
-          
+        ].join('\n');
+
         pre.textContent = info;
         wrap.appendChild(pre);
         host.appendChild(wrap);
@@ -854,8 +859,13 @@ function attachCodeInsertBars(rootEl) {
         let lang = '';
         if (codeEl) {
             for (const c of codeEl.classList) {
-                if (c.startsWith('language-')) { lang = c.slice(9).toLowerCase(); break; }
-                if (c === 'hljs') { lang = lang || ''; }
+                if (c.startsWith('language-')) {
+                    lang = c.slice(9).toLowerCase();
+                    break;
+                }
+                if (c === 'hljs') {
+                    lang = lang || '';
+                }
             }
         }
         if (!lang && pre.dataset && typeof pre.dataset.lang === 'string') {
@@ -870,21 +880,21 @@ function attachCodeInsertBars(rootEl) {
             /\[[^\]]+\]\([^)]+\)/m.test(raw) ||     // [link](url)
             /(\*\*|__)[^*]+(\*\*|__)/m.test(raw) || // bold ** **
             /(\*|_)[^*]+(\*|_)/m.test(raw);         // italic * * or _ _
-        
+
         const looksLikeCode =
             /(^|\n)\s*(def |class |function |#include\b|import\b|from\b|SELECT\b|WITH\b|INSERT\b|UPDATE\b|BEGIN\b|try\s*:|catch\s*\(|if\s*\(|for\s*\(|while\s*\(|const\s+|let\s+|var\s+|=>|:=|=\s*["'`[{(]|{\s*$)/m
-            .test(raw) ||
+                .test(raw) ||
             /;\s*$|}\s*$|\)\s*{/.test(raw); // punctuation cues
 
         // Known code languages
         const CODE_LANGS = new Set([
-            'python','py','javascript','js','typescript','ts','java','c','cpp','csharp','go','rust','php',
-            'ruby','kotlin','swift','scala','r','matlab','sql','bash','shell','powershell','ps1',
-            'html','xml','css','json','yaml','yml','ini','dockerfile','makefile'
+            'python', 'py', 'javascript', 'js', 'typescript', 'ts', 'java', 'c', 'cpp', 'csharp', 'go', 'rust', 'php',
+            'ruby', 'kotlin', 'swift', 'scala', 'r', 'matlab', 'sql', 'bash', 'shell', 'powershell', 'ps1',
+            'html', 'xml', 'css', 'json', 'yaml', 'yml', 'ini', 'dockerfile', 'makefile'
         ]);
-        
+
         const langLooksCode = !!lang && CODE_LANGS.has(lang);
-        
+
         // Count markdown signals (don’t let a single '#' line sink real code)
         let mdSignals = 0;
         if (/^\s{0,3}([*-+]|\d+\.)\s/m.test(raw)) mdSignals++;    // lists
@@ -893,11 +903,11 @@ function attachCodeInsertBars(rootEl) {
         if (/(\*\*|__)[^*]+(\*\*|__)/m.test(raw)) mdSignals++;     // bold
         if (/(\*|_)[^*]+(\*|_)/m.test(raw)) mdSignals++;           // italic
         if (/^\s*\|[^|\n]+\|/m.test(raw)) mdSignals++;             // table row
-        
+
         // Only treat leading `#` as Markdown headings when NOT a declared code lang
         const hasMarkdownHeading = /^\s{0,3}#{1,6}\s/m.test(raw);
         if (!langLooksCode && hasMarkdownHeading) mdSignals++;
-        
+
         // - If explicitly non-code lang → not code
         // - If declared code lang → show bar unless there are multiple markdown signals AND no code signals
         // - If no declared code → require code-like tokens and few/no markdown signals
@@ -908,7 +918,7 @@ function attachCodeInsertBars(rootEl) {
             } else {
                 isRealCode = looksLikeCode && mdSignals === 0;
             }
-        }  
+        }
 
         let wrap = pre.closest('.ginacode-wrap');
         if (!isRealCode) {
@@ -1738,16 +1748,16 @@ function sendCellReprompt(taskIndex) {
     }
     window.__cellRepromptLastPayload[taskIndex] = payloadStr;
 
-    const reprompt = `/reprompt ${payloadStr}`;
+    const reprompt = `/reprompt\n${payloadStr}`;
 
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
         postToKernel(
             taskIndex,
-            { 
-                type: "question", 
-                source: reprompt, 
-                clear: false 
+            {
+                type: "question",
+                source: reprompt,
+                clear: false
             },
             field_registry,
             "Couldn't send reprompt"
@@ -1814,7 +1824,10 @@ function bindAceReprompt(taskIndex) {
     }
     // Clear previous to prevent multiple bindings
     if (editor.__cellRepromptHandler) {
-        try { editor.off('change', editor.__cellRepromptHandler); } catch (_){}
+        try {
+            editor.off('change', editor.__cellRepromptHandler);
+        } catch (_) {
+        }
     }
     const debounced = getCellRepromptDebouncer(taskIndex);
     editor.__cellRepromptHandler = function () {
@@ -1828,14 +1841,17 @@ function safeObserveCellMutations(taskIndex, targetNode, onChange) {
         if (!(targetNode && typeof targetNode === 'object' && targetNode.nodeType === 1)) return; // must be Element
         const obsKey = `__cellRepromptObserver_${taskIndex}`;
         if (targetNode[obsKey]) {
-            try { targetNode[obsKey].disconnect(); } catch (_){}
+            try {
+                targetNode[obsKey].disconnect();
+            } catch (_) {
+            }
         }
         const obs = new MutationObserver((records) => {
             for (const rec of records) {
                 if (typeof onChange === 'function') onChange(rec);
             }
         });
-        obs.observe(targetNode, { childList: true, subtree: true});
+        obs.observe(targetNode, {childList: true, subtree: true});
         targetNode[obsKey] = obs;
     } catch (_) {
         // swallow;
