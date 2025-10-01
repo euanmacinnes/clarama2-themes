@@ -712,7 +712,7 @@ function cell_insights_code_inspect_reload(taskIndex) {
     // Pull latest code + cursor from Ace
     const {code, row, column, ok} = getCurrentCodeAndCursor(taskIndex);
     if (!ok) {
-        renderCodeInspectorResult(taskIndex, "Editor not ready. Click Reload again once the editor has mounted.");
+        renderCodeInspectorResult(taskIndex, "Editor not ready yet. Move your cursor or type once the editor mounts.");
         observeEditorReady(taskIndex);
         return;
     }
@@ -1799,13 +1799,6 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     if (id.startsWith("insights-chat-tab-")) {
         initialiseInsightsGina(taskIndex);
     }
-});
-
-// Click: Reload button in Code Inspector
-$(document).on('click', '.code-inspector-reload', function (ev) {
-    ev.preventDefault();
-    const taskIndex = $(this).data('taskIndex') || $(this).attr('data-task-index');
-    if (taskIndex) cell_insights_code_inspect_reload(taskIndex);
 });
 
 // When user switches to the Code Inspector tab, reload automatically
