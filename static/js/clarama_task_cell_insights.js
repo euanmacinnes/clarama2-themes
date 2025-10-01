@@ -376,7 +376,6 @@ function setStreamText(streamId, text, {append = false} = {}) {
     if (append && htmlDiv.__buffer) htmlDiv.__buffer += next;
     else htmlDiv.__buffer = next;
 
-    // markdownToHtml is expected to be globally available
     htmlDiv.innerHTML = markdownToHtml(htmlDiv.__buffer);
     attachCodeInsertBars(htmlDiv);
 }
@@ -530,6 +529,7 @@ function cell_insights_data_run(cell_button, dataQuery) {
 /* CODE INSPECTOR                                                         */
 
 /* ---------------------------------------------------------------------- */
+window.__codeInspectorAutoReload = window.__codeInspectorAutoReload || Object.create(null);
 
 function getAceEditorForTask(taskIndex) {
     const left = document.getElementById(`left_content_${getStepNumber(taskIndex)}`);
@@ -548,6 +548,74 @@ function getCurrentCodeAndCursor(taskIndex) {
     return {code, row: (pos.row ?? 0) + 1, column: (pos.column ?? 0), ok: true};
 }
 
+function isCodeInspectorTabActive(taskIndex) {
+    const id = getActiveTabId(taskIndex) || "";
+    return id.startsWith("insights-code-inspector-tab-");
+}
+
+function isInsightsOpen(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell.length) return false;
+    const $right = $cell.find(`#right_content_${taskIndex}`);
+    return $right.length && !$right.hasClass('d-none');
+}
+
+function getAceForAuto(taskIndex) {
+    // Reuse existing editor resolver
+    return getAceEditorForTask(taskIndex) || null;
+}
+
+function disarmCodeInspectorAutoReload(taskIndex) {
+    const entry = window.__codeInspectorAutoReload[taskIndex];
+    if (!entry) return;
+    try {
+        if (entry.editor && entry.onChange) {
+            entry.editor.session.off('change', entry.onChange);
+        }
+        if (entry.editor && entry.onCursor) {
+            entry.editor.selection.off('changeCursor', entry.onCursor);
+        }
+    } catch (_) {}
+    delete window.__codeInspectorAutoReload[taskIndex];
+}
+
+function armCodeInspectorAutoReload(taskIndex, delayMs = 150) {
+    if (window.__codeInspectorAutoReload[taskIndex]) {
+        window.__codeInspectorAutoReload[taskIndex].enabled = true;
+        return;
+    }
+
+    if (!isInsightsOpen(taskIndex) || !isCodeInspectorTabActive(taskIndex)) return;
+
+    const editor = getAceForAuto(taskIndex);
+    if (!editor) {
+        observeEditorReady(taskIndex);
+        setTimeout(() => armCodeInspectorAutoReload(taskIndex, delayMs), 200);
+        return;
+    }
+
+    // Debounced refresher
+    const debouncedReload = debounce(() => {
+        // extra guard: only when still on Code Inspector and insights open
+        if (!isInsightsOpen(taskIndex) || !isCodeInspectorTabActive(taskIndex)) return;
+        // Call your existing reload
+        cell_insights_code_inspect_reload(taskIndex);
+    }, delayMs);
+
+    const onChange = function () { debouncedReload(); };                 // typing
+    const onCursor = function () { debouncedReload(); };                 // clicks / arrow keys
+
+    editor.session.on('change', onChange);
+    editor.selection.on('changeCursor', onCursor);
+
+    window.__codeInspectorAutoReload[taskIndex] = {
+        editor,
+        onChange,
+        onCursor,
+        enabled: true
+    };
+}
+
 function renderCodeInspectorResult(taskIndex, text) {
     const host = document.getElementById(`code-inspector-results-${taskIndex}`);
     if (!host) return;
@@ -564,7 +632,7 @@ function renderCodeInspectorResult(taskIndex, text) {
         return;
     }
 
-    // Context header
+    // context header
     if (payload?.context_type || payload?.context_name) {
         const hdr = document.createElement("div");
         hdr.className = "mb-2 small text-muted";
@@ -574,8 +642,11 @@ function renderCodeInspectorResult(taskIndex, text) {
 
     const hasSuggestions = Array.isArray(payload?.suggestions) && payload.suggestions.length > 0;
     const hasSymbol = !!(payload?.symbol || payload?.symbol_attributes || payload?.symbol_value);
-    const hasDocstring = !!payload?.docstring;
+    const hasDocstring = typeof payload?.docstring === "string" && payload.docstring.trim().length > 0;
 
+    let rendered = false;
+
+    // 1) Suggestions
     if (hasSuggestions) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
@@ -589,42 +660,48 @@ function renderCodeInspectorResult(taskIndex, text) {
         });
         wrap.appendChild(ul);
         host.appendChild(wrap);
-        return; // stop here
+        renderedAnything = true;
     }
 
-    if (hasSymbol) {
+    // 2) Symbol
+    if (!hasSuggestions && hasSymbol) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
         wrap.innerHTML = `<div class="fw-semibold mb-1">Symbol</div>`;
         const pre = document.createElement("pre");
-        pre.className = "code-response font-monospace mb-0";
-        pre.textContent = JSON.stringify({
-            symbol: payload?.symbol,
-            attributes: payload?.symbol_attributes,
-            value: payload?.symbol_value
-        }, null, 2);
+        pre.className = "code-response mb-0";
+        const info = [
+            `Symbol: ${payload?.symbol ?? '—'}`,
+            `Value: ${payload?.symbol_value ?? '—'}`
+          ].join('\n');
+          
+        pre.textContent = info;
         wrap.appendChild(pre);
         host.appendChild(wrap);
-        return; // stop here
+        renderedAnything = true;
     }
 
+    // 3) Documentation — ALWAYS below Suggestions/Symbol if present
     if (hasDocstring) {
         const wrap = document.createElement("div");
         wrap.className = "mb-3";
-        wrap.innerHTML = `<div class="fw-semibold mb-1">Docstring</div>`;
-        const pre = document.createElement("pre");
-        pre.className = "code-response font-monospace mb-0";
-        pre.textContent = String(payload.docstring || "");
-        wrap.appendChild(pre);
+        wrap.innerHTML = `<div class="fw-semibold mb-1">Documentation</div>`;
+        const md = String(payload.docstring || "");
+        const div = document.createElement("div");
+        div.className = "docstring-markdown";
+        div.innerHTML = markdownToHtml(md);
+        wrap.appendChild(div);
         host.appendChild(wrap);
-        return; // stop here
+        renderedAnything = true;
     }
 
-    // None present
-    const em = document.createElement("em");
-    em.className = "text-muted";
-    em.textContent = "No information.";
-    host.appendChild(em);
+    // Nothing to show
+    if (!renderedAnything) {
+        const em = document.createElement("em");
+        em.className = "text-muted";
+        em.textContent = "No information.";
+        host.appendChild(em);
+    }
 }
 
 function cell_insights_code_inspect_reload(taskIndex) {
@@ -637,7 +714,7 @@ function cell_insights_code_inspect_reload(taskIndex) {
     // Pull latest code + cursor from Ace
     const {code, row, column, ok} = getCurrentCodeAndCursor(taskIndex);
     if (!ok) {
-        renderCodeInspectorResult(taskIndex, "Editor not ready. Click Reload again once the editor has mounted.");
+        renderCodeInspectorResult(taskIndex, "Editor not ready yet. Move your cursor or type once the editor mounts.");
         observeEditorReady(taskIndex);
         return;
     }
@@ -765,18 +842,98 @@ function cell_insights_gina_run(cell_button, questionText) {
 }
 
 function attachCodeInsertBars(rootEl) {
-    const pres = rootEl.querySelectorAll('pre.ginacode:not(.__barified)');
+    if (!rootEl) return;
+
+    const NON_CODE_LANGS = new Set(['markdown', 'md', 'text', 'plain', 'plaintext', 'txt']);
+
+    const pres = rootEl.querySelectorAll('pre');
     pres.forEach(pre => {
-        pre.classList.add('__barified');
+        const codeEl = pre.querySelector('code');
+        const raw = (codeEl ? codeEl.textContent : pre.textContent || '').trim();
+
+        let lang = '';
+        if (codeEl) {
+            for (const c of codeEl.classList) {
+                if (c.startsWith('language-')) { lang = c.slice(9).toLowerCase(); break; }
+                if (c === 'hljs') { lang = lang || ''; }
+            }
+        }
+        if (!lang && pre.dataset && typeof pre.dataset.lang === 'string') {
+            lang = pre.dataset.lang.trim().toLowerCase();
+        }
+
+        const explicitlyNonCode = lang && NON_CODE_LANGS.has(lang);
+        const looksMarkdownish =
+            /^\s{0,3}#{1,6}\s/m.test(raw) ||        // headings
+            /^\s{0,3}([*-+]|\d+\.)\s/m.test(raw) || // lists
+            /^\s{0,3}>\s/m.test(raw) ||             // blockquote
+            /\[[^\]]+\]\([^)]+\)/m.test(raw) ||     // [link](url)
+            /(\*\*|__)[^*]+(\*\*|__)/m.test(raw) || // bold ** **
+            /(\*|_)[^*]+(\*|_)/m.test(raw);         // italic * * or _ _
+        
+        const looksLikeCode =
+            /(^|\n)\s*(def |class |function |#include\b|import\b|from\b|SELECT\b|WITH\b|INSERT\b|UPDATE\b|BEGIN\b|try\s*:|catch\s*\(|if\s*\(|for\s*\(|while\s*\(|const\s+|let\s+|var\s+|=>|:=|=\s*["'`[{(]|{\s*$)/m
+            .test(raw) ||
+            /;\s*$|}\s*$|\)\s*{/.test(raw); // punctuation cues
+
+        // Known code languages
+        const CODE_LANGS = new Set([
+            'python','py','javascript','js','typescript','ts','java','c','cpp','csharp','go','rust','php',
+            'ruby','kotlin','swift','scala','r','matlab','sql','bash','shell','powershell','ps1',
+            'html','xml','css','json','yaml','yml','ini','dockerfile','makefile'
+        ]);
+        
+        const langLooksCode = !!lang && CODE_LANGS.has(lang);
+        
+        // Count markdown signals (don’t let a single '#' line sink real code)
+        let mdSignals = 0;
+        if (/^\s{0,3}([*-+]|\d+\.)\s/m.test(raw)) mdSignals++;    // lists
+        if (/^\s{0,3}>\s/m.test(raw)) mdSignals++;                 // blockquote
+        if (/\[[^\]]+\]\([^)]+\)/m.test(raw)) mdSignals++;         // [link](url)
+        if (/(\*\*|__)[^*]+(\*\*|__)/m.test(raw)) mdSignals++;     // bold
+        if (/(\*|_)[^*]+(\*|_)/m.test(raw)) mdSignals++;           // italic
+        if (/^\s*\|[^|\n]+\|/m.test(raw)) mdSignals++;             // table row
+        
+        // Only treat leading `#` as Markdown headings when NOT a declared code lang
+        const hasMarkdownHeading = /^\s{0,3}#{1,6}\s/m.test(raw);
+        if (!langLooksCode && hasMarkdownHeading) mdSignals++;
+        
+        // - If explicitly non-code lang → not code
+        // - If declared code lang → show bar unless there are multiple markdown signals AND no code signals
+        // - If no declared code → require code-like tokens and few/no markdown signals
+        let isRealCode = false;
+        if (!explicitlyNonCode) {
+            if (langLooksCode) {
+                isRealCode = looksLikeCode || mdSignals < 2;
+            } else {
+                isRealCode = looksLikeCode && mdSignals === 0;
+            }
+        }  
 
         let wrap = pre.closest('.ginacode-wrap');
+        if (!isRealCode) {
+            // Remove any accidental bar if present
+            if (wrap) {
+                const btn = wrap.querySelector('.code-insert-bar');
+                if (btn) btn.remove();
+                // unwrap if we created the wrapper only for the button
+                if (wrap.children.length === 1 && wrap.firstElementChild === pre) {
+                    wrap.replaceWith(pre);
+                }
+            }
+            pre.classList.remove('ginacode');
+            return;
+        }
+
         if (!wrap) {
             wrap = document.createElement('div');
             wrap.className = 'ginacode-wrap';
             pre.parentNode.insertBefore(wrap, pre);
             wrap.appendChild(pre);
         }
-        if (wrap.querySelector('.code-insert-bar')) return;
+        pre.classList.add('ginacode');
+
+        if (wrap.querySelector('.code-insert-bar')) return; // already added
 
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -796,10 +953,8 @@ function attachCodeInsertBars(rootEl) {
         btn.addEventListener('click', (ev) => {
             ev.preventDefault();
             ev.stopPropagation();
-
             const idx = resolveTaskIndexFromNode(btn);
             if (!idx) return;
-
             if (!findEditorInLeft(idx)) {
                 btn.classList.add('disabled');
                 observeEditorReady(idx);
@@ -807,9 +962,8 @@ function attachCodeInsertBars(rootEl) {
             }
             btn.classList.remove('disabled');
 
-            const codeEl = pre.querySelector('code');
-            const codeText = codeEl ? codeEl.textContent : (pre.textContent || '');
-            insertCodeIntoAceEditor(idx, codeText);
+            const text = (codeEl ? codeEl.textContent : pre.textContent || '');
+            insertCodeIntoAceEditor(idx, text);
 
             btn.classList.add('active');
             setTimeout(() => btn.classList.remove('active'), 180);
@@ -972,7 +1126,7 @@ function initialiseInsightsGina(taskIndex, force = false) {
         }
     }
     const initCommand = `/init ${payload_file}\n${JSON.stringify(payload)}`;
-    // console.log('initCommand: ', initCommand);
+    console.log('initCommand: ', initCommand);
 
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
@@ -1561,6 +1715,146 @@ except Exception as e:
 }
 
 /* ---------------------------------------------------------------------- */
+/* Cell re-prompt on idle typing                                          */
+/* ---------------------------------------------------------------------- */
+window.__cellRepromptTimers = window.__cellRepromptTimers || Object.create(null);
+window.__cellRepromptDebouncers = window.__cellRepromptDebouncers || Object.create(null);
+window.__cellRepromptLastPayload = window.__cellRepromptLastPayload || Object.create(null);
+
+function repromptCommandForCell($cell) {
+    let payload = extractCellContent($cell);
+    return `/reprompt ${JSON.stringify(payload)}`;
+}
+
+function sendCellReprompt(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell || !$cell.length) return;
+
+    // Build payload and dedupe by content
+    const payload = extractCellContent($cell);
+    const payloadStr = JSON.stringify(payload);
+    if (window.__cellRepromptLastPayload[taskIndex] === payloadStr) {
+        return;
+    }
+    window.__cellRepromptLastPayload[taskIndex] = payloadStr;
+
+    const reprompt = `/reprompt ${payloadStr}`;
+
+    get_field_values({}, true, function (field_registry) {
+        field_registry.clarama_task_kill = false;
+        postToKernel(
+            taskIndex,
+            { 
+                type: "question", 
+                source: reprompt, 
+                clear: false 
+            },
+            field_registry,
+            "Couldn't send reprompt"
+        );
+    });
+
+    console.log('/reprompt: ', reprompt);
+}
+
+function getCellRepromptDebouncer(taskIndex) {
+    if (!window.__cellRepromptDebouncers[taskIndex]) {
+        window.__cellRepromptDebouncers[taskIndex] = debounce(
+            () => sendCellReprompt(taskIndex),
+            150 /* idle delay */
+        );
+    }
+    return window.__cellRepromptDebouncers[taskIndex];
+}
+
+/** Attach listeners to *all* mutable inputs within this cell */
+function attachCellTypingListeners(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell || !$cell.length) return;
+
+    const debounced = getCellRepromptDebouncer(taskIndex);
+
+    // 1) Plain inputs/textarea/select/contenteditable → user edits only
+    const INPUT_SELECTOR = `
+        input:not([type="hidden"]),
+        textarea,
+        select,
+        [contenteditable=""],
+        [contenteditable="true"]
+    `.replace(/\s+/g, ' ');
+
+    // Remove prior handlers then bind fresh
+    $cell.off('.cellReprompt');
+    $cell.on(
+        'input.cellReprompt change.cellReprompt keyup.cellReprompt paste.cellReprompt cut.cellReprompt',
+        INPUT_SELECTOR,
+        function () {
+            debounced(); // user changed a value
+        }
+    );
+
+    // 2) Ace editor text changes → user edits only
+    bindAceReprompt(taskIndex);
+
+    // 3) Watch for editors being added; do NOT reprompt for structural/attribute changes
+    safeObserveCellMutations(taskIndex, $cell[0], (rec) => {
+        if (containsAceHost(rec.addedNodes)) {
+            bindAceReprompt(taskIndex);
+        }
+    });
+}
+
+/** Attach to Ace editor 'change' for this task, when available */
+function bindAceReprompt(taskIndex) {
+    const editor = getAceEditorForTask(taskIndex);
+    if (!editor) {
+        // Ensure we try again when Ace mounts
+        observeEditorReady(taskIndex);
+        return;
+    }
+    // Clear previous to prevent multiple bindings
+    if (editor.__cellRepromptHandler) {
+        try { editor.off('change', editor.__cellRepromptHandler); } catch (_){}
+    }
+    const debounced = getCellRepromptDebouncer(taskIndex);
+    editor.__cellRepromptHandler = function () {
+        debounced();
+    };
+    editor.on('change', editor.__cellRepromptHandler);
+}
+
+function safeObserveCellMutations(taskIndex, targetNode, onChange) {
+    try {
+        if (!(targetNode && typeof targetNode === 'object' && targetNode.nodeType === 1)) return; // must be Element
+        const obsKey = `__cellRepromptObserver_${taskIndex}`;
+        if (targetNode[obsKey]) {
+            try { targetNode[obsKey].disconnect(); } catch (_){}
+        }
+        const obs = new MutationObserver((records) => {
+            for (const rec of records) {
+                if (typeof onChange === 'function') onChange(rec);
+            }
+        });
+        obs.observe(targetNode, { childList: true, subtree: true});
+        targetNode[obsKey] = obs;
+    } catch (_) {
+        // swallow;
+    }
+}
+
+function containsAceHost(nodeList) {
+    for (const n of nodeList || []) {
+        if (n && n.querySelector && n.querySelector('.ace_editor')) return true;
+        if (n && n.classList && n.classList.contains('ace_editor')) return true;
+    }
+    return false;
+}
+
+function initialiseCellReprompt(taskIndex) {
+    attachCellTypingListeners(taskIndex);
+}
+
+/* ---------------------------------------------------------------------- */
 /* Console UX helpers                                                      */
 
 /* ---------------------------------------------------------------------- */
@@ -1590,13 +1884,6 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     if (id.startsWith("insights-chat-tab-")) {
         initialiseInsightsGina(taskIndex);
     }
-});
-
-// Click: Reload button in Code Inspector
-$(document).on('click', '.code-inspector-reload', function (ev) {
-    ev.preventDefault();
-    const taskIndex = $(this).data('taskIndex') || $(this).attr('data-task-index');
-    if (taskIndex) cell_insights_code_inspect_reload(taskIndex);
 });
 
 // When user switches to the Code Inspector tab, reload automatically
