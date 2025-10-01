@@ -28,6 +28,24 @@ function debounce(fn, wait, immediate) {
  * Stop piping messages into the Chat bubble for this task.
  */
 function pauseChatStream(taskIndex) {
+    return;
+    
+    if (!taskIndex) return;
+    const cbKey = `cell_insights_chat_callback_${taskIndex}`;
+    window.__ginaChatActive[taskIndex] = false;
+    try {
+        delete window[cbKey];
+    } catch (_) {
+    }
+    try {
+        if (window.__ginaStreamIdleTimer && window.__ginaStreamIdleTimer[taskIndex]) {
+            clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
+        }
+    } catch (_) {
+    }
+}
+
+function ressumeChatStream(taskIndex) {
     if (!taskIndex) return;
     const cbKey = `cell_insights_chat_callback_${taskIndex}`;
     window.__ginaChatActive[taskIndex] = false;
