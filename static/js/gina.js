@@ -215,35 +215,40 @@ function markdownToHtml(text) {
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[c]));
 
-    // Inline markdown (bold, italic, code, links, images, strike)
+    // Inline markdown (bold, italic, code, links, images, strikethrough, soft breaks)
     const renderInline = (s) => {
         let t = esc(s);
 
-        // Images: ![alt](url "title")
+        // Images ![alt](url)
         t = t.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, alt, url, title) => {
             const u = sanitizeUrl(url);
-            const ti = title ? ` title="${esc(title)}"` : '';
+            const ti = title ? ` title="${title}"` : '';
             return `<img src="${u}" alt="${alt}"${ti}>`;
         });
 
-        // Links: [text](url "title")
+        // Links [text](url)
         t = t.replace(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, txt, url, title) => {
             const u = sanitizeUrl(url);
-            const ti = title ? ` title="${esc(title)}"` : '';
+            const ti = title ? ` title="${title}"` : '';
             return `<a href="${u}" target="_blank" rel="noopener"${ti}>${txt}</a>`;
         });
 
-        // Inline code: `code`
+        // Inline code `code`
         t = t.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
 
-        // Bold: **text** or __text__
-        t = t.replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, (m, a, b) => `<strong>${(a || b)}</strong>`);
+        // Bold **text** or __text__
+        t = t.replace(/\*\*([\s\S]+?)\*\*/g, (m, a) => `<strong>${a}</strong>`);
+        t = t.replace(/__([\s\S]+?)__/g, (m, a) => `<strong>${a}</strong>`);
 
-        // Italic: *text* or _text_
-        t = t.replace(/\*(?!\*)([^*]+)\*|_([^_]+)_/g, (m, a, b) => `<em>${(a || b)}</em>`);
-
-        // Strikethrough: ~~text~~
+        // Italic *text* or _text_
+        t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, (m, pre, a) => `${pre}<em>${a}</em>`);
+        t = t.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, (m, pre, a) => `${pre}<em>${a}</em>`);
+        
+        // Strikethrough ~~text~~
         t = t.replace(/~~([^~]+)~~/g, (m, s) => `<del>${s}</del>`);
+
+        // Soft line breaks: "two spaces + newline" => <br>
+        t = t.replace(/  \n/g, '<br>');
 
         return t;
     };
@@ -327,21 +332,157 @@ function markdownToHtml(text) {
             }
 
             // Lists (unordered and ordered)
-            const ulMatch = line.match(/^\s*([*+-])\s+(.+)/);
-            const olMatch = line.match(/^\s*(\d+)\.\s+(.+)/);
-            if (ulMatch || olMatch) {
-                const ordered = !!olMatch;
-                const tag = ordered ? 'ol' : 'ul';
-                html += `<${tag}>`;
-                while (i < lines.length) {
-                    const m = ordered
-                        ? lines[i].match(/^\s*\d+\.\s+(.+)/)
-                        : lines[i].match(/^\s*[*+-]\s+(.+)/);
-                    if (!m) break;
-                    html += `<li>${renderInline(m[1])}</li>`;
-                    i++;
+            const ulStart = line.match(/^\s*([*+-])\s+(.+)/);
+            const olStart =
+                line.match(/^\s*(\d+)[\.)]\s+(.+)/) ||
+                line.match(/^\s*(\d+)\s+([A-Za-z].+)/); // accept "4 Something" as a list item
+
+            if (ulStart || olStart) {
+                const ordered = !!olStart;
+
+                // Determine the current list's base indent
+                const baseIndent = (line.match(/^\s*/)?.[0].length) ?? 0;
+
+                // Emit opening tag (with start attribute if needed)
+                let startNum = ordered ? (Number(olStart[1]) || 1) : 1;
+                if (ordered) {
+                    html += (startNum !== 1) ? `<ol start="${startNum}">` : `<ol>`;
+                } else {
+                    html += `<ul>`;
                 }
-                html += `</${tag}>`;
+
+                // Consume items for this list until the pattern or indent breaks
+                const consumeList = (startIndex, parentIndent, isOrdered) => {
+                    let idx = startIndex;
+
+                    const sameLevelUl = (ln) => {
+                        const m = ln.match(/^(\s*)([*+-])\s+(.+)/);
+                        return m && (m[1].length === parentIndent) ? m : null;
+                    };
+                    const sameLevelOl = (ln) => {
+                        const m = ln.match(/^(\s*)(\d+)[\.)]\s+(.+)/) || ln.match(/^(\s*)(\d+)\s+([A-Za-z].+)/);
+                        return m && (m[1].length === parentIndent) ? m : null;
+                    };
+
+                    // Helper: detect a nested list start (greater indent than parent)
+                    const nestedListStart = (ln) => {
+                        return (
+                            ln.match(/^\s{2,}[*+-]\s+.+/) ||
+                            ln.match(/^\s{2,}\d+[\.)]\s+.+/) ||
+                            ln.match(/^\s{2,}\d+\s+[A-Za-z].+/)
+                        );
+                    };
+
+                    // Parse one list item (captures wrapped lines, nested lists, and item paragraphs)
+                    const parseOneItem = (firstLine, firstMatch) => {
+                        let itemText = firstMatch[3] || firstMatch[2] || firstMatch[0];
+                        if (isOrdered && firstMatch[3]) itemText = firstMatch[3];
+                        if (!isOrdered && firstMatch[3]) itemText = firstMatch[3];
+
+                        const parts = [itemText];  
+                        const children = []; 
+
+                        idx++; 
+
+                        while (idx < lines.length) {
+                            const ln = lines[idx];
+
+                            if (!ln.trim().length) {
+                                let look = idx + 1, stop = false;
+                                while (look < lines.length && !lines[look].trim().length) look++;
+                                if (look < lines.length) {
+                                    const lookLn = lines[look];
+                                    if ((isOrdered && sameLevelOl(lookLn)) || (!isOrdered && sameLevelUl(lookLn))) {
+                                        idx = look; // jump to that next item
+                                        break;
+                                    }
+                                }
+                                parts.push(''); 
+                                idx++;
+                                continue;
+                            }
+
+                            // If we encounter a same-level new item, stop
+                            if ((isOrdered && sameLevelOl(ln)) || (!isOrdered && sameLevelUl(ln))) {
+                                break;
+                            }
+
+                            if (nestedListStart(ln)) {
+                                // Determine nested block extent
+                                const nestedIndent = (ln.match(/^\s*/)?.[0].length) ?? 0;
+
+                                // Gather nested lines until we go back to <= parentIndent or EOF
+                                const nestLines = [];
+                                let k = idx;
+                                while (k < lines.length) {
+                                    const nln = lines[k];
+                                    const nIndent = (nln.match(/^\s*/)?.[0].length) ?? 0;
+                                    if (!nln.trim().length) { nestLines.push(nln); k++; continue; }
+                                    if (nIndent < nestedIndent) break; // back to parent or less
+                                    nestLines.push(nln);
+                                    k++;
+                                }
+
+                                const normalized = nestLines.map(nl => nl.replace(new RegExp(`^\\s{0,${nestedIndent}}`), '')).join('\n');
+                                children.push(renderBlocks(normalized));
+                                idx = k;
+                                continue;
+                            }
+
+                            // Continuation line (wrapped text) at >= parentIndent+2 → keep as part of item text
+                            const currIndent = (ln.match(/^\s*/)?.[0].length) ?? 0;
+                            if (currIndent >= parentIndent + 2) {
+                                parts.push(ln.replace(/^\s{2,}/, ''));
+                                idx++;
+                                continue;
+                            }
+
+                            // If it looks like a paragraph line that isn't a new list, keep it inside the item
+                            if (!/^\s*([*+-])\s+/.test(ln) && !/^\s*\d+[\.)]?\s+/.test(ln)) {
+                                parts.push(ln.trim());
+                                idx++;
+                                continue;
+                            }
+
+                            break;
+                        }
+
+                        // Render item: paragraphs + any nested lists appended
+                        const paragraphs = parts.join('\n').split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+                        let inner = paragraphs.map(p => `<p>${renderInline(p)}</p>`).join('');
+                        if (!inner) inner = `<p>${renderInline('')}</p>`;
+                        if (children.length) inner += children.join('');
+                        html += `<li>${inner}</li>`;
+                    };
+
+                    // Emit items until we hit a non-item or lower indent
+                    while (idx < lines.length) {
+                        const ln = lines[idx];
+
+                        if (ln.trim().length && ((ln.match(/^\s*/)?.[0].length) ?? 0) < parentIndent) break;
+
+                        const mUl = sameLevelUl(ln);
+                        const mOl = sameLevelOl(ln);
+
+                        if (isOrdered && mOl) {
+                            parseOneItem(ln, mOl);
+                            idx++;
+                            continue;
+                        }
+                        if (!isOrdered && mUl) {
+                            parseOneItem(ln, mUl);
+                            idx++;
+                            continue;
+                        }
+                        break;
+                    }
+
+                    return idx;
+                };
+
+                i = consumeList(i, baseIndent, ordered) - 1;
+
+                html += ordered ? `</ol>` : `</ul>`;
                 continue;
             }
 
@@ -358,7 +499,7 @@ function markdownToHtml(text) {
                 pbuf.push(lines[i]);
                 i++;
             }
-            html += `<p>${renderInline(pbuf.join(' '))}</p>`;
+            html += `<p>${renderInline(pbuf.join('\n'))}</p>`;
         }
 
         return html;
