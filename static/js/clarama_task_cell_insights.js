@@ -1601,8 +1601,179 @@ function cell_insights_code_run(taskIndex, code) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* VARIABLE INSPECTION                                                     */
+/* GLOBAL FIELDS                                                          */
+/* ---------------------------------------------------------------------- */
 
+// Store active observers to prevent duplicates
+window.__globalFieldsObservers = window.__globalFieldsObservers || {};
+
+function populate_insights_global_fields(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell || !$cell.length) {
+        console.warn("Cell not found for task", taskIndex);
+        return;
+    }
+
+    // Get the dropdown element
+    const $depFieldSelect = $(`#global-fields-${taskIndex} #gfe_dep_field`);
+    if (!$depFieldSelect.length) {
+        console.warn("Dependent field dropdown not found for task", taskIndex);
+        return;
+    }
+
+    // Store currently selected value to restore after refresh
+    const currentValue = $depFieldSelect.val();
+
+    // Clear existing options
+    $depFieldSelect.empty();
+    $depFieldSelect.append('<option value="">Select a field...</option>');
+
+    // Get GLOBAL fields (not cell-specific)
+    get_field_values({}, true, function(field_registry) {
+        console.log("Field registry for global fields:", field_registry);
+
+        const fieldsAdded = new Set();
+        
+        // Iterate through all fields in the registry
+        for (const [fieldName, fieldValue] of Object.entries(field_registry)) {
+            // Skip internal/system fields
+            if (fieldName === 'record' || 
+                fieldName === 'original_url' || 
+                fieldName === 'fieldgrid' ||
+                fieldName === 'clarama_task_kill' ||
+                fieldName.startsWith('_')) {
+                continue;
+            }
+
+            // Add unique field names only
+            if (!fieldsAdded.has(fieldName)) {
+                let displayValue = fieldName;
+                
+                // Add helpful info about the field value
+                if (Array.isArray(fieldValue)) {
+                    displayValue = `${fieldName} [${fieldValue.length} items]`;
+                } else if (typeof fieldValue === 'string' && fieldValue.length > 30) {
+                    displayValue = `${fieldName} (${fieldValue.substring(0, 30)}...)`;
+                }
+                
+                $depFieldSelect.append(
+                    $('<option>', {
+                        value: fieldName,
+                        text: displayValue,
+                        'data-field-type': typeof fieldValue,
+                        'data-field-value': JSON.stringify(fieldValue)
+                    })
+                );
+                fieldsAdded.add(fieldName);
+            }
+        }
+
+        // If no fields were added, show a message
+        if (fieldsAdded.size === 0) {
+            $depFieldSelect.append('<option value="" disabled>No fields available</option>');
+        }
+
+        // Restore previously selected value if it still exists
+        if (currentValue && $depFieldSelect.find(`option[value="${currentValue}"]`).length > 0) {
+            $depFieldSelect.val(currentValue);
+        }
+
+        console.log(`Added ${fieldsAdded.size} fields to dropdown for task ${taskIndex}`);
+    });
+}
+
+/**
+ * Set up observers to watch for field changes and auto-refresh dropdown
+ */
+function observeGlobalFieldsChanges(taskIndex) {
+    // Clean up existing observer if any
+    if (window.__globalFieldsObservers[taskIndex]) {
+        try {
+            window.__globalFieldsObservers[taskIndex].disconnect();
+        } catch (e) {}
+        delete window.__globalFieldsObservers[taskIndex];
+    }
+
+    const debouncedRefresh = debounce(() => {
+        const activeTabId = getActiveTabId(taskIndex);
+        if (activeTabId && activeTabId.startsWith('insights-global-fields-tab-')) {
+            populate_insights_global_fields(taskIndex);
+        }
+    }, 300);
+
+    // Watch for changes in all field inputs
+    const observer = new MutationObserver((mutations) => {
+        let shouldRefresh = false;
+
+        for (const mutation of mutations) {
+            // Check if fields were added/removed
+            if (mutation.type === 'childList') {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1 && (
+                        node.classList?.contains('clarama-field') ||
+                        node.querySelector?.('.clarama-field')
+                    )) {
+                        shouldRefresh = true;
+                        break;
+                    }
+                }
+                for (const node of mutation.removedNodes) {
+                    if (node.nodeType === 1 && (
+                        node.classList?.contains('clarama-field') ||
+                        node.querySelector?.('.clarama-field')
+                    )) {
+                        shouldRefresh = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (mutation.type === 'attributes' && 
+                mutation.target.classList?.contains('clarama-field')) {
+                shouldRefresh = true;
+            }
+
+            if (shouldRefresh) break;
+        }
+
+        if (shouldRefresh) {
+            debouncedRefresh();
+        }
+    });
+
+    // Observe the main grid container for structural changes
+    const gridContainer = document.querySelector('.clarama-grid');
+    if (gridContainer) {
+        observer.observe(gridContainer, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['name', 'id', 'data-id']
+        });
+    }
+
+    // Also listen for input/change events on all fields
+    $(document).on(`input.globalFields${taskIndex} change.globalFields${taskIndex}`, '.clarama-field', debouncedRefresh);
+
+    // Store observer for cleanup
+    window.__globalFieldsObservers[taskIndex] = {
+        observer: observer,
+        disconnect: function() {
+            observer.disconnect();
+            $(document).off(`.globalFields${taskIndex}`);
+        }
+    };
+}
+
+function disconnectGlobalFieldsObserver(taskIndex) {
+    if (window.__globalFieldsObservers[taskIndex]) {
+        window.__globalFieldsObservers[taskIndex].disconnect();
+        delete window.__globalFieldsObservers[taskIndex];
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* VARIABLE INSPECTION                                                     */
 /* ---------------------------------------------------------------------- */
 
 function inspectVariable(varName, taskIndex) {
@@ -1921,6 +2092,20 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     if (id.startsWith("insights-chat-tab-")) {
         initialiseInsightsGina(taskIndex);
     }
+});
+
+$(document).on("shown.bs.tab", 'button[id^="insights-global-fields-tab-"]', function() {
+    const id = this.id;
+    const taskIndex = id.replace('insights-global-fields-tab-', '');
+    populate_insights_global_fields(taskIndex);
+    observeGlobalFieldsChanges(taskIndex);
+});
+
+$(document).on("hidden.bs.tab", 'button[id^="insights-global-fields-tab-"]', function() {
+    const id = this.id;
+    const taskIndex = id.replace('insights-global-fields-tab-', '');
+    
+    disconnectGlobalFieldsObserver(taskIndex);
 });
 
 // When user switches to the Code Inspector tab, reload automatically
