@@ -942,19 +942,45 @@ function onMessage(event, socket_url, webSocket, socket_div) {
 
                 if (taskIndex) {
                     const cbChat = "cell_insights_chat_callback_" + taskIndex;
-
-
-                    // Prefer active gina insights chat stream first
+                
+                    // If a chat stream callback is already active, just deliver the chunk.
                     if (typeof window[cbChat] === "function") {
-                        try {
-                            window[cbChat](chunk);
-                        } catch (e) {
-                            console.error(e);
-                        }
+                        try { window[cbChat](chunk); } catch (e) { console.error(e); }
                         return; // handled by chat (keep callback for subsequent chunks)
                     }
+                
+                    try {
+                        // Open insights if closed
+                        if (typeof isInsightsOpen === 'function' && !isInsightsOpen(taskIndex)) {
+                            const $cell = (typeof getCellByTask === 'function') ? getCellByTask(taskIndex) : null;
+                            if ($cell && $cell.length && typeof openInsights === 'function') {
+                                openInsights($cell, taskIndex);
+                            }
+                        }
+                
+                        // Ensure the Chat tab is active
+                        const chatBtnId = `insights-chat-tab-${taskIndex}`;
+                        const chatBtn = document.getElementById(chatBtnId);
+                        if (chatBtn) {
+                            const Tab = (window.bootstrap && window.bootstrap.Tab) ? window.bootstrap.Tab : null;
+                            if (Tab) {
+                                Tab.getOrCreateInstance(chatBtn).show();
+                            } else {
+                                chatBtn.click?.();
+                            }
+                        }
+                
+                        // After opening + tab switch, try to deliver chunk again if a callback is now wired
+                        const cbChatNow = "cell_insights_chat_callback_" + taskIndex;
+                        if (typeof window[cbChatNow] === "function") {
+                            try { window[cbChatNow](chunk); } catch (e) { console.error(e); }
+                            return;
+                        }
+                    } catch (e) {
+                        console.error("Auto-open Insights for chat failed:", e);
+                    }
                 }
-
+                
                 return; // nothing to deliver
             }
 
