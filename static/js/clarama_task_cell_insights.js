@@ -1171,8 +1171,7 @@ function initialiseInsightsGina(taskIndex, force = false) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* VARIABLES TAB                                                           */
-
+/* VARIABLES TAB                                                          */
 /* ---------------------------------------------------------------------- */
 
 function createVariableButtonDirect(varName, taskIndex) {

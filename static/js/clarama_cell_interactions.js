@@ -91,32 +91,12 @@ function cell_edit_run(parent) {
         var cell_button = $(this).closest('.clarama-cell-item');
         var taskIndex = cell_button.attr('step');
         var hasinsightsOpen = !cell_button.find('#right_content_' + taskIndex).hasClass('d-none');
+
+        // Record the run intent for this step
+        window.__claramaRunIntent = window.__claramaRunIntent || {};
+        window.__claramaRunIntent[taskIndex] = { hadInsightsOpen: hasinsightsOpen, sawChat: false };
+
         cell_item_run(cell_button);
-
-        if (hasinsightsOpen) {
-            closeAllinsights();
-
-            setTimeout(function () {
-                var currentStep = parseInt(taskIndex);
-                if (!isNaN(currentStep)) {
-                    var nextCell = $("li.clarama-cell-item[step='" + (currentStep + 1) + "']");
-                    if (nextCell.length) {
-                        var nextTaskIndex = nextCell.attr('step');
-                        if (nextCell.find('.celleditinsights').length > 0) {
-                            openInsights(nextCell, nextTaskIndex);
-                        }
-
-                        // Focus on the next cell's editor
-                        var nextEditorDiv = nextCell.find(".ace_editor").eq(0);
-                        if (nextEditorDiv.length) {
-                            var editor = nextEditorDiv.get(0).env.editor;
-                            editor.focus();
-                            editor.gotoLine(editor.session.getLength() + 1, 0);
-                        }
-                    }
-                }
-            }, 100);
-        }
     });
 }
 

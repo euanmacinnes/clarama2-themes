@@ -867,8 +867,11 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
                     ? dict.values.output
                     : (typeof dict.output !== 'undefined' ? dict.output : "");
-                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
-                chunk = html_decode(chunk);
+                    let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                    chunk = html_decode(chunk);
+                    if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                        window.__claramaRunIntent[taskIndex].sawChat = true;
+                    }
 
                 const cbInspect = "cell_insights_inspect_callback_" + taskIndex;
 
@@ -934,6 +937,10 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const m = stepId.match(/step_(\d+)/);
                 const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
 
+                if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                    window.__claramaRunIntent[taskIndex].sawChat = true;
+                }
+
                 const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
                     ? dict.values.output
                     : (typeof dict.output !== 'undefined' ? dict.output : "");
@@ -951,9 +958,9 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 
                     try {
                         // Open insights if closed
-                        if (typeof isInsightsOpen === 'function' && !isInsightsOpen(taskIndex)) {
-                            const $cell = (typeof getCellByTask === 'function') ? getCellByTask(taskIndex) : null;
-                            if ($cell && $cell.length && typeof openInsights === 'function') {
+                        if (!isInsightsOpen(taskIndex)) {
+                            const $cell = getCellByTask(taskIndex);
+                            if ($cell && $cell.length) {
                                 openInsights($cell, taskIndex);
                             }
                         }
@@ -1124,9 +1131,33 @@ function onMessage(event, socket_url, webSocket, socket_div) {
 
                 if (dict['type'] === 'task_step_exception') {
                     task_progress.addClass("bg-danger");
+                    const stepId = String(dict.step_id || "");
+                    const mStep = stepId.match(/step_(\d+)/);
+                    const taskIndex = mStep ? mStep[1] : stepId.replace(/\D/g, "");
+                    if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                        window.__claramaRunIntent[taskIndex].sawException = true;
+                    }
+                }
+  
+                // Auto-close Insights after a successful run if no chat arrived
+                try {
+                    if (dict['type'] === 'task_step_completed') {
+                        const stepId = String(dict.step_id || "");
+                        const mStep = stepId.match(/step_(\d+)/);
+                        const taskIndex = mStep ? mStep[1] : stepId.replace(/\D/g, "");
+
+                        if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                            const intent = window.__claramaRunIntent[taskIndex];
+                            if (intent.hadInsightsOpen && !intent.sawChat && !intent.sawException) {
+                                closeAllinsights();
+                            }
+                            delete window.__claramaRunIntent[taskIndex];
+                        }
+                    }
+                } catch (e) { 
+                    console.error('Post-run Insights autoclose failed', e); 
                 }
             }
-
         } catch (err) {
             console.log(err);
             console.log('CLARAMA_WEBSOCKET.js: exception raised processing:');
