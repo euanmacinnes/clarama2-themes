@@ -24,27 +24,6 @@ function debounce(fn, wait, immediate) {
     };
 }
 
-/**
- * Stop piping messages into the Chat bubble for this task.
- */
-function pauseChatStream(taskIndex) {
-    return;
-    
-    if (!taskIndex) return;
-    const cbKey = `cell_insights_chat_callback_${taskIndex}`;
-    window.__ginaChatActive[taskIndex] = false;
-    try {
-        delete window[cbKey];
-    } catch (_) {
-    }
-    try {
-        if (window.__ginaStreamIdleTimer && window.__ginaStreamIdleTimer[taskIndex]) {
-            clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
-        }
-    } catch (_) {
-    }
-}
-
 function ressumeChatStream(taskIndex) {
     if (!taskIndex) return;
     const cbKey = `cell_insights_chat_callback_${taskIndex}`;
@@ -90,12 +69,6 @@ function syncInsightsConsole(taskIndex) {
         // Re-arm chat streaming when Chat tab is active
         try {
             initialiseInsightsGina(taskIndex);
-        } catch (_) {
-        }
-    } else {
-        // Make sure chat stream doesn't grab stdout in non-chat tabs
-        try {
-            pauseChatStream(taskIndex);
         } catch (_) {
         }
     }
@@ -521,8 +494,6 @@ function cell_insights_data_run(cell_button, dataQuery) {
     if (!query) return;
     if ($input.is(":disabled")) return;
 
-    pauseChatStream(taskIndex);
-
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
 
@@ -787,7 +758,6 @@ else:
     get_field_values({}, true, function (field_registry) {
         const task_registry = buildTaskRegistry($cell);
         set_insight_behaviour(task_registry, "inspector", py, field_registry);
-        pauseChatStream(taskIndex);
 
         renderCodeInspectorResult(taskIndex, "… inspecting at row " + row + ", col " + column + " …");
 
@@ -1098,6 +1068,71 @@ function findEditorInLeft(taskIndex) {
     if (ace) return ace;
 
     return null;
+}
+
+// ------------------------------
+// Chat sizing helpers
+// ------------------------------
+window.__ginaChatResizeObs = window.__ginaChatResizeObs || Object.create(null);
+
+function getLeftEditorHeightPx(taskIndex) {
+    const left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) return 0;
+    const ace = left.querySelector('.ace_editor');
+    const host = ace || left.querySelector('.cell-editor, .editor-wrapper') || left;
+    const rect = host.getBoundingClientRect();
+    return Math.max(0, Math.round(rect.height));
+}
+
+function applyGinaChatSizing(taskIndex) {
+    const chat = document.getElementById(`insights_gina_chat_${taskIndex}`);
+    if (!chat) return;
+    const leftH = getLeftEditorHeightPx(taskIndex);
+    const maxH = Math.max(250, leftH || 0);
+    chat.style.setProperty('--gina-chat-max', `${maxH}px`);
+    chat.style.minHeight = '250px';
+    chat.style.overflowY = 'auto';
+}
+
+function observeGinaChatSizing(taskIndex) {
+    try {
+        window.__ginaChatResizeObs[taskIndex]?.disconnect();
+    } catch (_){
+    }
+
+    const left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) {
+        setTimeout(() => observeGinaChatSizing(taskIndex), 120);
+        return;
+    }
+
+    // React to size changes of the left pane/content
+    const ro = new ResizeObserver(() => {
+        applyGinaChatSizing(taskIndex);
+    });
+    ro.observe(left);
+    const handler = () => applyGinaChatSizing(taskIndex);
+    window.addEventListener('resize', handler, {passive: true});
+    window.__ginaChatResizeObs[taskIndex] = {
+        ro,
+        handler
+    };
+    // Initial sizing now that everything is wired
+    applyGinaChatSizing(taskIndex);
+}
+
+function disobserveGinaChatSizing(taskIndex) {
+    const entry = window.__ginaChatResizeObs && window.__ginaChatResizeObs[taskIndex];
+    if (!entry) return;
+    try { 
+        entry.ro?.disconnect(); 
+    } catch(_){
+    }
+    try { 
+        window.removeEventListener('resize', entry.handler);
+    } catch(_){
+    }
+    delete window.__ginaChatResizeObs[taskIndex];
 }
 
 function observeEditorReady(taskIndex) {
@@ -1495,7 +1530,6 @@ print(json.dumps(categories))
         `.trim();
 
         set_insight_behaviour(task_registry, "variables", code, field_registry);
-        pauseChatStream(taskIndex);
 
         ajaxRun(task_registry).done((data) => {
             if (data && data.data === "ok") {
@@ -1566,8 +1600,6 @@ function cell_insights_code_run(taskIndex, code) {
     if (!code) {
         return;
     }
-
-    pauseChatStream(taskIndex);
 
     const executionKey = `console_executing_${taskIndex}`;
     if (window[executionKey]) {
@@ -2129,6 +2161,18 @@ $(document).on("hidden.bs.tab", 'button[id^="insights-global-fields-tab-"]', fun
     
     disconnectGlobalFieldsObserver(taskIndex);
 });
+
+
+document.addEventListener('shown.bs.tab', (ev) => {
+    const btn = ev.target;
+    const id = (btn && btn.id) || '';
+    const m = id.match(/insights-chat-tab-(\d+)/);
+    if (m) {
+        const taskIndex = m[1];
+        applyGinaChatSizing(taskIndex);
+        observeGinaChatSizing(taskIndex);
+    }
+}, {capture: false});
 
 // When user switches to the Code Inspector tab, reload automatically
 document.addEventListener('shown.bs.tab', function (e) {

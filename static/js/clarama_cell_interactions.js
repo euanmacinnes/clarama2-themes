@@ -68,15 +68,8 @@ function closeAllinsights() {
                 }
             }
 
-            // // Clean up any insights-specific callbacks
-            // if (window[`cell_insights_variables_callback_${taskIndex}`]) {
-            //     window[`cell_insights_variables_callback_${taskIndex}`] = null;
-            // }
-            // if (window[`cell_insights_callback_${taskIndex}`]) {
-            //     window[`cell_insights_callback_${taskIndex}`] = null;
-            // }
-
             disarmCodeInspectorAutoReload(taskIndex);
+            disobserveGinaChatSizing(taskIndex);
         }
     });
 }
@@ -243,6 +236,8 @@ function openInsights(cellItem, taskIndex) {
     if (window.__ginaInsightsHandshakeDone) delete window.__ginaInsightsHandshakeDone[taskIndex];
     initialiseInsightsGina(taskIndex, /*force=*/true);
     initialiseCellReprompt(taskIndex);
+    applyGinaChatSizing(taskIndex);
+    observeGinaChatSizing(taskIndex);
 
     setTimeout(() => {
         // Arm if Code Inspector tab is currently active
