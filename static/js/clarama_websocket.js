@@ -853,6 +853,12 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 return;
             }
 
+            // Trigger content saved events for grids and listeners
+            if (dict['class'] === 'saved') {
+                try { if (typeof window.onContentSaved === 'function') { window.onContentSaved(dict); } } catch (e) { try { console.warn('onContentSaved callback error', e); } catch(_){} }
+                try { var evt = new CustomEvent('onContentSaved', { detail: dict, bubbles: true }); window.dispatchEvent(evt); } catch (e) { try { console.warn('dispatch onContentSaved failed', e); } catch(_){} }
+            }
+
             if (dict['class'] === "layout") {
                 var cols = dict['values']['width'];
                 var rows = dict['values']['height'];

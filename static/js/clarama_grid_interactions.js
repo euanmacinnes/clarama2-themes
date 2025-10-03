@@ -395,3 +395,56 @@ function showInteractionContent(field, interaction, relativeP, field_values, con
     // newIC.setAttribute("autorun", "True");
     return newIC;
 }
+
+
+// Listen for content saved events to refresh embedded elements inside grids
+(function(){
+    try {
+        if (typeof window !== 'undefined' && !window.__claramaGridSavedListener) {
+            window.__claramaGridSavedListener = true;
+            window.addEventListener('onContentSaved', function(ev){
+                try {
+                    var detail = ev && ev.detail ? ev.detail : {};
+                    // Try extract a URL from the payload
+                    var savedUrl = detail.url;
+                    if (!savedUrl) return;
+                    savedUrl = '/render/embed' + String(savedUrl);
+
+                    // Find all grids (editing grids will be present in DOM); keep scope limited to grids
+                    var $grids = $('.clarama-edit-grid');
+                    $grids.each(function(){
+                        var $grid = $(this);
+                        // Match embedded widgets by exact url attribute
+                        var $targets = $grid.find('.clarama-post-embedded, .clarama-embedded').filter(function(){
+                            var u = $(this).attr('url') || '';
+                            return u === savedUrl;
+                        });
+                        if ($targets.length === 0) return;
+
+                        $targets.each(function(){
+                            var $el = $(this);
+                            try {
+                                // Mark not loaded to allow reload
+                                $el.attr('clarama_loaded', false);
+                                // Prefer POST reload for post-embedded
+                                if ($el.hasClass('clarama-post-embedded') && typeof $el.load_post === 'function') {
+                                    $el.load_post();
+                                } else if ($el.hasClass('clarama-embedded') && typeof $el.load === 'function') {
+                                    $el.load();
+                                } else if (typeof $.fn.load_post === 'function' && $el.hasClass('clarama-post-embedded')) {
+                                    $el.load_post();
+                                }
+                            } catch (e) {
+                                try { console.warn('Grid saved reload failed', e); } catch(_){ }
+                            }
+                        });
+                    });
+                } catch (e) {
+                    try { console.warn('onContentSaved handler error', e); } catch(_){ }
+                }
+            });
+        }
+    } catch (e) {
+        try { console.warn('Failed installing onContentSaved grid listener', e); } catch(_){ }
+    }
+})();

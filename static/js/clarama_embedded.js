@@ -377,6 +377,19 @@ $.fn.load_post = function (onfinished, args, json) {
                                     }
 
                                 }
+                                // Run inline onload JS if present on the embedded element
+                                try {
+                                    var onloadAttr = embedded.attr('onload');
+                                    if (onloadAttr && typeof onloadAttr === 'string' && onloadAttr.trim().length > 0) {
+                                        // Execute in a minimal sandboxed Function scope with `this` bound to the element
+                                        try {
+                                            (new Function(onloadAttr)).call(embedded[0]);
+                                        } catch (e) {
+                                            claramaReportError('execute onload attr (post)', embedded, e, { url: final_url });
+                                        }
+                                    }
+                                } catch (_) {}
+
                                 //console.log('POST onfinished:' + typeof(onfinished) + '-' + onfinished);
 
                                 if (typeof onfinished === 'function') {
