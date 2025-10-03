@@ -1,24 +1,36 @@
+/* =====================================================================
+CELL LAYOUT
+===================================================================== */
 .cell-panel {
-    padding: 0; 
-    flex: 0 0 auto; 
+    padding: 0;
+    flex: 0 0 auto;
     width: 6%;
+    background: rgb(234, 244, 255);
 }
 
-.content-row{
-    display: flex; 
+.last-panel {
+    background: #6af !important;
+}
+
+#stream_main > li.clarama-cell-item:last-of-type .cell-panel {
+    background: #6af;
+}
+
+.content-row {
+    display: flex;
     align-items: stretch;
-    gap: 0; 
+    gap: 0;
     position: relative;
     overflow: hidden;
     width: 100%;
-  
+
     --divider-width: 8px;
     --bar-width: 28px;
     --split-ratio: 0.5;
 }
 
-.content-row.split-active .drag-divider { 
-    display: block; 
+.content-row.split-active .drag-divider {
+    display: block;
 }
 
 .content-row:not(.split-active) .right-content {
@@ -30,11 +42,11 @@
     max-width: calc(100% - var(--bar-width)) !important;
 }
 
-.left-content{
+.left-content {
     flex: 0 0 calc(var(--split-ratio) * (100% - var(--divider-width) - var(--bar-width)));
 }
 
-.right-content{
+.right-content {
     flex: 0 0 calc((1 - var(--split-ratio)) * (100% - var(--divider-width) - var(--bar-width)));
 }
 
@@ -45,8 +57,11 @@
     min-width: 0;
 }
 
+/* =====================================================================
+    INSIGHTS PANEL
+    ===================================================================== */
 .cell-insights {
-    height: 100%;
+    height: auto;
     display: flex;
     flex-direction: column;
 }
@@ -63,6 +78,7 @@
     flex-direction: column;
 }
 
+/* Loop state helpers */
 .loop-hidden {
     display: none;
 }
@@ -79,15 +95,17 @@
     opacity: 1;
 }
 
+/* Active insight button */
 .celleditinsight.active {
     background-color: #007bff !important;
-    color: white !important;
+    color: #fff !important;
 }
 
 .celleditinsight.active i {
-    color: white !important;
+    color: #fff !important;
 }
 
+/* Variables region */
 .insights-variables {
     border-bottom: 1px solid #dee2e6;
     flex: 1;
@@ -119,7 +137,7 @@
     cursor: pointer;
     padding: 6px 12px;
     border-radius: 6px;
-    transition: all 0.2s;
+    transition: all .2s;
     font-family: 'Courier New', Monaco, monospace;
     font-size: 14px;
     background-color: #f8f9f2;
@@ -133,12 +151,12 @@
     background-color: #e9ecef;
     border-color: #007bff;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
 }
 
 .variable-item.selected {
     background-color: #007bff;
-    color: white;
+    color: #fff;
     border-color: #007bff;
 }
 
@@ -148,78 +166,12 @@
 }
 
 .variable-item.selected .variable-name {
-    color: white;
+    color: #fff;
 }
 
 .variable-type {
     color: #6c757d;
     font-size: 11px;
-}
-
-/* Console section stays at bottom with fixed height */
-.insights-console {
-    background-color: #000000 !important;
-    border-top: 1px solid #333333 !important;
-    color: #ffffff;
-    flex-shrink: 0;
-}
-
-.console-output {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: 'Courier New', 'Monaco', monospace;
-    color: #ffffff;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.console-line {
-    margin: 2px 0;
-    font-family: 'Courier New', Monaco, monospace;
-    color: #ffffff;
-}
-
-.console-input {
-    font-family: 'Courier New', Monaco, monospace;
-    font-size: 12px;
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    border: 1px solid #333333 !important;
-}
-
-.console-input:focus {
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    border-color: #007bff !important;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
-}
-
-.console-input::placeholder {
-    color: #888888 !important;
-}
-
-.insights-console .input-group .btn {
-    background-color: #333333 !important;
-    border-color: #333333 !important;
-    color: #ffffff !important;
-}
-
-.insights-console .input-group .btn:hover {
-    background-color: #555555 !important;
-    border-color: #555555 !important;
-}
-
-.insights-console .input-group .btn:focus {
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
-}
-
-.insights-variables .text-muted,
-.insights-variables .text-danger {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    text-align: center;
 }
 
 .notification-variables {
@@ -240,7 +192,7 @@
 
 .variable-item.notification-variable.selected {
     background-color: #2196f3;
-    color: white;
+    color: #fff;
     border-color: #1976d2;
 }
 
@@ -248,47 +200,134 @@
     color: #1976d2 !important;
 }
 
+/* =====================================================================
+    CONSOLE
+    ===================================================================== */
+.insights-console {
+    background-color: #000 !important;
+    border-top: 1px solid #333 !important;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.console-output {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', Monaco, monospace;
+    color: #fff;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.console-line {
+    margin: 2px 0;
+    font-family: 'Courier New', Monaco, monospace;
+    color: #fff;
+}
+
+.console-input {
+    resize: none;
+    overflow: hidden;
+    transition: opacity 120ms ease, background-color 120ms ease, filter 120ms ease;
+}
+
+.console-input.console-disabled,
+.console-input:disabled {
+    opacity: .55;
+    background-color: #f2f2f2;
+    filter: grayscale(25%);
+    cursor: not-allowed;
+}
+
+.console-input.console-disabled::placeholder,
+.console-input:disabled::placeholder {
+    color: #9aa0a6;
+}
+
+.execute-console {
+    transition: opacity 120ms ease, filter 120ms ease;
+}
+.execute-console:disabled {
+    opacity: .5;
+    filter: grayscale(25%);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.console-input::placeholder {
+    color: #888 !important;
+}
+
+.insights-console .input-group .btn {
+    background-color: #333 !important;
+    border-color: #333 !important;
+    color: #fff !important;
+}
+
+.insights-console .input-group .btn:hover {
+    background-color: #555 !important;
+    border-color: #555 !important;
+}
+
+.insights-console .input-group .btn:focus {
+    box-shadow: 0 0 0 .2rem rgba(0,123,255,.25) !important;
+}
+
+/* Center helper text inside variables panel */
+.insights-variables .text-muted,
+.insights-variables .text-danger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+}
+
+/* =====================================================================
+    SPLIT & DRAG DIVIDER
+    ===================================================================== */
 .cell-split {
     flex: 1 1 auto;
     min-width: 0;
 }
-  
-.drag-divider { 
-    display: none; 
-    flex:0 0 var(--divider-width); 
-    cursor: col-resize; 
-    position: relative; 
-    touch-action: none; 
+
+.drag-divider {
+    display: none;
+    flex: 0 0 var(--divider-width);
+    cursor: col-resize;
+    position: relative;
+    touch-action: none;
 }
 
-.drag-divider::before { 
-    content: ""; 
-    position: absolute; 
-    left: 50%; 
-    top: 0; 
-    bottom: 0; 
-    width: 2px; 
-    transform: translateX(-50%); 
-    background: #dee2e6; 
+.drag-divider::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    transform: translateX(-50%);
+    background: #dee2e6;
 }
 
-.drag-divider:hover::before, 
-.dragging .drag-divider::before { 
-    background:#0d6efd; 
+.drag-divider:hover::before,
+.dragging .drag-divider::before {
+    background: #0d6efd;
 }
-
 
 body.dragging {
     user-select: none;
     cursor: col-resize;
 }
 
+/* =====================================================================
+    INSIGHTS TOGGLE BAR
+    ===================================================================== */
 .insights-toggle-bar {
     flex: 0 0 var(--bar-width);
     display: flex;
-    align-items:start;
+    align-items: start;
     justify-content: center;
-    border-left: 1px solid #dee2e6;
     background: #6af;
     cursor: pointer;
     padding-top: 16px;
@@ -299,17 +338,147 @@ body.dragging {
     appearance: none;
     box-shadow: none;
 }
-
-.insights-toggle-bar:focus { 
-    outline: none; 
+.insights-toggle-bar:focus {
+    outline: none;
 }
 
-.insights-toggle-bar i { 
-    pointer-events: none; 
+.insights-toggle-bar i {
+    pointer-events: none;
     font-size: 1.1rem;
 }
 
+/* Bulb glow */
 .insight-bulb-glow {
     color: #ffc107;
-    text-shadow: 0 0 6px rgba(255,193,7,0.8), 0 0 14px rgba(255,193,7,0.6);
+    text-shadow: 0 0 6px rgba(255,193,7,.8), 0 0 14px rgba(255,193,7,.6);
+}
+
+/* =====================================================================
+    CHAT BUBBLES & MARKDOWN
+    ===================================================================== */
+.insights-gina-chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+    padding: 8px 12px;
+}
+
+.insights-gina-chat {
+    display: flex;
+    margin: 0;
+}
+
+.insights-gina-chat-user {
+    justify-content: flex-end;
+}
+
+.insights-gina-chat-reply {
+    justify-content: flex-start;
+}
+
+.insights-gina-chat-bubble {
+    max-width: 90%;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 14px;
+    background: #f8f9fa;
+    white-space: pre-line;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    display: inline-flex;
+}
+.insights-gina-chat-user .insights-gina-chat-bubble {
+    background: #e7f5ff;
+    border-color: #74c0fc;
+}
+
+.insights-gina-chat-bubble .clarama-markdown,
+.insights-gina-chat-bubble .stream-html {
+    max-width: 100%;
+}
+
+/* =====================================================================
+    CODE BLOCKS (GINA)
+    - Prevent overflow; horizontal scroll for long lines
+    ===================================================================== */
+.insights-gina-chat-container .ginacode-wrap {
+    position: relative;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.insights-gina-chat-container .code-insert-bar {
+    position: absolute;
+    inset-inline-start: .25rem; 
+    top: 8px;
+    bottom: 8px;
+    width: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #6af;
+    color: #000;
+    opacity: .7;
+    transition: opacity .15s ease, transform .15s ease;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.06) inset;
+}
+.insights-gina-chat-container .code-insert-bar.disabled {
+    opacity: .3;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none !important;
+}
+
+.insights-gina-chat-container .code-insert-bar:hover {
+    opacity: 1;
+    transform: translateX(-1px);
+}
+
+.insights-gina-chat-container .code-insert-bar:focus {
+    box-shadow: 0 0 0 2px rgba(13,110,253,.25);
+}
+
+.insights-gina-chat-container .ginacode {
+    padding-inline-start: 26px;
+}
+
+.insights-gina-chat-bubble pre.ginacode,
+.insights-gina-chat-bubble .clarama-markdown pre.ginacode {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: pre;
+    word-break: normal;
+}
+
+/* =====================================================================
+    FORM LAYOUT TWEAKS (INSIGHTS ONLY)
+    ===================================================================== */
+.cell-insights .row:has(#gfe_dep_field) > [class^="col-"],
+.cell-insights .row:has(#gfe_to)        > [class^="col-"],
+.cell-insights .row:has(#gfe_layout)    > [class^="col-"],
+.cell-insights .row:has(#gfe_ext)       > [class^="col-"],
+.cell-insights .row:has(#gfe_result_expr)  > [class^="col-"],
+.cell-insights .row:has(#gfe_result_value) > [class^="col-"] {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+}
+
+.cell-insights #gfe_insert {
+    width: 100%;
+}
+
+.cell-insights .form-label {
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+
+.cell-insights .form-text {
+    margin-top: .25rem;
 }

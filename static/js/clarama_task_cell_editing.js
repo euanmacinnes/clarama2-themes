@@ -35,174 +35,138 @@ $.fn.enablesortcolor = function () {
                 $('.panel', panelList).each(function (index, elem) {
                     var listItem = $(elem);
 
-                    listItem.removeClass("bg-primary");
-                    listItem.addClass("bg-secondary");
-
                     $('.step-label', listItem).each(function () {
-                        var label = $(this)
-                        label.html('' + (index + 1))
+                        $(this).html('' + (index + 1))
                     });
                 });
 
-                $('.panel', panelList).last().removeClass("bg-secondary");
-                $('.panel', panelList).last().addClass("bg-primary");
+                $('.panel', panelList).last().css('background', '#6af');
             }
         });
     });
 };
 
+function applyLastPanel(panelList) {
+    $('.panel', panelList).removeClass('last-panel');
+    $('.panel', panelList).last().addClass('last-panel');
+}
+
+$.fn.enablesortcolor = function () {
+    return this.each(function () {
+        var panelList = $(this);
+
+        panelList.sortable({
+            handle: '.draggable-heading',
+            update: function () {
+                var streamname = $(this).closest('.stream').attr('stream-name');
+
+                $('.clarama-cell-item', panelList).each(function (index) {
+                    $(this).attr('id', streamname + '_' + (index + 1));
+                });
+
+                $('.panel', panelList).each(function (index) {
+                    $('.step-label', this).html('' + (index + 1));
+                });
+
+                applyLastPanel(panelList);
+            }
+        });
+
+        applyLastPanel(panelList);
+    });
+};
+
 function sortUpdate(panelList) {
-    $('.clarama-cell-item', panelList).each(function (index, elem) {
-        var streamname = $(this).parent(".stream").attr('stream-name');
+    $('.clarama-cell-item', panelList).each(function (index) {
+        var streamname = $(this).closest('.stream').attr('stream-name');
         var oldStep = $(this).attr('step');
         var newStep = index + 1;
-        
-        console.log("SORT UPDATE " + index + " with streamname " + streamname + " - changing step from " + oldStep + " to " + newStep);
-        
-        $(this).attr('id', streamname + '_' + newStep);
-        $(this).attr('step', newStep);
-        
-        if (oldStep !== newStep) {
-            updateInsightsIds($(this), oldStep, newStep);
-        }
+
+        $(this).attr('id', streamname + '_' + newStep).attr('step', newStep);
+        if (oldStep !== newStep) updateInsightsIds($(this), oldStep, newStep);
     });
 
-    $('.panel', panelList).each(function (index, elem) {
-        var listItem = $(elem);
-
-        listItem.removeClass("bg-primary");
-        listItem.addClass("bg-secondary");
-
-        $('.step-label', listItem).each(function () {
-            var label = $(this)
-            label.html('<p class="step-label">' + (index + 1) + '</p>')
-        });
+    $('.panel', panelList).each(function (index) {
+        $('.step-label', this).html('<p class="step-label">' + (index + 1) + '</p>');
     });
 
-    $('.panel', panelList).last().removeClass("bg-secondary");
-    $('.panel', panelList).last().addClass("bg-primary");
-
-    reinitializeConsoleHandlers(panelList);
+    applyLastPanel(panelList);
 }
 
 function updateInsightsIds(cellElement, oldStep, newStep) {
     console.log(`Updating Insights IDs from ${oldStep} to ${newStep} for cell:`, cellElement);
-    
-    // Update Insights container ID
-    var InsightsContainer = cellElement.find(`#Insights_${oldStep}`);
-    if (InsightsContainer.length) {
-        InsightsContainer.attr('id', `Insights_${newStep}`);
-    }
-    
-    // Update left and right content IDs
-    var leftContent = cellElement.find(`#left_content_${oldStep}`);
-    if (leftContent.length) {
-        leftContent.attr('id', `left_content_${newStep}`);
-    }
-    
-    var rightContent = cellElement.find(`#right_content_${oldStep}`);
-    if (rightContent.length) {
-        rightContent.attr('id', `right_content_${newStep}`);
-    }
-    
-    // Update variables container ID
-    var variablesContainer = cellElement.find(`#variables_${oldStep}`);
-    if (variablesContainer.length) {
-        variablesContainer.attr('id', `variables_${newStep}`);
-    }
-    
-    // Update variables container with data-task-index
-    var variablesContainerWithIndex = cellElement.find(`#variables_container_${oldStep}`);
-    if (variablesContainerWithIndex.length) {
-        variablesContainerWithIndex.attr('id', `variables_container_${newStep}`);
-        variablesContainerWithIndex.attr('data-task-index', newStep);
-    }
-    
-    // Update console input/output IDs
-    var consoleInput = cellElement.find(`#console_input_${oldStep}`);
-    if (consoleInput.length) {
-        consoleInput.attr('id', `console_input_${newStep}`);
-        consoleInput.attr('data-task-index', newStep);
-    } else {
-        // Fallback: find by class and update
-        var consoleInputByClass = cellElement.find('.console-input');
-        if (consoleInputByClass.length) {
-            consoleInputByClass.attr('id', `console_input_${newStep}`);
-            consoleInputByClass.attr('data-task-index', newStep);
-        }
-    }
-    
-    var consoleOutput = cellElement.find(`#console_output_${oldStep}`);
-    if (consoleOutput.length) {
-        consoleOutput.attr('id', `console_output_${newStep}`);
-    } else {
-        // Fallback: find by class and update
-        var consoleOutputByClass = cellElement.find('.console-output');
-        if (consoleOutputByClass.length) {
-            consoleOutputByClass.attr('id', `console_output_${newStep}`);
-        }
-    }
-    
-    // Update insights button data-task-index
-    var insightsButton = cellElement.find('.celleditinsights');
-    if (insightsButton.length) {
-        insightsButton.attr('data-task-index', newStep);
-    }
-    
-    // Update execute button data-task-index
-    var executeButton = cellElement.find('.execute-console');
-    if (executeButton.length) {
-        executeButton.attr('data-task-index', newStep);
-    }
-    
-    // Update any variable buttons
-    var variableButtons = cellElement.find('.variable-item');
-    variableButtons.each(function() {
-        $(this).attr('data-task-index', newStep);
-    });
-    
-    // Update results container ID
-    var resultsContainer = cellElement.find(`#results_${oldStep}`);
-    if (resultsContainer.length) {
-        resultsContainer.attr('id', `results_${newStep}`);
-    }
-    
-    // Update step editor container ID 
-    cellElement.find('[id*="_' + oldStep + '"]').each(function() {
-        var currentId = $(this).attr('id');
-        if (currentId.endsWith('_' + oldStep)) {
-            var newId = currentId.replace(new RegExp('_' + oldStep + '$'), '_' + newStep);
-            $(this).attr('id', newId);
-        }
-    });
-    
-    // Move any existing callback functions to the new step index
-    if (window[`cell_Insights_variables_callback_${oldStep}`]) {
-        window[`cell_Insights_variables_callback_${newStep}`] = window[`cell_Insights_variables_callback_${oldStep}`];
-        window[`cell_Insights_variables_callback_${oldStep}`] = null;
-    }
-    
-    if (window[`cell_Insights_callback_${oldStep}`]) {
-        window[`cell_Insights_callback_${newStep}`] = window[`cell_Insights_callback_${oldStep}`];
-        window[`cell_Insights_callback_${oldStep}`] = null;
-    }
-    
-    // Clean up any execution flags
-    if (window[`console_executing_${oldStep}`]) {
-        window[`console_executing_${newStep}`] = window[`console_executing_${oldStep}`];
-        delete window[`console_executing_${oldStep}`];
-    }
-}
 
-function reinitializeConsoleHandlers(stream) {
-    stream.find('.clarama-cell-item').each(function() {
-        const cellElement = $(this);
-        const taskIndex = cellElement.attr('step') || cellElement.attr('data-task-index');
-        
-        if (taskIndex) {
-            setupConsoleHandlers(cellElement, taskIndex);
-        }
+    const A_STEP = String(oldStep);
+    const B_STEP = String(newStep);
+    const SUFFIX_RX_UNDERSCORE = new RegExp(`(_)${
+        A_STEP.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')
+    }$`);
+    const SUFFIX_RX_DASH = new RegExp(`(-)${
+        A_STEP.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')
+    }$`);
+    const ANY_REF_RX = new RegExp(`([_\\-])${
+        A_STEP.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')
+    }(?!\\d)`, 'g'); // e.g. insights-chat-1, left_content_1
+
+    function renameAttrRef($el, attr) {
+        const val = $el.attr(attr);
+        if (!val) return;
+        let next = val;
+        // Replace plain suffixes …-1 / …_1
+        next = next.replace(ANY_REF_RX, `$1${B_STEP}`);
+        // Replace hash refs: data-bs-target="#insights-chat-1"
+        next = next.replace(ANY_REF_RX, `$1${B_STEP}`);
+        if (next !== val) $el.attr(attr, next);
+    }
+
+    function sweep(container) {
+        container.find('*').each(function () {
+            const $n = $(this);
+            // id
+            const id = $n.attr('id');
+            if (id) {
+                let nid = id.replace(SUFFIX_RX_UNDERSCORE, `_${
+                    B_STEP
+                }`).replace(SUFFIX_RX_DASH, `-${
+                    B_STEP
+                }`).replace(ANY_REF_RX, `$1${B_STEP}`);
+                if (nid !== id) $n.attr('id', nid);
+            }
+            // common ref attrs
+            ['for','aria-controls','aria-labelledby','data-bs-target','data-target','href']
+                .forEach(a => renameAttrRef($n, a));
+            // task index
+            const dti = $n.attr('data-task-index');
+            if (dti === A_STEP) $n.attr('data-task-index', B_STEP);
+        });
+    }
+
+    // ---- left/right shells first ---------------------------------------
+    const $left  = cellElement.find(`#left_content_${A_STEP}`);
+    const $right = cellElement.find(`#right_content_${A_STEP}`);
+    if ($left.length)  $left.attr('id', `left_content_${B_STEP}`);
+    if ($right.length) $right.attr('id', `right_content_${B_STEP}`);
+
+    // insights root
+    const $insights = cellElement.find(`#insights_${A_STEP}`);
+    if ($insights.length) $insights.attr('id', `insights_${B_STEP}`);
+
+    // results & editor hosts
+    const $results = cellElement.find(`#results_${A_STEP}`);
+    if ($results.length) $results.attr('id', `results_${B_STEP}`);
+    const $stepHost = cellElement.find(`#step_main_${A_STEP}, #step_*_${A_STEP}`);
+    $stepHost.each(function(){
+        const cur = this.id;
+        const next = cur.replace(SUFFIX_RX_UNDERSCORE, `_${B_STEP}`);
+        if (next !== cur) this.id = next;
     });
+
+    // ---- FULL SWEEP within the cell (tabs, panes, buttons, etc.) -------
+    sweep(cellElement);
+
+    // Ensure toggle bars & key controls carry the new task index
+    cellElement.find('.insights-toggle-bar, .celleditinsights, .execute-console, .clear-chat, .code-inspector-reload')
+        .each(function(){ $(this).attr('data-task-index', B_STEP); });
 }
 
 $.fn.enablesort = function () {
@@ -215,9 +179,10 @@ $.fn.enablesort = function () {
             handle: '.draggable-heading'
         });
 
-        panelList.on('sortupdate'), function () {
+        panelList.on('sortupdate', function () {
             sortUpdate(panelList);
+        });
 
-        };
+        applyLastPanel(panelList);
     });
 };

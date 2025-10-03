@@ -15,38 +15,40 @@
  *  - { type: 'error', error: '...', resultset?: N }
  *
  * Chunks can arrive out of order; we buffer by chunk_no and flush in-order.
- * 
+ *
  * Multiple resultsets are supported with tabs - each resultset gets its own tab.
  */
 
-(function(global){
+(function (global) {
     'use strict';
 
     // Ordered assembler for chunk frames
-    class ClaramaStreamAssembler{
-        constructor(onRows){
+    class ClaramaStreamAssembler {
+        constructor(onRows) {
             this.onRows = onRows; // function(rowsArray)
             this.nextExpected = 0;
             this.buffer = new Map();
         }
-        reset(){
+
+        reset() {
             this.nextExpected = 0;
             this.buffer.clear();
         }
-        onChunk(chunk){
+
+        onChunk(chunk) {
             const n = Number(chunk.chunk_no ?? 0);
             const rows = Array.isArray(chunk.rows) ? chunk.rows : [];
-            if(n === this.nextExpected){
+            if (n === this.nextExpected) {
                 this.onRows(rows);
                 this.nextExpected++;
                 // Flush any consecutively buffered chunks
-                while(this.buffer.has(this.nextExpected)){
+                while (this.buffer.has(this.nextExpected)) {
                     const buffered = this.buffer.get(this.nextExpected);
                     this.buffer.delete(this.nextExpected);
                     this.onRows(buffered);
                     this.nextExpected++;
                 }
-            } else if (n > this.nextExpected){
+            } else if (n > this.nextExpected) {
                 this.buffer.set(n, rows);
             } else {
                 // Late/duplicate chunk; ignore or re-append as needed; default ignore
@@ -56,12 +58,12 @@
     }
 
     // Convert rows (array of arrays) to array of dicts using provided headings
-    function rowsToDicts(rows, headings){
+    function rowsToDicts(rows, headings) {
         const out = [];
-        for(const r of rows){
+        for (const r of rows) {
             const o = {};
-            for(let i=0;i<headings.length;i++){
-                o[ headings[i] ] = r[i];
+            for (let i = 0; i < headings.length; i++) {
+                o[headings[i]] = r[i];
             }
             out.push(o);
         }
@@ -69,9 +71,9 @@
     }
 
     // bTableStream API (now uses central ClaramaStream via clarama_websocket.js)
-    function bTableStream(table_id, options){
+    function bTableStream(table_id, options) {
         const topic = options && options.topic;
-        if(!topic) throw new Error('bTableStream requires options.topic');
+        if (!topic) throw new Error('bTableStream requires options.topic');
 
         const $container = $('#' + table_id);
         let $tabsRoot = null; // wrapper that will hold tabs and tab-content when needed
@@ -129,37 +131,44 @@
             const assembler = new ClaramaStreamAssembler((rows) => {
                 if (!headings || headings.length === 0) return; // not started yet
                 const dicts = rowsToDicts(rows, headings);
-                try { $table.bootstrapTable('append', dicts); }
-                catch (e) { console.error('bootstrapTable append failed', e); }
+                try {
+                    $table.bootstrapTable('append', dicts);
+                } catch (e) {
+                    console.error('bootstrapTable append failed', e);
+                }
             });
 
             // Initialize the bootstrap table
-            const table_columns = headings.map(col => ({ field: col, title: col, sortable: true }));
+            const table_columns = headings.map(col => ({field: col, title: col, sortable: true}));
             try {
                 $table.bootstrapTable('destroy').bootstrapTable({
                     exportDataType: 'all', exportTypes: ['json', 'xml', 'csv', 'txt', 'excel', 'pdf'],
                     columns: table_columns, data: [],
                     onClickRow: function (row, $element, field) {
-                        if (typeof perform_interact === 'function') { perform_interact($table, { row, field }); }
+                        if (typeof perform_interact === 'function') {
+                            perform_interact($table, {row, field});
+                        }
                     }
                 });
-            } catch (e) { console.error('bootstrapTable init failed', e); }
+            } catch (e) {
+                console.error('bootstrapTable init failed', e);
+            }
 
             // Store the resultset info
-            resultsets.set(resultsetIndex, { headings, assembler, $table });
+            resultsets.set(resultsetIndex, {headings, assembler, $table});
 
-            return { headings, assembler, $table };
+            return {headings, assembler, $table};
         }
 
         // Create the tab structure for multiple resultsets
         function createTabStructure() {
             // The container is a <table>. We need to create an external wrapper to host tabs.
             const $tableEl = $container; // original table element
-            
+
             // Build a wrapper just before the table and then move the table into the first tab-pane
             $tabsRoot = $('<div class="clarama-resultset-tabs"></div>');
             $tableEl.before($tabsRoot);
-            
+
             $tabsRoot.append(`
                 <ul class="nav nav-tabs" role="tablist"></ul>
                 <div class="tab-content"></div>
@@ -190,8 +199,10 @@
             tabsCreated = true;
         }
 
-        function onFrame(msg){
-            const type = msg && msg.type; if(!type) return;
+        function onFrame(msg) {
+            console.log('onFrame', msg);
+            const type = msg && msg.type;
+            if (!type) return;
 
             // Get resultset index from the message or info
             let resultsetIndex = 0;
@@ -213,7 +224,7 @@
             // Get or create the resultset data
             let resultsetData = resultsets.get(resultsetIndex);
 
-            if(type === 'start'){
+            if (type === 'start') {
                 const headings = msg.cols || [];
 
                 // Create or reset the resultset
@@ -222,23 +233,27 @@
                     resultsetData.assembler.reset();
 
                     // Reinitialize the table
-                    const table_columns = headings.map(col => ({ field: col, title: col, sortable: true }));
+                    const table_columns = headings.map(col => ({field: col, title: col, sortable: true}));
                     try {
                         resultsetData.$table.bootstrapTable('destroy').bootstrapTable({
                             exportDataType: 'all', exportTypes: ['json', 'xml', 'csv', 'txt', 'excel', 'pdf'],
                             columns: table_columns, data: [],
                             onClickRow: function (row, $element, field) {
-                                if (typeof perform_interact === 'function') { perform_interact(resultsetData.$table, { row, field }); }
+                                if (typeof perform_interact === 'function') {
+                                    perform_interact(resultsetData.$table, {row, field});
+                                }
                             }
                         });
-                    } catch (e) { console.error('bootstrapTable init failed', e); }
+                    } catch (e) {
+                        console.error('bootstrapTable init failed', e);
+                    }
                 } else {
                     // Create a new resultset
                     resultsetData = createTableForResultset(resultsetIndex, headings);
                 }
 
-                if(options && options.onopen) options.onopen(msg);
-            } else if(type === 'chunk'){
+                if (options && options.onopen) options.onopen(msg);
+            } else if (type === 'chunk') {
                 // Create resultset if it doesn't exist (shouldn't happen, but just in case)
                 if (!resultsetData) {
                     console.warn(`Received chunk for resultset ${resultsetIndex} without start frame`);
@@ -246,18 +261,19 @@
                 }
 
                 resultsetData.assembler.onChunk(msg);
-            } else if(type === 'end'){
-                if(options && options.onend) options.onend(msg);
-            } else if(type === 'error'){
+            } else if (type === 'end') {
+                if (options && options.onend) options.onend(msg);
+            } else if (type === 'error') {
                 console.error('Stream error', msg.error || msg);
-                if(options && options.onerror) options.onerror(msg);
+                if (options && options.onerror) options.onerror(msg);
             }
         }
 
-        const unregister = (window.ClaramaStream && window.ClaramaStream.register) ? window.ClaramaStream.register(topic, onFrame) : function(){};
+        const unregister = (window.ClaramaStream && window.ClaramaStream.register) ? window.ClaramaStream.register(topic, onFrame) : function () {
+        };
 
         // return an API to allow caller to stop listening and access resultset info
-        return { 
+        return {
             stop: unregister,
             getResultsets: () => Array.from(resultsets.keys()),
             hasMultipleResultsets: () => hasMultipleResultsets,

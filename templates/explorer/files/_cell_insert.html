@@ -22,6 +22,12 @@
             data-bs-placement="bottom"
             title="Add a data step (table / chart). Hold shift to add cell after"></i>
     </button>
+    <button id="step_{{ task_index }}_insert_data_stream" type="button" class="btn insert_step" steptype="data_stream"><i
+            class="mb-3 fs-4 bi bi-broadcast"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Add a streaming data step (table / chart). Hold shift to add cell after"></i>
+    </button>
     <button id="step_{{ task_index }}_insert_source" type="button" class="btn insert_step" steptype="source"><i
             class="mb-3 fs-4 bi bi-database"
             data-bs-toggle="tooltip"
@@ -58,6 +64,13 @@
            data-bs-toggle="tooltip"
            data-bs-placement="bottom"
            title="Add a question step to ask a specific LLM prompt"></i>
+    </button>
+    <button id="step_{{ task_index }}_insert_server" type="button" class="btn insert_step fs-4"
+            steptype="server">
+        <i class="bi bi-hdd fs-4 mb-3"
+           data-bs-toggle="tooltip"
+           data-bs-placement="bottom"
+           title="Add a server"></i>
     </button>
     <button id="step_{{ task_index }}_insert_test_config" type="button" class="btn insert_step fs-4"
             steptype="test_config">

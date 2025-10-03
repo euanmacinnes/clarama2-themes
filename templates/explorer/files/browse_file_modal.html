@@ -26,6 +26,22 @@
 <script type="text/javascript">
     // this will not add a grid element
 
+    // Simple error reporter for this modal
+    function reportError(location, error){
+        try {
+            const name = (error && (error.name||'')) || 'Error';
+            const msg = (error && (error.message||error.toString())) || 'Unknown error';
+            const stack = (error && error.stack) ? ('\n' + error.stack.split('\n').slice(0,4).join('\n')) : '';
+            const notice = '[' + location + '] ' + name + ': ' + msg + (stack ? ('\n' + stack) : '');
+            if (typeof window.flash === 'function'){
+                window.flash(notice.replace(/\n/g,'<br/>'), 'danger');
+            }
+            if (window.console && console.error){ console.error('browse_file_modal reportError:', notice); }
+        } catch(e){
+            try { console.error('browse_file_modal reportError failed', e); } catch(_e){}
+        }
+    }
+
     $(document).ready(() => {
         // this allows double click to add file
         $('#add_content_browsefile').on('dblclick', 'option', function () {
@@ -38,21 +54,25 @@
 
         // this loads the folder/file in the browse modal
         $('#browseFileModal').on('shown.bs.modal', function (event) {
-            const button = $(event.relatedTarget);
-            const filters = button.attr('filters');
-            const inputId = button.attr('inputId');
-            const gridElem = button.attr('gridElem');
+            try {
+                const button = $(event.relatedTarget);
+                const filters = button && button.attr ? button.attr('filters') : '';
+                const inputId = button && button.attr ? button.attr('inputId') : '';
+                const gridElem = button && button.attr ? button.attr('gridElem') : '';
 
-            const adjacent = button.prev(".browse-field");
+                const adjacent = button && button.prev ? button.prev(".browse-field") : null;
 
-            console.log("ADJACENT", adjacent);
+                console.log("ADJACENT", adjacent);
 
-            $(this).data('inputId', inputId);
-            $(this).data('adjacent', adjacent);
-            $(this).data('gridElem', gridElem);
-            path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
+                $(this).data('inputId', inputId);
+                $(this).data('adjacent', adjacent);
+                $(this).data('gridElem', gridElem);
+                path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
 
-            navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile', filters);
+                navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile', filters);
+            } catch (e) {
+                reportError('browse_file_modal.html::shown.bs.modal handler', e);
+            }
         });
     });
 
@@ -138,6 +158,16 @@
                 } else {
                     targetInput.value = newSource;
                 }
+                if (typeof inputId === 'string' && inputId.indexOf('interaction-url-') === 0) {
+                    try {
+                        const ev = new Event('input', { bubbles: true });
+                        if (targetInput.jquery) {
+                            targetInput[0].dispatchEvent(ev);
+                        } else {
+                            targetInput.dispatchEvent(ev);
+                        }
+                    } catch (e) { /* no-op */ }
+                }
             }
 
             if (inputId !== "grid-elem" && (!inputId.includes('_elemInput'))) {
@@ -153,6 +183,35 @@
             flash("Target input field not found!", "danger");
         }
 
-        $("#browseFileModal").modal('hide');
+        try {
+            if (window.bootstrap && window.bootstrap.Modal) {
+                const el = document.getElementById('browseFileModal');
+                const inst = window.bootstrap.Modal.getInstance(el) || new window.bootstrap.Modal(el);
+                inst.hide();
+            } else if ($ && $("#browseFileModal").modal) {
+                $("#browseFileModal").modal('hide');
+            } else {
+                throw new Error('No Bootstrap modal implementation available to hide modal.');
+            }
+        } catch(e) {
+            reportError('browse_file_modal.html::add_selected_file hide', e);
+        }
+    }
+    // Safe programmatic show for the Browse File modal
+    window.showBrowseFileModal = function(){
+        try {
+            const el = document.getElementById('browseFileModal');
+            if (!el) { throw new Error('#browseFileModal element not found'); }
+            if (window.bootstrap && window.bootstrap.Modal) {
+                const inst = new window.bootstrap.Modal(el, {backdrop: true, keyboard: true});
+                inst.show();
+            } else if ($ && $(el).modal) {
+                $(el).modal({show: true, backdrop: true, keyboard: true});
+            } else {
+                throw new Error('No Bootstrap modal implementation available to show modal.');
+            }
+        } catch(e) {
+            reportError('browse_file_modal.html::showBrowseFileModal', e);
+        }
     }
 </script>

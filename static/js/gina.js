@@ -19,15 +19,24 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
 
     // 1) Handshake → unlock inputs
     if (dict && dict.type === "ai_user_input") {
+        if (dict.clear)
+            resetConversation();
+
         console.log("GINA user input requested.");
         window.__ginaHandshakeDone = true;
         window.waitingForAiUserInput = false;
         window.__ginaSetInputsEnabled(true, "Type your question.");
+
+        // for unlocking insights console since the dict for gina is going throught this function
+        const stepId = String(dict.step_id || "");
+        const m = stepId.match(/step_(\d+)/);
+        const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+        setConsoleEnabled(taskIndex, true);
         return;
     }
 
     // 2) Answer (either a welcome/system message OR a reply to the user's turn)
-    if (dict && dict["type"] === "task_llm_result") {
+    if (dict && dict["class"] === "template" && dict["type"] === "task_llm_result") {
         const outputs = (dict.values && dict.values.output) ? dict.values.output : [];
         const chunk = html_decode(outputs.join(""));
         const isFinal = !!(dict.values && dict.values.final);
@@ -66,244 +75,6 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
             }[c]));
         }
 
-        // Full(er) Markdown to HTML conversion with safe rendering for Gina
-        function renderLLM(text) {
-            const input = String(text || "");
-            // Split on triple backticks to preserve code fences exactly
-            const parts = input.split(/```/g);
-
-            // Sanitize URL protocols
-            const sanitizeUrl = (url) => {
-                try {
-                    const u = String(url || '').trim();
-                    if (!u) return '#';
-                    const lower = u.toLowerCase();
-                    if (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('mailto:') || lower.startsWith('tel:')) {
-                        return u;
-                    }
-                    return '#';
-                } catch (_) {
-                    return '#';
-                }
-            };
-
-            // Escape HTML
-            const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            }[c]));
-
-            // Inline markdown (bold, italic, code, links, images, strikethrough)
-            const renderInline = (s) => {
-                let t = esc(s);
-                // Images ![alt](url)
-                t = t.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, alt, url, title) => {
-                    const u = sanitizeUrl(url);
-                    // alt and title are already escaped by the initial esc(s)
-                    const a = alt;
-                    const ti = title ? ` title=\"${title}\"` : '';
-                    return `<img src="${u}" alt="${a}"${ti}>`;
-                });
-                // Links [text](url)
-                t = t.replace(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, txt, url, title) => {
-                    const u = sanitizeUrl(url);
-                    const ti = title ? ` title=\"${title}\"` : '';
-                    // txt is already escaped; don't escape again to avoid double-encoding
-                    return `<a href="${u}" target="_blank" rel="noopener"${ti}>${txt}</a>`;
-                });
-                // Inline code `code`
-                t = t.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
-                // Bold **text** or __text__
-                t = t.replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, (m, a, b) => `<strong>${(a || b)}</strong>`);
-                // Italic *text* or _text_
-                t = t.replace(/\*(?!\*)([^*]+)\*|_([^_]+)_/g, (m, a, b) => `<em>${(a || b)}</em>`);
-                // Strikethrough ~~text~~
-                t = t.replace(/~~([^~]+)~~/g, (m, s) => `<del>${s}</del>`);
-                return t;
-            };
-
-            // Block rendering for non-code segments
-            const renderBlocks = (segment) => {
-                const lines = segment.replace(/\r\n?/g, '\n').split('\n');
-                let i = 0;
-                let html = '';
-
-                const flushParagraph = (buf) => {
-                    if (!buf.length) return;
-                    const text = buf.join('\n');
-                    html += `<p>${renderInline(text)}</p>`;
-                    buf.length = 0;
-                };
-
-                const renderTable = (start) => {
-                    // Very simple table: header | header \n --- | --- \n rows ...
-                    const rows = [];
-                    let idx = start;
-                    while (idx < lines.length && /\|/.test(lines[idx])) {
-                        rows.push(lines[idx]);
-                        idx++;
-                    }
-                    if (rows.length < 2 || !/^\s*[:\-\| ]+\s*$/.test(rows[1])) {
-                        return null; // not a table
-                    }
-                    const th = rows[0].split('|').map(s => s.trim());
-                    const bodyRows = rows.slice(2).map(r => r.split('|').map(s => s.trim()))
-                    let t = '<table class="gina-md-table"><thead><tr>' + th.map(h => `<th>${renderInline(h)}</th>`).join('') + '</tr></thead>';
-                    if (bodyRows.length) {
-                        t += '<tbody>' + bodyRows.map(cells => `<tr>${cells.map(c => `<td>${renderInline(c)}</td>`).join('')}</tr>`).join('') + '</tbody>';
-                    }
-                    t += '</table>';
-                    return {html: t, next: idx};
-                };
-
-                while (i < lines.length) {
-                    let line = lines[i];
-
-                    // Horizontal rule
-                    if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
-                        html += '<hr>';
-                        i++;
-                        continue;
-                    }
-
-                    // Headings #..######
-                    const h = line.match(/^\s*(#{1,6})\s+(.+)\s*$/);
-                    if (h) {
-                        const level = h[1].length;
-                        html += `<h${level}>${renderInline(h[2])}</h${level}>`;
-                        i++;
-                        continue;
-                    }
-
-                    // Blockquote
-                    if (/^\s*>\s?/.test(line)) {
-                        const buf = [];
-                        while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
-                            buf.push(lines[i].replace(/^\s*>\s?/, ''));
-                            i++;
-                        }
-                        html += `<blockquote>${renderBlocks(buf.join('\n'))}</blockquote>`;
-                        continue;
-                    }
-
-                    // Code block indented by 4 spaces
-                    if (/^\s{4}/.test(line)) {
-                        const buf = [];
-                        while (i < lines.length && /^\s{4}/.test(lines[i])) {
-                            buf.push(lines[i].replace(/^\s{4}/, ''));
-                            i++;
-                        }
-                        html += `<pre class="ginacode"><code>${esc(buf.join('\n'))}</code></pre>`;
-                        continue;
-                    }
-
-                    // Table
-                    if (/\|/.test(line)) {
-                        const table = renderTable(i);
-                        if (table) {
-                            html += table.html;
-                            i = table.next;
-                            continue;
-                        }
-                    }
-
-                    // Lists (unordered and ordered)
-                    const ulMatch = line.match(/^\s*([*+-])\s+(.+)/);
-                    const olMatch = line.match(/^\s*(\d+)\.\s+(.+)/);
-                    if (ulMatch || olMatch) {
-                        const ordered = !!olMatch;
-                        const tag = ordered ? 'ol' : 'ul';
-                        html += `<${tag}>`;
-                        while (i < lines.length) {
-                            const m = ordered ? lines[i].match(/^\s*\d+\.\s+(.+)/) : lines[i].match(/^\s*[*+-]\s+(.+)/);
-                            if (!m) break;
-                            html += `<li>${renderInline(m[1])}</li>`;
-                            i++;
-                        }
-                        html += `</${tag}>`;
-                        continue;
-                    }
-
-                    // Paragraphs: collect until blank line
-                    if (line.trim().length === 0) {
-                        html += '<br>';
-                        i++;
-                        continue;
-                    }
-                    const pbuf = [line];
-                    i++;
-                    while (i < lines.length && lines[i].trim().length > 0 && !/^\s*(#{1,6})\s+/.test(lines[i])) {
-                        // stop on heading or blank handled in loop; also stop on list/table/blockquote indicators
-                        if (/^\s*[*+-]\s+/.test(lines[i]) || /^\s*\d+\.\s+/.test(lines[i]) || /^\s*>\s?/.test(lines[i]) || /\|/.test(lines[i])) break;
-                        pbuf.push(lines[i]);
-                        i++;
-                    }
-                    html += `<p>${renderInline(pbuf.join(' '))}</p>`;
-                }
-
-                return html;
-            };
-
-            let html = '';
-            for (let i = 0; i < parts.length; i++) {
-                const segment = parts[i];
-                if (i % 2 === 1) {
-                    // code fence: detect optional language on first line
-                    let lang = '';
-                    let body = segment;
-                    const firstNl = segment.indexOf('\n');
-                    if (firstNl >= 0) {
-                        lang = segment.slice(0, firstNl).trim().toLowerCase();
-                        body = segment.slice(firstNl + 1);
-                    }
-                    // Normalise common aliases
-                    const map = {
-                        'py': 'python', 'python': 'python',
-                        'sql': 'sql',
-                        'ps1': 'powershell', 'ps': 'powershell', 'powershell': 'powershell',
-                        'sh': 'bash', 'shell': 'bash', 'bash': 'bash',
-                        'js': 'javascript', 'javascript': 'javascript',
-                        'ts': 'typescript', 'typescript': 'typescript',
-                        'json': 'json', 'html': 'html', 'xml': 'xml',
-                        'yaml': 'yaml', 'yml': 'yaml', 'ini': 'ini', 'txt': 'text', 'text': 'text',
-                        'mermaid': 'mermaid'
-                    };
-                    const norm = map[lang] || (lang && /^[a-z0-9_+-]+$/.test(lang) ? lang : '');
-
-                    if (norm === 'mermaid') {
-                        // Render Mermaid block; content should not be HTML-escaped for Mermaid parsing
-                        const safe = body.replace(/<\//g, '<\\/'); // avoid accidental closing tags
-                        // Base64 encode the raw body for safe attribute storage (handles unicode)
-                        let b64 = '';
-                        try {
-                            b64 = btoa(unescape(encodeURIComponent(body)));
-                        } catch (e) {
-                            try {
-                                b64 = btoa(body);
-                            } catch (_) {
-                                b64 = '';
-                            }
-                        }
-                        // Wrap with a positioned container and a small copy button in the bottom-right
-                        html += `
-<div class="mermaid-wrap" style="position:relative;">
-  <div class="mermaid">${safe}</div>
-  <button class="mermaid-copy-btn" data-b64="${b64}" title="Copy Mermaid"
-          style="position:absolute; right:6px; bottom:6px; padding:4px 6px; border:none; border-radius:4px; background:rgba(0,0,0,0.5); color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
-      <i class="bi bi-clipboard" aria-hidden="true"></i>
-  </button>
-</div>`;
-                    } else {
-                        // Render as code with language class for highlighters (Prism/HLJS)
-                        const cls = norm ? `language-${norm} hljs` : 'hljs';
-                        html += `<pre class="ginacode"><code class="${cls}">${esc(body)}</code></pre>`;
-                    }
-                } else {
-                    html += renderBlocks(segment);
-                }
-            }
-            return `<div class="clarama-markdown">${html}</div>`;
-        }
-
         if (out) {
             out.classList.remove("loading");
             out.style.whiteSpace = "normal"; // use HTML rendering
@@ -311,7 +82,7 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
             const prev = out.__streamBuffer || "";
             const next = prev + (chunk || "");
             out.__streamBuffer = next;
-            out.innerHTML = renderLLM(next);
+            out.innerHTML = markdownToHtml(next);
             try {
                 if (window.hljs && typeof window.hljs.highlightAll === 'function') {
                     window.hljs.highlightAll();
@@ -416,6 +187,425 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
     return dict;
 }
 
+// Configure markdown to html
+function markdownToHtml(text) {
+    const input = String(text || "");
+    // Split on triple backticks to preserve code fences exactly
+    const parts = input.split(/```/g);
+
+    // ---------- Helpers ----------
+    const sanitizeUrl = (url) => {
+        try {
+            const u = String(url || '').trim();
+            if (!u) return '#';
+            const lower = u.toLowerCase();
+            if (
+                lower.startsWith('http://') ||
+                lower.startsWith('https://') ||
+                lower.startsWith('mailto:') ||
+                lower.startsWith('tel:')
+            ) return u;
+            return '#';
+        } catch (_) {
+            return '#';
+        }
+    };
+
+    const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+
+    // Inline markdown (bold, italic, code, links, images, strikethrough, soft breaks)
+    const renderInline = (s) => {
+        let t = esc(s);
+
+        // Images ![alt](url)
+        t = t.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, alt, url, title) => {
+            const u = sanitizeUrl(url);
+            const ti = title ? ` title="${title}"` : '';
+            return `<img src="${u}" alt="${alt}"${ti}>`;
+        });
+
+        // Links [text](url)
+        t = t.replace(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, txt, url, title) => {
+            const u = sanitizeUrl(url);
+            const ti = title ? ` title="${title}"` : '';
+            return `<a href="${u}" target="_blank" rel="noopener"${ti}>${txt}</a>`;
+        });
+
+        // Inline code `code`
+        t = t.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
+
+        // Bold **text** or __text__
+        t = t.replace(/\*\*([\s\S]+?)\*\*/g, (m, a) => `<strong>${a}</strong>`);
+        t = t.replace(/__([\s\S]+?)__/g, (m, a) => `<strong>${a}</strong>`);
+
+        // Italic *text* or _text_
+        t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, (m, pre, a) => `${pre}<em>${a}</em>`);
+        t = t.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, (m, pre, a) => `${pre}<em>${a}</em>`);
+        
+        // Strikethrough ~~text~~
+        t = t.replace(/~~([^~]+)~~/g, (m, s) => `<del>${s}</del>`);
+
+        // Soft line breaks: "two spaces + newline" => <br>
+        t = t.replace(/  \n/g, '<br>');
+
+        return t;
+    };
+
+    // Block rendering for non-code segments
+    const renderBlocks = (segment) => {
+        const lines = segment.replace(/\r\n?/g, '\n').split('\n');
+        let i = 0;
+        let html = '';
+
+        const renderTable = (start) => {
+            // header | header
+            // ---   | ---
+            const rows = [];
+            let idx = start;
+            while (idx < lines.length && /\|/.test(lines[idx])) {
+                rows.push(lines[idx]);
+                idx++;
+            }
+            if (rows.length < 2 || !/^\s*[:\-\| ]+\s*$/.test(rows[1])) return null;
+
+            const th = rows[0].split('|').map(s => s.trim());
+            const bodyRows = rows.slice(2).map(r => r.split('|').map(s => s.trim()));
+
+            let t = '<table class="gina-md-table"><thead><tr>' +
+                th.map(h => `<th>${renderInline(h)}</th>`).join('') +
+                '</tr></thead>';
+
+            if (bodyRows.length) {
+                t += '<tbody>' + bodyRows.map(cells =>
+                    `<tr>${cells.map(c => `<td>${renderInline(c)}</td>`).join('')}</tr>`
+                ).join('') + '</tbody>';
+            }
+            t += '</table>';
+            return { html: t, next: idx };
+        };
+
+        while (i < lines.length) {
+            let line = lines[i];
+
+            // Horizontal rule
+            if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+                html += '<hr>';
+                i++; continue;
+            }
+
+            // Headings #..######
+            const h = line.match(/^\s*(#{1,6})\s+(.+)\s*$/);
+            if (h) {
+                const level = h[1].length;
+                html += `<h${level}>${renderInline(h[2])}</h${level}>`;
+                i++; continue;
+            }
+
+            // Blockquote
+            if (/^\s*>\s?/.test(line)) {
+                const buf = [];
+                while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+                    buf.push(lines[i].replace(/^\s*>\s?/, ''));
+                    i++;
+                }
+                html += `<blockquote>${renderBlocks(buf.join('\n'))}</blockquote>`;
+                continue;
+            }
+
+            // Code block indented by 4 spaces → treat as code
+            if (/^\s{4}/.test(line)) {
+                const buf = [];
+                while (i < lines.length && /^\s{4}/.test(lines[i])) {
+                    buf.push(lines[i].replace(/^\s{4}/, ''));
+                    i++;
+                }
+                html += `<pre class="ginacode"><code>${esc(buf.join('\n'))}</code></pre>`;
+                continue;
+            }
+
+            // Table
+            if (/\|/.test(line)) {
+                const table = renderTable(i);
+                if (table) { html += table.html; i = table.next; continue; }
+            }
+
+            // Lists (unordered and ordered)
+            const ulStart = line.match(/^\s*([*+-])\s+(.+)/);
+            const olStart =
+                line.match(/^\s*(\d+)[\.)]\s+(.+)/) ||
+                line.match(/^\s*(\d+)\s+([A-Za-z].+)/); // accept "4 Something" as a list item
+
+            if (ulStart || olStart) {
+                const ordered = !!olStart;
+
+                // Determine the current list's base indent
+                const baseIndent = (line.match(/^\s*/)?.[0].length) ?? 0;
+
+                // Emit opening tag (with start attribute if needed)
+                let startNum = ordered ? (Number(olStart[1]) || 1) : 1;
+                if (ordered) {
+                    html += (startNum !== 1) ? `<ol start="${startNum}">` : `<ol>`;
+                } else {
+                    html += `<ul>`;
+                }
+
+                // Consume items for this list until the pattern or indent breaks
+                const consumeList = (startIndex, parentIndent, isOrdered) => {
+                    let idx = startIndex;
+
+                    const sameLevelUl = (ln) => {
+                        const m = ln.match(/^(\s*)([*+-])\s+(.+)/);
+                        return m && (m[1].length === parentIndent) ? m : null;
+                    };
+                    const sameLevelOl = (ln) => {
+                        const m = ln.match(/^(\s*)(\d+)[\.)]\s+(.+)/) || ln.match(/^(\s*)(\d+)\s+([A-Za-z].+)/);
+                        return m && (m[1].length === parentIndent) ? m : null;
+                    };
+
+                    // Helper: detect a nested list start (greater indent than parent)
+                    const nestedListStart = (ln) => {
+                        return (
+                            ln.match(/^\s{2,}[*+-]\s+.+/) ||
+                            ln.match(/^\s{2,}\d+[\.)]\s+.+/) ||
+                            ln.match(/^\s{2,}\d+\s+[A-Za-z].+/)
+                        );
+                    };
+
+                    // Parse one list item (captures wrapped lines, nested lists, and item paragraphs)
+                    const parseOneItem = (firstLine, firstMatch) => {
+                        let itemText = firstMatch[3] || firstMatch[2] || firstMatch[0];
+                        if (isOrdered && firstMatch[3]) itemText = firstMatch[3];
+                        if (!isOrdered && firstMatch[3]) itemText = firstMatch[3];
+
+                        const parts = [itemText];  
+                        const children = []; 
+
+                        idx++; 
+
+                        while (idx < lines.length) {
+                            const ln = lines[idx];
+
+                            if (!ln.trim().length) {
+                                let look = idx + 1, stop = false;
+                                while (look < lines.length && !lines[look].trim().length) look++;
+                                if (look < lines.length) {
+                                    const lookLn = lines[look];
+                                    if ((isOrdered && sameLevelOl(lookLn)) || (!isOrdered && sameLevelUl(lookLn))) {
+                                        idx = look; // jump to that next item
+                                        break;
+                                    }
+                                }
+                                parts.push(''); 
+                                idx++;
+                                continue;
+                            }
+
+                            // If we encounter a same-level new item, stop
+                            if ((isOrdered && sameLevelOl(ln)) || (!isOrdered && sameLevelUl(ln))) {
+                                break;
+                            }
+
+                            if (nestedListStart(ln)) {
+                                // Determine nested block extent
+                                const nestedIndent = (ln.match(/^\s*/)?.[0].length) ?? 0;
+
+                                // Gather nested lines until we go back to <= parentIndent or EOF
+                                const nestLines = [];
+                                let k = idx;
+                                while (k < lines.length) {
+                                    const nln = lines[k];
+                                    const nIndent = (nln.match(/^\s*/)?.[0].length) ?? 0;
+                                    if (!nln.trim().length) { nestLines.push(nln); k++; continue; }
+                                    if (nIndent < nestedIndent) break; // back to parent or less
+                                    nestLines.push(nln);
+                                    k++;
+                                }
+
+                                const normalized = nestLines.map(nl => nl.replace(new RegExp(`^\\s{0,${nestedIndent}}`), '')).join('\n');
+                                children.push(renderBlocks(normalized));
+                                idx = k;
+                                continue;
+                            }
+
+                            // Continuation line (wrapped text) at >= parentIndent+2 → keep as part of item text
+                            const currIndent = (ln.match(/^\s*/)?.[0].length) ?? 0;
+                            if (currIndent >= parentIndent + 2) {
+                                parts.push(ln.replace(/^\s{2,}/, ''));
+                                idx++;
+                                continue;
+                            }
+
+                            // If it looks like a paragraph line that isn't a new list, keep it inside the item
+                            if (!/^\s*([*+-])\s+/.test(ln) && !/^\s*\d+[\.)]?\s+/.test(ln)) {
+                                parts.push(ln.trim());
+                                idx++;
+                                continue;
+                            }
+
+                            break;
+                        }
+
+                        // Render item: paragraphs + any nested lists appended
+                        const paragraphs = parts.join('\n').split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+                        let inner = paragraphs.map(p => `<p>${renderInline(p)}</p>`).join('');
+                        if (!inner) inner = `<p>${renderInline('')}</p>`;
+                        if (children.length) inner += children.join('');
+                        html += `<li>${inner}</li>`;
+                    };
+
+                    // Emit items until we hit a non-item or lower indent
+                    while (idx < lines.length) {
+                        const ln = lines[idx];
+
+                        if (ln.trim().length && ((ln.match(/^\s*/)?.[0].length) ?? 0) < parentIndent) break;
+
+                        const mUl = sameLevelUl(ln);
+                        const mOl = sameLevelOl(ln);
+
+                        if (isOrdered && mOl) {
+                            parseOneItem(ln, mOl);
+                            idx++;
+                            continue;
+                        }
+                        if (!isOrdered && mUl) {
+                            parseOneItem(ln, mUl);
+                            idx++;
+                            continue;
+                        }
+                        break;
+                    }
+
+                    return idx;
+                };
+
+                i = consumeList(i, baseIndent, ordered) - 1;
+
+                html += ordered ? `</ol>` : `</ul>`;
+                continue;
+            }
+
+            // Paragraphs / line breaks
+            if (line.trim().length === 0) {
+                html += '<br>';
+                i++; continue;
+            }
+            const pbuf = [line];
+            i++;
+            while (i < lines.length && lines[i].trim().length > 0 && !/^\s*(#{1,6})\s+/.test(lines[i])) {
+                if (/^\s*[*+-]\s+/.test(lines[i]) || /^\s*\d+\.\s+/.test(lines[i]) ||
+                    /^\s*>\s?/.test(lines[i]) || /\|/.test(lines[i])) break;
+                pbuf.push(lines[i]);
+                i++;
+            }
+            html += `<p>${renderInline(pbuf.join('\n'))}</p>`;
+        }
+
+        return html;
+    };
+
+    // ---------- Main parse ----------
+    let html = '';
+    for (let i = 0; i < parts.length; i++) {
+        const segment = parts[i];
+
+        if (i % 2 === 1) {
+            // Code fence segment (may start with language line)
+            let lang = '';
+            let body = segment;
+            const firstNl = segment.indexOf('\n');
+            if (firstNl >= 0) {
+                lang = segment.slice(0, firstNl).trim().toLowerCase();
+                body = segment.slice(firstNl + 1);
+            }
+
+            // Normalise common aliases
+            const map = {
+                'py': 'python', 'python': 'python',
+                'sql': 'sql',
+                'ps1': 'powershell', 'ps': 'powershell', 'powershell': 'powershell',
+                'sh': 'bash', 'shell': 'bash', 'bash': 'bash',
+                'js': 'javascript', 'javascript': 'javascript',
+                'ts': 'typescript', 'typescript': 'typescript',
+                'json': 'json', 'html': 'html', 'xml': 'xml',
+                'yaml': 'yaml', 'yml': 'yaml', 'ini': 'ini',
+                'txt': 'text', 'text': 'text',
+                'mermaid': 'mermaid'
+            };
+            const norm = map[lang] || (lang && /^[a-z0-9_+-]+$/.test(lang) ? lang : '');
+
+            if (norm === 'mermaid') {
+                // Mermaid: raw (not HTML-escaped) content inside .mermaid
+                const safe = body.replace(/<\//g, '<\\/');
+                let b64 = '';
+                try { b64 = btoa(unescape(encodeURIComponent(body))); }
+                catch (e) { try { b64 = btoa(body); } catch (_) { b64 = ''; } }
+                html += `
+<div class="mermaid-wrap" style="position:relative;">
+  <div class="mermaid">${safe}</div>
+  <button class="mermaid-copy-btn" data-b64="${b64}" title="Copy Mermaid"
+          style="position:absolute; right:6px; bottom:6px; padding:4px 6px; border:none; border-radius:4px; background:rgba(0,0,0,0.5); color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+      <i class="bi bi-clipboard" aria-hidden="true"></i>
+  </button>
+</div>`;
+            } else {
+                // --- Language-aware code vs markdown fence decision ---
+                const NON_CODE_LANGS = new Set(['markdown','md','text','plain','plaintext','txt']);
+                const CODE_LANGS = new Set([
+                    'python','py','javascript','js','typescript','ts','java','c','cpp','csharp','go','rust','php',
+                    'ruby','kotlin','swift','scala','r','matlab','sql','bash','shell','powershell','ps1',
+                    'html','xml','css','json','yaml','yml','ini','dockerfile','makefile'
+                ]);
+
+                // markdown-ish cues (excluding headings for now)
+                let mdSignals = 0;
+                if (/^\s{0,3}([*-+]|\d+\.)\s/m.test(body)) mdSignals++;   // lists
+                if (/^\s{0,3}>\s/m.test(body)) mdSignals++;                // blockquote
+                if (/\[[^\]]+\]\([^)]+\)/m.test(body)) mdSignals++;        // [link](url)
+                if (/(\*\*|__)[^*]+(\*\*|__)/m.test(body)) mdSignals++;    // bold
+                if (/(\*|_)[^*]+(\*|_)/m.test(body)) mdSignals++;          // italic
+                if (/^\s*\|[^|\n]+\|/m.test(body)) mdSignals++;            // table row
+
+                const looksLikeCode =
+                    /(^|\n)\s*(def |class |function |#include\b|import\b|from\b|SELECT\b|WITH\b|INSERT\b|UPDATE\b|BEGIN\b|try\s*:|except\b|catch\s*\(|if\s*\(|for\s*\(|while\s*\(|return\b|const\s+|let\s+|var\s+|=>|:=|=\s*["'`[{(]|{\s*$)/m
+                        .test(body)
+                    || /;\s*$|}\s*$|\)\s*{/.test(body);
+
+                const explicitlyNonCode = norm && NON_CODE_LANGS.has(norm);
+                const langLooksCode = !!norm && CODE_LANGS.has(norm);
+
+                // Treat leading '#' as markdown heading only when NOT a declared code lang
+                const hasMarkdownHeading = /^\s{0,3}#{1,6}\s/m.test(body);
+                if (!langLooksCode && hasMarkdownHeading) mdSignals++;
+
+                let isRealCode = false;
+                if (!explicitlyNonCode) {
+                    if (langLooksCode) {
+                        // generous to declared code: allow 0/1 markdown signals
+                        isRealCode = looksLikeCode || mdSignals < 2;
+                    } else {
+                        // no declared lang: require code-ish and zero markdown signals
+                        isRealCode = looksLikeCode && mdSignals === 0;
+                    }
+                }
+
+                if (isRealCode) {
+                    const cls = norm ? `language-${norm} hljs` : 'hljs';
+                    html += `<pre class="ginacode"><code class="${cls}">${esc(body)}</code></pre>`;
+                } else {
+                    html += `<pre class="mdfence"><code class="language-text">${esc(body)}</code></pre>`;
+                }
+            }
+        } else {
+            // Normal (non-fence) text: render block markdown
+            html += renderBlocks(segment);
+        }
+    }
+
+    return `<div class="clarama-markdown">${html}</div>`;
+}
+
 function findKernelId() {
     return $('#gina_socket').attr('task_kernel_id');
 }
@@ -436,8 +626,8 @@ function runQuestionThroughKernel(questionText, forBlock) {
 
         const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
         const task_registry = {
-            streams: [{main: [{source: questionText, type: "question"}]}],
-            parameters: field_registry
+            streams: [{main: [{source: questionText, type: "question", agent_id: 'GINA'}]}],
+            parameters: field_registry,
         };
 
         $.ajax({
@@ -469,6 +659,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- DOM refs -------------------------------------------------------------
     const ginaButton = document.getElementById("gina-button");
     const mainContent = document.getElementById("main-content");
+    const ginaWrapper = document.getElementById('gina-wrapper');
     const ginaContainer = document.getElementById("gina-chat-container");
     const ginaButtonGroup = document.querySelector(".gina-button-group");
     const ginaSaveBtn = document.querySelector(".gina-save-btn");
@@ -485,73 +676,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function navbarOffsetPx() {
         const h = (navbar && navbar.getBoundingClientRect && navbar.getBoundingClientRect().height)
-            ? navbar.getBoundingClientRect().height : 64;
+          ? navbar.getBoundingClientRect().height : 64;
         return Math.max(0, Math.round(h)) + 8; // breathing room
     }
-
+    
     function setNavbarOffsetVar() {
         const px = navbarOffsetPx();
         document.documentElement.style.setProperty("--navbar-offset", px + "px");
     }
 
-    function floatingMaxHeight() {
-        return window.innerHeight - navbarOffsetPx() - 20;
-    }
-
-    function isFloating() {
-        return ginaContainer.classList.contains("mode-floating");
-    }
-
-    function enterDocked() {
-        ginaContainer.classList.add("mode-docked");
-        ginaContainer.classList.remove("mode-floating");
-        syncMainCollapse();
-        // Once docked, the page is the only scroller
-        window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
-    }
-
     function checkDocking() {
         if (!ginaContainer.classList.contains("active")) return;
-
+      
         setNavbarOffsetVar();
-
-        if (!isFloating()) { // already docked
-            syncMainCollapse();
-            return;
-        }
-
-        const maxH = floatingMaxHeight();
-        const rect = ginaContainer.getBoundingClientRect();
-
-        // Measure untransformed content height (not affected by the 0.9 scale)
-        const inputCol = ginaContainer.querySelector(".gina-input-container");
-        const controls = ginaContainer.querySelector(".gina-controls");
-        const contentH =
-            (controls?.scrollHeight || 0) +
-            (historyHost?.scrollHeight || 0) +
-            (latestHost?.scrollHeight || 0) + 24;
-
-        // Take the largest of all available measurements
-        const h = Math.max(
-            ginaContainer.scrollHeight || 0,
-            inputCol?.scrollHeight || 0,
-            rect.height || 0,
-            contentH
+      
+        const col = ginaContainer.querySelector(".gina-input-container");
+        const contentH = Math.max(
+          col?.scrollHeight || 0,
+          ginaContainer.scrollHeight || 0
         );
-
-        // Visual cues while floating
-        const bottomOver = rect.bottom >= (window.innerHeight - 8);
-        const spaceBelow = window.innerHeight - rect.bottom;
-
-        const latestInput = ginaContainer.querySelector("#gina-latest .gina-input");
-        const inputFull = latestInput ? latestInput.scrollHeight : 0;
-
-        if ((h > maxH + 4) || bottomOver || spaceBelow < 12 || (inputFull + 40 > maxH)) {
-            enterDocked();
-        } else {
-            syncMainCollapse();
-        }
-    }
+      
+        const avail = Math.max(0, window.innerHeight - navbarOffsetPx() - 40);
+      
+        // Target vertical pad to visually center short containers
+        let vpad = Math.floor((avail - contentH) / 2);
+        if (!Number.isFinite(vpad)) vpad = 8;
+        vpad = Math.max(8, vpad); // never less than 8px
+      
+        ginaContainer.style.setProperty("--gina-vpad", vpad + "px");
+      
+        syncMainCollapse();
+      }
 
     function historyCount() {
         return historyHost.querySelectorAll(".gina-block").length;
@@ -793,7 +948,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function resetConversation() {
         // Stop any voice capture
         stopListening();
-        runQuestionThroughKernel('/reset'); // reset the session
+        runQuestionThroughKernel('/clear'); // reset the session. /reset is a hard reset and wipes out the agent prompt too, which is bad, and likely to be removed.
 
         historyHost.innerHTML = "";
         latestHost.innerHTML = "";
@@ -833,23 +988,29 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function openGina() {
-        mainContent?.classList.add("hidden");
-        ginaContainer.classList.add("active", "mode-floating");
+        mainContent?.classList.add("hidden", "collapsed");
+      
+        ginaContainer.classList.add("active", "mode-docked");
+        ginaContainer.classList.remove("mode-floating");
         ginaButtonGroup?.classList.add("gina-active");
+        ginaWrapper?.classList.add('is-open');
+      
         setNavbarOffsetVar();
         requestAnimationFrame(checkDocking);
+      
         const firstInput = ginaContainer.querySelector(".gina-input");
         setTimeout(() => {
-            if (firstInput) {
-                firstInput.focus();
-                autoSize(firstInput);
-            }
+          if (firstInput) {
+            firstInput.focus();
+            autoSize(firstInput);
+          }
         }, 200);
-    }
+    }      
 
     function closeGina() {
         ginaContainer.classList.remove("active", "mode-floating", "mode-docked");
         ginaButtonGroup?.classList.remove("gina-active");
+        ginaWrapper?.classList.remove('is-open');
         mainContent?.classList.remove("collapsed");
         setTimeout(() => mainContent?.classList.remove("hidden"), 0);
     }
@@ -1207,11 +1368,11 @@ document.addEventListener("DOMContentLoaded", () => {
     ginaNewChatBtn?.addEventListener("click", async (e) => {
         e.preventDefault();
 
-        // Force floating mode
-        ginaContainer.classList.add("active", "mode-floating");
-        ginaContainer.classList.remove("mode-docked");
+        // Stay in docked mode
+        ginaContainer.classList.add("active", "mode-docked");
+        ginaContainer.classList.remove("mode-floating");
 
-        // Hide & collapse the page content while floating
+        // Keep the page collapsed while GINA is open
         mainContent?.classList.add("hidden", "collapsed");
 
         // Ensure CSS vars and layout are up to date
@@ -1293,9 +1454,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Keep scroller/height feeling right on viewport changes
     window.addEventListener("resize", () => {
-        checkDocking();
-        if (historyCount() > 0) stickHistoryToBottom();
+        if (ginaContainer.classList.contains("active")) checkDocking();
     });
+      
+    // Make it react when the conversation grows
+    const mo = new MutationObserver(() => checkDocking());
+    mo.observe(document.getElementById("gina-latest"), { childList: true, subtree: true });
+    mo.observe(document.getElementById("gina-conversations"), { childList: true, subtree: true });
 
     // Expose helpers for websocket callbacks
     window.__ginaSetInputsEnabled = setInputsEnabled;

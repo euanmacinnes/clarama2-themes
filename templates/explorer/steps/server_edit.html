@@ -1,0 +1,420 @@
+<div class="clarama-cell-content" celltype="server" dataid="{{ loop_index }}">
+    <div class="bg-c2-light rounded-top text-light px-2" style="padding-top:.25rem!important;">
+        <div class="d-flex align-items-center gap-2 py-1">
+            <div class="text-white-50 small">Server Step</div>
+        </div>
+    </div>
+    <div class="accordion-collapse show bg-cell-config">
+        <div class="accordion-body" style="padding:8px;">
+            <div class="container-fluid">
+                <div class="row g-2 align-items-center mb-2">
+                    <div class="col-md-2"><label class="form-label mb-0">Server Type</label></div>
+                    <div class="col-md-4 d-flex align-items-center">
+                        <select class="form-control server-type">
+                            <option value="opcua">OPC-UA</option>
+                            <option value="opcua-client">OPC-UA Client</option>
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ms-2 server-preview-btn d-none"
+                                title="Browse OPC-UA Server">
+                            <i class="bi bi-binoculars"></i>
+                        </button>
+                    </div>
+                    <div class="col-md-2 text-end"><label class="form-label mb-0">Instance</label></div>
+                    <div class="col-md-4"><input type="text" class="form-control server-instance"
+                                                 placeholder="e.g. default" value="{{ instance or 'default' }}"></div>
+                </div>
+                <div class="row g-2 align-items-start mb-2">
+                    <div class="col-md-2 d-flex align-items-center justify-content-between">
+                        <label class="form-label mb-0">YAML Config</label>
+                        <button type="button" class="btn btn-sm btn-outline-info ms-2 server-help-btn"
+                                title="Show OPC-UA YAML example"
+                                data-template="help/opcua_server_config">
+                            <i class="bi bi-question-circle"></i>
+                        </button>
+                    </div>
+                    <div class="col-md-10">
+                        <div id="content_query_{{ loop_index }}_server_config"
+                             class="source-editor form-control clarama-field-editor server-config" editor="yaml"
+                             style="min-height:140px">{{ content or '' }}</div>
+                        <div class="text-white-50 small mt-1">Provide server options (e.g. endpoint, namespace_uri,
+                            publishing, nodes:[]).
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-2 align-items-center mb-2 server-k8s-row">
+                    <div class="col-md-2"><label class="form-label mb-0">Expose via K8s</label></div>
+                    <div class="col-md-1"><input class="form-check-input server-k8s"
+                                                 type="checkbox" {{ 'checked' if k8s else '' }}></div>
+                    <div class="col-md-1 text-end"><label class="form-label mb-0">Service</label></div>
+                    <div class="col-md-3"><input type="text" class="form-control server-k8s-svc"
+                                                 placeholder="service name"
+                                                 value="{{ k8s_options.service_name if k8s_options and k8s_options.service_name else '' }}">
+                    </div>
+                    <div class="col-md-1 text-end"><label class="form-label mb-0">Port</label></div>
+                    <div class="col-md-2"><input type="number" class="form-control server-k8s-port" placeholder="4840"
+                                                 value="{{ k8s_options.port if k8s_options and k8s_options.port else 4840 }}">
+                    </div>
+                </div>
+                <div class="row g-2 align-items-center mb-2 server-k8s-row">
+                    <div class="col-md-2 text-end"><label class="form-label mb-0">Host</label></div>
+                    <div class="col-md-4"><input type="text" class="form-control server-k8s-host"
+                                                 placeholder="example.local"
+                                                 value="{{ k8s_options.host if k8s_options and k8s_options.host else '' }}">
+                    </div>
+                    <div class="col-md-2 text-end"><label class="form-label mb-0">Path</label></div>
+                    <div class="col-md-4"><input type="text" class="form-control server-k8s-path" placeholder="/"
+                                                 value="{{ k8s_options.path if k8s_options and k8s_options.path else '/' }}">
+                    </div>
+                </div>
+                <div class="row g-2 align-items-center server-k8s-row">
+                    <div class="col-md-12 text-white-50 small">At runtime, the kernel will start the selected server and
+                        attempt to register a Service (and Ingress if Host is set).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Ensure the OPC Browser button remains clickable above any editors */
+.server-preview-btn{ position: relative; z-index: 1001; pointer-events: auto; }
+</style>
+<script type="text/javascript">
+    $(document).ready(() => {
+        $('.source-editor').editor();
+
+        function currentHelpTemplate() {
+            const t = ($('.server-type').val() || '').toLowerCase();
+            if (t === 'opcua-client') return 'help/opcua_client_config';
+            return 'help/opcua_server_config';
+        }
+
+        function extractYamlFromTemplate(html) {
+            try {
+                const $tmp = $('<div>').html(html);
+                let text = $tmp.find('pre code').first().text();
+                if (!text) {
+                    text = $tmp.find('code').first().text();
+                }
+                return text || '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function setServerConfigContent(text) {
+            const $cfg = $('.server-config').first();
+            const id = $cfg.attr('id');
+            try {
+                if (id) {
+                    const ed = ace.edit(id);
+                    ed.setValue(text || '', -1);
+                } else {
+                    $cfg.text(text || '');
+                }
+            } catch (e) {
+                $cfg.text(text || '');
+            }
+        }
+
+        function getServerConfigContent() {
+            const $cfg = $('.server-config').first();
+            const id = $cfg.attr('id');
+            try {
+                if (id) {
+                    const ed = ace.edit(id);
+                    return ed.getValue();
+                }
+                return $cfg.text() || '';
+            } catch (e) {
+                return $cfg.text() || '';
+            }
+        }
+
+        function toggleK8sByType() {
+            const t = ($('.server-type').val() || '').toLowerCase();
+            const showK8s = (t === 'opcua');
+            $('.server-k8s-row')[showK8s ? 'show' : 'hide']();
+        }
+
+        function togglePreviewByType() {
+            const t = ($('.server-type').val() || '').toLowerCase();
+            const showPrev = (t === 'opcua-client');
+            $('.server-preview-btn')[showPrev ? 'removeClass' : 'addClass']('d-none');
+        }
+
+        // Help button -> use centralized dialogs
+        $('.server-help-btn').on('click', function () {
+            const tmpl = currentHelpTemplate();
+            const ttl = ($('.server-type').val() || '').toLowerCase() === 'opcua-client' ? 'OPC-UA Client YAML Example' : 'OPC-UA YAML Example';
+            if (window.ClaramaDialogs && ClaramaDialogs.loadTemplateModal) {
+                ClaramaDialogs.loadTemplateModal(tmpl, ttl);
+            } else {
+                // fallback inline if module not loaded
+                $.ajax({
+                    url: '/template/render/' + tmpl,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({})
+                })
+                    .done(function (html) {
+                        ClaramaDialogs && ClaramaDialogs.showModal ? ClaramaDialogs.showModal({
+                            title: ttl,
+                            body: html,
+                            id: 'clarama-generic-modal',
+                            size: 'modal-lg modal-dialog-scrollable'
+                        }) : $('body').append(html);
+                    })
+                    .fail(function () {
+                    });
+            }
+        });
+
+        function loadExampleForType(overwrite = false) {
+            const tmpl = currentHelpTemplate();
+            $.ajax({
+                url: '/template/render/' + tmpl,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({})
+            })
+                .done(function (html) {
+                    const yaml = extractYamlFromTemplate(html);
+                    if (!yaml) return;
+                    const applyYaml = function () {
+                        setServerConfigContent(yaml);
+                    };
+                    if (!overwrite) {
+                        const curr = (getServerConfigContent() || '').trim();
+                        if (curr) {
+                            if (window.ClaramaDialogs && ClaramaDialogs.confirm) {
+                                ClaramaDialogs.confirm({
+                                    message: 'Replace current config with the default for this server type?',
+                                    confirmText: 'Replace'
+                                })
+                                    .then(function (proceed) {
+                                        if (proceed) applyYaml();
+                                    });
+                            }
+                            return;
+                        }
+                    }
+                    applyYaml();
+                }).fail(function () { /* ignore */
+            });
+        }
+
+        function buildOpcBrowserModalHtml(initialEndpoint) {
+            const ep = initialEndpoint || '';
+            return [
+                '<div class="container-fluid">',
+                '  <div class="row g-2 align-items-center mb-2">',
+                '    <div class="col-md-2 text-end"><label class="form-label mb-0">Endpoint</label></div>',
+                '    <div class="col-md-10 d-flex">',
+                '      <input type="text" class="form-control opc-endpoint" placeholder="opc.tcp://127.0.0.1:4840/clarama/opcua" value="' + $('<div>').text(ep).html() + '">',
+                '      <button type="button" class="btn btn-sm btn-primary ms-2 opc-connect">Connect</button>',
+                '      <button type="button" class="btn btn-sm btn-outline-secondary ms-2 opc-refresh" disabled>Refresh</button>',
+                '      <button type="button" class="btn btn-sm btn-success ms-2 opc-insert" disabled>Insert</button>',
+                '    </div>',
+                '  </div>',
+                '  <div class="row g-2 align-items-center mb-2">',
+                '    <div class="col-md-2 text-end"><label class="form-label mb-0">Search</label></div>',
+                '    <div class="col-md-10 d-flex">',
+                '      <input type="text" class="form-control opc-filter" placeholder="Filter by path or value">',
+                '      <button type="button" class="btn btn-sm btn-outline-secondary ms-2 opc-filter-clear" title="Clear">Clear</button>',
+                '    </div>',
+                '  </div>',
+                '  <div class="row">',
+                '    <div class="col-12">',
+                '      <div class="table-responsive" style="max-height:380px; overflow:auto;">',
+                '        <table class="table table-sm table-striped align-middle mb-0 opc-table">',
+                '          <thead><tr><th style="width:28px;"><input type="checkbox" class="opc-check-all"></th><th>Path</th><th style="width:25%">Value</th></tr></thead>',
+                '          <tbody></tbody>',
+                '        </table>',
+                '      </div>',
+                '    </div>',
+                '  </div>',
+                '  <div class="text-muted small mt-1">Tip: Select rows to include in the client YAML nodes list. Use Refresh to update current values.</div>',
+                '</div>'
+            ].join('');
+        }
+
+        function parseEndpointFromYaml() {
+            try {
+                const txt = getServerConfigContent() || '';
+                const m = txt.match(/endpoint\s*:\s*([^\s#]+)\s*/i);
+                return m ? m[1].trim() : '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function opcRenderTable($modal, items) {
+            const $tb = $modal.find('table.opc-table tbody');
+            $tb.empty();
+            if (!Array.isArray(items)) return;
+            items.forEach(function (it, idx) {
+                const p = it.path || '';
+                const v = (it.value === null || typeof it.value === 'undefined') ? '' : String(it.value);
+                const tr = [
+                    '<tr>',
+                    ' <td><input type="checkbox" class="opc-row-check"></td>',
+                    ' <td class="opc-path">' + $('<div>').text(p).html() + '</td>',
+                    ' <td class="opc-value text-truncate" title="' + $('<div>').text(v).html() + '">' + $('<div>').text(v).html() + '</td>',
+                    '</tr>'
+                ].join('');
+                $tb.append(tr);
+            });
+        }
+
+        function opcCollectSelectedPaths($modal) {
+            const paths = [];
+            $modal.find('tbody tr').each(function () {
+                const $tr = $(this);
+                if ($tr.find('.opc-row-check').is(':checked')) {
+                    paths.push(($tr.find('.opc-path').text() || '').trim());
+                }
+            });
+            return paths;
+        }
+
+        function opcEnableActions($modal, enabled) {
+            $modal.find('.opc-refresh, .opc-insert')[enabled ? 'prop' : 'prop']('disabled', !enabled);
+        }
+
+        function opcApplyFilter($modal) {
+            try {
+                const q = ($modal.find('.opc-filter').val() || '').toString().toLowerCase();
+                const $rows = $modal.find('table.opc-table tbody tr');
+                if (!q) { $rows.show(); return; }
+                $rows.each(function(){
+                    const $tr = $(this);
+                    const path = ($tr.find('.opc-path').text() || '').toLowerCase();
+                    const val = ($tr.find('.opc-value').text() || '').toLowerCase();
+                    const ok = path.indexOf(q) >= 0 || val.indexOf(q) >= 0;
+                    $tr.toggle(!!ok);
+                });
+            } catch (e) { /* ignore */ }
+        }
+
+        function openOpcBrowser() {
+            const initialEndpoint = parseEndpointFromYaml() || 'opc.tcp://127.0.0.1:4840/clarama/opcua';
+            const body = buildOpcBrowserModalHtml(initialEndpoint);
+            const ttl = 'OPC Browser';
+            if (window.ClaramaDialogs && ClaramaDialogs.showModal) {
+                ClaramaDialogs.showModal({
+                    id: 'opc-browser-modal',
+                    title: ttl,
+                    body: body,
+                    size: 'modal-xl modal-dialog-scrollable'
+                });
+                const $m = $('#opc-browser-modal');
+                const $body = $m.find('.modal-body');
+                // filter bindings
+                $body.on('input', '.opc-filter', function(){ opcApplyFilter($body); });
+                $body.on('click', '.opc-filter-clear', function(){ $body.find('.opc-filter').val(''); opcApplyFilter($body); $body.find('.opc-filter').focus(); });
+                // wire select all
+                $body.on('change', '.opc-check-all', function () {
+                    const chk = $(this).is(':checked');
+                    $body.find('.opc-row-check').prop('checked', chk);
+                });
+                // connect handler
+                $body.on('click', '.opc-connect', function () {
+                    const ep = ($body.find('.opc-endpoint').val() || '').trim();
+                    if (!ep) return;
+                    $body.find('.opc-connect').prop('disabled', true).text('Connecting...');
+                    $.ajax({
+                        url: '/web/opcua/browse',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({endpoint: ep, max_depth: 3, max_nodes: 500})
+                    })
+                        .done(function (res) {
+                            let items = [];
+                            if (res && res.status === 'ok') items = res.results || [];
+                            else if (Array.isArray(res)) items = res; else if (res && res.data === 'ok') items = res.results || [];
+                            opcRenderTable($body, items);
+                            opcEnableActions($body, items.length > 0);
+                            opcApplyFilter($body);
+                        })
+                        .fail(function (xhr) {
+                            const msg = (xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)) || xhr.responseText || 'Failed to browse';
+                            console.warn('OPC browse failed', msg);
+                        })
+                        .always(function () {
+                            $body.find('.opc-connect').prop('disabled', false).text('Connect');
+                        });
+                });
+                // refresh handler
+                $body.on('click', '.opc-refresh', function () {
+                    const ep = ($body.find('.opc-endpoint').val() || '').trim();
+                    const paths = opcCollectSelectedPaths($body);
+                    if (!ep || paths.length === 0) return;
+                    $body.find('.opc-refresh').prop('disabled', true).text('Refreshing...');
+                    $.ajax({
+                        url: '/web/opcua/read_values',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({endpoint: ep, paths: paths})
+                    })
+                        .done(function (res) {
+                            let values = {};
+                            if (res && res.status === 'ok') values = res.results || {};
+                            else if (res && res.data === 'ok') values = res.results || {}; else if (res && typeof res === 'object') values = res;
+                            // update table
+                            $body.find('tbody tr').each(function () {
+                                const $tr = $(this);
+                                const p = ($tr.find('.opc-path').text() || '').trim();
+                                if (values.hasOwnProperty(p)) {
+                                    const v = values[p];
+                                    const txt = (v === null || typeof v === 'undefined') ? '' : String(v);
+                                    $tr.find('.opc-value').text(txt).attr('title', txt);
+                                }
+                            });
+                        })
+                        .always(function () {
+                            $body.find('.opc-refresh').prop('disabled', false).text('Refresh');
+                        });
+                });
+                // insert handler
+                $body.on('click', '.opc-insert', function () {
+                    const ep = ($body.find('.opc-endpoint').val() || '').trim();
+                    const paths = opcCollectSelectedPaths($body);
+                    if (!ep || paths.length === 0) return;
+                    const yaml = ['endpoint: ' + ep, 'subscribe_interval_ms: 200', 'reconnect: true', 'nodes:'].concat(paths.map(p => '  - path: ' + p)).join('\n');
+                    const apply = function () {
+                        setServerConfigContent(yaml);
+                        $m.modal('hide');
+                    };
+                    const curr = (getServerConfigContent() || '').trim();
+                    if (curr && window.ClaramaDialogs && ClaramaDialogs.confirm) {
+                        ClaramaDialogs.confirm({
+                            message: 'Replace current YAML config with selected client nodes?',
+                            confirmText: 'Insert'
+                        })
+                            .then(function (ok) {
+                                if (ok) apply();
+                            });
+                    } else {
+                        apply();
+                    }
+                });
+            }
+        }
+
+        // wire preview button and initial UI state
+        // Use delegated handler to be robust against dynamic content changes
+        $(document).on('click', '.server-preview-btn', function(e){ e.preventDefault(); e.stopPropagation(); openOpcBrowser(); });
+
+        function onServerTypeChanged() {
+            toggleK8sByType();
+            togglePreviewByType();
+            loadExampleForType(false);
+        }
+
+        toggleK8sByType();
+        togglePreviewByType();
+        $('.server-type').on('change', onServerTypeChanged);
+    });
+</script>

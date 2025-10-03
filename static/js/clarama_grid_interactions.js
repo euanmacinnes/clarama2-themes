@@ -106,9 +106,43 @@ $(document).on('contextmenu', function (event) {
     }
     // console.log("table_selection", table_selection)
 
+    // if it is a chart, capture nearest point details
+    let chart_selection = null;
+    try {
+        const canvas = event.target.closest('canvas');
+        if (canvas && window.Chart && typeof Chart.getChart === 'function') {
+            const chart = Chart.getChart(canvas);
+            if (chart && typeof chart.getElementsAtEventForMode === 'function') {
+                const elements = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+                if (elements && elements.length > 0) {
+                    const el = elements[0];
+                    const datasetIndex = el.datasetIndex;
+                    const index = el.index;
+                    const dataset = (chart.data && chart.data.datasets) ? (chart.data.datasets[datasetIndex] || {}) : {};
+                    const labels = (chart.data && chart.data.labels) ? chart.data.labels : [];
+                    const dataArr = dataset.data || [];
+                    const dataPoint = dataArr[index];
+                    const value = (dataPoint && typeof dataPoint === 'object' && ('y' in dataPoint)) ? dataPoint.y : dataPoint;
+                    chart_selection = {
+                        datasetIndex: datasetIndex,
+                        index: index,
+                        datasetId: dataset.id || '',
+                        datasetLabel: dataset.label || '',
+                        label: labels[index],
+                        value: value,
+                        raw: dataPoint
+                    };
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('Chart selection detection failed:', err);
+    }
+
     const $contextMenu = $('#contextMenu');
     $contextMenu.data('elementId', elementId)
     $contextMenu.data('tableSelection', table_selection ? JSON.stringify(table_selection) : '')
+    $contextMenu.data('chartSelection', chart_selection ? JSON.stringify(chart_selection) : '')
 
     $contextMenu.html(menuInteractions.map((interaction, i) => {
         return `<button class="dropdown-item" data-url="${interaction.url}" data-elem="${interaction.element}" data-params="${interaction.params}">${interaction.menu_item_name}</button>`;
@@ -122,8 +156,10 @@ $(document).on('contextmenu', function (event) {
         // console.log("checking where get_field_values is called: contextmenu")
         get_field_values({}, true, function (field_registry) {
             const rawTableSelection = $contextMenu.data('tableSelection') || '';
+            const rawChartSelection = $contextMenu.data('chartSelection') || '';
             const table_selection = rawTableSelection ? JSON.parse(rawTableSelection) : {};
-            const field_values = merge_dicts(field_registry, table_selection);
+            const chart_selection = rawChartSelection ? JSON.parse(rawChartSelection) : {};
+            const field_values = merge_dicts(merge_dicts(field_registry, table_selection), chart_selection);
             console.log("field_values", field_values);
 
             const url = $button.data('url');
@@ -136,9 +172,24 @@ $(document).on('contextmenu', function (event) {
             const fileU = $contextMenu.attr('file_path');
             // console.log('fileU', fileU)
 
-            if (elem == "modal") showModalWithContent(fileU, url, field_values, true);
+            // Build augmented query params to include context selections
+            const extraParams = [];
+            if (table_selection && table_selection.row) {
+                try { extraParams.push('row=' + encodeURIComponent(JSON.stringify(table_selection.row))); } catch (e) {}
+            }
+            if (table_selection && table_selection.field) {
+                try { extraParams.push('field=' + encodeURIComponent(table_selection.field)); } catch (e) {}
+            }
+            if (chart_selection && Object.keys(chart_selection).length) {
+                try { extraParams.push('chart_selection=' + encodeURIComponent(JSON.stringify(chart_selection))); } catch (e) {}
+            }
+            const baseParams = (params || '').toString().trim();
+            const query = [baseParams, ...extraParams].filter(Boolean).join('&');
+            const finalUrl = url + (query ? ('?' + query) : '');
+
+            if (elem == "modal") showModalWithContent(fileU, finalUrl, field_values, true);
             else if (elem.includes("element_")) {
-                $("#" + elem).html('').append(showInteractionContent(fileU, 'run', url + "?" + params, field_values, true));
+                $("#" + elem).html('').append(showInteractionContent(fileU, 'run', finalUrl, field_values, true));
                 enable_interactions($("#" + elem));
             } else if (elem == "hidden") {
                 // this prob isnt the most ideal way but i think itll do for now since autorun isnt work

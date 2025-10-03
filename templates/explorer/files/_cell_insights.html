@@ -7,82 +7,267 @@
             </h6>
         </div>
         <div class="card-body insights-content p-0 d-flex flex-column">
-            <ul class="nav nav-tabs" id="insightsTabs_{{ task_index }}" role="tablist">
+            <ul class="nav nav-tabs nav-fill w-100" id="insightsTabs_{{ task_index }}" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="insights-chat-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-chat-{{ task_index }}"
+                    <button class="nav-link active w-100" id="insights-chat-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-chat-{{ task_index }}"
                         type="button" role="tab" aria-controls="insights-chat-{{ task_index }}" aria-selected="true">
                         Chat with GINA
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-variables-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-variables-{{ task_index }}"
+                    <button class="nav-link w-100" id="insights-variables-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-variables-{{ task_index }}"
                         type="button" role="tab" aria-controls="insights-variables-{{ task_index }}" aria-selected="false">
                         Variables
                     </button>
                 </li>
-                <!-- Code Inspector. Only for code cells -->
+                {% if task_step['type'] == 'code' %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link w-100" id="insights-code-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-code-inspector-{{ task_index }}"
+                            type="button" role="tab" aria-controls="insights-code-inspector-{{ task_index }}" aria-selected="false">
+                            Code Inspector
+                        </button>
+                    </li>
+                {% endif %}
+                {% if task_step['type'] in ['data', 'source'] %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link w-100" id="insights-data-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-data-inspector-{{ task_index }}" 
+                            type="button" role="tab" aria-controls="insights-data-inspector-{{ task_index }}" aria-selected="false">
+                            Data Inspector
+                        </button>
+                    </li>
+                {% endif %}
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-inspector-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-inspector-{{ task_index }}"
-                        type="button" role="tab" aria-controls="insights-inspector-{{ task_index }}" aria-selected="false">
-                        Inspector
+                    <button class="nav-link w-100" id="insights-preview-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-preview-{{ task_index }}"
+                        type="button" role="tab" aria-controls="insights-preview-{{ task_index }}" aria-selected="false">
+                        Preview
                     </button>
                 </li>
-                <!-- Data Inspector. Only for data & source cells. Data cell has tabs, use the currently selected one -->
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="insights-data-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-data-{{ task_index }}" 
-                        type="button" role="tab" aria-controls="insights-data-{{ task_index }}" aria-selected="false">
-                        Data
+                    <button class="nav-link w-100" id="insights-global-fields-tab-{{ task_index }}" data-bs-toggle="tab" data-bs-target="#insights-global-fields-{{ task_index }}" 
+                        type="button" role="tab" aria-controls="insights-global-fields-{{ task_index }}" aria-selected="false">
+                        Global Fields
                     </button>
                 </li>
             </ul>
         
             <!-- Tab panes -->
             <div class="tab-content flex-grow-1 overflow-auto" id="insightsTabsContent_{{ task_index }}">
+                <!-- Chat with GINA  -->
                 <div class="tab-pane fade show active" id="insights-chat-{{ task_index }}" role="tabpanel"
                     aria-labelledby="insights-chat-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3">
-                        <!-- chat UI  -->
-                        <div id="gina_chat_{{ task_index }}" class="gina-chat"></div>
-                    </div>
-                </div>
-        
-                <div class="tab-pane fade" id="insights-variables-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-variables-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3">
-                        <div class="variables-list" id="variables_{{ task_index }}">
-                            <div class="text-muted d-flex align-items-center">
-                                <div class="spinner-border spinner-border-sm me-2 d-none insights-spinner" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <span>Variables will appear here…</span>
+                    <div id="insights_gina_chat_{{ task_index }}" class="insights-gina-chat-container"></div>
+                    <!-- Chat console -->
+                    <div class="insights-console border-top bg-light mt-2">
+                        <div class="p-2">
+                            <div class="input-group">
+                                <!-- Clear Chat -->
+                                <button class="btn btn-outline-danger clear-chat" type="button"
+                                        data-task-index="{{ task_index }}" title="Clear chat">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <!-- User input -->
+                                <textarea class="form-control console-input" id="console_input_{{ task_index }}_chat"
+                                          placeholder="Message GINA…" data-task-index="{{ task_index }}"
+                                          data-mode="gina" rows="1"></textarea>
+                                <!-- Send -->
+                                <button class="btn btn-outline-secondary execute-console" type="button"
+                                        data-task-index="{{ task_index }}" data-mode="gina" title="Send">
+                                    <i class="bi bi-arrow-up"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
         
-                <div class="tab-pane fade" id="insights-inspector-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-inspector-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="inspector_{{ task_index }}"></div>
+                <!-- Variables -->
+                <div class="tab-pane fade" id="insights-variables-{{ task_index }}" role="tabpanel"
+                      aria-labelledby="insights-variables-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3">
+                        <ul class="nav nav-tabs nav-fill w-100" id="variablesTabs_{{ task_index }}" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active w-100" id="variables-modules-tab-{{ task_index }}"
+                                        data-bs-toggle="tab" data-bs-target="#variables-modules-{{ task_index }}"
+                                        type="button" role="tab" aria-controls="variables-modules-{{ task_index }}"
+                                        aria-selected="true">
+                                    Modules
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link w-100" id="variables-classes-tab-{{ task_index }}" 
+                                        data-bs-toggle="tab" data-bs-target="#variables-classes-{{ task_index }}" 
+                                        type="button" role="tab" aria-controls="variables-classes-{{ task_index }}"
+                                        aria-selected="false">
+                                    Classes
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link w-100" id="variables-methods-tab-{{ task_index }}" 
+                                        data-bs-toggle="tab" data-bs-target="#variables-methods-{{ task_index }}" 
+                                        type="button" role="tab" aria-controls="variables-methods-{{ task_index }}"
+                                        aria-selected="false">
+                                    Methods
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link w-100" id="variables-objects-tab-{{ task_index }}"
+                                        data-bs-toggle="tab" data-bs-target="#variables-objects-{{ task_index }}"
+                                        type="button" role="tab" aria-controls="variables-objects-{{ task_index }}"
+                                        aria-selected="false">
+                                    Objects
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link w-100" id="variables-primitives-tab-{{ task_index }}"
+                                        data-bs-toggle="tab" data-bs-target="#variables-primitives-{{ task_index }}"
+                                        type="button" role="tab" aria-controls="variables-primitives-{{ task_index }}"
+                                        aria-selected="false">
+                                    Primitives
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link w-100" id="variables-data-tab-{{ task_index }}"
+                                        data-bs-toggle="tab" data-bs-target="#variables-data-{{ task_index }}"
+                                        type="button" role="tab" aria-controls="variables-data-{{ task_index }}"
+                                        aria-selected="false">
+                                    Data
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Category panes -->
+                        <div class="tab-content mt-3" id="variablesTabsContent_{{ task_index }}">
+                            <div class="tab-pane fade show active" id="variables-modules-{{ task_index }}" role="tabpanel"
+                                  aria-labelledby="variables-modules-tab-{{ task_index }}">
+                                <div class="variables-list" id="variables_modules_{{ task_index }}">
+                                    <div class="text-muted d-flex align-items-center">
+                                        <div class="spinner-border spinner-border-sm me-2 d-none insights-spinner" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <span>There are no Modules...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="variables-classes-{{ task_index }}" role="tabpanel"
+                                  aria-labelledby="variables-classes-tab-{{ task_index }}">
+                                <div class="variables-list" id="variables_classes_{{ task_index }}">
+                                    <div class="text-muted">There are no Classes...</div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="variables-methods-{{ task_index }}" role="tabpanel"
+                                  aria-labelledby="variables-methods-tab-{{ task_index }}">
+                                <div class="variables-list" id="variables_methods_{{ task_index }}">
+                                    <div class="text-muted">There are no Methods...</div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="variables-objects-{{ task_index }}" role="tabpanel"
+                                  aria-labelledby="variables-objects-tab-{{ task_index }}">
+                                <div class="variables-list" id="variables_objects_{{ task_index }}">
+                                    <div class="text-muted">There are no Objects...</div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="variables-primitives-{{ task_index }}" role="tabpanel"
+                                 aria-labelledby="variables-primitives-tab-{{ task_index }}">
+                                <div class="variables-list" id="variables_primitives_{{ task_index }}">
+                                    <div class="text-muted">There are no Primitives...</div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="variables-data-{{ task_index }}" role="tabpanel"
+                                 aria-labelledby="variables-data-tab-{{ task_index }}">
+                                <div class="variables-list" id="variables_data_{{ task_index }}">
+                                    <div class="text-muted">There are no Data types...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Variables console (python) -->
+                    <div class="insights-console border-top bg-light mt-2">
+                        <div class="p-2">
+                            <div class="input-group">
+                                <textarea class="form-control console-input" id="console_input_{{ task_index }}_vars"
+                                          placeholder="Enter Python command." data-task-index="{{ task_index }}"
+                                          data-mode="python" rows="1"></textarea>
+                                <button class="btn btn-outline-secondary execute-console" type="button"
+                                        data-task-index="{{ task_index }}" data-mode="python">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
         
-                <div class="tab-pane fade" id="insights-data-{{ task_index }}" role="tabpanel"
-                    aria-labelledby="insights-data-tab-{{ task_index }}" tabindex="0">
-                    <div class="p-3" id="data_{{ task_index }}"></div>
+                {% if task_step['type'] == 'code' %}
+                    <div class="tab-pane fade" id="insights-code-inspector-{{ task_index }}" role="tabpanel"
+                        aria-labelledby="insights-code-inspector-tab-{{ task_index }}" tabindex="0">
+                        <div class="p-3" id="code_inspector-{{ task_index }}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="small text-muted">Code Inspector</div>
+                            </div>
+                            <div class="border rounded p-2 bg-light-subtle" id="code-inspector-results-{{ task_index }}">
+                                <em class="text-muted">Move your cursor or type in the editor to inspect.</em>
+                            </div>
+                        </div>
+                        <!-- Code Inspector console (python) -->
+                        <div class="insights-console border-top bg-light mt-2">
+                            <div class="p-2">
+                                <div class="input-group">
+                                    <textarea class="form-control console-input" id="console_input_{{ task_index }}_code"
+                                              placeholder="Enter Python command." data-task-index="{{ task_index }}"
+                                              data-mode="python" rows="1"></textarea>
+                                    <button class="btn btn-outline-secondary execute-console" type="button"
+                                            data-task-index="{{ task_index }}" data-mode="python">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if task_step['type'] in ['data', 'source'] %}
+                <div class="tab-pane fade" id="insights-data-inspector-{{ task_index }}" role="tabpanel"
+                        aria-labelledby="insights-data-inspector-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="data-inspector-{{ task_index }}"></div>
+                    <!-- Data Inspector console (data) -->
+                    <div class="insights-console border-top bg-light mt-2">
+                        <div class="p-2">
+                            <div class="input-group">
+                                <textarea class="form-control console-input font-monospace"
+                                          id="console_input_{{ task_index }}_data"
+                                          placeholder="Enter data command" data-task-index="{{ task_index }}"
+                                          data-mode="data" rows="1"></textarea>
+                                <button class="btn btn-outline-secondary execute-console" type="button"
+                                        data-task-index="{{ task_index }}" data-mode="data">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>           
+                {% endif %}
+
+                <!-- Preview -->
+                <div class="tab-pane fade" id="insights-preview-{{ task_index }}" role="tabpanel"
+                    aria-labelledby="insights-preview-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="preview_{{ task_index }}"></div>
                 </div>
-            </div>
-        
-            <!-- Console -->
-            <div class="insights-console border-top bg-light">
-                <div class="p-2">
-                    <div class="input-group">
-                        <input type="text" class="form-control console-input" id="console_input_{{ task_index }}"
-                            placeholder="Enter Python command..." data-task-index="{{ task_index }}">
-                        <button class="btn btn-outline-secondary execute-console" type="button" data-task-index="{{ task_index }}">
-                                <i class="bi bi-play-fill"></i>
-                        </button>
+
+                <!-- Global Fields -->
+                <div class="tab-pane fade" id="insights-global-fields-{{ task_index }}" role="tabpanel"
+                    aria-labelledby="insights-global-fields-tab-{{ task_index }}" tabindex="0">
+                    <div class="p-3" id="global-fields-{{ task_index }}">
+                        {% include theme("explorer/files/field_edit_fields.html") %}
                     </div>
                 </div>
             </div>
+            
+            <!-- code results -->
+            <div class="insights-results" id="code-results-{{ task_index }}"></div>
         </div>
     </div>
 </div>

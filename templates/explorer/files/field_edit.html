@@ -281,70 +281,9 @@
                         <h6 class="m-0">Global Fields</h6> take dependent field values, if found, and insert into the
                         Query above prior to execution
                     </div>
-                    <div class="card card-body p-2 mb-2 border-0">
-                        <div class="row g-2 align-items-start">
-                            <div class="col-md-3">
-                                <label class="form-label small mb-1">Dependent field (from)</label>
-                                <select class="form-select" id="gfe_dep_field"
-                                        title="Select a dependent field"></select>
-                                <div class="form-text small">Choose from the Dependencies list above. Add dependencies
-                                    in
-                                    the Dependency Testing tab.
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small mb-1">Map to (if database is different)</label>
-                                <input type="text" class="form-control" id="gfe_to" placeholder="to (db column)">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small mb-1">Value Comparison - how to write the field's
-                                    value</label>
-                                <select class="form-select" id="gfe_layout">
-                                    <option value="">value as-is, unformatted</option>
-                                    <option value=":list">Comma-separated list (0,1,2)</option>
-                                    <option value=":sql">Comma-separated quoted list ('a','b','c')</option>
-                                    <option value=":in">field in (selected values)</option>
-                                    <option value=":where">Where field in (selected values)</option>
-                                    <option value=":search">Where field like ('%search%')</option>
-                                    <option value=":like">like (field's value is somewhere in the string)</option>
-                                    <option value=":=">equals (dbcol = 'value')</option>
-                                    <option value=":!=">not equals (dbcol != 'value')</option>
-                                    <option value=":<>">not equals (dbcol <> 'value')</option>
-                                    <option value=":>">greater than (dbcol > 'value')</option>
-                                    <option value=":<">less than (dbcol < 'value')</option>
-                                    <option value=":>=">greater or equal (dbcol >= 'value')</option>
-                                    <option value=":<=">less or equal (dbcol <= 'value')</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label small mb-1">Extension - if other fields will follow, an AND or
-                                    OR</label>
-                                <input type="text" class="form-control" id="gfe_ext" placeholder="optional">
-                            </div>
-                            <div class="col-md-1 d-grid">
-                                <label class="form-label small mb-1">&nbsp;</label>
-                                <button type="button" class="btn btn-outline-primary" id="gfe_insert"><i
-                                        class="bi bi-plus-lg me-1"></i>Insert
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mt-2 border-top pt-2">
-                            <div class="row g-2 align-items-start">
-                                <div class="col-auto col-md-1">
-                                    <div class="small text-muted mb-1">Resultant Expression</div>
-                                    <div id="gfe_result_expr" class="form-control form-control-sm bg-light"
-                                         style="min-height: 36px;"></div>
-                                </div>
-                                <div class="col-1 col-md-6">
-                                    <div class="small text-muted mb-1">Resultant Value</div>
-                                    <div id="gfe_result_value" class="form-control form-control-sm bg-light"
-                                         style="min-height: 36px;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
+                    {% include theme("explorer/files/field_edit_fields.html") %}
+                </div>
 
                 <script type="text/javascript">$(function () {
                     $('#field_data_query').editor();
@@ -1367,6 +1306,22 @@
             + "&suggestions=" + encodeURIComponent(($('#suggestions').val() || '').split(/\r?\n/).filter(s => s.trim().length > 0).join('|'))
             + "&data_text=" + encodeURIComponent(code);
 
+        // For select-type fields, include column mapping indices in preview URL so the embedded can honor them
+        try {
+            var _t = String(key || '').toLowerCase();
+            if (_t === 'select' || _t === 'select_multiple') {
+                var _idc = $('#id_column').val() || '';
+                var _valc = $('#value_column').val() || '';
+                var _selc = $('#select_column').val() || '';
+                var _disabc = $('#disable_column').val() || '';
+                mainUrl += "&id_column=" + encodeURIComponent(_idc)
+                    + "&value_column=" + encodeURIComponent(_valc)
+                    + "&select_column=" + encodeURIComponent(_selc)
+                    + "&disable_column=" + encodeURIComponent(_disabc);
+            }
+        } catch (e) { /* ignore */
+        }
+
         function loadMainPreview() {
             $("#preview").attr("url", mainUrl);
             $("#preview").attr("clarama_loaded", false);
@@ -1459,12 +1414,20 @@
                 field_data['milliseconds'] = !!($('#dr_milliseconds').prop('checked'));
                 // Store ranges as raw text; server persists as-is (string) to allow flexible parsing later
                 field_data['ranges'] = ($('#dr_ranges').val() || '').trim();
+            } else if (t === 'select' || t === 'select_multiple') {
+                // Save custom column mapping options for select/select_multiple
+                field_data['id_column'] = $('#id_column').val() || '';
+                field_data['value_column'] = $('#value_column').val() || '';
+                field_data['select_column'] = $('#select_column').val() || '';
+                field_data['disable_column'] = $('#disable_column').val() || '';
             } else {
                 field_data['maxlength'] = $('#str_maxlength').val() || '';
                 field_data['transform'] = $('#str_transform').val() || '';
             }
         } catch (e) { /* ignore */
         }
+
+        console.log("Field save data", field_data);
 
         var url = "/content/save/" + $("#save").attr("url");
 

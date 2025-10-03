@@ -534,10 +534,74 @@ function get_shell_cell(cell) {
     return {"type": "shell", "content": code};
 }
 
+// Server step: extract values for saving/restoring
+function get_server_cell(cell) {
+    try {
+        var server_type = (cell.find('.server-type').val() || '').trim();
+        var instance = (cell.find('.server-instance').val() || '').trim();
+
+        // YAML content via ACE editor on the server-config div
+        var cfgEl = cell.find('.server-config').first();
+        var cfgId = cfgEl.attr('id');
+        var yaml_content = '';
+        try {
+            if (cfgId) {
+                var editor = ace.edit(cfgId);
+                yaml_content = editor.getValue();
+            } else {
+                yaml_content = cfgEl.text() || '';
+            }
+        } catch (e) {
+            console.warn('ACE not available for server-config, using text()', e);
+            yaml_content = cfgEl.text() || '';
+        }
+
+        var k8s = cell.find('.server-k8s').is(':checked');
+        var service_name = (cell.find('.server-k8s-svc').val() || '').trim();
+        var portRaw = cell.find('.server-k8s-port').val();
+        var port = portRaw === '' || portRaw === undefined || portRaw === null ? '' : parseInt(portRaw);
+        var host = (cell.find('.server-k8s-host').val() || '').trim();
+        var path = (cell.find('.server-k8s-path').val() || '/').trim();
+
+        var payload = {
+            type: 'server',
+            server_type: server_type || 'opcua',
+            instance: instance || 'default',
+            // Store raw YAML as content so template can restore it directly
+            content: yaml_content,
+            k8s: !!k8s,
+            k8s_options: {
+                service_name: service_name,
+                port: port || 4840,
+                host: host,
+                path: path
+            }
+        };
+        return payload;
+    } catch (e) {
+        console.error('get_server_cell failed', e);
+        return {type: 'server', content: ''};
+    }
+}
+
 // need to implement
 function get_test_cell(cell) {
     console.error("function get_test_cell(cell) not implemented yet.")
     return {};
+}
+
+// Streaming data cell: reuse data cell extraction but change type
+function get_data_stream_cell(cell) {
+    try {
+        var obj = get_data_cell(cell);
+        if (obj && typeof obj === 'object') {
+            obj.type = 'data_stream';
+        }
+        return obj;
+    } catch (e) {
+        console.error('get_data_stream_cell failed', e);
+        return { type: 'data_stream', output: 'table', tabs: [], table: {}, chart: {} };
+    }
 }
 
 /**

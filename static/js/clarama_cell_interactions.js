@@ -68,13 +68,15 @@ function closeAllinsights() {
                 }
             }
 
-            // Clean up any insights-specific callbacks
-            if (window[`cell_insights_variables_callback_${taskIndex}`]) {
-                window[`cell_insights_variables_callback_${taskIndex}`] = null;
-            }
-            if (window[`cell_insights_callback_${taskIndex}`]) {
-                window[`cell_insights_callback_${taskIndex}`] = null;
-            }
+            // // Clean up any insights-specific callbacks
+            // if (window[`cell_insights_variables_callback_${taskIndex}`]) {
+            //     window[`cell_insights_variables_callback_${taskIndex}`] = null;
+            // }
+            // if (window[`cell_insights_callback_${taskIndex}`]) {
+            //     window[`cell_insights_callback_${taskIndex}`] = null;
+            // }
+
+            disarmCodeInspectorAutoReload(taskIndex);
         }
     });
 }
@@ -101,7 +103,7 @@ function cell_edit_run(parent) {
                     if (nextCell.length) {
                         var nextTaskIndex = nextCell.attr('step');
                         if (nextCell.find('.celleditinsights').length > 0) {
-                            openinsights(nextCell, nextTaskIndex);
+                            openInsights(nextCell, nextTaskIndex);
                         }
 
                         // Focus on the next cell's editor
@@ -128,10 +130,7 @@ function initializeNewCellinsights(newElement) {
 
     var taskIndex = newElement.attr('step') || newElement.attr('data-task-index');
     if (taskIndex) {
-        setupConsoleHandlers(newElement, taskIndex);
-
-        // Support both old button and new bar
-        newElement.find('.celleditinsights, .insights-toggle-bar').attr('data-task-index', taskIndex);
+        newElement.find('.insights-toggle-bar').attr('data-task-index', taskIndex);
 
         var consoleInput = newElement.find('.console-input');
         if (consoleInput.length) consoleInput.attr('data-task-index', taskIndex);
@@ -139,43 +138,19 @@ function initializeNewCellinsights(newElement) {
         var executeButton = newElement.find('.execute-console');
         if (executeButton.length) executeButton.attr('data-task-index', taskIndex);
     }
-}
 
-/**
- * Set up console handlers for a specific cell
- * @param {jQuery} cellElement - The cell element
- * @param {string} taskIndex - The task index
- */
-function setupConsoleHandlers(cellElement, taskIndex) {
-    var consoleInput = cellElement.find('.console-input');
-    var executeButton = cellElement.find('.execute-console');
+    initStickyFields(newElement);                 // ensure sticky defaults are restored
+    newElement.find('.clarama-field').initselect(); // wire select2 + AJAX
+    newElement.find('[editor]').editor();           // ACE editors inside the cell
 
-    if (consoleInput.length) {
-        consoleInput.off('keypress.console');
-
-        // Handle Enter key in console input
-        consoleInput.on('keypress.console', function (e) {
-            if (e.which == 13) { // Enter key
-                const currentCell = $(this).closest('.clarama-cell-item');
-                const currentTaskIdx = currentCell.attr('step') || currentCell.attr('data-task-index');
-                insights_console_run(currentTaskIdx);
-            }
-        });
-
-        consoleInput.attr('data-task-index', taskIndex);
+    const host = findEditorInLeft(taskIndex);
+    if (host) {
+        toggleBarsForTask(taskIndex, /*enabled=*/true);
+    } else if (typeof observeEditorReady === 'function') {
+        observeEditorReady(taskIndex);
     }
-
-    if (executeButton.length) {
-        executeButton.off('click.console');
-
-        executeButton.on('click.console', function () {
-            const currentCell = $(this).closest('.clarama-cell-item');
-            const currentTaskIdx = currentCell.attr('step') || currentCell.attr('data-task-index');
-            insights_console_run(currentTaskIdx);
-        });
-
-        executeButton.attr('data-task-index', taskIndex);
-    }
+    syncInsightsConsole(taskIndex);
+    initialiseCellReprompt(taskIndex);
 }
 
 /**
@@ -253,11 +228,23 @@ function cell_insert_step(parent) {
  * @param {jQuery} cellItem - The cell item to open insights for
  * @param {string} taskIndex - The task index of the cell
  */
-function openinsights(cellItem, taskIndex) {
+function openInsights(cellItem, taskIndex) {
     closeAllinsights();
 
-    var leftContent = cellItem.find('#left_content_' + taskIndex);
-    var rightContent = cellItem.find('#right_content_' + taskIndex);
+    var leftContent = cellItem.find('.left-content[id^="left_content_"]').first();
+    var rightContent = cellItem.find('.right-content[id^="right_content_"]').first();
+
+    var deriveIndex = function (el) {
+        if (!el || !el.attr('id')) return null;
+        var m = el.attr('id').match(/_(\d+)$/);
+        return m ? m[1] : null;
+    };
+    var realIndex =
+        deriveIndex(rightContent) ||
+        deriveIndex(leftContent) ||
+        String(taskIndex || '');
+    taskIndex = realIndex;
+
     var oldBtn = cellItem.find('.celleditinsights');       // may or may not exist
     var bar = cellItem.find('.insights-toggle-bar');    // new vertical bar
     var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
@@ -269,6 +256,34 @@ function openinsights(cellItem, taskIndex) {
 
     rightContent.removeClass('d-none');
     setupDragDivider(cellItem, taskIndex);
+    syncInsightsConsole(taskIndex);
+
+    // Ensure /init runs EVERY time this cell's Insights opens:
+    if (window.__ginaInsightsHandshakeSent) delete window.__ginaInsightsHandshakeSent[taskIndex];
+    if (window.__ginaInsightsHandshakeDone) delete window.__ginaInsightsHandshakeDone[taskIndex];
+    initialiseInsightsGina(taskIndex, /*force=*/true);
+    initialiseCellReprompt(taskIndex);
+
+    setTimeout(() => {
+        // Arm if Code Inspector tab is currently active
+        try {
+            armCodeInspectorAutoReload(taskIndex, 150);
+        } catch (_) {
+        }
+
+        const tabsHost = document.getElementById(`insightsTabs_${taskIndex}`);
+        if (tabsHost) {
+            tabsHost.addEventListener('shown.bs.tab', (ev) => {
+                const btn = ev.target; // activated tab button
+                const id = btn && btn.id ? String(btn.id) : "";
+                if (id.startsWith('insights-code-inspector-tab-')) {
+                    armCodeInspectorAutoReload(taskIndex, 150);
+                } else {
+                    disarmCodeInspectorAutoReload(taskIndex);
+                }
+            }, {once: false});
+        }
+    }, 0);
 
     // Visual states / titles
     if (oldBtn.length) {
@@ -276,6 +291,7 @@ function openinsights(cellItem, taskIndex) {
     }
     if (bar.length) {
         bar.addClass('open').attr('title', 'Hide insights (Ctrl-\\)');
+        bar.attr('data-task-index', taskIndex);
         var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
         if (headerBulb.length) {
             headerBulb
@@ -296,12 +312,26 @@ function openinsights(cellItem, taskIndex) {
         notificationContents.removeClass('row').addClass('d-flex flex-column');
     }
 
-    setupConsoleHandlers(cellItem, taskIndex);
-
-    cell_insights_run(cellItem, function (output_text) {
+    cell_insights_variables_run(cellItem, function (output_text) {
         var idx = cellItem.attr('step') || cellItem.attr('data-task-index');
-        populateVariablesList(output_text, idx);
     });
+}
+
+function cleanup(taskIndex) {
+    if (taskIndex) {
+        if (window[`cell_insights_variables_callback_${taskIndex}`]) {
+            window[`cell_insights_variables_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_code_callback_${taskIndex}`]) {
+            window[`cell_insights_code_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_inspect_callback_${taskIndex}`]) {
+            window[`cell_insights_inspect_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_chat_callback_${taskIndex}`]) {
+            window[`cell_insights_chat_callback_${taskIndex}`] = null;
+        }
+    }
 }
 
 /**
@@ -317,19 +347,20 @@ function cell_delete_step(parent) {
         var step_parent = step_type.parents(".clarama-cell-item");
         var taskIndex = step_parent.attr('step') || step_parent.attr('data-task-index');
 
-        if (taskIndex) {
-            if (window[`cell_insights_variables_callback_${taskIndex}`]) {
-                window[`cell_insights_variables_callback_${taskIndex}`] = null;
-            }
-            if (window[`cell_insights_callback_${taskIndex}`]) {
-                window[`cell_insights_callback_${taskIndex}`] = null;
-            }
-        }
+        cleanup(taskIndex);
 
         var step_stream = step_parent.parents(".stream");
         step_parent.remove();
         sortUpdate(step_stream);
         closeAllinsights();
+
+        var $next = step_stream.find("li.clarama-cell-item").first();
+        if ($next.length) {
+            var nextIdx = $next.attr('step') || $next.attr('data-task-index');
+            $next.find('.insights-toggle-bar').attr('data-task-index', nextIdx);
+            openInsights($next, nextIdx);
+            syncInsightsConsole(nextIdx);
+        }
     });
 }
 
@@ -343,20 +374,28 @@ function cell_delete_step(parent) {
 function cell_toggle_insights_view(parent) {
     parent.find(".celleditinsights, .insights-toggle-bar").off('click.insights');
     parent.find(".celleditinsights, .insights-toggle-bar").on("click.insights", function () {
-        var insightsControl = $(this);
-        var cellItem = insightsControl.closest('.clarama-cell-item');
-
-        var taskIndex = insightsControl.attr('data-task-index') ||
+        const insightsControl = $(this);
+        const cellItem = insightsControl.closest('.clarama-cell-item');
+        const idFrom = (sel) => {
+            const el = cellItem.find(sel)[0];
+            if (!el || !el.id) return null;
+            const m = el.id.match(/_(\d+)$/);
+            return m ? m[1] : null;
+        };
+        let taskIndex =
+            idFrom('.right-content[id^="right_content_"]') ||
+            idFrom('.left-content[id^="left_content_"]') ||
+            insightsControl.attr('data-task-index') ||
             cellItem.attr('step') ||
             cellItem.attr('data-task-index');
-
-        var rightContent = cellItem.find('#right_content_' + taskIndex);
-        var isOpen = !rightContent.hasClass('d-none');
-
+        // Fall back 
+        taskIndex = String(taskIndex || '');
+        const rightContent = cellItem.find('.right-content[id^="right_content_"]').first();
+        const isOpen = rightContent.length && !rightContent.hasClass('d-none');
         if (isOpen) {
             closeAllinsights();
         } else {
-            openinsights(cellItem, taskIndex);
+            openInsights(cellItem, taskIndex);
         }
     });
 }
@@ -547,7 +586,7 @@ function datacell_setOutput(id_template, value, Options) {
     if (!value) value = 'table';
     $('#' + id_template + '_output').val(value);
 
-    const types = ['table', 'chart', 'chart3d', 'code'];
+    const types = ['table', 'chart', 'chart3d', 'code', 'diagram'];
 
     types.forEach(t => {
         const $btn = $('#' + id_template + '_' + t);
@@ -731,6 +770,14 @@ function extractCellContent(cell) {
 
         case 'data':
             content = get_data_cell(targetCell);
+            break;
+
+        case 'data_stream':
+            content = get_data_stream_cell(targetCell);
+            break;
+
+        case 'server':
+            content = get_server_cell(targetCell);
             break;
 
         case 'test':
@@ -957,57 +1004,3 @@ function taskCellPaste() {
         });
     }
 }
-
-// Auto-open/close Insights based on focused cell
-(function attachAutoOpenInsights() {
-    const OPEN_DEBOUNCE_MS = 120;
-    let lastMark = null;
-
-    function debounce(fn, wait) {
-        let t = null;
-        return function (...args) {
-            clearTimeout(t);
-            t = setTimeout(() => fn.apply(this, args), wait);
-        };
-    }
-
-    const maybeActivate = debounce(function (cellItem) {
-        if (!cellItem || !cellItem.length) return;
-
-        const taskIndex =
-            cellItem.attr('step') || cellItem.attr('data-task-index');
-        if (!taskIndex) return;
-
-        const hasInsights = cellItem.find('.celleditinsights, .insights-toggle-bar').length;
-
-        if (!hasInsights) {
-            const mark = `close:${taskIndex}`;
-            if (lastMark !== mark) {
-                closeAllinsights();
-                lastMark = mark;
-            }
-            return;
-        }
-
-        if (lastMark === String(taskIndex)) return; // already opened for this one
-        openinsights(cellItem, taskIndex);
-        lastMark = String(taskIndex);
-    }, OPEN_DEBOUNCE_MS);
-
-    // Focus anywhere inside the left pane
-    $(document).on('focusin.autoinsights', '.clarama-cell-item .left-content', function () {
-        maybeActivate($(this).closest('.clarama-cell-item'));
-    });
-
-    // Mouse clicking non-focusable parts of the left pane
-    $(document).on('mousedown.autoinsights', '.clarama-cell-item .left-content', function (e) {
-        if (document.activeElement && $(document.activeElement).closest(this).length) return;
-        maybeActivate($(this).closest('.clarama-cell-item'));
-    });
-
-    $(document).on('focusin.autoinsights', '.clarama-cell-item .ace_text-input', function () {
-        maybeActivate($(this).closest('.clarama-cell-item'));
-    });
-})();
-  
-  
