@@ -1019,43 +1019,64 @@ function insertCodeIntoAceEditor(taskIndex, text) {
         const end = active.selectionEnd ?? start;
         const before = active.value.slice(0, start);
         const after = active.value.slice(end);
-        active.value = before + text + after;
-        const pos = start + text.length;
+        const needsLeadNL = (start !== end) 
+                            ? (start - before.lastIndexOf('\n') - 1) > 0
+                            : false;
+        const payload = (needsLeadNL ? "\n" : "") + text;
+        active.value = before + payload + after;
+        const pos = (before + payload).length;
         active.selectionStart = active.selectionEnd = pos;
         active.dispatchEvent(new Event('input', {bubbles: true}));
         return;
     }
 
-    // Ace editor path: insert on the line BELOW the current cursor
+    // Ace editor path
     const aceHost = left.querySelector('.ace_editor');
     if (aceHost && window.ace && typeof window.ace.edit === 'function') {
         if (!aceHost.id) aceHost.id = `ace_${taskIndex}_${Date.now()}`;
         const editor = window.ace.edit(aceHost.id);
 
         const session = editor.session;
-        const pos = editor.getCursorPosition(); // {row, column}
-        const lastRow = session.getLength() - 1;
-
-        // If on the last line, ensure there is a newline to allow inserting on the next line
-        if (pos.row === lastRow) {
-            const lineLen = session.getLine(pos.row).length;
-            session.insert({row: pos.row, column: lineLen}, "\n");
+        const sel = editor.getSelectionRange();
+        if (!sel.isEmpty()) {
+            // Replace the selection, then insert code on a fresh line
+            editor.session.replace(sel, '');
+            // cursor now at sel.start
+            const pos = editor.getCursorPosition();
+            const leadingCol = pos.column;
+            if (leadingCol !== 0) {
+                session.insert(pos, "\n");
+            }
+            const target = { row: pos.row + (leadingCol !== 0 ? 1 : 0), column: 0 };
+            session.insert(target, text);
+            // place caret at end of inserted block
+            const lines = String(text).split("\n");
+            const endRow = target.row + Math.max(0, lines.length - 1);
+            const endCol = (lines[lines.length - 1] || "").length;
+            editor.moveCursorTo(endRow, endCol);
+            editor.clearSelection();
+            editor.renderer.scrollCursorIntoView({row: endRow, column: endCol}, 0.5);
+            editor.focus();
+            return;
+        } else {
+            // No selection: insert on the line BELOW the current cursor
+            const pos = editor.getCursorPosition(); // {row, column}
+            const lastRow = session.getLength() - 1;
+            if (pos.row === lastRow) {
+                const lineLen = session.getLine(pos.row).length;
+                session.insert({row: pos.row, column: lineLen}, "\n");
+            }
+            const target = {row: pos.row + 1, column: 0};
+            session.insert(target, text);
+            const lines = String(text).split("\n");
+            const endRow = target.row + Math.max(0, lines.length - 1);
+            const endCol = (lines[lines.length - 1] || "").length;
+            editor.moveCursorTo(endRow, endCol);
+            editor.clearSelection();
+            editor.renderer.scrollCursorIntoView({row: endRow, column: endCol}, 0.5);
+            editor.focus();
+            return;
         }
-
-        // Insert at the start of the next line
-        const target = {row: pos.row + 1, column: 0};
-        session.insert(target, text);
-
-        // Move cursor to the end of the inserted block
-        const lines = String(text).split("\n");
-        const endRow = target.row + lines.length - 2;
-        const endCol = lines[lines.length - 2].length;
-
-        editor.moveCursorTo(endRow, endCol);
-        editor.clearSelection(); // ensure nothing remains selected
-        editor.renderer.scrollCursorIntoView({row: endRow, column: endCol}, 0.5);
-        editor.focus();
-        return;
     }
 }
 
