@@ -1088,7 +1088,7 @@ function applyGinaChatSizing(taskIndex) {
     const chat = document.getElementById(`insights_gina_chat_${taskIndex}`);
     if (!chat) return;
     const leftH = getLeftEditorHeightPx(taskIndex);
-    const maxH = Math.max(250, leftH || 0);
+    const maxH = Math.max(600, leftH || 0);
     chat.style.setProperty('--gina-chat-max', `${maxH}px`);
     chat.style.minHeight = '250px';
     chat.style.overflowY = 'auto';
