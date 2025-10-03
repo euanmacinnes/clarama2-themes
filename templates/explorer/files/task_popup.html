@@ -50,6 +50,10 @@
                             class="bi bi-play-fill h2"></i></button>
                     <button type="button" class="btn btn-c2 kernel_status" id="popup-kernel-status"> Loading...
                     </button>
+                    <button type="button" class="btn btn-light btn-sm ms-1" title="Task parameters"
+                            onclick="openTaskArgsModal('{{ grid_id }}json', 'Task Parameters')">
+                        <i class="bi bi-question-circle"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -90,5 +94,6 @@ safe }}</script>
 
 {% include theme("explorer/files/_grid_popup.html") %}
 {% include theme("explorer/files/task_response_templates.html") %}
+{% include theme("web/common_dialogs.html") %}
 
 {% include theme("web/file_footer.html") %}
