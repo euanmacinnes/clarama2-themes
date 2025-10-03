@@ -315,8 +315,16 @@ function configureConsoleForActiveTab(taskIndex, activeTabId) {
 
 /* ---------------------------------------------------------------------- */
 /* Chat bubbles + streaming                                                */
-
 /* ---------------------------------------------------------------------- */
+
+function pruneEmptyAssistantBubbles(taskIndex) {
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
+    $chat.find('.insights-gina-chat-assistant').each(function () {
+        const hasText = ($(this).find('.stream-html').text() +
+                         $(this).find('.stream-text').text()).trim().length > 0;
+        if (!hasText) $(this).remove();
+    });
+}
 
 function finalizePreviousReplyBubble(taskIndex) {
     const $prev = $(`#insights_gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
@@ -328,6 +336,7 @@ function finalizePreviousReplyBubble(taskIndex) {
         $span.replaceWith(document.createTextNode(text));
     }
     $prev.removeAttr("id").removeClass("insights-gina-chat-reply").addClass("insights-gina-chat-assistant");
+    pruneEmptyAssistantBubbles(taskIndex);
 }
 
 /** Load a bubble template into chat area */
@@ -344,13 +353,22 @@ function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
     return chatBubble;
 }
 
-/** If no stream bubble, create one and return its id */
+// Add near other globals
+window.__ginaStreamPending = window.__ginaStreamPending || {};
+
+// Replace ensureStreamBubble with:
 function ensureStreamBubble(taskIndex) {
     if (!is_chat_tab_active(taskIndex)) return null;
     const streamId = `gina_stream_${taskIndex}`;
-    if (!document.getElementById(streamId)) {
-        appendChatBubbleViaTemplate(taskIndex, "reply", streamId);
+    window.__ginaStreamPending[taskIndex] = window.__ginaStreamPending[taskIndex] || false;
+
+    // If DOM has it or a load is already pending, just return the id
+    if (document.getElementById(streamId) || window.__ginaStreamPending[taskIndex]) {
+        return streamId;
     }
+
+    window.__ginaStreamPending[taskIndex] = true;        // mark in-flight
+    appendChatBubbleViaTemplate(taskIndex, "reply", streamId);
     return streamId;
 }
 
@@ -375,6 +393,9 @@ function setStreamText(streamId, text, {append = false} = {}) {
         setTimeout(() => setStreamText(streamId, text, {append}), 16);
         return;
     }
+
+    const taskIndex = String(streamId).replace(/\D/g, "");
+    if (taskIndex) window.__ginaStreamPending[taskIndex] = false;
 
     const bubble = el.querySelector(".insights-gina-chat-bubble");
     if (!bubble) return;
@@ -2090,6 +2111,8 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     configureConsoleForActiveTab(taskIndex, id);
     if (id.startsWith("insights-chat-tab-")) {
         initialiseInsightsGina(taskIndex);
+        applyChatTabHeights(taskIndex);
+        observeLeftHeightForChat(taskIndex);
     }
 });
 
