@@ -76,7 +76,7 @@ function processTaskMessages() {
  * Send the current topic subscriptions to the active websocket.
  * Requires an open task_active_socket.
  */
-function update_topics() {
+function update_topics(topic) {
     if (task_active_socket !== undefined)
         if (task_active_socket.readyState === WebSocket.OPEN) {
             task_active_socket.send(JSON.stringify({topics: socket_topics}));
@@ -98,8 +98,7 @@ function add_topic(topic) {
         console.log("CLARAMA_WEBSOCKET.js: ADD TOPIC " + topic);
         console.log(socket_topics);
     }
-
-    update_topics();
+    update_topics(topic);
 }
 
 /**
@@ -113,7 +112,7 @@ function remove_topic(topic) {
         console.log(socket_topics);
     }
 
-    update_topics();
+    update_topics(topic);
 }
 
 /**
