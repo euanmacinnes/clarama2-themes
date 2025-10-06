@@ -423,8 +423,12 @@ function initializeCellNavigation() {
     });
 
     $(document).on('keydown', function (e) {
-        // Ctrl + Enter: Run current cell and move to next
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
+        const $t = $(e.target);
+        const inInsightsConsole = $t.is('textarea.console-input') > 0;
+
+        // Shift + Enter: Run current cell and move to next (DISABLED inside Insights console)
+        if (e.shiftKey && e.keyCode === 13) {
+            if (inInsightsConsole) return;
             e.preventDefault();
 
             const currentCell = getCurrentCell();
@@ -439,15 +443,15 @@ function initializeCellNavigation() {
             }
         }
 
-        // Shift+Enter: Run current cell and move to next
-        // if ((e.shiftKey || e.metaKey) && e.keyCode === 13) {
-        //     e.preventDefault();
+        // Ctrl + Enter: Run current cell in place
+        if (e.ctrlKey && e.keyCode === 13) {
+            e.preventDefault();
 
-        //     const currentCell = getCurrentCell();
-        //     if (!currentCell) return;
-
-        //     const runSuccess = runCurrentCell(currentCell);
-        // }
+            const currentCell = getCurrentCell();
+            if (!currentCell) return;
+            runCurrentCell(currentCell);
+            return;
+        }
 
         // Ctrl + \ : Toggle insights for current cell
         if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
