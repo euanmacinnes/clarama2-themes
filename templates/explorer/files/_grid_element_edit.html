@@ -99,7 +99,7 @@
                         {% set current_element_url = link.url if link.element is defined else elements[link]['url'] %}
                         {% set current_element_params = link.params if link.element is defined else elements[link]['params'] %}
                         {% set do_wait = link.wait if link.wait is defined else false %}
-                        {% include theme("explorer/steps/grid_edit_interaction.html") %}
+                        {% include theme("explorer/files/_grid_interaction_edit.html") %}
                     {% endif %}
                 {% endfor %}
             </div>
@@ -121,7 +121,7 @@
                         {% set current_element_params = link.params if link.element is defined else elements[link]['params'] %}
                         {% set do_wait = link.wait if link.wait is defined else false %}
                         {% set menu_item_name = link.menu_item_name %}
-                        {% include theme("explorer/steps/grid_edit_interaction.html") %}
+                        {% include theme("explorer/files/_grid_interaction_edit.html") %}
                     {% endif %}
                 {% endfor %}
             </div>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grid UI Editor (jQuery)</title>
+  <!-- Tailwind CSS CDN (for quick demo styling) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jQuery CDN -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <style>
+    html, body { height: 100%; }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-100">
+  <header class="p-4 bg-white shadow-sm">
+    <h1 class="text-xl font-semibold text-gray-700">Grid UI Editor (jQuery, no React)</h1>
+  </header>
+
+  <main class="p-4">
+    <!-- Container where the editor will render -->
+    <div id="root"></div>
+  </main>
+
+  <!-- Optional: provide initial configuration -->
+  <script>
+    window.GridUIEditorInit = {
+      container: '#root',
+      fitToWidth: true,
+      gridCols: 10,
+      gridRows: 6,
+      // You can also pass items, connections, offGridTargets, or cellSize if desired
+      // items: [...],
+      // connections: [...],
+      // offGridTargets: [...],
+      // cellSize: 60,
+    };
+  </script>
+
+  <!-- The Grid UI Editor script (same folder) -->
+  <script src="./grid-ui-editor.jquery.js"></script>
+</body>
+</html>
