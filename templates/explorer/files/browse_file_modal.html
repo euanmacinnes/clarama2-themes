@@ -106,6 +106,9 @@
             if (inputId.includes('_elemInput')) { // this is the grid element's dropdown menu
                 targetInput.href = "/content/edit/" + absolutePath;
                 targetInput.textContent = newSource;
+                var oldSource = targetInput.getAttribute('url');
+                remove_topic("edit_" + oldSource);
+                add_topic("edit_" + newSource);
                 {{ grid_id }}elements[target]['url'] = newSource;
 
                 let parentDiv = document.getElementById(target);

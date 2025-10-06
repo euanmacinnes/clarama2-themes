@@ -73,15 +73,10 @@ function processTaskMessages() {
 
 
 /**
- * Subscribe to topics and flush the queued task messages once the socket is open.
+ * Send the current topic subscriptions to the active websocket.
+ * Requires an open task_active_socket.
  */
-function add_topic(topic) {
-    if (socket_topics.indexOf(topic) === -1) {
-        socket_topics.push(topic);
-        console.log("CLARAMA_WEBSOCKET.js: TOPICS");
-        console.log(socket_topics);
-    }
-
+function update_topics() {
     if (task_active_socket !== undefined)
         if (task_active_socket.readyState === WebSocket.OPEN) {
             task_active_socket.send(JSON.stringify({topics: socket_topics}));
@@ -92,6 +87,33 @@ function add_topic(topic) {
     else {
         console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket undefined, pushing on queue");
     }
+}
+
+/**
+ * Subscribe to topic
+ */
+function add_topic(topic) {
+    if (socket_topics.indexOf(topic) === -1) {
+        socket_topics.push(topic);
+        console.log("CLARAMA_WEBSOCKET.js: ADD TOPIC " + topic);
+        console.log(socket_topics);
+    }
+
+    update_topics();
+}
+
+/**
+ * Unsubscribe from topic
+ */
+function remove_topic(topic) {
+    const idx = socket_topics.indexOf(topic);
+    if (idx !== -1) {
+        socket_topics.splice(idx, 1);
+        console.log("CLARAMA_WEBSOCKET.js: REMOVE TOPIC " + topic);
+        console.log(socket_topics);
+    }
+
+    update_topics();
 }
 
 /**
@@ -753,7 +775,7 @@ window.ClaramaStream = window.ClaramaStream || (function () {
 // Fixed section of onMessage function in CLARAMA_WEBSOCKET.js
 
 /**
- * WebSocket onmessage handler. Routes messages by class/type Pand updates UI accordingly.
+ * WebSocket onmessage handler. Routes messages by class/type and updates UI accordingly.
  * Handles: ping, layout, alerts, template(s), charts/tables, task progress, and resume events.
  *
  * @param {MessageEvent} event
@@ -1171,3 +1193,19 @@ function onError(event, socket_url, webSocket, socket_div) {
     console.log("CLARAMA_WEBSOCKET.js: WebSocket Error [" + event.data + "] from " + socket_url + " on socket " + webSocket);
     //alert("SOCKET error " + event.data, "danger");
 }
+
+
+// Ensure global access to topic management functions, including alias for common typo
+(function() {
+    if (typeof window !== 'undefined') {
+        try {
+            window.add_topic = window.add_topic || add_topic;
+        } catch (e) {
+            // ignore if not defined yet
+        }
+        try {
+            window.remove_topic = window.remove_topic || remove_topic;
+        } catch (e) {
+        }
+    }
+})();
