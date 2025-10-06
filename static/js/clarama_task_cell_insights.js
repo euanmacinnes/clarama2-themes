@@ -537,7 +537,6 @@ function cell_insights_data_run(cell_button, dataQuery) {
 
 /* ---------------------------------------------------------------------- */
 /* CODE INSPECTOR                                                         */
-
 /* ---------------------------------------------------------------------- */
 window.__codeInspectorAutoReload = window.__codeInspectorAutoReload || Object.create(null);
 

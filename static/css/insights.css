@@ -16,6 +16,19 @@ CELL LAYOUT
     background: #6af;
 }
 
+.toolbar-btn {
+    --bs-btn-padding-y: 0.1rem;
+}
+
+.toolbar-btn i {
+    font-size: 1rem;                
+    transition: font-size 0.3s ease; 
+}
+
+.cell-toolbar:hover .toolbar-btn i {
+    font-size: 1.1rem;
+}
+
 .content-row {
     display: flex;
     align-items: stretch;
@@ -64,10 +77,6 @@ CELL LAYOUT
     height: auto;
     display: flex;
     flex-direction: column;
-}
-
-.cell-response {
-    margin-top: 10px;
 }
 
 .insights-content {
