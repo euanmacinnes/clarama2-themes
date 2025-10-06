@@ -29,6 +29,10 @@ CELL LAYOUT
     font-size: 1.1rem;
 }
 
+.toolbar-ellipsis-hidden {
+    display: none !important;
+}
+
 .content-row {
     display: flex;
     align-items: stretch;
