@@ -194,6 +194,34 @@ function cell_insert_step(parent) {
                 });
         }
     });
+
+    function resetMoreOptions($tb) {
+        const $moreBtn = $tb.find('[id$="_more_options"]');
+        $tb.find('.toolbar-more-btn').addClass('d-none');
+        $moreBtn.removeClass('toolbar-ellipsis-hidden').attr('aria-expanded', 'false');
+        $tb.find('.toolbar-ellipsis').removeClass('toolbar-ellipsis-hidden');
+    }
+
+    parent.find('[id^="task_toolbar_"]').each(function () {
+        const $tb = $(this);
+        resetMoreOptions($tb);
+
+        const $toggleTargets = $tb.find('[id$="_more_options"], .toolbar-ellipsis');
+        $toggleTargets
+            .off('click.revealMore')
+            .on('click.revealMore', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const $moreBtn = $tb.find('[id$="_more_options"]');
+                $moreBtn.addClass('toolbar-ellipsis-hidden').attr('aria-expanded', 'true');
+                $tb.find('.toolbar-ellipsis').addClass('toolbar-ellipsis-hidden');
+                $tb.find('.toolbar-more-btn').removeClass('d-none');
+            });
+
+            $tb.off('mouseleave.revealMore').on('mouseleave.revealMore', function () {
+                resetMoreOptions($tb);
+            });
+    });
 }
 
 /**

@@ -59,27 +59,34 @@
             data-bs-placement="bottom"
             title="Add a shell step. Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_question" type="button" class="btn insert_step toolbar-btn" steptype="question">
+    <button id="step_{{ task_index }}_more_options" type="button" class="btn toolbar-btn">
+        <i  class="mb-3 bi bi-three-dots toolbar-ellipsis"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="more options"></i>
+    </button>
+    <button id="step_{{ task_index }}_insert_question" type="button" class="btn insert_step toolbar-btn toolbar-more-btn d-none" 
+            steptype="question">
         <i  class="bi bi-question-square mb-3" 
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a question step to ask a specific LLM prompt"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_server" type="button" class="btn insert_step toolbar-btn"
+    <button id="step_{{ task_index }}_insert_server" type="button" class="btn insert_step toolbar-btn toolbar-more-btn d-none"
             steptype="server">
         <i  class="bi bi-hdd mb-3" 
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a server"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_test_config" type="button" class="btn insert_step toolbar-btn"
+    <button id="step_{{ task_index }}_insert_test_config" type="button" class="btn insert_step toolbar-btn toolbar-more-btn d-none"
             steptype="test_config">
         <i  class="bi bi-gear-wide-connected mb-3" 
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a browser test configuration. This starts an offline recording, playback and test section for testing browser functionality"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_test_block" type="button" class="btn insert_step toolbar-btn"
+    <button id="step_{{ task_index }}_insert_test_block" type="button" class="btn insert_step toolbar-btn toolbar-more-btn d-none"
             steptype="test_block">
         <i  class="bi bi-pencil-square mb-3"
             data-bs-toggle="tooltip"
