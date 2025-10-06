@@ -341,6 +341,9 @@
                 targetInput.href = "/content/element/{{ file_url }}";
                 targetInput.textContent = "";
 
+                var oldSource = targetInput.getAttribute('oldSource');
+                remove_topic("edit_" + oldSource);
+
                 if (target in {{ grid_id }}elements) {{ grid_id }}elements[target]['url'] = "";
 
                 let parentDiv = document.getElementById(target);
