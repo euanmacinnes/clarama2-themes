@@ -422,7 +422,19 @@ function initializeCellNavigation() {
         }
     });
 
+    let lastShiftUpTs = 0;
+    let shiftTapCount = 0;
+    let shiftSequenceValid = true;
+    const DOUBLE_SHIFT_MS = 400;
+
     $(document).on('keydown', function (e) {
+        if (e.key !== 'Shift') {
+            shiftSequenceValid = false;
+            shiftTapCount = 0;
+            return;
+        }
+        if (e.repeat) return;
+
         const $t = $(e.target);
         const inInsightsConsole = $t.is('textarea.console-input') > 0;
 
@@ -452,18 +464,30 @@ function initializeCellNavigation() {
             runCurrentCell(currentCell);
             return;
         }
+    });
 
-        // Ctrl + \ : Toggle insights for current cell
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
-            e.preventDefault();
+    $(document).on('keyup', function (e) {
+        if (e.key !== 'Shift') return;
+        const now = Date.now();
+        if (shiftSequenceValid && (now - lastShiftUpTs) <= DOUBLE_SHIFT_MS) {
+            shiftTapCount += 1;
+        } else {
+            shiftTapCount = 1;
+        }
+        lastShiftUpTs = now;
+        shiftSequenceValid = true;
 
+        // Double tapping shift key: toggle cell insights
+        if (shiftTapCount === 2) {
             const currentCell = getCurrentCell();
-            if (!currentCell) {
+            if (currentCell) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleInsightsForCurrentCell(currentCell);
+            } else {
                 console.log('no current cell');
-                return;
             }
-
-            toggleInsightsForCurrentCell(currentCell);
+            shiftTapCount = 0;
         }
     });
 }
@@ -735,35 +759,6 @@ $.fn.editor = function () {
         }
     });
 }
-
-// This is to allow the shortcut to be read through the code editors
-$(document).on('focus', '.source-editor, .text-editor, .ace_text-input', function () {
-    const editor = $(this);
-
-    if (editor.hasClass('source-editor') && editor.attr('id')) {
-        try {
-            const aceEditor = ace.edit(editor.attr('id'));
-
-            // Remove any existing command to avoid duplicates
-            aceEditor.commands.removeCommand('toggleinsights');
-
-            // Add the insights toggle command to ACE editor
-            aceEditor.commands.addCommand({
-                name: 'toggleinsights',
-                bindKey: {win: 'Ctrl-\\', mac: 'Cmd-\\'},
-                exec: function (editor) {
-                    const editorElement = $(editor.container);
-                    const currentCell = editorElement.closest('.clarama-cell-item')[0];
-                    if (currentCell) {
-                        toggleInsightsForCurrentCell(currentCell);
-                    }
-                }
-            });
-        } catch (e) {
-            console.log('Could not bind insights shortcut to ACE editor:', e);
-        }
-    }
-});
 
 function claramaSetCookie(name, value, days) {
     try {

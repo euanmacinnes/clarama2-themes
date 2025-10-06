@@ -39,11 +39,11 @@ function closeAllinsights() {
             rightContent.addClass('d-none');
 
             if (oldBtn.length) {
-                oldBtn.removeClass('btn-warning').attr('title', 'Insights (Ctrl-\\)');
+                oldBtn.removeClass('btn-warning').attr('title', 'Insights');
             }
 
             if (bar.length) {
-                bar.removeClass('open').attr('title', 'Insights (Ctrl-\\)');
+                bar.removeClass('open').attr('title', 'Insights');
                 var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
                 if (headerBulb.length) {
                     headerBulb
@@ -290,10 +290,10 @@ function openInsights(cellItem, taskIndex) {
 
     // Visual states / titles
     if (oldBtn.length) {
-        oldBtn.addClass('btn-warning').attr('title', 'Hide insights (Ctrl-\\)');
+        oldBtn.addClass('btn-warning').attr('title', 'Hide insights');
     }
     if (bar.length) {
-        bar.addClass('open').attr('title', 'Hide insights (Ctrl-\\)');
+        bar.addClass('open').attr('title', 'Hide insights');
         bar.attr('data-task-index', taskIndex);
         var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
         if (headerBulb.length) {
