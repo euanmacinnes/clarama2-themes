@@ -104,24 +104,7 @@ function add_topic(topic) {
  * @param {string|boolean} autorun - Whether to auto-run the task when ready.
  */
 function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kernel_status) {
-    if (socket_topics.indexOf(topic) === -1) {
-        socket_topics.push(topic);
-        console.log("CLARAMA_WEBSOCKET.js: TOPICS");
-        console.log(socket_topics);
-    }
-
-    if (task_active_socket !== undefined)
-        if (task_active_socket.readyState === WebSocket.OPEN) {
-            task_active_socket.send(JSON.stringify({topics: socket_topics}));
-            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " executing");
-            get_task(embedded, task_url, socket_id, autorun, kernel_status);
-            return;
-        } else {
-            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket was not open");
-        }
-    else {
-        console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket undefined, pushing on queue");
-    }
+    add_topic(topic);
 
 
     let task_message = {
