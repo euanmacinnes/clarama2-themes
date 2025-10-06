@@ -79,13 +79,14 @@ function processTaskMessages() {
 function update_topics() {
     if (task_active_socket !== undefined)
         if (task_active_socket.readyState === WebSocket.OPEN) {
+            console.log("CLARAMA_WEBSOCKET.JS updating universal topics for page to " + socket_topics);
             task_active_socket.send(JSON.stringify({topics: socket_topics}));
             return;
         } else {
-            console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket was not open");
+            console.log("CLARAMA_WEBSOCKET.js: update_topic socket was not open");
         }
     else {
-        console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket undefined, pushing on queue");
+        console.log("CLARAMA_WEBSOCKET.js: update_topic  socket undefined, pushing on queue");
     }
 }
 
@@ -128,7 +129,6 @@ function remove_topic(topic) {
 function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kernel_status) {
     add_topic(topic);
 
-
     let task_message = {
         'topic': topic,
         'embedded': embedded,
@@ -137,6 +137,16 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kerne
         'autorun': autorun,
         'kernel_status': kernel_status,
     };
+
+    // If the socket is open, execute immediately; otherwise, queue for later
+    try {
+        if (task_active_socket && task_active_socket.readyState === WebSocket.OPEN) {
+            get_task(task_message.embedded, task_message.task_url, task_message.socket_id, task_message.autorun, task_message.kernel_status);
+            return;
+        }
+    } catch (e) {
+        // fall back to queueing
+    }
 
     socket_taskQueue.push(task_message);
 }
@@ -836,6 +846,20 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 return;
             }
 
+            if (dict['class'] === "file") {
+                // Dispatch global window events for file messages
+                try {
+                    //flash(JSON.stringify(dict));
+                    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+                        window.dispatchEvent(new CustomEvent('clarama:file', {detail: dict}));
+                        if (dict['action']) {
+                            window.dispatchEvent(new CustomEvent('clarama:file:' + dict['action'], {detail: dict}));
+                        }
+                    }
+                } catch (e) {
+                }
+            }
+
             if (dict['class'] === "layout") {
                 var cols = dict['values']['width'];
                 var rows = dict['values']['height'];
@@ -1196,7 +1220,7 @@ function onError(event, socket_url, webSocket, socket_div) {
 
 
 // Ensure global access to topic management functions, including alias for common typo
-(function() {
+(function () {
     if (typeof window !== 'undefined') {
         try {
             window.add_topic = window.add_topic || add_topic;
@@ -1207,5 +1231,18 @@ function onError(event, socket_url, webSocket, socket_div) {
             window.remove_topic = window.remove_topic || remove_topic;
         } catch (e) {
         }
+
+        window.onClaramaFileEvent = function (actionOrHandler, handler) {
+            const isAction = typeof actionOrHandler === 'string';
+            const ev = isAction ? ('clarama:file:' + actionOrHandler) : 'clarama:file';
+            const fn = isAction ? handler : actionOrHandler;
+            if (typeof fn === 'function') window.addEventListener(ev, fn);
+        };
+        window.offClaramaFileEvent = function (actionOrHandler, handler) {
+            const isAction = typeof actionOrHandler === 'string';
+            const ev = isAction ? ('clarama:file:' + actionOrHandler) : 'clarama:file';
+            const fn = isAction ? handler : actionOrHandler;
+            if (typeof fn === 'function') window.removeEventListener(ev, fn);
+        };
     }
 })();
