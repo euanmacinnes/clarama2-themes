@@ -298,6 +298,28 @@ function initializeCellNavigation() {
         return currentCell;
     }
 
+    function moveToPrevCell(currentCell) {
+        if (!currentCell) return null;
+        const currentStep = parseInt($(currentCell).attr('step'));
+        const prevStep = currentStep - 1;
+        if (isNaN(prevStep) || prevStep < 1) return null;
+
+        const prevCell = getCellByStep(prevStep);
+        if (prevCell) {
+            currentCellStep = prevStep;
+            const $prevEditor = $(prevCell).find('.cell-editor').first();
+            if ($prevEditor.length) {
+                $prevEditor.focus();
+                const $ti = $prevEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                if ($ti.length) $ti.focus();
+            }
+            const prevTop = prevCell.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({ top: prevTop - 100, behavior: 'smooth' });
+            return prevCell;
+        }
+        return null;
+    }
+
     function moveToNextCell(currentCell) {
         if (!currentCell) return null;
 
@@ -419,6 +441,26 @@ function initializeCellNavigation() {
         if (cell) {
             currentCellStep = parseInt($(cell).attr('step'));
             console.log('Focused on cell step:', currentCellStep);
+        }
+    });
+
+    $(document).off('keydown.cellNavJump').on('keydown.cellNavJump', function (e) {
+        if (e.altKey) return;
+        const isCtrl = !!e.ctrlKey;
+        if (!isCtrl) return;
+        const key = e.key || '';
+
+        if (key === 'ArrowDown' || e.keyCode === 40) {
+            e.preventDefault();
+            const curr = getCurrentCell();
+            if (curr) moveToNextCell(curr);
+            return;
+        }
+        if (key === 'ArrowUp' || e.keyCode === 38) {
+            e.preventDefault();
+            const curr = getCurrentCell();
+            if (curr) moveToPrevCell(curr);
+            return;
         }
     });
 
@@ -760,6 +802,7 @@ $.fn.editor = function () {
     });
 }
 
+// to prevent ace editor from interfering with cell keyboard shortcuts
 $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', function () {
     const editor = $(this);
 
@@ -798,6 +841,46 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
                                 if ($ti.length) $ti.focus();
                             }
                         }, 300);
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('jumpPrevCell');
+            aceEditor.commands.addCommand({
+                name: 'jumpPrevCell',
+                bindKey: { win: 'Ctrl-Up' },
+                exec: function (editor) {
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    if (!$cell.length) return;
+                    const step = parseInt($cell.attr('step'));
+                    const $prev = $(`li.clarama-cell-item[step="${step - 1}"]`);
+                    const $prevEditor = $prev.find('.cell-editor').first();
+                    if ($prevEditor.length) {
+                        $prevEditor.focus();
+                        const $ti = $prevEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                        if ($ti.length) $ti.focus();
+                        const prevTop = $prev[0].getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({ top: prevTop - 100, behavior: 'smooth' });
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('jumpNextCell');
+            aceEditor.commands.addCommand({
+                name: 'jumpNextCell',
+                bindKey: { win: 'Ctrl-Down' },
+                exec: function (editor) {
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    if (!$cell.length) return;
+                    const step = parseInt($cell.attr('step'));
+                    const $next = $(`li.clarama-cell-item[step="${step + 1}"]`);
+                    const $nextEditor = $next.find('.cell-editor').first();
+                    if ($nextEditor.length) {
+                        $nextEditor.focus();
+                        const $ti = $nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                        if ($ti.length) $ti.focus();
+                        const nextTop = $next[0].getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({ top: nextTop - 100, behavior: 'smooth' });
                     }
                 }
             });
