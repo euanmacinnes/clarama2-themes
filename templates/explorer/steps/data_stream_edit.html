@@ -20,18 +20,9 @@
     {% do chart.update({'series-formats': [{}]}) %}
 {% endif %}
 
-<!-- chart3d -->
-{% if not chart3d is defined %}
-    {% set chart3d={'title': '', 'subtitle': '', 'legend': 'Off'} %}
-{% endif %}
-{% if not chart3d['series-objects'] is defined %}
-    {% do chart3d.update({'series-objects': [{}]}) %}
-{% endif %}
-
 {% set seriesannos = chart.get('series-annos', [{}]) %}
 {% set seriesgroups = chart.get('series-groups', [{}]) %}
 {% set seriesformats = chart.get('series-formats', [{}]) %}
-{% set seriesobjects = chart3d.get('series-objects', [{}]) %}
 
 {% if not seriesannos %}
     {% set seriesannos = [{}] %}
@@ -42,18 +33,15 @@
 {% if not seriesformats %}
     {% set seriesformats = [{}] %}
 {% endif %}
-{% if not seriesobjects %}
-    {% set seriesobjects = [{}] %}
-{% endif %}
 
 <div class="clarama-cell-content" celltype="data_stream" dataid="{{ loop_index }}">
-    <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
+    <div class="tab-content" id="dataStreamEditTabContentContainer_{{ loop_index }}">
         <div class="bg-c2-light rounded-top text-light px-2" style="padding-top: .25rem !important;">
 
             <!-- Toggle buttons -->
             <div class="d-flex flex-wrap align-items-center">
                 <div class="flex-grow-1">
-                    <ul class="nav nav-tabs gap-1" id="dataSourceTabs_{{ loop_index }}" role="tablist">
+                    <ul class="nav nav-tabs gap-1" id="dataStreamSourceTabs_{{ loop_index }}" role="tablist">
                         <i class="fs-2 bi bi-broadcast"></i>
                         <div class="nav-item btn-group me-2">
                             <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
@@ -424,7 +412,7 @@
 
         function updateAllTabDropdowns(loopIndex) {
             const currentTabs = [];
-            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').each(function () {
+            $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').each(function () {
                 const $tabButton = $(this);
                 const tabId = $tabButton.attr('id').split('_').pop();
 
@@ -474,63 +462,6 @@
                     $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
                 });
             });
-
-            // Update series objects vertices dropdowns
-            $(`#seriesObj${loopIndex} .obj-vertices`).each(function () {
-                const $dropdown = $(this);
-                const currentValue = $dropdown.val();
-                $dropdown.empty();
-
-                currentTabs.forEach((tab, index) => {
-                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
-                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
-                });
-            });
-
-            // Update series objects edges dropdowns
-            $(`#seriesObj${loopIndex} .obj-edges`).each(function () {
-                const $dropdown = $(this);
-                let currentValue = $dropdown.val();
-                if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
-                $dropdown.empty();
-
-                $dropdown.append(`<option value="" ${currentValue === '' ? 'selected' : ''}>— none —</option>`);
-
-                currentTabs.forEach((tab, index) => {
-                    const isSelected = currentValue !== '' && String(currentValue) === String(tab.id);
-                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
-                });
-            });
-
-            // Update series objects uv dropdowns
-            $(`#seriesObj${loopIndex} .obj-uv`).each(function () {
-                const $dropdown = $(this);
-                let currentValue = $dropdown.val();
-                if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
-                $dropdown.empty();
-
-                $dropdown.append(`<option value="" ${currentValue === '' ? 'selected' : ''}>— none —</option>`);
-
-                currentTabs.forEach((tab) => {
-                    const isSelected = currentValue !== '' && String(currentValue) === String(tab.id);
-                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
-                });
-            });
-
-            // Update series objects colour dropdowns
-            $(`#seriesObj${loopIndex} .obj-colour`).each(function () {
-                const $dropdown = $(this);
-                let currentValue = $dropdown.val();
-                if (currentValue === undefined || currentValue === null || currentValue === 'none') currentValue = '';
-                $dropdown.empty();
-
-                $dropdown.append(`<option value="" ${currentValue === '' ? 'selected' : ''}>— none —</option>`);
-
-                currentTabs.forEach((tab) => {
-                    const isSelected = currentValue !== '' && String(currentValue) === String(tab.id);
-                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
-                });
-            });
         }
 
         $('.series-type').each(function () {
@@ -561,7 +492,7 @@
 
         // --- TAB MANAGEMENT ---
         let tabCounter = 0;
-        const existingTabs = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab');
+        const existingTabs = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab');
 
         let maxExistingTabId = -1;
         existingTabs.each(function () {
@@ -574,9 +505,9 @@
 
         tabCounter = maxExistingTabId + 1;
 
-        const tabsContainer = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex}`);
-        const contentContainer = $(`#dataEditTabContentContainer_${loopIndex}`);
-        const addSourceTabBtn = $(`#dataEditTabContentContainer_${loopIndex} #add-source-tab-${loopIndex}`);
+        const tabsContainer = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex}`);
+        const contentContainer = $(`#dataStreamEditTabContentContainer_${loopIndex}`);
+        const addSourceTabBtn = $(`#dataStreamEditTabContentContainer_${loopIndex} #add-source-tab-${loopIndex}`);
 
         function addTabHeader(tabId, isFirst = false) {
             const newTabHeader = document.createElement("li");
@@ -628,7 +559,7 @@
             const tabId = tabCounter++;
 
             // Check if this is the first tab (no existing tabs)
-            const existingTabsCount = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').length;
+            const existingTabsCount = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').length;
             const isFirst = existingTabsCount === 0;
 
             const tabHeader = addTabHeader(tabId, isFirst);
@@ -741,8 +672,8 @@
         function activateTab(tabButton) {
             const $tabButton = $(tabButton);
             const targetContentId = $tabButton.attr('aria-controls');
-            $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} .nav-link`).removeClass('active').attr('aria-selected', 'false');
-            $(`#dataEditTabContentContainer_${loopIndex} .tab-pane`).removeClass('show active');
+            $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} .nav-link`).removeClass('active').attr('aria-selected', 'false');
+            $(`#dataStreamEditTabContentContainer_${loopIndex} .tab-pane`).removeClass('show active');
             $tabButton.addClass('active').attr('aria-selected', 'true');
             $(`#${targetContentId}`).addClass('show active');
         }
@@ -756,11 +687,11 @@
             activateTab(this);
         });
 
-        const $initialActiveTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link.active`);
+        const $initialActiveTab = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link.active`);
         if ($initialActiveTab.length) {
             // Tab already active
         } else {
-            const $firstTab = $(`#dataEditTabContentContainer_${loopIndex} #dataSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').first();
+            const $firstTab = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').first();
             if ($firstTab.length) {
                 activateTab($firstTab[0]);
                 updateAllTabDropdowns(loopIndex);
