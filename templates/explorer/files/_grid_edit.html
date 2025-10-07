@@ -585,6 +585,8 @@
         updateColumnLabel(savedColCount);
     }
 
+    subscribeElements();
+
     {{ grid_id }}grid.on('removed', function (event, items) {
         items.forEach(item => {
             console.log("item", item);
@@ -621,6 +623,12 @@
             elem[element] = data;
             {{ grid_id }}elements = elem;
         }
+
+        var eurl = {{ grid_id }}elements[element]['url'];
+        if (eurl!==undefined)
+            add_topic('edit_' + eurl);
+        else
+            console.error({{ grid_id }}elements[element]);
 
         //{{ grid_id }}elements[element] = data;
 
@@ -761,6 +769,112 @@
 
         return serializedData;
     }
+
+    // make the relative file path absolute
+    function gridResolveRelativeFilePath(currentPath, relativePath) {
+        console.log("resolveRelativeFilePath", currentPath, relativePath);
+        currentPath = '/{{ file_url }}';
+        const baseParts = currentPath.split('/').filter(Boolean);
+        baseParts.pop(); // The first leaf is always a file, so get rid of that
+        const relativeParts = relativePath.split('/').filter(Boolean);
+        for (const part of relativeParts) {
+            if (part === '..') {
+                baseParts.pop();
+            } else if (part !== '.') {
+                baseParts.push(part);
+            }
+        }
+        return baseParts.join('/');
+    }
+
+    function subscribeElements() {
+        const currentPath = '/{{ file_url }}';
+
+        for (const [id, data] of Object.entries({{ grid_id }}elements)) {
+            try {
+
+                const rel = gridResolveRelativeFilePath(currentPath, data.url);
+
+                add_topic('edit_' + rel);
+            } catch (e) {
+                console.error(e);
+
+            }
+        }
+
+    }
+
+    // Listen for global file save events and refresh any element(s) whose url matches the saved file
+    (function registerFileSaveRefresh() {
+        try {
+            const currentPath = '/{{ file_url }}';
+
+            function normalizeSavedPath(p) {
+                if (!p) return null;
+                let s = String(p);
+                // Remove leading slashes so it matches our subscription rel paths
+                s = s.replace(/^\/+/, '');
+                // If it already looks like a relative path, keep it; otherwise resolve it against currentPath
+                // Heuristic: if it contains ':' (like protocol) leave as-is; otherwise attempt resolution
+                try {
+                    if (s.indexOf('://') !== -1) return s; // not expected, but be safe
+                } catch (e) { /* noop */ }
+                return s;
+            }
+
+            function refreshElementsByUrl(saved) {
+                const savedRel = normalizeSavedPath(saved);
+                if (!savedRel) return;
+                var found = false;
+
+                for (const [id, data] of Object.entries({{ grid_id }}elements || {})) {
+                    try {
+                        const rel = gridResolveRelativeFilePath(currentPath, data.url);
+                        console.log("refreshElementsByUrl rel", rel, currentPath, data.url);
+                        if (rel === savedRel) {
+                            found = true;
+                            // Force re-render of this element's content
+                            const $parent = $("#" + id).parent();
+                            if ($parent && $parent.length) {
+                                try {
+                                    enable_interactions($parent, true);
+                                    flash("Reloaded " + id + " from " + savedRel);
+                                } catch (e) {
+                                    console.warn('enable_interactions failed for', id, e);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error refreshing element for saved file', e);
+                    }
+                }
+
+                if (!found){
+                    alert("No element found for saved file " + savedRel);
+                }
+            }
+
+            // Subscribe using the global helper defined in clarama_websocket.js
+            if (typeof window !== 'undefined' && typeof window.onClaramaFileEvent === 'function') {
+                window.onClaramaFileEvent('save', function (ev) {
+
+                    try {
+                        const d = (ev && ev.detail) ? ev.detail : {};
+                        const savedPath = d.path;
+                        flash("Received file save event " + savedPath, "info");
+                        if (savedPath) {
+                            console.log('File save event received in grid_edit for', savedPath, d);
+                            refreshElementsByUrl(savedPath);
+                        }
+                    } catch (e) {
+                        console.error('Error handling file save event', e);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Failed to register file save refresh handler', e);
+        }
+    })();
 
     function addColToGridElem(elem, colSize) {
         {{ grid_id }}elements[elem].spacing = colSize.toString();

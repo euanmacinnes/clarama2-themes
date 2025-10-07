@@ -356,14 +356,6 @@ function cell_delete_step(parent) {
         step_parent.remove();
         sortUpdate(step_stream);
         closeAllinsights();
-
-        var $next = step_stream.find("li.clarama-cell-item").first();
-        if ($next.length) {
-            var nextIdx = $next.attr('step') || $next.attr('data-task-index');
-            $next.find('.insights-toggle-bar').attr('data-task-index', nextIdx);
-            openInsights($next, nextIdx);
-            syncInsightsConsole(nextIdx);
-        }
     });
 }
 
