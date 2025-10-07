@@ -69,7 +69,28 @@ function removeElementNumberBadges(gridId) {
     const grid = document.querySelector(`.clarama-grid[grid_id="${gridId}"]`);
     if (!grid) return;
     grid.querySelectorAll('.gs-idx-badge').forEach(b => b.remove());
-}  
+}
+
+const gridMenuOpenCount = new Map();
+
+function increaseGridOpen(gridId) {
+    const n = (gridMenuOpenCount.get(gridId) || 0) + 1;
+    gridMenuOpenCount.set(gridId, n);
+    showElementNumberBadges(gridId);
+}
+
+function decreaseGridOpen(gridId) {
+    const n = (gridMenuOpenCount.get(gridId) || 0) - 1;
+    gridMenuOpenCount.set(gridId, Math.max(0, n));
+    setTimeout(() => {
+        if ((gridMenuOpenCount.get(gridId) || 0) === 0) {
+            const anyOpen = !!document.querySelector(
+                `.dropdown-menu.show[data-grid-id="${CSS.escape(gridId)}"]`
+            );
+            if (!anyOpen) removeElementNumberBadges(gridId);
+        }
+    }, 0);
+}
 
 document.addEventListener('shown.bs.dropdown', function (event) {
     if (event.target.id == 'navbarAlertDropdown') {
@@ -92,8 +113,11 @@ document.addEventListener('shown.bs.dropdown', function (event) {
 
     // ensure the Element listboxes reflect the latest grid elements on each open
     const gridId = trigger.getAttribute('elems');
-    showElementNumberBadges(gridId);
     refreshElementSelectorsInDropdown(dropdownMenu, gridId);
+
+    const menu = trigger.querySelector('.dropdown-menu');
+    if (menu) menu.setAttribute('data-grid-id', gridId);
+    increaseGridOpen(gridId);
 
     // add listeners only to element-related controls to handle parameter-saving when typing/toggling
     const paramInputs = dropdownMenu.querySelectorAll('input[id$="_paramsInput"], input[id$="_refresh"], input[id$="_fit"]');
@@ -109,7 +133,7 @@ document.addEventListener('shown.bs.dropdown', function (event) {
                 target = inputId.replace(/_fit$/, '');
             }
             if (target) {
-                try { saveElementParams(target); } catch(e) { try { console.warn('saveElementParams failed', e); } catch(_) {} }
+                saveElementParams(target);
             }
         };
         input.addEventListener('input', handler);
@@ -147,7 +171,7 @@ document.addEventListener('hide.bs.dropdown', function (event) {
     const trigger = event.target.closest?.('.grid-elem-menu');
     if (!trigger) return;
     const gridId = trigger.getAttribute('elems');
-    removeElementNumberBadges(gridId);
+    decreaseGridOpen(gridId);
 });
 
 // When embedded interaction rows finish rendering, repopulate their Element selectors
@@ -166,7 +190,7 @@ document.addEventListener('clarama:load:success', function (e) {
         // Defer to allow DOM replacement to complete
         setTimeout(() => refreshElementSelectorsInDropdown(dropdownMenu, gridId), 0);
     } catch(err) {
-        try { console.warn('Failed to handle clarama:load:success for interaction row', err); } catch(_) {}
+        console.warn('Failed to handle clarama:load:success for interaction row', err);
     }
 });
 
@@ -199,7 +223,7 @@ document.addEventListener('focusin', function (e) {
                 sel.value = current;
             } else {
                 sel.value = ids[0];
-                if (typeof update_interaction_field === 'function' && targetId && uid) {
+                if (targetId && uid) {
                     update_interaction_field(targetId, uid, 'element', sel.value);
                 }
             }
