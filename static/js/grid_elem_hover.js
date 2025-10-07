@@ -194,7 +194,7 @@ $(document).on('click', '.delete-grid-interaction', function () {
 function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, wait, menuItemName) {
     const newGI = document.createElement("div");
     newGI.className = "clarama-post-embedded clarama-replaceable";
-    let url = `/template/render/explorer/steps/grid_edit_interaction?uid=${newIndex}` +
+    let url = `/template/render/explorer/files/_grid_interaction_edit?uid=${newIndex}` +
               `&current_element=${encodeURIComponent(selectedValue||'')}` +
               `&target=${encodeURIComponent(gelem_target)}` +
               `&current_element_url=${encodeURIComponent(selectedValueUrl||'')}` +
