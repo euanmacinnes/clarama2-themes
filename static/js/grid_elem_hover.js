@@ -44,6 +44,33 @@ function refreshElementSelectorsInDropdown(dropdownMenu, gridId) {
     }
 }
 
+function showElementNumberBadges(gridId) {
+    const grid = document.querySelector(`.clarama-grid[grid_id="${gridId}"]`);
+    if (!grid) return;
+    const items = grid.querySelectorAll('.grid-stack-item');
+
+    items.forEach((item, i) => {
+        // Try to use the numeric suffix from the element id (e.g., element_7 → "7").
+        const id = item.getAttribute('gs-id') || '';
+        const m = id.match(/_(\d+)$/);
+        const num = m ? m[1] : String(i + 1);
+
+        // Avoid duplicates
+        if (item.querySelector(':scope > .gs-idx-badge')) return;
+
+        const badge = document.createElement('div');
+        badge.className = 'gs-idx-badge';
+        badge.textContent = num;
+        item.appendChild(badge);
+    });
+}
+
+function removeElementNumberBadges(gridId) {
+    const grid = document.querySelector(`.clarama-grid[grid_id="${gridId}"]`);
+    if (!grid) return;
+    grid.querySelectorAll('.gs-idx-badge').forEach(b => b.remove());
+}  
+
 document.addEventListener('shown.bs.dropdown', function (event) {
     if (event.target.id == 'navbarAlertDropdown') {
         const $bellIcon = $('#alertsmenu i.bi');
@@ -65,6 +92,7 @@ document.addEventListener('shown.bs.dropdown', function (event) {
 
     // ensure the Element listboxes reflect the latest grid elements on each open
     const gridId = trigger.getAttribute('elems');
+    showElementNumberBadges(gridId);
     refreshElementSelectorsInDropdown(dropdownMenu, gridId);
 
     // add listeners only to element-related controls to handle parameter-saving when typing/toggling
@@ -112,6 +140,14 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     } else {
         dropdownMenu.classList.remove('left-align');
     }
+});
+
+// Remove the badges when the menu is closing/closed
+document.addEventListener('hide.bs.dropdown', function (event) {
+    const trigger = event.target.closest?.('.grid-elem-menu');
+    if (!trigger) return;
+    const gridId = trigger.getAttribute('elems');
+    removeElementNumberBadges(gridId);
 });
 
 // When embedded interaction rows finish rendering, repopulate their Element selectors
