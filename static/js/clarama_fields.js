@@ -760,6 +760,53 @@ $.fn.editor = function () {
     });
 }
 
+$(document).on('focus', '.source-editor, .text-editor, .ace_text-input', function () {
+    const editor = $(this);
+
+    if (editor.hasClass('source-editor') && editor.attr('id')) {
+        try {
+            const aceEditor = ace.edit(editor.attr('id'));
+            aceEditor.commands.removeCommand('runCellAndStay');
+            aceEditor.commands.addCommand({
+                name: 'runCellAndStay',
+                bindKey: { win: 'Ctrl-Enter'},
+                exec: function (editor) {
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    const $runBtn = $cell.find('.celleditrun').first();
+                    if ($runBtn.length) {
+                        $runBtn.trigger('click');
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('runCellAndNext');
+            aceEditor.commands.addCommand({
+                name: 'runCellAndNext',
+                bindKey: { win: 'Shift-Enter'},
+                exec: function (editor) {
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    const $runBtn = $cell.find('.celleditrun').first();
+                    if ($runBtn.length) {
+                        $runBtn.trigger('click');
+                        setTimeout(() => {
+                            const currentStep = parseInt($cell.attr('step'));
+                            const $next = $(`li.clarama-cell-item[step="${currentStep + 1}"]`);
+                            const $nextEditor = $next.find('.cell-editor').first();
+                            if ($nextEditor.length) {
+                                $nextEditor.focus();
+                                const $ti = $nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                                if ($ti.length) $ti.focus();
+                            }
+                        }, 300);
+                    }
+                }
+            });
+        } catch (e) {
+            console.log('Could not bind insights shortcut to ACE editor:', e);
+        }
+    }
+});
+
 function claramaSetCookie(name, value, days) {
     try {
 
