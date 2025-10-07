@@ -2163,7 +2163,6 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
     configureConsoleForActiveTab(taskIndex, id);
     if (id.startsWith("insights-chat-tab-")) {
         initialiseInsightsGina(taskIndex);
-        observeLeftHeightForChat(taskIndex);
     }
 });
 
