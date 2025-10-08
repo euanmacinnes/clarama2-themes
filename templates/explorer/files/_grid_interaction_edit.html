@@ -18,49 +18,60 @@
 
         <!-- Element selector (shown only when kind = Element) -->
         {% set show_elem_select = (current_kind == 'element') %}
-        <select class="form-select form-select-sm me-2"
-                id="interaction-element-{{ target }}-{{ uid }}"
-                onchange="update_interaction_field('{{ target }}','{{ uid }}','element', this.value)"
-                {% if not show_elem_select %}style="display:none" disabled{% endif %}>
-            {% set elements_map = elements if elements is defined else {} %}
-            {% for elem_id, val in elements_map.items() %}
-                <option value="{{ elem_id }}" {% if current_kind == 'element' and current_element == elem_id %}selected{% endif %}>{{ elem_id }}</option>
-            {% endfor %}
-        </select>
+        <div class="elem-slot">
+            <select class="form-select form-select-sm me-2" id="interaction-element-{{ target }}-{{ uid }}"
+                    onchange="update_interaction_field('{{ target }}','{{ uid }}','element', this.value)"
+                    {% if not show_elem_select %}style="visibility:hidden; pointer-events:none"{% endif %}>
+                {% set elements_map = elements if elements is defined else {} %}
+                {% for elem_id, val in elements_map.items() %}
+                    <option value="{{ elem_id }}" {% if current_kind == 'element' and current_element == elem_id %}selected{% endif %}>
+                        {{ elem_id|replace('element_', '') }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
 
         <!-- URL + params inline editor (reuses compact input-group layout) -->
-        <div class="input-group input-group-sm me-2">
-            <button type="button" class="btn btn-outline-primary input-group-text p-1" data-bs-toggle="modal"
-                    data-bs-target="#browseFileModal" title="Choose a file" inputId="interaction-url-{{ target }}-{{ uid }}"
-                    filters="*.task.yaml" style="border-color:#dee2e6;">
-                <i class="bi bi-folder2-open"></i>
+        <div class="interaction-src-cell d-flex align-items-center gap-1">
+            <button type="button" class="btn btn-outline-secondary btn-sm src-toggle-btn" 
+                    id="interaction-src-toggle-{{ target }}-{{ uid }}" onclick="toggleInteractionSrc('{{ target }}','{{ uid }}')"
+                    aria-expanded="{% if current_kind == 'element' and current_element_url %}true{% else %}false{% endif %}"
+                    {% if current_kind != 'element' %}style="display:none"{% endif %}>
+                <i class="bi {% if current_kind == 'element' and current_element_url %}bi-chevron-left{% else %}bi-chevron-right{% endif %}"></i>
             </button>
-        
-            <input id="interaction-url-{{ target }}-{{ uid }}" type="text" class="form-control removeInputFocus rounded-0"
-                placeholder="Data Source Filename" value="{{ current_element_url or '' }}" style="border-color:#dee2e6;"
-                oninput="update_interaction_field('{{ target }}','{{ uid }}','url', this.value)">
-        
-            <button type="button" class="btn btn-outline-secondary p-1 rounded-0" title="Clear URL" 
-                    onclick="clear_interaction_input('{{ target }}','{{ uid }}','url', event)"
-                    style="font-size:1rem;border-color:#dee2e6;">
-                <i class="bi bi-x"></i>
-            </button>
-        
-            {# Show params only if URL is non-empty and not 'null'/'none' #}
-            <span id="interaction-params-wrap-{{ target }}-{{ uid }}"
-                class="{% if current_element_url and (current_element_url|string|lower not in ['null','none']) %}d-inline-flex{% else %}d-none{% endif %} align-items-stretch">
-                <span class="input-group-text p-1 rounded-0" style="border-color:#dee2e6;">?</span>
-                <input type="text" class="form-control removeInputFocus rounded-0" id="interaction-params-{{ target }}-{{ uid }}"
-                        placeholder="my_param=something" value="{{ current_element_params or '' }}" style="border-color:#dee2e6;"
-                        oninput="update_interaction_field('{{ target }}','{{ uid }}','params', this.value)">
-                <button type="button"class="btn btn-outline-secondary p-1 rounded-start-0"
-                        style="font-size:1rem;border-color:#dee2e6;" title="Clear params" 
-                        onclick="clear_interaction_input('{{ target }}','{{ uid }}','params', event)">
-                    <i class="bi bi-x"></i>
-                </button>
-            </span>
+
+            <div id="interaction-src-wrap-{{ target }}-{{ uid }}" class="interaction-src-wrap d-none">
+                <div class="input-group input-group-sm flex-nowrap align-items-center">
+                    <button type="button" class="btn btn-outline-primary p-1 rounded-start src-btn"
+                            data-bs-toggle="modal" data-bs-target="#browseFileModal" title="Choose a file"
+                            inputId="interaction-url-{{ target }}-{{ uid }}" filters="*.task.yaml">
+                        <i class="bi bi-folder2-open"></i>
+                    </button>
+
+                    <input id="interaction-url-{{ target }}-{{ uid }}" type="text" class="form-control removeInputFocus rounded-0"
+                        placeholder="Data Source Filename" value="{{ current_element_url or '' }}"
+                        oninput="onInteractionUrlInput('{{ target }}','{{ uid }}', this.value)">
+
+                    <button type="button" class="btn btn-outline-secondary p-1 rounded-0 src-btn"
+                            title="Clear URL" onclick="clear_interaction_input('{{ target }}','{{ uid }}','url', event)">
+                        <i class="bi bi-x"></i>
+                    </button>
+
+                    {# Show params only if URL is non-empty and not 'null'/'none' #}
+                    <span id="interaction-params-wrap-{{ target }}-{{ uid }}" class="d-none d-inline-flex align-items-stretch params">
+                        <span class="input-group-text p-1 rounded-0">?</span>
+                        <input type="text" class="form-control removeInputFocus rounded-0" id="interaction-params-{{ target }}-{{ uid }}"
+                                placeholder="my_param=something" value="{{ current_element_params or '' }}"
+                                oninput="update_interaction_field('{{ target }}','{{ uid }}','params', this.value)">
+                        <button type="button" class="btn btn-outline-secondary btn-sm p-1 rounded-end src-btn"
+                                title="Clear params" onclick="clear_interaction_input('{{ target }}','{{ uid }}','params', event)">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                </div>
+            </div>
         </div>
-          
+
         <!-- Wait checkbox -->
         <div class="form-check form-switch me-2">
             <input class="form-check-input" type="checkbox" id="interaction-wait-{{ target }}-{{ uid }}" {% if do_wait %}checked{% endif %}
@@ -70,7 +81,6 @@
         <!-- Optional Menu item name (shown if this row is for context menu) -->
         {% if (menu_item_name is defined) or (is_menu is defined) %}
         <div class="input-group input-group-sm me-2">
-            <span class="input-group-text">Menu</span>
             <input type="text" class="form-control" id="interaction-menu-{{ target }}-{{ uid }}" value="{{ menu_item_name or '' }}"
                    placeholder="Menu item" oninput="update_interaction_field('{{ target }}','{{ uid }}','menu_item_name', this.value)">
         </div>

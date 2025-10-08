@@ -76,18 +76,19 @@
 
             <!-- Actions group (non-menu interactions) -->
             <li class="dropdown-item">
-                <div class="d-flex align-items-center justify-content-between">
-                    <strong class="me-2">Actions</strong>
-                    <i class="bi bi-plus-circle grid-interaction-add" title="Add Action" style="cursor: pointer;"
-                       onclick="add_interaction('{{ target }}', false)"></i>
-                </div>
-                <div class="px-3 py-1 gi-grid gi-hdr">
-                    <div class="gi-empty"></div>
-                    <div>Type</div>
-                    <div>Element</div>
-                    <div>Source &amp; Params</div>
-                    <div>Wait</div>
-                    <div></div>
+                <div class="gi-actions-bar d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <strong class="me-3">Actions</strong>
+                        <div class="gi-grid gi-grid--actions gi-hdr d-flex align-items-center">
+                            <span class="gi-col-title gi-col-title-action--type"></span>
+                            <span class="gi-col-title gi-col-title-action--element">Element</span>
+                            <span class="gi-col-title gi-col-title-action--source">Source &amp; Params</span>
+                            <span class="gi-col-title gi-col-title-action--wait">Wait</span>
+                        </div>
+                    </div>
+                
+                    <i class="bi bi-plus-circle grid-interaction-add" title="Add Action" 
+                        style="cursor:pointer;" onclick="add_interaction('{{ target }}', false)"></i>
                 </div>
             </li>
             <div id="grid_element_target_actions-{{ target }}">
@@ -106,18 +107,18 @@
             <!-- Menu group (context menu items) -->
             <li class="dropdown-item">
                 <div class="d-flex align-items-center justify-content-between">
-                    <strong class="me-2">Menu</strong>
+                    <div class="d-flex align-items-center">
+                        <strong class="me-2">Menu</strong>
+                        <div class="gi-grid gi-grid--actions gi-hdr d-flex align-items-center">
+                            <span class="gi-col-title gi-col-title-menu--type"></span>
+                            <span class="gi-col-title gi-col-title-menu--element">Element</span>
+                            <span class="gi-col-title gi-col-title-menu--source">Source &amp; Params</span>
+                            <span class="gi-col-title gi-col-title-menu--wait">Wait</span>
+                            <span class="gi-col-title gi-col-title-menu--menu-name">Menu Name</span>
+                        </div>
+                    </div>
                     <i class="bi bi-plus-circle grid-interaction-add" title="Add Menu Item" style="cursor: pointer;"
                        onclick="add_interaction('{{ target }}', true)"></i>
-                </div>
-                <div class="px-3 py-1 gi-grid gi-grid--menu gi-hdr">
-                    <div class="gi-empty"></div>
-                    <div>Type</div>
-                    <div>Element</div>
-                    <div>Source &amp; Params</div>
-                    <div>Wait</div>
-                    <div>Menu</div>
-                    <div></div>
                 </div>
             </li>
             <div id="grid_element_target_menu-{{ target }}">

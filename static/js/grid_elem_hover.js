@@ -23,7 +23,7 @@ function refreshElementSelectorsInDropdown(dropdownMenu, gridId) {
             elemIds.forEach(id => {
                 const opt = document.createElement('option');
                 opt.value = id;
-                opt.textContent = id;
+                opt.textContent = id.match(/_(\d+)$/)[1];
                 sel.appendChild(opt);
             });
             // Try restore previous selection
@@ -211,7 +211,7 @@ document.addEventListener('focusin', function (e) {
             ids.forEach(id => {
                 const opt = document.createElement('option');
                 opt.value = id;
-                opt.textContent = id;
+                opt.textContent = id.match(/_(\d+)$/)[1];
                 sel.appendChild(opt);
             });
             // Try to preserve the existing linked element or select the first

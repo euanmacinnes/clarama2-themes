@@ -1188,6 +1188,9 @@
         const el = document.getElementById(inputId);
         if (el) el.value = '';
         update_interaction_field(targetId, uid, field, '');
+        if (field === 'url') {
+            setInteractionSrcExpanded(targetId, uid, false);
+        }
     }
 
     function update_interaction_kind(targetId, uid, kind) {
