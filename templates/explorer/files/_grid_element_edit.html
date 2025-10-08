@@ -71,16 +71,7 @@
                 <hr class="dropdown-divider">
             </li>
             <li>
-                <h6 class="dropdown-header mb-1">Interactions</h6>
-                <!-- Column headers for all rows -->
-                <div class="px-3 py-1 small text-muted d-flex align-items-center">
-                    <div class="me-2" style="width: 18px;"></div>
-                    <div class="me-2" style="width: 110px;">Type</div>
-                    <div class="me-2" style="width: 160px;">Element</div>
-                    <div class="flex-grow-1 me-2">Source & Params</div>
-                    <div class="me-3" style="width: 80px;">Wait</div>
-                    <div class="" style="width: 220px;">Menu</div>
-                </div>
+                <h6 class="dropdown-header mb-1">Interactions</h6>                
             </li>
 
             <!-- Actions group (non-menu interactions) -->
@@ -89,6 +80,14 @@
                     <strong class="me-2">Actions</strong>
                     <i class="bi bi-plus-circle grid-interaction-add" title="Add Action" style="cursor: pointer;"
                        onclick="add_interaction('{{ target }}', false)"></i>
+                </div>
+                <div class="px-3 py-1 gi-grid gi-hdr">
+                    <div class="gi-empty"></div>
+                    <div>Type</div>
+                    <div>Element</div>
+                    <div>Source &amp; Params</div>
+                    <div>Wait</div>
+                    <div></div>
                 </div>
             </li>
             <div id="grid_element_target_actions-{{ target }}">
@@ -110,6 +109,15 @@
                     <strong class="me-2">Menu</strong>
                     <i class="bi bi-plus-circle grid-interaction-add" title="Add Menu Item" style="cursor: pointer;"
                        onclick="add_interaction('{{ target }}', true)"></i>
+                </div>
+                <div class="px-3 py-1 gi-grid gi-grid--menu gi-hdr">
+                    <div class="gi-empty"></div>
+                    <div>Type</div>
+                    <div>Element</div>
+                    <div>Source &amp; Params</div>
+                    <div>Wait</div>
+                    <div>Menu</div>
+                    <div></div>
                 </div>
             </li>
             <div id="grid_element_target_menu-{{ target }}">
