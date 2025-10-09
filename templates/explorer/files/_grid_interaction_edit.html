@@ -36,11 +36,12 @@
             <button type="button" class="btn btn-outline-secondary btn-sm src-toggle-btn" 
                     id="interaction-src-toggle-{{ target }}-{{ uid }}" onclick="toggleInteractionSrc('{{ target }}','{{ uid }}')"
                     aria-expanded="{% if current_kind == 'element' and current_element_url %}true{% else %}false{% endif %}"
-                    {% if current_kind != 'element' %}style="display:none"{% endif %}>
+                    {% if current_kind != 'element' or (current_kind == 'element' and current_element_url) %}style="display:none"{% endif %}>
                 <i class="bi {% if current_kind == 'element' and current_element_url %}bi-chevron-left{% else %}bi-chevron-right{% endif %}"></i>
             </button>
 
-            <div id="interaction-src-wrap-{{ target }}-{{ uid }}" class="interaction-src-wrap d-none">
+            <div id="interaction-src-wrap-{{ target }}-{{ uid }}" 
+                    class="interaction-src-wrap {% if current_kind == 'element' and current_element_url %}{% else %}d-none{% endif %}">
                 <div class="input-group input-group-sm flex-nowrap align-items-center">
                     <button type="button" class="btn btn-outline-primary p-1 rounded-start src-btn"
                             data-bs-toggle="modal" data-bs-target="#browseFileModal" title="Choose a file"
@@ -58,7 +59,9 @@
                     </button>
 
                     {# Show params only if URL is non-empty and not 'null'/'none' #}
-                    <span id="interaction-params-wrap-{{ target }}-{{ uid }}" class="d-none d-inline-flex align-items-stretch params">
+                    {% set has_url = (current_element_url and current_element_url|lower not in ['null','none']) %}
+                    <span id="interaction-params-wrap-{{ target }}-{{ uid }}" 
+                            class="{% if has_url %}d-inline-flex{% else %}d-none{% endif %} align-items-stretch params">
                         <span class="input-group-text p-1 rounded-0">?</span>
                         <input type="text" class="form-control removeInputFocus rounded-0" id="interaction-params-{{ target }}-{{ uid }}"
                                 placeholder="my_param=something" value="{{ current_element_params or '' }}"
