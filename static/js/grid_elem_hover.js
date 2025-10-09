@@ -1,5 +1,11 @@
 var activeDropdownId = null; // track currently opened dropdown menu's id
 
+function clearSlateHighlightById(elemId) {
+    if (!elemId) return;
+    const t = document.querySelector(`#${CSS.escape(elemId)}`);
+    if (t) t.classList.remove('highlight');
+}
+
 // Refresh the Element selects inside a grid element interactions dropdown to match current elements
 function refreshElementSelectorsInDropdown(dropdownMenu, gridId) {
     try {
@@ -141,18 +147,37 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     });
     
     // add hover listeners to items in the dropdown to highlight associated grid element on the grid
+    dropdownMenu.__currentHighlighted = null; // track currently highlighted elem for this menu
+
     const items = dropdownMenu.querySelectorAll('.slate-elem-dropdown-item');
     items.forEach(item => {
-        item.addEventListener('mouseover', () => {
-            const elemId = item.getAttribute('elem-id');
-            const targetDiv = document.querySelector(`div[id='${elemId}']`);
-            if (targetDiv) targetDiv.classList.add('highlight');
-        });
-        item.addEventListener('mouseout', () => {
-            const elemId = item.getAttribute('elem-id');
-            const targetDiv = document.querySelector(`div[id='${elemId}']`);
-            if (targetDiv) targetDiv.classList.remove('highlight');
-        });
+        if (item.dataset.hoverWired === '1') return;
+
+        const elemId = item.getAttribute('elem-id');
+        if (!elemId) return;
+
+        const targetDiv = document.querySelector(`#${CSS.escape(elemId)}`);
+        if (!targetDiv) return;
+
+        const onEnter = () => {
+            if (dropdownMenu.__currentHighlighted && dropdownMenu.__currentHighlighted !== elemId) {
+                clearSlateHighlightById(dropdownMenu.__currentHighlighted);
+            }
+            dropdownMenu.__currentHighlighted = elemId;
+            targetDiv.classList.add('highlight');
+        };
+        const onLeave = () => {
+            if (dropdownMenu.__currentHighlighted === elemId) {
+                targetDiv.classList.remove('highlight');
+                dropdownMenu.__currentHighlighted = null;
+            }
+        };
+
+        item.addEventListener('mouseenter', onEnter);
+        item.addEventListener('mouseleave', onLeave);
+
+        // mark as wired so we don't add twice on the next open
+        item.dataset.hoverWired = '1';
     });
 
     const triggerRect = trigger.getBoundingClientRect();
@@ -233,9 +258,16 @@ document.addEventListener('focusin', function (e) {
     }
 });
 
-// removes the interaction in the ui
+// removes the interaction in the ui as well as unhighlights the element
 $(document).on('click', '.delete-grid-interaction', function () {
-    $(this).closest('li').remove();
+    const $row = $(this).closest('li');
+    if ($row && $row.length) {
+        const elemId = $row.attr('elem-id');
+        if (elemId) {
+            clearSlateHighlightById(elemId);
+        }
+    }
+    $row.remove();
 });
 
 // newIndex - unique index or id for the interaction
