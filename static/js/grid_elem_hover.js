@@ -6,6 +6,138 @@ function clearSlateHighlightById(elemId) {
     if (t) t.classList.remove('highlight');
 }
 
+(function ensureElementPickerStyles(){
+    if (document.getElementById('element-picker-style')) return;
+    const style = document.createElement('style');
+    style.id = 'element-picker-style';
+    style.textContent = `
+    .element-picker-menu {
+    position: fixed; z-index: 3000; background: #fff; border: 1px solid #dee2e6;
+    border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.12); padding: 6px 0;
+    max-height: 280px; overflow: auto; min-width: 120px;
+    }
+    .element-picker-item { padding: 6px 10px; line-height: 1.2; cursor: pointer; user-select: none; white-space: nowrap; }
+    .element-picker-item:hover { background: #f0f6ff; }
+    `;
+    document.head.appendChild(style);
+})();
+
+function getElemSuffix(id) {
+    const m = (id || '').match(/_(\d+)$/);
+    return m ? m[1] : id;
+}
+
+function ensureSelectOptions(selectEl, ids) {
+    const have = new Set(Array.from(selectEl.options).map(o => o.value));
+    let changed = false;
+
+    if (!selectEl.options.length) {
+        ids.forEach(id => {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = getElemSuffix(id);
+            selectEl.appendChild(opt);
+        });
+        changed = true;
+    } else {
+        ids.forEach(id => {
+            if (!have.has(id)) {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = getElemSuffix(id);
+            selectEl.appendChild(opt);
+            changed = true;
+            }
+        });
+    }
+    return changed;
+}
+
+function closeElementPicker(dropdownMenu) {
+    const m = dropdownMenu && dropdownMenu.__elementPickerMenu;
+    if (m && m.parentNode) m.parentNode.removeChild(m);
+    if (dropdownMenu) dropdownMenu.__elementPickerMenu = null;
+}
+
+function openElementPicker(selectEl, dropdownMenu, gridId) {
+    closeElementPicker(dropdownMenu); // only one per menu
+
+    const elementsMap = window[gridId + 'elements'] || {};
+    const ids = Object.keys(elementsMap);
+    if (!ids.length) return;
+    ensureSelectOptions(selectEl, ids);
+
+    const rect = selectEl.getBoundingClientRect();
+    const menu = document.createElement('div');
+    menu.className = 'element-picker-menu';
+    menu.style.left = rect.left + 'px';
+    menu.style.top  = (rect.bottom + 4) + 'px';
+    menu.style.minWidth = rect.width + 'px';
+
+    // prevent clicks inside from closing the Bootstrap dropdown
+    const stop = (e) => e.stopPropagation();
+    menu.addEventListener('pointerdown', stop);
+    menu.addEventListener('click', stop);
+
+    ids.forEach(id => {
+        const item = document.createElement('div');
+        item.className = 'element-picker-item';
+        item.dataset.elemId = id;
+        item.textContent = getElemSuffix(id);
+
+        item.addEventListener('pointerenter', () => {
+            // live hover highlight
+            if (dropdownMenu.__currentHighlighted && dropdownMenu.__currentHighlighted !== id) {
+                clearSlateHighlightById(dropdownMenu.__currentHighlighted);
+            }
+            const t = document.querySelector(`#${CSS.escape(id)}`);
+            if (t) {
+                t.classList.add('highlight');
+                dropdownMenu.__currentHighlighted = id;
+            }
+        });
+
+        item.addEventListener('click', () => {
+            if (!Array.from(selectEl.options).some(o => o.value === id)) {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = getElemSuffix(id);
+                selectEl.appendChild(opt);
+            }
+            selectEl.value = id;
+            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+            closeElementPicker(dropdownMenu);
+        });
+
+        menu.appendChild(item);
+    });
+
+    document.body.appendChild(menu);
+    dropdownMenu.__elementPickerMenu = menu;
+
+    // close on outside click or Esc
+    const onDown = (e) => {
+        if (menu.contains(e.target) || e.target === selectEl) return;
+        closeElementPicker(dropdownMenu);
+    };
+    const onEsc = (e) => {
+        if (e.key === 'Escape') closeElementPicker(dropdownMenu);
+    };
+
+    document.addEventListener('pointerdown', onDown, true);
+    document.addEventListener('keydown', onEsc, true);
+
+    // teardown bindings when menu is removed
+    const observer = new MutationObserver(() => {
+        if (!menu.isConnected) {
+            document.removeEventListener('pointerdown', onDown, true);
+            document.removeEventListener('keydown', onEsc, true);
+            observer.disconnect();
+        }
+    });
+    observer.observe(document.body, { childList: true });
+}
+
 // Refresh the Element selects inside a grid element interactions dropdown to match current elements
 function refreshElementSelectorsInDropdown(dropdownMenu, gridId) {
     try {
@@ -35,13 +167,13 @@ function refreshElementSelectorsInDropdown(dropdownMenu, gridId) {
             // Try restore previous selection
             if (prev && elemIds.includes(prev)) {
                 sel.value = prev;
+                if (row) row.setAttribute('elem-id', sel.value);
             } else {
                 // If kind is element and previous no longer exists, pick first and update model
                 if (kindSel && kindSel.value === 'element' && elemIds.length) {
                     sel.value = elemIds[0];
-                    if (typeof update_interaction_field === 'function') {
-                        update_interaction_field(targetId, uid, 'element', sel.value);
-                    }
+                    if (row) row.setAttribute('elem-id', sel.value);
+                    update_interaction_field(targetId, uid, 'element', sel.value);
                 }
             }
         });
@@ -146,38 +278,114 @@ document.addEventListener('shown.bs.dropdown', function (event) {
         input.addEventListener('change', handler);
     });
     
-    // add hover listeners to items in the dropdown to highlight associated grid element on the grid
-    dropdownMenu.__currentHighlighted = null; // track currently highlighted elem for this menu
+    // Track the currently highlighted element for this menu
+    dropdownMenu.__currentHighlighted = null;
 
-    const items = dropdownMenu.querySelectorAll('.slate-elem-dropdown-item');
-    items.forEach(item => {
-        if (item.dataset.hoverWired === '1') return;
+    if (!dropdownMenu.__hoverDelegated) {
+        dropdownMenu.addEventListener('mouseover', (e) => {
+            const row = e.target.closest('.slate-elem-dropdown-item');
+            if (!row || !dropdownMenu.contains(row)) return;
 
-        const elemId = item.getAttribute('elem-id');
-        if (!elemId) return;
+            const elemId = row.getAttribute('elem-id');
+            if (!elemId) return;
 
-        const targetDiv = document.querySelector(`#${CSS.escape(elemId)}`);
-        if (!targetDiv) return;
-
-        const onEnter = () => {
             if (dropdownMenu.__currentHighlighted && dropdownMenu.__currentHighlighted !== elemId) {
                 clearSlateHighlightById(dropdownMenu.__currentHighlighted);
             }
-            dropdownMenu.__currentHighlighted = elemId;
-            targetDiv.classList.add('highlight');
-        };
-        const onLeave = () => {
+            const targetDiv = document.querySelector(`#${CSS.escape(elemId)}`);
+            if (targetDiv) {
+                targetDiv.classList.add('highlight');
+                dropdownMenu.__currentHighlighted = elemId;
+            }
+        });
+
+        dropdownMenu.addEventListener('mouseout', (e) => {
+            const fromRow = e.target.closest('.slate-elem-dropdown-item');
+            if (!fromRow || !dropdownMenu.contains(fromRow)) return;
+            const toEl = e.relatedTarget;
+            if (toEl && fromRow.contains(toEl)) return;
+
+            const elemId = fromRow.getAttribute('elem-id');
+            if (!elemId) return;
+
             if (dropdownMenu.__currentHighlighted === elemId) {
-                targetDiv.classList.remove('highlight');
+                clearSlateHighlightById(elemId);
                 dropdownMenu.__currentHighlighted = null;
             }
-        };
+        });
 
-        item.addEventListener('mouseenter', onEnter);
-        item.addEventListener('mouseleave', onLeave);
+        dropdownMenu.__hoverDelegated = true;
+    }
 
-        // mark as wired so we don't add twice on the next open
-        item.dataset.hoverWired = '1';
+    if (!dropdownMenu.__pickerDelegated) {
+        // Open our overlay instead of native select popup
+        dropdownMenu.addEventListener('mousedown', (e) => {
+            const sel = e.target.closest('select[id^="interaction-element-"]');
+            if (!sel || !dropdownMenu.contains(sel)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const elementsMap = window[gridId + 'elements'] || {};
+            ensureSelectOptions(sel, Object.keys(elementsMap));
+            openElementPicker(sel, dropdownMenu, gridId);
+        });
+
+        // Keep highlight and row attribute in sync when selection changes
+        dropdownMenu.addEventListener('change', (e) => {
+            const sel = e.target;
+            if (!(sel && sel.matches && sel.matches('select[id^="interaction-element-"]'))) return;
+        
+            const row = sel.closest('.slate-elem-dropdown-item');
+            const newId = sel.value;
+            if (!row || !newId) return;
+        
+            // Update the data model on the row so hover reads the latest target
+            row.setAttribute('elem-id', newId);
+        
+            // Refresh the highlight immediately
+            if (dropdownMenu.__currentHighlighted && dropdownMenu.__currentHighlighted !== newId) {
+                clearSlateHighlightById(dropdownMenu.__currentHighlighted);
+            }
+            const t = document.querySelector(`#${CSS.escape(newId)}`);
+            if (t) {
+                // Only add highlight if the row is currently hovered, or just always add:
+                if (row.matches(':hover')) {
+                    t.classList.add('highlight');
+                    dropdownMenu.__currentHighlighted = newId;
+                } else {
+                    // If not hovered, just update the pointer so the next hover uses the new id
+                    dropdownMenu.__currentHighlighted = null;
+                }
+            }
+        });
+
+        dropdownMenu.__pickerDelegated = true;
+    }
+
+    const elementSelects = dropdownMenu.querySelectorAll('select[id^="interaction-element-"]');
+
+    elementSelects.forEach(sel => {
+        if (sel.dataset.pickerWired === '1') return;
+
+        sel.addEventListener('mousedown', (e) => {
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            openElementPicker(sel, dropdownMenu, gridId);
+        });
+
+        sel.addEventListener('change', () => {
+            const id = sel.value;
+            if (!id) return;
+            if (dropdownMenu.__currentHighlighted && dropdownMenu.__currentHighlighted !== id) {
+                clearSlateHighlightById(dropdownMenu.__currentHighlighted);
+            }
+            const targetDiv = document.querySelector(`#${CSS.escape(id)}`);
+            if (targetDiv) {
+                targetDiv.classList.add('highlight');
+                dropdownMenu.__currentHighlighted = id;
+            }
+        });
+
+        sel.dataset.pickerWired = '1';
     });
 
     const triggerRect = trigger.getBoundingClientRect();
@@ -198,6 +406,30 @@ document.addEventListener('hide.bs.dropdown', function (event) {
     const gridId = trigger.getAttribute('elems');
     decreaseGridOpen(gridId);
 });
+
+document.addEventListener('hidden.bs.dropdown', function (event) {
+    const trigger = event.target.closest?.('.grid-elem-menu');
+    if (!trigger) return;
+  
+    const dropdown = event.target.closest('[id^="grid-elem-dropdown-"]');
+    if (!dropdown) return;
+  
+    const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+    if (!dropdownMenu) return;
+  
+    // Clear highlight
+    if (dropdownMenu.__currentHighlighted) {
+        clearSlateHighlightById(dropdownMenu.__currentHighlighted);
+        dropdownMenu.__currentHighlighted = null;
+    }
+    // Close any overlay picker
+    closeElementPicker(dropdownMenu);
+  
+    // Allow clean rewire next time
+    dropdownMenu.querySelectorAll('.slate-elem-dropdown-item').forEach(item => {
+        delete item.dataset.hoverWired;
+    });
+});  
 
 // When embedded interaction rows finish rendering, repopulate their Element selectors
 // This handles the case where the dropdown was opened before the async template loaded.
@@ -246,8 +478,11 @@ document.addEventListener('focusin', function (e) {
             const current = row ? row.getAttribute('elem-id') : null;
             if (current && elementsMap[current]) {
                 sel.value = current;
+                if (row) row.setAttribute('elem-id', sel.value);
             } else {
                 sel.value = ids[0];
+                if (row) row.setAttribute('elem-id', sel.value);
+
                 if (targetId && uid) {
                     update_interaction_field(targetId, uid, 'element', sel.value);
                 }
