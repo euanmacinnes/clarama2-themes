@@ -176,7 +176,7 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
     }
 
     // 3) Error → show error bubble and continue flow
-    if (dict && (dict["class"] === "message" && dict["type"] === "task_step_exception") || (dict["class"] === "template" && dict["type"] === "task_step_error")) {
+    if (dict && ((dict["class"] === "message" && dict["type"] === "task_step_exception") || (dict["class"] === "template" && dict["type"] === "task_step_error"{)) {
         const container = document.getElementById("gina-chat-container");
         const block = container?.querySelector("#gina-latest .gina-block.processing");
         const msg = (dict.values && dict.values.error) ? String(dict.values.error) : "An error occurred.";
