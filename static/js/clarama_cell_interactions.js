@@ -39,11 +39,11 @@ function closeAllinsights() {
             rightContent.addClass('d-none');
 
             if (oldBtn.length) {
-                oldBtn.removeClass('btn-warning').attr('title', 'Insights (Ctrl-\\)');
+                oldBtn.removeClass('btn-warning').attr('title', 'Insights');
             }
 
             if (bar.length) {
-                bar.removeClass('open').attr('title', 'Insights (Ctrl-\\)');
+                bar.removeClass('open').attr('title', 'Insights');
                 var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
                 if (headerBulb.length) {
                     headerBulb
@@ -68,15 +68,8 @@ function closeAllinsights() {
                 }
             }
 
-            // // Clean up any insights-specific callbacks
-            // if (window[`cell_insights_variables_callback_${taskIndex}`]) {
-            //     window[`cell_insights_variables_callback_${taskIndex}`] = null;
-            // }
-            // if (window[`cell_insights_callback_${taskIndex}`]) {
-            //     window[`cell_insights_callback_${taskIndex}`] = null;
-            // }
-
             disarmCodeInspectorAutoReload(taskIndex);
+            disobserveGinaChatSizing(taskIndex);
         }
     });
 }
@@ -91,32 +84,12 @@ function cell_edit_run(parent) {
         var cell_button = $(this).closest('.clarama-cell-item');
         var taskIndex = cell_button.attr('step');
         var hasinsightsOpen = !cell_button.find('#right_content_' + taskIndex).hasClass('d-none');
+
+        // Record the run intent for this step
+        window.__claramaRunIntent = window.__claramaRunIntent || {};
+        window.__claramaRunIntent[taskIndex] = { hadInsightsOpen: hasinsightsOpen, sawChat: false };
+
         cell_item_run(cell_button);
-
-        if (hasinsightsOpen) {
-            closeAllinsights();
-
-            setTimeout(function () {
-                var currentStep = parseInt(taskIndex);
-                if (!isNaN(currentStep)) {
-                    var nextCell = $("li.clarama-cell-item[step='" + (currentStep + 1) + "']");
-                    if (nextCell.length) {
-                        var nextTaskIndex = nextCell.attr('step');
-                        if (nextCell.find('.celleditinsights').length > 0) {
-                            openInsights(nextCell, nextTaskIndex);
-                        }
-
-                        // Focus on the next cell's editor
-                        var nextEditorDiv = nextCell.find(".ace_editor").eq(0);
-                        if (nextEditorDiv.length) {
-                            var editor = nextEditorDiv.get(0).env.editor;
-                            editor.focus();
-                            editor.gotoLine(editor.session.getLength() + 1, 0);
-                        }
-                    }
-                }
-            }, 100);
-        }
     });
 }
 
@@ -221,6 +194,34 @@ function cell_insert_step(parent) {
                 });
         }
     });
+
+    function resetMoreOptions($tb) {
+        const $moreBtn = $tb.find('[id$="_more_options"]');
+        $tb.find('.toolbar-more-btn').addClass('d-none');
+        $moreBtn.removeClass('toolbar-ellipsis-hidden').attr('aria-expanded', 'false');
+        $tb.find('.toolbar-ellipsis').removeClass('toolbar-ellipsis-hidden');
+    }
+
+    parent.find('[id^="task_toolbar_"]').each(function () {
+        const $tb = $(this);
+        resetMoreOptions($tb);
+
+        const $toggleTargets = $tb.find('[id$="_more_options"], .toolbar-ellipsis');
+        $toggleTargets
+            .off('click.revealMore')
+            .on('click.revealMore', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const $moreBtn = $tb.find('[id$="_more_options"]');
+                $moreBtn.addClass('toolbar-ellipsis-hidden').attr('aria-expanded', 'true');
+                $tb.find('.toolbar-ellipsis').addClass('toolbar-ellipsis-hidden');
+                $tb.find('.toolbar-more-btn').removeClass('d-none');
+            });
+
+            $tb.off('mouseleave.revealMore').on('mouseleave.revealMore', function () {
+                resetMoreOptions($tb);
+            });
+    });
 }
 
 /**
@@ -263,6 +264,8 @@ function openInsights(cellItem, taskIndex) {
     if (window.__ginaInsightsHandshakeDone) delete window.__ginaInsightsHandshakeDone[taskIndex];
     initialiseInsightsGina(taskIndex, /*force=*/true);
     initialiseCellReprompt(taskIndex);
+    applyGinaChatSizing(taskIndex);
+    observeGinaChatSizing(taskIndex);
 
     setTimeout(() => {
         // Arm if Code Inspector tab is currently active
@@ -287,10 +290,10 @@ function openInsights(cellItem, taskIndex) {
 
     // Visual states / titles
     if (oldBtn.length) {
-        oldBtn.addClass('btn-warning').attr('title', 'Hide insights (Ctrl-\\)');
+        oldBtn.addClass('btn-warning').attr('title', 'Hide insights');
     }
     if (bar.length) {
-        bar.addClass('open').attr('title', 'Hide insights (Ctrl-\\)');
+        bar.addClass('open').attr('title', 'Hide insights');
         bar.attr('data-task-index', taskIndex);
         var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
         if (headerBulb.length) {
@@ -353,14 +356,6 @@ function cell_delete_step(parent) {
         step_parent.remove();
         sortUpdate(step_stream);
         closeAllinsights();
-
-        var $next = step_stream.find("li.clarama-cell-item").first();
-        if ($next.length) {
-            var nextIdx = $next.attr('step') || $next.attr('data-task-index');
-            $next.find('.insights-toggle-bar').attr('data-task-index', nextIdx);
-            openInsights($next, nextIdx);
-            syncInsightsConsole(nextIdx);
-        }
     });
 }
 

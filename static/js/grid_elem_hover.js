@@ -44,6 +44,54 @@ function refreshElementSelectorsInDropdown(dropdownMenu, gridId) {
     }
 }
 
+function showElementNumberBadges(gridId) {
+    const grid = document.querySelector(`.clarama-grid[grid_id="${gridId}"]`);
+    if (!grid) return;
+    const items = grid.querySelectorAll('.grid-stack-item');
+
+    items.forEach((item, i) => {
+        // Try to use the numeric suffix from the element id (e.g., element_7 → "7").
+        const id = item.getAttribute('gs-id') || '';
+        const m = id.match(/_(\d+)$/);
+        const num = m ? m[1] : String(i + 1);
+
+        // Avoid duplicates
+        if (item.querySelector(':scope > .gs-idx-badge')) return;
+
+        const badge = document.createElement('div');
+        badge.className = 'gs-idx-badge';
+        badge.textContent = num;
+        item.appendChild(badge);
+    });
+}
+
+function removeElementNumberBadges(gridId) {
+    const grid = document.querySelector(`.clarama-grid[grid_id="${gridId}"]`);
+    if (!grid) return;
+    grid.querySelectorAll('.gs-idx-badge').forEach(b => b.remove());
+}
+
+const gridMenuOpenCount = new Map();
+
+function increaseGridOpen(gridId) {
+    const n = (gridMenuOpenCount.get(gridId) || 0) + 1;
+    gridMenuOpenCount.set(gridId, n);
+    showElementNumberBadges(gridId);
+}
+
+function decreaseGridOpen(gridId) {
+    const n = (gridMenuOpenCount.get(gridId) || 0) - 1;
+    gridMenuOpenCount.set(gridId, Math.max(0, n));
+    setTimeout(() => {
+        if ((gridMenuOpenCount.get(gridId) || 0) === 0) {
+            const anyOpen = !!document.querySelector(
+                `.dropdown-menu.show[data-grid-id="${CSS.escape(gridId)}"]`
+            );
+            if (!anyOpen) removeElementNumberBadges(gridId);
+        }
+    }, 0);
+}
+
 document.addEventListener('shown.bs.dropdown', function (event) {
     if (event.target.id == 'navbarAlertDropdown') {
         const $bellIcon = $('#alertsmenu i.bi');
@@ -67,6 +115,10 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     const gridId = trigger.getAttribute('elems');
     refreshElementSelectorsInDropdown(dropdownMenu, gridId);
 
+    const menu = trigger.querySelector('.dropdown-menu');
+    if (menu) menu.setAttribute('data-grid-id', gridId);
+    increaseGridOpen(gridId);
+
     // add listeners only to element-related controls to handle parameter-saving when typing/toggling
     const paramInputs = dropdownMenu.querySelectorAll('input[id$="_paramsInput"], input[id$="_refresh"], input[id$="_fit"]');
     paramInputs.forEach(input => {
@@ -81,7 +133,7 @@ document.addEventListener('shown.bs.dropdown', function (event) {
                 target = inputId.replace(/_fit$/, '');
             }
             if (target) {
-                try { saveElementParams(target); } catch(e) { try { console.warn('saveElementParams failed', e); } catch(_) {} }
+                saveElementParams(target);
             }
         };
         input.addEventListener('input', handler);
@@ -114,6 +166,14 @@ document.addEventListener('shown.bs.dropdown', function (event) {
     }
 });
 
+// Remove the badges when the menu is closing/closed
+document.addEventListener('hide.bs.dropdown', function (event) {
+    const trigger = event.target.closest?.('.grid-elem-menu');
+    if (!trigger) return;
+    const gridId = trigger.getAttribute('elems');
+    decreaseGridOpen(gridId);
+});
+
 // When embedded interaction rows finish rendering, repopulate their Element selectors
 // This handles the case where the dropdown was opened before the async template loaded.
 document.addEventListener('clarama:load:success', function (e) {
@@ -130,7 +190,7 @@ document.addEventListener('clarama:load:success', function (e) {
         // Defer to allow DOM replacement to complete
         setTimeout(() => refreshElementSelectorsInDropdown(dropdownMenu, gridId), 0);
     } catch(err) {
-        try { console.warn('Failed to handle clarama:load:success for interaction row', err); } catch(_) {}
+        console.warn('Failed to handle clarama:load:success for interaction row', err);
     }
 });
 
@@ -163,7 +223,7 @@ document.addEventListener('focusin', function (e) {
                 sel.value = current;
             } else {
                 sel.value = ids[0];
-                if (typeof update_interaction_field === 'function' && targetId && uid) {
+                if (targetId && uid) {
                     update_interaction_field(targetId, uid, 'element', sel.value);
                 }
             }
@@ -194,7 +254,7 @@ $(document).on('click', '.delete-grid-interaction', function () {
 function addGridInteraction(newIndex, gelem_target, selectedValue, selectedValueUrl, urlParams, wait, menuItemName) {
     const newGI = document.createElement("div");
     newGI.className = "clarama-post-embedded clarama-replaceable";
-    let url = `/template/render/explorer/steps/grid_edit_interaction?uid=${newIndex}` +
+    let url = `/template/render/explorer/files/_grid_interaction_edit?uid=${newIndex}` +
               `&current_element=${encodeURIComponent(selectedValue||'')}` +
               `&target=${encodeURIComponent(gelem_target)}` +
               `&current_element_url=${encodeURIComponent(selectedValueUrl||'')}` +

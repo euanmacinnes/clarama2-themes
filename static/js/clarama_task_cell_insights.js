@@ -24,27 +24,6 @@ function debounce(fn, wait, immediate) {
     };
 }
 
-/**
- * Stop piping messages into the Chat bubble for this task.
- */
-function pauseChatStream(taskIndex) {
-    return;
-    
-    if (!taskIndex) return;
-    const cbKey = `cell_insights_chat_callback_${taskIndex}`;
-    window.__ginaChatActive[taskIndex] = false;
-    try {
-        delete window[cbKey];
-    } catch (_) {
-    }
-    try {
-        if (window.__ginaStreamIdleTimer && window.__ginaStreamIdleTimer[taskIndex]) {
-            clearTimeout(window.__ginaStreamIdleTimer[taskIndex]);
-        }
-    } catch (_) {
-    }
-}
-
 function ressumeChatStream(taskIndex) {
     if (!taskIndex) return;
     const cbKey = `cell_insights_chat_callback_${taskIndex}`;
@@ -90,12 +69,6 @@ function syncInsightsConsole(taskIndex) {
         // Re-arm chat streaming when Chat tab is active
         try {
             initialiseInsightsGina(taskIndex);
-        } catch (_) {
-        }
-    } else {
-        // Make sure chat stream doesn't grab stdout in non-chat tabs
-        try {
-            pauseChatStream(taskIndex);
         } catch (_) {
         }
     }
@@ -315,8 +288,16 @@ function configureConsoleForActiveTab(taskIndex, activeTabId) {
 
 /* ---------------------------------------------------------------------- */
 /* Chat bubbles + streaming                                                */
-
 /* ---------------------------------------------------------------------- */
+
+function pruneEmptyAssistantBubbles(taskIndex) {
+    const $chat = $(`#insights_gina_chat_${taskIndex}`);
+    $chat.find('.insights-gina-chat-assistant').each(function () {
+        const hasText = ($(this).find('.stream-html').text() +
+                         $(this).find('.stream-text').text()).trim().length > 0;
+        if (!hasText) $(this).remove();
+    });
+}
 
 function finalizePreviousReplyBubble(taskIndex) {
     const $prev = $(`#insights_gina_chat_${taskIndex} #gina_stream_${taskIndex}`);
@@ -328,6 +309,7 @@ function finalizePreviousReplyBubble(taskIndex) {
         $span.replaceWith(document.createTextNode(text));
     }
     $prev.removeAttr("id").removeClass("insights-gina-chat-reply").addClass("insights-gina-chat-assistant");
+    pruneEmptyAssistantBubbles(taskIndex);
 }
 
 /** Load a bubble template into chat area */
@@ -344,13 +326,22 @@ function appendChatBubbleViaTemplate(taskIndex, role, streamId) {
     return chatBubble;
 }
 
-/** If no stream bubble, create one and return its id */
+// Add near other globals
+window.__ginaStreamPending = window.__ginaStreamPending || {};
+
+// Replace ensureStreamBubble with:
 function ensureStreamBubble(taskIndex) {
     if (!is_chat_tab_active(taskIndex)) return null;
     const streamId = `gina_stream_${taskIndex}`;
-    if (!document.getElementById(streamId)) {
-        appendChatBubbleViaTemplate(taskIndex, "reply", streamId);
+    window.__ginaStreamPending[taskIndex] = window.__ginaStreamPending[taskIndex] || false;
+
+    // If DOM has it or a load is already pending, just return the id
+    if (document.getElementById(streamId) || window.__ginaStreamPending[taskIndex]) {
+        return streamId;
     }
+
+    window.__ginaStreamPending[taskIndex] = true;        // mark in-flight
+    appendChatBubbleViaTemplate(taskIndex, "reply", streamId);
     return streamId;
 }
 
@@ -375,6 +366,9 @@ function setStreamText(streamId, text, {append = false} = {}) {
         setTimeout(() => setStreamText(streamId, text, {append}), 16);
         return;
     }
+
+    const taskIndex = String(streamId).replace(/\D/g, "");
+    if (taskIndex) window.__ginaStreamPending[taskIndex] = false;
 
     const bubble = el.querySelector(".insights-gina-chat-bubble");
     if (!bubble) return;
@@ -500,8 +494,6 @@ function cell_insights_data_run(cell_button, dataQuery) {
     if (!query) return;
     if ($input.is(":disabled")) return;
 
-    pauseChatStream(taskIndex);
-
     get_field_values({}, true, function (field_registry) {
         field_registry.clarama_task_kill = false;
 
@@ -545,7 +537,6 @@ function cell_insights_data_run(cell_button, dataQuery) {
 
 /* ---------------------------------------------------------------------- */
 /* CODE INSPECTOR                                                         */
-
 /* ---------------------------------------------------------------------- */
 window.__codeInspectorAutoReload = window.__codeInspectorAutoReload || Object.create(null);
 
@@ -766,7 +757,6 @@ else:
     get_field_values({}, true, function (field_registry) {
         const task_registry = buildTaskRegistry($cell);
         set_insight_behaviour(task_registry, "inspector", py, field_registry);
-        pauseChatStream(taskIndex);
 
         renderCodeInspectorResult(taskIndex, "… inspecting at row " + row + ", col " + column + " …");
 
@@ -1028,43 +1018,64 @@ function insertCodeIntoAceEditor(taskIndex, text) {
         const end = active.selectionEnd ?? start;
         const before = active.value.slice(0, start);
         const after = active.value.slice(end);
-        active.value = before + text + after;
-        const pos = start + text.length;
+        const needsLeadNL = (start !== end) 
+                            ? (start - before.lastIndexOf('\n') - 1) > 0
+                            : false;
+        const payload = (needsLeadNL ? "\n" : "") + text;
+        active.value = before + payload + after;
+        const pos = (before + payload).length;
         active.selectionStart = active.selectionEnd = pos;
         active.dispatchEvent(new Event('input', {bubbles: true}));
         return;
     }
 
-    // Ace editor path: insert on the line BELOW the current cursor
+    // Ace editor path
     const aceHost = left.querySelector('.ace_editor');
     if (aceHost && window.ace && typeof window.ace.edit === 'function') {
         if (!aceHost.id) aceHost.id = `ace_${taskIndex}_${Date.now()}`;
         const editor = window.ace.edit(aceHost.id);
 
         const session = editor.session;
-        const pos = editor.getCursorPosition(); // {row, column}
-        const lastRow = session.getLength() - 1;
-
-        // If on the last line, ensure there is a newline to allow inserting on the next line
-        if (pos.row === lastRow) {
-            const lineLen = session.getLine(pos.row).length;
-            session.insert({row: pos.row, column: lineLen}, "\n");
+        const sel = editor.getSelectionRange();
+        if (!sel.isEmpty()) {
+            // Replace the selection, then insert code on a fresh line
+            editor.session.replace(sel, '');
+            // cursor now at sel.start
+            const pos = editor.getCursorPosition();
+            const leadingCol = pos.column;
+            if (leadingCol !== 0) {
+                session.insert(pos, "\n");
+            }
+            const target = { row: pos.row + (leadingCol !== 0 ? 1 : 0), column: 0 };
+            session.insert(target, text);
+            // place caret at end of inserted block
+            const lines = String(text).split("\n");
+            const endRow = target.row + Math.max(0, lines.length - 1);
+            const endCol = (lines[lines.length - 1] || "").length;
+            editor.moveCursorTo(endRow, endCol);
+            editor.clearSelection();
+            editor.renderer.scrollCursorIntoView({row: endRow, column: endCol}, 0.5);
+            editor.focus();
+            return;
+        } else {
+            // No selection: insert on the line BELOW the current cursor
+            const pos = editor.getCursorPosition(); // {row, column}
+            const lastRow = session.getLength() - 1;
+            if (pos.row === lastRow) {
+                const lineLen = session.getLine(pos.row).length;
+                session.insert({row: pos.row, column: lineLen}, "\n");
+            }
+            const target = {row: pos.row + 1, column: 0};
+            session.insert(target, text);
+            const lines = String(text).split("\n");
+            const endRow = target.row + Math.max(0, lines.length - 1);
+            const endCol = (lines[lines.length - 1] || "").length;
+            editor.moveCursorTo(endRow, endCol);
+            editor.clearSelection();
+            editor.renderer.scrollCursorIntoView({row: endRow, column: endCol}, 0.5);
+            editor.focus();
+            return;
         }
-
-        // Insert at the start of the next line
-        const target = {row: pos.row + 1, column: 0};
-        session.insert(target, text);
-
-        // Move cursor to the end of the inserted block
-        const lines = String(text).split("\n");
-        const endRow = target.row + lines.length - 2;
-        const endCol = lines[lines.length - 2].length;
-
-        editor.moveCursorTo(endRow, endCol);
-        editor.clearSelection(); // ensure nothing remains selected
-        editor.renderer.scrollCursorIntoView({row: endRow, column: endCol}, 0.5);
-        editor.focus();
-        return;
     }
 }
 
@@ -1077,6 +1088,71 @@ function findEditorInLeft(taskIndex) {
     if (ace) return ace;
 
     return null;
+}
+
+// ------------------------------
+// Chat sizing helpers
+// ------------------------------
+window.__ginaChatResizeObs = window.__ginaChatResizeObs || Object.create(null);
+
+function getLeftEditorHeightPx(taskIndex) {
+    const left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) return 0;
+    const ace = left.querySelector('.ace_editor');
+    const host = ace || left.querySelector('.cell-editor, .editor-wrapper') || left;
+    const rect = host.getBoundingClientRect();
+    return Math.max(0, Math.round(rect.height));
+}
+
+function applyGinaChatSizing(taskIndex) {
+    const chat = document.getElementById(`insights_gina_chat_${taskIndex}`);
+    if (!chat) return;
+    const leftH = getLeftEditorHeightPx(taskIndex);
+    const maxH = Math.max(600, leftH || 0);
+    chat.style.setProperty('--gina-chat-max', `${maxH}px`);
+    chat.style.minHeight = '250px';
+    chat.style.overflowY = 'auto';
+}
+
+function observeGinaChatSizing(taskIndex) {
+    try {
+        window.__ginaChatResizeObs[taskIndex]?.disconnect();
+    } catch (_){
+    }
+
+    const left = document.getElementById(`left_content_${taskIndex}`);
+    if (!left) {
+        setTimeout(() => observeGinaChatSizing(taskIndex), 120);
+        return;
+    }
+
+    // React to size changes of the left pane/content
+    const ro = new ResizeObserver(() => {
+        applyGinaChatSizing(taskIndex);
+    });
+    ro.observe(left);
+    const handler = () => applyGinaChatSizing(taskIndex);
+    window.addEventListener('resize', handler, {passive: true});
+    window.__ginaChatResizeObs[taskIndex] = {
+        ro,
+        handler
+    };
+    // Initial sizing now that everything is wired
+    applyGinaChatSizing(taskIndex);
+}
+
+function disobserveGinaChatSizing(taskIndex) {
+    const entry = window.__ginaChatResizeObs && window.__ginaChatResizeObs[taskIndex];
+    if (!entry) return;
+    try { 
+        entry.ro?.disconnect(); 
+    } catch(_){
+    }
+    try { 
+        window.removeEventListener('resize', entry.handler);
+    } catch(_){
+    }
+    delete window.__ginaChatResizeObs[taskIndex];
 }
 
 function observeEditorReady(taskIndex) {
@@ -1171,8 +1247,7 @@ function initialiseInsightsGina(taskIndex, force = false) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* VARIABLES TAB                                                           */
-
+/* VARIABLES TAB                                                          */
 /* ---------------------------------------------------------------------- */
 
 function createVariableButtonDirect(varName, taskIndex) {
@@ -1475,7 +1550,6 @@ print(json.dumps(categories))
         `.trim();
 
         set_insight_behaviour(task_registry, "variables", code, field_registry);
-        pauseChatStream(taskIndex);
 
         ajaxRun(task_registry).done((data) => {
             if (data && data.data === "ok") {
@@ -1547,8 +1621,6 @@ function cell_insights_code_run(taskIndex, code) {
         return;
     }
 
-    pauseChatStream(taskIndex);
-
     const executionKey = `console_executing_${taskIndex}`;
     if (window[executionKey]) {
         console.log("Console execution already in progress for task", taskIndex);
@@ -1601,8 +1673,179 @@ function cell_insights_code_run(taskIndex, code) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* VARIABLE INSPECTION                                                     */
+/* GLOBAL FIELDS                                                          */
+/* ---------------------------------------------------------------------- */
 
+// Store active observers to prevent duplicates
+window.__globalFieldsObservers = window.__globalFieldsObservers || {};
+
+function populate_insights_global_fields(taskIndex) {
+    const $cell = getCellByTask(taskIndex);
+    if (!$cell || !$cell.length) {
+        console.warn("Cell not found for task", taskIndex);
+        return;
+    }
+
+    // Get the dropdown element
+    const $depFieldSelect = $(`#global-fields-${taskIndex} #gfe_dep_field`);
+    if (!$depFieldSelect.length) {
+        console.warn("Dependent field dropdown not found for task", taskIndex);
+        return;
+    }
+
+    // Store currently selected value to restore after refresh
+    const currentValue = $depFieldSelect.val();
+
+    // Clear existing options
+    $depFieldSelect.empty();
+    $depFieldSelect.append('<option value="">Select a field...</option>');
+
+    // Get GLOBAL fields (not cell-specific)
+    get_field_values({}, true, function(field_registry) {
+        console.log("Field registry for global fields:", field_registry);
+
+        const fieldsAdded = new Set();
+        
+        // Iterate through all fields in the registry
+        for (const [fieldName, fieldValue] of Object.entries(field_registry)) {
+            // Skip internal/system fields
+            if (fieldName === 'record' || 
+                fieldName === 'original_url' || 
+                fieldName === 'fieldgrid' ||
+                fieldName === 'clarama_task_kill' ||
+                fieldName.startsWith('_')) {
+                continue;
+            }
+
+            // Add unique field names only
+            if (!fieldsAdded.has(fieldName)) {
+                let displayValue = fieldName;
+                
+                // Add helpful info about the field value
+                if (Array.isArray(fieldValue)) {
+                    displayValue = `${fieldName} [${fieldValue.length} items]`;
+                } else if (typeof fieldValue === 'string' && fieldValue.length > 30) {
+                    displayValue = `${fieldName} (${fieldValue.substring(0, 30)}...)`;
+                }
+                
+                $depFieldSelect.append(
+                    $('<option>', {
+                        value: fieldName,
+                        text: displayValue,
+                        'data-field-type': typeof fieldValue,
+                        'data-field-value': JSON.stringify(fieldValue)
+                    })
+                );
+                fieldsAdded.add(fieldName);
+            }
+        }
+
+        // If no fields were added, show a message
+        if (fieldsAdded.size === 0) {
+            $depFieldSelect.append('<option value="" disabled>No fields available</option>');
+        }
+
+        // Restore previously selected value if it still exists
+        if (currentValue && $depFieldSelect.find(`option[value="${currentValue}"]`).length > 0) {
+            $depFieldSelect.val(currentValue);
+        }
+
+        console.log(`Added ${fieldsAdded.size} fields to dropdown for task ${taskIndex}`);
+    });
+}
+
+/**
+ * Set up observers to watch for field changes and auto-refresh dropdown
+ */
+function observeGlobalFieldsChanges(taskIndex) {
+    // Clean up existing observer if any
+    if (window.__globalFieldsObservers[taskIndex]) {
+        try {
+            window.__globalFieldsObservers[taskIndex].disconnect();
+        } catch (e) {}
+        delete window.__globalFieldsObservers[taskIndex];
+    }
+
+    const debouncedRefresh = debounce(() => {
+        const activeTabId = getActiveTabId(taskIndex);
+        if (activeTabId && activeTabId.startsWith('insights-global-fields-tab-')) {
+            populate_insights_global_fields(taskIndex);
+        }
+    }, 300);
+
+    // Watch for changes in all field inputs
+    const observer = new MutationObserver((mutations) => {
+        let shouldRefresh = false;
+
+        for (const mutation of mutations) {
+            // Check if fields were added/removed
+            if (mutation.type === 'childList') {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1 && (
+                        node.classList?.contains('clarama-field') ||
+                        node.querySelector?.('.clarama-field')
+                    )) {
+                        shouldRefresh = true;
+                        break;
+                    }
+                }
+                for (const node of mutation.removedNodes) {
+                    if (node.nodeType === 1 && (
+                        node.classList?.contains('clarama-field') ||
+                        node.querySelector?.('.clarama-field')
+                    )) {
+                        shouldRefresh = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (mutation.type === 'attributes' && 
+                mutation.target.classList?.contains('clarama-field')) {
+                shouldRefresh = true;
+            }
+
+            if (shouldRefresh) break;
+        }
+
+        if (shouldRefresh) {
+            debouncedRefresh();
+        }
+    });
+
+    // Observe the main grid container for structural changes
+    const gridContainer = document.querySelector('.clarama-grid');
+    if (gridContainer) {
+        observer.observe(gridContainer, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['name', 'id', 'data-id']
+        });
+    }
+
+    // Also listen for input/change events on all fields
+    $(document).on(`input.globalFields${taskIndex} change.globalFields${taskIndex}`, '.clarama-field', debouncedRefresh);
+
+    // Store observer for cleanup
+    window.__globalFieldsObservers[taskIndex] = {
+        observer: observer,
+        disconnect: function() {
+            observer.disconnect();
+            $(document).off(`.globalFields${taskIndex}`);
+        }
+    };
+}
+
+function disconnectGlobalFieldsObserver(taskIndex) {
+    if (window.__globalFieldsObservers[taskIndex]) {
+        window.__globalFieldsObservers[taskIndex].disconnect();
+        delete window.__globalFieldsObservers[taskIndex];
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* VARIABLE INSPECTION                                                     */
 /* ---------------------------------------------------------------------- */
 
 function inspectVariable(varName, taskIndex) {
@@ -1922,6 +2165,32 @@ $(document).on("shown.bs.tab", 'button[id*="-tab-"][id^="insights-"]', function 
         initialiseInsightsGina(taskIndex);
     }
 });
+
+$(document).on("shown.bs.tab", 'button[id^="insights-global-fields-tab-"]', function() {
+    const id = this.id;
+    const taskIndex = id.replace('insights-global-fields-tab-', '');
+    populate_insights_global_fields(taskIndex);
+    observeGlobalFieldsChanges(taskIndex);
+});
+
+$(document).on("hidden.bs.tab", 'button[id^="insights-global-fields-tab-"]', function() {
+    const id = this.id;
+    const taskIndex = id.replace('insights-global-fields-tab-', '');
+    
+    disconnectGlobalFieldsObserver(taskIndex);
+});
+
+
+document.addEventListener('shown.bs.tab', (ev) => {
+    const btn = ev.target;
+    const id = (btn && btn.id) || '';
+    const m = id.match(/insights-chat-tab-(\d+)/);
+    if (m) {
+        const taskIndex = m[1];
+        applyGinaChatSizing(taskIndex);
+        observeGinaChatSizing(taskIndex);
+    }
+}, {capture: false});
 
 // When user switches to the Code Inspector tab, reload automatically
 document.addEventListener('shown.bs.tab', function (e) {

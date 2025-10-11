@@ -4,87 +4,94 @@
      stream="stream_{{ stream }}"
      step="{{ task_index }}"
      style="opacity: 0.01">
-    <button id="step_{{ task_index }}_insert_text" type="button" class="btn insert_step" steptype="markdown"><i
-            class="mb-3 fs-4 bi bi-pen"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Add a text step. Hold shift to add cell after"></i>
+    <button id="step_{{ task_index }}_insert_text" type="button" class="btn insert_step toolbar-btn" steptype="markdown">
+        <i class="mb-3 bi bi-pen"
+           data-bs-toggle="tooltip"
+           data-bs-placement="bottom"
+           title="Add a text step. Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_code" type="button" class="btn insert_step" steptype="code"><i
-            class="mb-3 fs-4 bi bi-code"
+    <button id="step_{{ task_index }}_insert_code" type="button" class="btn insert_step toolbar-btn" steptype="code">
+        <i  class="mb-3 bi bi-code"
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a coding step. Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_data" type="button" class="btn insert_step" steptype="data"><i
-            class="mb-3 fs-4 bi bi-table"
+    <button id="step_{{ task_index }}_insert_data" type="button" class="btn insert_step toolbar-btn" steptype="data">
+        <i  class="mb-3 bi bi-table" 
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a data step (table / chart). Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_data_stream" type="button" class="btn insert_step" steptype="data_stream"><i
-            class="mb-3 fs-4 bi bi-broadcast"
+    <button id="step_{{ task_index }}_insert_data_stream" type="button" class="btn insert_step toolbar-btn" steptype="data_stream">
+        <i  class="mb-3 bi bi-broadcast" 
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a streaming data step (table / chart). Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_source" type="button" class="btn insert_step" steptype="source"><i
-            class="mb-3 fs-4 bi bi-database"
+    <button id="step_{{ task_index }}_insert_source" type="button" class="btn insert_step toolbar-btn" steptype="source">
+        <i  class="mb-3 bi bi-database" 
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a data step (table / chart). Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_task" type="button" class="btn insert_step" steptype="task"><i
-            class="mb-3 fs-4 bi bi-journal-arrow-down"
+    <button id="step_{{ task_index }}_insert_task" type="button" class="btn insert_step toolbar-btn" steptype="task">
+        <i  class="mb-3 bi bi-journal-arrow-down" 
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a task step. Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_url" type="button" class="btn insert_step" steptype="url"><i
-            class="mb-3 fs-4 bi bi-link"
+    <button id="step_{{ task_index }}_insert_url" type="button" class="btn insert_step toolbar-btn" steptype="url">
+        <i  class="mb-3 bi bi-link" 
             data-bs-toggle="tooltip"
             data-bs-placement="bottom"
             title="Add a URL step. Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_notification" type="button" class="btn insert_step"
+    <button id="step_{{ task_index }}_insert_notification" type="button" class="btn insert_step toolbar-btn"
             steptype="notification">
-        <i class="mb-3 fs-4 bi bi-send"
-           data-bs-toggle="tooltip"
-           data-bs-placement="bottom"
-           title="Add a notification step. Hold shift to add cell after"></i>
+        <i  class="mb-3 bi bi-send" 
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Add a notification step. Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_shell" type="button" class="btn insert_step" steptype="shell">
-        <i class="mb-3 fs-4 bi bi-terminal"
-           data-bs-toggle="tooltip"
-           data-bs-placement="bottom"
-           title="Add a shell step. Hold shift to add cell after"></i>
+    <button id="step_{{ task_index }}_insert_shell" type="button" class="btn insert_step toolbar-btn" steptype="shell">
+        <i  class="mb-3 bi bi-terminal" 
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Add a shell step. Hold shift to add cell after"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_question" type="button" class="btn insert_step fs-4" steptype="question">
-        <i class="bi bi-question-square fs-4 mb-3"
-           data-bs-toggle="tooltip"
-           data-bs-placement="bottom"
-           title="Add a question step to ask a specific LLM prompt"></i>
+    <button id="step_{{ task_index }}_more_options" type="button" class="btn toolbar-btn">
+        <i  class="mb-3 bi bi-three-dots toolbar-ellipsis"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="more options"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_server" type="button" class="btn insert_step fs-4"
+    <button id="step_{{ task_index }}_insert_question" type="button" class="btn insert_step toolbar-btn toolbar-more-btn d-none" 
+            steptype="question">
+        <i  class="bi bi-question-square mb-3" 
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Add a question step to ask a specific LLM prompt"></i>
+    </button>
+    <button id="step_{{ task_index }}_insert_server" type="button" class="btn insert_step toolbar-btn toolbar-more-btn d-none"
             steptype="server">
-        <i class="bi bi-hdd fs-4 mb-3"
-           data-bs-toggle="tooltip"
-           data-bs-placement="bottom"
-           title="Add a server"></i>
+        <i  class="bi bi-hdd mb-3" 
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Add a server"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_test_config" type="button" class="btn insert_step fs-4"
+    <button id="step_{{ task_index }}_insert_test_config" type="button" class="btn insert_step toolbar-btn toolbar-more-btn d-none"
             steptype="test_config">
-        <i class="bi bi-gear-wide-connected fs-4 mb-3"
-           data-bs-toggle="tooltip"
-           data-bs-placement="bottom"
-           title="Add a browser test configuration. This starts an offline recording, playback and test section for testing browser functionality"></i>
+        <i  class="bi bi-gear-wide-connected mb-3" 
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Add a browser test configuration. This starts an offline recording, playback and test section for testing browser functionality"></i>
     </button>
-    <button id="step_{{ task_index }}_insert_test_block" type="button" class="btn insert_step fs-4"
+    <button id="step_{{ task_index }}_insert_test_block" type="button" class="btn insert_step toolbar-btn toolbar-more-btn d-none"
             steptype="test_block">
-        <i class="bi bi-pencil-square fs-4 mb-3"
-           data-bs-toggle="tooltip"
-           data-bs-placement="bottom"
-           title="Add a browser test block"></i>
+        <i  class="bi bi-pencil-square mb-3"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Add a browser test block"></i>
     </button>
 </div>
 <div class="col">

@@ -76,16 +76,17 @@ function processTaskMessages() {
  * Send the current topic subscriptions to the active websocket.
  * Requires an open task_active_socket.
  */
-function update_topics() {
+function update_topics(topic) {
     if (task_active_socket !== undefined)
         if (task_active_socket.readyState === WebSocket.OPEN) {
+            console.log("CLARAMA_WEBSOCKET.JS updating universal topics for page to " + socket_topics);
             task_active_socket.send(JSON.stringify({topics: socket_topics}));
             return;
         } else {
-            console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket was not open");
+            console.log("CLARAMA_WEBSOCKET.js: update_topic socket was not open");
         }
     else {
-        console.log("CLARAMA_WEBSOCKET.js: add_topic  " + topic + " socket undefined, pushing on queue");
+        console.log("CLARAMA_WEBSOCKET.js: update_topic  socket undefined, pushing on queue");
     }
 }
 
@@ -98,8 +99,7 @@ function add_topic(topic) {
         console.log("CLARAMA_WEBSOCKET.js: ADD TOPIC " + topic);
         console.log(socket_topics);
     }
-
-    update_topics();
+    update_topics(topic);
 }
 
 /**
@@ -113,7 +113,7 @@ function remove_topic(topic) {
         console.log(socket_topics);
     }
 
-    update_topics();
+    update_topics(topic);
 }
 
 /**
@@ -126,25 +126,7 @@ function remove_topic(topic) {
  * @param {string|boolean} autorun - Whether to auto-run the task when ready.
  */
 function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kernel_status) {
-    if (socket_topics.indexOf(topic) === -1) {
-        socket_topics.push(topic);
-        console.log("CLARAMA_WEBSOCKET.js: TOPICS");
-        console.log(socket_topics);
-    }
-
-    if (task_active_socket !== undefined)
-        if (task_active_socket.readyState === WebSocket.OPEN) {
-            task_active_socket.send(JSON.stringify({topics: socket_topics}));
-            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " executing");
-            get_task(embedded, task_url, socket_id, autorun, kernel_status);
-            return;
-        } else {
-            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket was not open");
-        }
-    else {
-        console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket undefined, pushing on queue");
-    }
-
+    add_topic(topic);
 
     let task_message = {
         'topic': topic,
@@ -154,6 +136,16 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kerne
         'autorun': autorun,
         'kernel_status': kernel_status,
     };
+
+    // If the socket is open, execute immediately; otherwise, queue for later
+    try {
+        if (task_active_socket && task_active_socket.readyState === WebSocket.OPEN) {
+            get_task(task_message.embedded, task_message.task_url, task_message.socket_id, task_message.autorun, task_message.kernel_status);
+            return;
+        }
+    } catch (e) {
+        // fall back to queueing
+    }
 
     socket_taskQueue.push(task_message);
 }
@@ -853,10 +845,18 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 return;
             }
 
-            // Trigger content saved events for grids and listeners
-            if (dict['class'] === 'saved') {
-                try { if (typeof window.onContentSaved === 'function') { window.onContentSaved(dict); } } catch (e) { try { console.warn('onContentSaved callback error', e); } catch(_){} }
-                try { var evt = new CustomEvent('onContentSaved', { detail: dict, bubbles: true }); window.dispatchEvent(evt); } catch (e) { try { console.warn('dispatch onContentSaved failed', e); } catch(_){} }
+            if (dict['class'] === "file") {
+                // Dispatch global window events for file messages
+                try {
+                    //flash(JSON.stringify(dict));
+                    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+                        window.dispatchEvent(new CustomEvent('clarama:file', {detail: dict}));
+                        if (dict['action']) {
+                            window.dispatchEvent(new CustomEvent('clarama:file:' + dict['action'], {detail: dict}));
+                        }
+                    }
+                } catch (e) {
+                }
             }
 
             if (dict['class'] === "layout") {
@@ -895,8 +895,11 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
                     ? dict.values.output
                     : (typeof dict.output !== 'undefined' ? dict.output : "");
-                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
-                chunk = html_decode(chunk);
+                    let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                    chunk = html_decode(chunk);
+                    if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                        window.__claramaRunIntent[taskIndex].sawChat = true;
+                    }
 
                 const cbInspect = "cell_insights_inspect_callback_" + taskIndex;
 
@@ -962,6 +965,10 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const m = stepId.match(/step_(\d+)/);
                 const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
 
+                if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                    window.__claramaRunIntent[taskIndex].sawChat = true;
+                }
+
                 const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
                     ? dict.values.output
                     : (typeof dict.output !== 'undefined' ? dict.output : "");
@@ -970,19 +977,45 @@ function onMessage(event, socket_url, webSocket, socket_div) {
 
                 if (taskIndex) {
                     const cbChat = "cell_insights_chat_callback_" + taskIndex;
-
-
-                    // Prefer active gina insights chat stream first
+                
+                    // If a chat stream callback is already active, just deliver the chunk.
                     if (typeof window[cbChat] === "function") {
-                        try {
-                            window[cbChat](chunk);
-                        } catch (e) {
-                            console.error(e);
-                        }
+                        try { window[cbChat](chunk); } catch (e) { console.error(e); }
                         return; // handled by chat (keep callback for subsequent chunks)
                     }
+                
+                    try {
+                        // Open insights if closed
+                        if (!isInsightsOpen(taskIndex)) {
+                            const $cell = getCellByTask(taskIndex);
+                            if ($cell && $cell.length) {
+                                openInsights($cell, taskIndex);
+                            }
+                        }
+                
+                        // Ensure the Chat tab is active
+                        const chatBtnId = `insights-chat-tab-${taskIndex}`;
+                        const chatBtn = document.getElementById(chatBtnId);
+                        if (chatBtn) {
+                            const Tab = (window.bootstrap && window.bootstrap.Tab) ? window.bootstrap.Tab : null;
+                            if (Tab) {
+                                Tab.getOrCreateInstance(chatBtn).show();
+                            } else {
+                                chatBtn.click?.();
+                            }
+                        }
+                
+                        // After opening + tab switch, try to deliver chunk again if a callback is now wired
+                        const cbChatNow = "cell_insights_chat_callback_" + taskIndex;
+                        if (typeof window[cbChatNow] === "function") {
+                            try { window[cbChatNow](chunk); } catch (e) { console.error(e); }
+                            return;
+                        }
+                    } catch (e) {
+                        console.error("Auto-open Insights for chat failed:", e);
+                    }
                 }
-
+                
                 return; // nothing to deliver
             }
 
@@ -1126,9 +1159,33 @@ function onMessage(event, socket_url, webSocket, socket_div) {
 
                 if (dict['type'] === 'task_step_exception') {
                     task_progress.addClass("bg-danger");
+                    const stepId = String(dict.step_id || "");
+                    const mStep = stepId.match(/step_(\d+)/);
+                    const taskIndex = mStep ? mStep[1] : stepId.replace(/\D/g, "");
+                    if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                        window.__claramaRunIntent[taskIndex].sawException = true;
+                    }
+                }
+  
+                // Auto-close Insights after a successful run if no chat arrived
+                try {
+                    if (dict['type'] === 'task_step_completed') {
+                        const stepId = String(dict.step_id || "");
+                        const mStep = stepId.match(/step_(\d+)/);
+                        const taskIndex = mStep ? mStep[1] : stepId.replace(/\D/g, "");
+
+                        if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                            const intent = window.__claramaRunIntent[taskIndex];
+                            if (intent.hadInsightsOpen && !intent.sawChat && !intent.sawException) {
+                                closeAllinsights();
+                            }
+                            delete window.__claramaRunIntent[taskIndex];
+                        }
+                    }
+                } catch (e) { 
+                    console.error('Post-run Insights autoclose failed', e); 
                 }
             }
-
         } catch (err) {
             console.log(err);
             console.log('CLARAMA_WEBSOCKET.js: exception raised processing:');
@@ -1219,7 +1276,7 @@ function onError(event, socket_url, webSocket, socket_div) {
 
 
 // Ensure global access to topic management functions, including alias for common typo
-(function() {
+(function () {
     if (typeof window !== 'undefined') {
         try {
             window.add_topic = window.add_topic || add_topic;
@@ -1230,5 +1287,18 @@ function onError(event, socket_url, webSocket, socket_div) {
             window.remove_topic = window.remove_topic || remove_topic;
         } catch (e) {
         }
+
+        window.onClaramaFileEvent = function (actionOrHandler, handler) {
+            const isAction = typeof actionOrHandler === 'string';
+            const ev = isAction ? ('clarama:file:' + actionOrHandler) : 'clarama:file';
+            const fn = isAction ? handler : actionOrHandler;
+            if (typeof fn === 'function') window.addEventListener(ev, fn);
+        };
+        window.offClaramaFileEvent = function (actionOrHandler, handler) {
+            const isAction = typeof actionOrHandler === 'string';
+            const ev = isAction ? ('clarama:file:' + actionOrHandler) : 'clarama:file';
+            const fn = isAction ? handler : actionOrHandler;
+            if (typeof fn === 'function') window.removeEventListener(ev, fn);
+        };
     }
 })();

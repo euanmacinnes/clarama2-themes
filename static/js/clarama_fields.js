@@ -298,6 +298,28 @@ function initializeCellNavigation() {
         return currentCell;
     }
 
+    function moveToPrevCell(currentCell) {
+        if (!currentCell) return null;
+        const currentStep = parseInt($(currentCell).attr('step'));
+        const prevStep = currentStep - 1;
+        if (isNaN(prevStep) || prevStep < 1) return null;
+
+        const prevCell = getCellByStep(prevStep);
+        if (prevCell) {
+            currentCellStep = prevStep;
+            const $prevEditor = $(prevCell).find('.cell-editor').first();
+            if ($prevEditor.length) {
+                $prevEditor.focus();
+                const $ti = $prevEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                if ($ti.length) $ti.focus();
+            }
+            const prevTop = prevCell.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({ top: prevTop - 100, behavior: 'smooth' });
+            return prevCell;
+        }
+        return null;
+    }
+
     function moveToNextCell(currentCell) {
         if (!currentCell) return null;
 
@@ -422,9 +444,45 @@ function initializeCellNavigation() {
         }
     });
 
+    $(document).off('keydown.cellNavJump').on('keydown.cellNavJump', function (e) {
+        if (e.altKey) return;
+        const isCtrl = !!e.ctrlKey;
+        if (!isCtrl) return;
+        const key = e.key || '';
+
+        if (key === 'ArrowDown' || e.keyCode === 40) {
+            e.preventDefault();
+            const curr = getCurrentCell();
+            if (curr) moveToNextCell(curr);
+            return;
+        }
+        if (key === 'ArrowUp' || e.keyCode === 38) {
+            e.preventDefault();
+            const curr = getCurrentCell();
+            if (curr) moveToPrevCell(curr);
+            return;
+        }
+    });
+
+    let lastShiftUpTs = 0;
+    let shiftTapCount = 0;
+    let shiftSequenceValid = true;
+    const DOUBLE_SHIFT_MS = 400;
+
     $(document).on('keydown', function (e) {
-        // Ctrl + Enter: Run current cell and move to next
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
+        if (e.key !== 'Shift') {
+            shiftSequenceValid = false;
+            shiftTapCount = 0;
+            return;
+        }
+        if (e.repeat) return;
+
+        const $t = $(e.target);
+        const inInsightsConsole = $t.is('textarea.console-input') > 0;
+
+        // Shift + Enter: Run current cell and move to next (DISABLED inside Insights console)
+        if (e.shiftKey && e.keyCode === 13) {
+            if (inInsightsConsole) return;
             e.preventDefault();
 
             const currentCell = getCurrentCell();
@@ -439,27 +497,39 @@ function initializeCellNavigation() {
             }
         }
 
-        // Shift+Enter: Run current cell and move to next
-        // if ((e.shiftKey || e.metaKey) && e.keyCode === 13) {
-        //     e.preventDefault();
-
-        //     const currentCell = getCurrentCell();
-        //     if (!currentCell) return;
-
-        //     const runSuccess = runCurrentCell(currentCell);
-        // }
-
-        // Ctrl + \ : Toggle insights for current cell
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
+        // Ctrl + Enter: Run current cell in place
+        if (e.ctrlKey && e.keyCode === 13) {
             e.preventDefault();
 
             const currentCell = getCurrentCell();
-            if (!currentCell) {
-                console.log('no current cell');
-                return;
-            }
+            if (!currentCell) return;
+            runCurrentCell(currentCell);
+            return;
+        }
+    });
 
-            toggleInsightsForCurrentCell(currentCell);
+    $(document).on('keyup', function (e) {
+        if (e.key !== 'Shift') return;
+        const now = Date.now();
+        if (shiftSequenceValid && (now - lastShiftUpTs) <= DOUBLE_SHIFT_MS) {
+            shiftTapCount += 1;
+        } else {
+            shiftTapCount = 1;
+        }
+        lastShiftUpTs = now;
+        shiftSequenceValid = true;
+
+        // Double tapping shift key: toggle cell insights
+        if (shiftTapCount === 2) {
+            const currentCell = getCurrentCell();
+            if (currentCell) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleInsightsForCurrentCell(currentCell);
+            } else {
+                console.log('no current cell');
+            }
+            shiftTapCount = 0;
         }
     });
 }
@@ -732,26 +802,85 @@ $.fn.editor = function () {
     });
 }
 
-// This is to allow the shortcut to be read through the code editors
+// to prevent ace editor from interfering with cell keyboard shortcuts
 $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', function () {
     const editor = $(this);
 
     if (editor.hasClass('source-editor') && editor.attr('id')) {
         try {
             const aceEditor = ace.edit(editor.attr('id'));
-
-            // Remove any existing command to avoid duplicates
-            aceEditor.commands.removeCommand('toggleinsights');
-
-            // Add the insights toggle command to ACE editor
+            aceEditor.commands.removeCommand('runCellAndStay');
             aceEditor.commands.addCommand({
-                name: 'toggleinsights',
-                bindKey: {win: 'Ctrl-\\', mac: 'Cmd-\\'},
+                name: 'runCellAndStay',
+                bindKey: { win: 'Ctrl-Enter'},
                 exec: function (editor) {
-                    const editorElement = $(editor.container);
-                    const currentCell = editorElement.closest('.clarama-cell-item')[0];
-                    if (currentCell) {
-                        toggleInsightsForCurrentCell(currentCell);
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    const $runBtn = $cell.find('.celleditrun').first();
+                    if ($runBtn.length) {
+                        $runBtn.trigger('click');
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('runCellAndNext');
+            aceEditor.commands.addCommand({
+                name: 'runCellAndNext',
+                bindKey: { win: 'Shift-Enter'},
+                exec: function (editor) {
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    const $runBtn = $cell.find('.celleditrun').first();
+                    if ($runBtn.length) {
+                        $runBtn.trigger('click');
+                        setTimeout(() => {
+                            const currentStep = parseInt($cell.attr('step'));
+                            const $next = $(`li.clarama-cell-item[step="${currentStep + 1}"]`);
+                            const $nextEditor = $next.find('.cell-editor').first();
+                            if ($nextEditor.length) {
+                                $nextEditor.focus();
+                                const $ti = $nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                                if ($ti.length) $ti.focus();
+                            }
+                        }, 300);
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('jumpPrevCell');
+            aceEditor.commands.addCommand({
+                name: 'jumpPrevCell',
+                bindKey: { win: 'Ctrl-Up' },
+                exec: function (editor) {
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    if (!$cell.length) return;
+                    const step = parseInt($cell.attr('step'));
+                    const $prev = $(`li.clarama-cell-item[step="${step - 1}"]`);
+                    const $prevEditor = $prev.find('.cell-editor').first();
+                    if ($prevEditor.length) {
+                        $prevEditor.focus();
+                        const $ti = $prevEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                        if ($ti.length) $ti.focus();
+                        const prevTop = $prev[0].getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({ top: prevTop - 100, behavior: 'smooth' });
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('jumpNextCell');
+            aceEditor.commands.addCommand({
+                name: 'jumpNextCell',
+                bindKey: { win: 'Ctrl-Down' },
+                exec: function (editor) {
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    if (!$cell.length) return;
+                    const step = parseInt($cell.attr('step'));
+                    const $next = $(`li.clarama-cell-item[step="${step + 1}"]`);
+                    const $nextEditor = $next.find('.cell-editor').first();
+                    if ($nextEditor.length) {
+                        $nextEditor.focus();
+                        const $ti = $nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                        if ($ti.length) $ti.focus();
+                        const nextTop = $next[0].getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({ top: nextTop - 100, behavior: 'smooth' });
                     }
                 }
             });

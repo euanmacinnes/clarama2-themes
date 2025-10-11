@@ -17,25 +17,21 @@ $(document).ready(function() {
 });
 
 function captureInitialState() {
-    if (typeof get_fields === 'function') {
-        get_fields(true, true, function(task_registry) {
-            if (task_registry && task_registry.streams && task_registry.streams[0] && task_registry.streams[0].main) {
-                initialState = JSON.stringify(task_registry.streams[0].main);
-                console.log("Initial task state captured");
-            }
-        });
-    }
+    get_fields(true, true, function(task_registry) {
+        if (task_registry && task_registry.streams && task_registry.streams[0] && task_registry.streams[0].main) {
+            initialState = JSON.stringify(task_registry.streams[0].main);
+            console.log("Initial task state captured");
+        }
+    });
 }
 
 function captureInitialSlateState() {
-    if (typeof saveGrid === 'function') {
-        try {
-            const slateData = saveGrid();
-            initialSlateState = JSON.stringify(slateData);
-            console.log("Initial slate state captured");
-        } catch (error) {
-            console.log("Could not capture initial slate state:", error);
-        }
+    try {
+        const slateData = saveGrid();
+        initialSlateState = JSON.stringify(slateData);
+        console.log("Initial slate state captured");
+    } catch (error) {
+        console.log("Could not capture initial slate state:", error);
     }
 }
 
@@ -46,7 +42,7 @@ function checkForUnsavedChanges() {
         
         const checkPromises = [];
         
-        if (typeof get_fields === 'function' && initialState) {
+        if (initialState) {
             const taskPromise = new Promise((taskResolve) => {
                 get_fields(true, true, function(task_registry) {
                     if (task_registry && task_registry.streams && task_registry.streams[0] && task_registry.streams[0].main) {
@@ -59,7 +55,7 @@ function checkForUnsavedChanges() {
             checkPromises.push(taskPromise);
         }
         
-        if (typeof saveGrid === 'function' && initialSlateState) {
+        if (initialSlateState) {
             const slatePromise = new Promise((slateResolve) => {
                 try {
                     const currentSlateState = JSON.stringify(saveGrid());

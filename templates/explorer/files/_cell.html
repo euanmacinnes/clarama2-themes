@@ -13,7 +13,7 @@
                 <div class="col text-end">
                     <div class="btn-group">
                         <button type="button" class="btn celleditrun p-1" data-bs-toggle="tooltip"
-                                data-bs-placement="bottom" title="Run this step (Ctrl-enter)">
+                                data-bs-placement="bottom" title="Run this step">
                             <i class="fs-5 bi bi-play-fill"></i>
                         </button>
                     </div>
@@ -43,10 +43,11 @@
                 <div class="col-auto hoverover auto-hover"
                      id="task_toolbar_{{ stream }}_{{ task_index }}_trash"
                      opacity="0.04"
-                     style="opacity: 0.04">
+                     style="opacity: 0.04; padding-left: 0;">
                     <button type="button" class="btn delete_step" data-bs-toggle="tooltip"
-                            data-bs-placement="bottom" title="Delete this step"><i
-                            class="fs-2 bi bi-trash"></i>
+                            data-bs-placement="bottom" title="Delete this step" 
+                            style="--bs-btn-padding-y: 0.1rem; --bs-btn-padding-x: 0.25rem;">
+                            <i class="bi bi-trash" style="font-size: 1.3rem;"></i>
                     </button>
                 </div>
             </div>
