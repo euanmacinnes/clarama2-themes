@@ -276,6 +276,23 @@ function filePath(field) {
     return field.closest(".clarama-grid").attr("file_path");
 }
 
+function getOriginalUrlFromField(field) {
+    try {
+        if (!field) return undefined;
+        // If a jQuery object was passed
+        var $el = (field.jquery) ? field : $(field);
+        var ou = $el.closest('.embedded').attr('original_url');
+        if (ou === undefined || ou === null || ou === '') {
+            // fallback to first embedded on page
+            try { ou = $('.embedded').eq(0).attr('original_url'); } catch(_) {}
+        }
+        return ou;
+    } catch (e) {
+        try { console.warn('getOriginalUrlFromField failed', e); } catch(_) {}
+        return undefined;
+    }
+}
+
 function triggerTabInteraction(field, url, field_values = "", contextM = false) {
     console.log("triggerTabInteraction field_values", field_values);
 
@@ -286,6 +303,23 @@ function triggerTabInteraction(field, url, field_values = "", contextM = false) 
     let fullUrl = "/content/default/" + resolveRelativeFilePath(final_field, url);
     if (fullUrl.charAt(fullUrl.length - 1) == "?") fullUrl = fullUrl.slice(0, -1);
     console.log('triggerTabInteraction fullUrl', fullUrl);
+    // Ensure original_url is included in field_values for tab interactions
+    try {
+        if (field_values && typeof field_values === 'object') {
+            if (!('original_url' in field_values) || !field_values.original_url) {
+                var ou = contextM ? (field_values.original_url || undefined) : getOriginalUrlFromField(field);
+                if (!ou) {
+                    try { ou = $('.embedded').eq(0).attr('original_url'); } catch(_) {}
+                }
+                if (ou) field_values.original_url = ou;
+            }
+        } else {
+            field_values = {};
+            var ou2 = contextM ? undefined : getOriginalUrlFromField(field);
+            if (!ou2) { try { ou2 = $('.embedded').eq(0).attr('original_url'); } catch(_) {} }
+            if (ou2) field_values.original_url = ou2;
+        }
+    } catch (e) { try { console.warn('Failed to ensure original_url for tab', e); } catch(_) {} }
     console.log('triggerTabInteraction data', JSON.stringify(field_values));
     
     fetch($CLARAMA_ROOT + fullUrl + "?b64params=" + btoa(JSON.stringify(field_values)),
@@ -391,7 +425,15 @@ function showInteractionContent(field, interaction, relativeP, field_values, con
     const newIC = document.createElement("div");
     newIC.className = "clarama-post-embedded clarama-replaceable";
     newIC.setAttribute("url", `${ICurl}`);
-    newIC.setAttribute("json", JSON.stringify(field_values));
+    try {
+            if (!field_values || typeof field_values !== 'object') field_values = {};
+            if (!('original_url' in field_values) || !field_values.original_url) {
+                var ou3 = contextM ? (field_values.original_url || undefined) : getOriginalUrlFromField(field);
+                if (!ou3) { try { ou3 = $('.embedded').eq(0).attr('original_url'); } catch(_) {} }
+                if (ou3) field_values.original_url = ou3;
+            }
+        } catch (e) { try { console.warn('Failed to ensure original_url for interaction content', e); } catch(_) {} }
+        newIC.setAttribute("json", JSON.stringify(field_values));
     // newIC.setAttribute("autorun", "True");
     return newIC;
 }
