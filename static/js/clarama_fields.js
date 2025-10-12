@@ -229,9 +229,10 @@ function get_fields(fields, cell, field_submit) {
 
             var stream_cells = get_cell(stream, "");
 
-            if (stream_cells === null)
+            if (stream_cells === null) {
                 error = true;
-            return false;
+                return false;
+            }
 
             console.log("Saving stream " + current_stream);
             stream_dict = {};
