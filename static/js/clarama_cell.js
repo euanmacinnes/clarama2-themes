@@ -89,14 +89,20 @@ function get_data_cell(cell) {
     var tab_ids = get_tab_ids(cell);
     var tabs_data = [];
 
+    var error = false;
+
     tab_ids.forEach(function (tab_id) {
         var tab_data = get_tab_data(cell, tab_id);
         if (tab_data === null) {
-            return null;
+            error = true;
+            return false;
         }
 
         tabs_data.push(tab_data);
     });
+
+    if (error)
+        return null;
 
     if (tabs_data.length === 0) {
         var legacy_id = "content_query_" + dataid;
