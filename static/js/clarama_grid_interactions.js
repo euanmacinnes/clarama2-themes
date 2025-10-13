@@ -438,6 +438,43 @@ function showInteractionContent(field, interaction, relativeP, field_values, con
     return newIC;
 }
 
+function setInteractionSrcExpanded(target, uid, expanded) {
+    const wrap = document.getElementById(`interaction-src-wrap-${target}-${uid}`);
+    const btn  = document.getElementById(`interaction-src-toggle-${target}-${uid}`);
+    if (!wrap || !btn) return;
+
+    wrap.classList.toggle('d-none', !expanded);
+    btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    btn.style.display = expanded ? 'none' : '';
+
+    const icon = btn.querySelector('i');
+    if (icon) {
+        icon.classList.remove('bi-chevron-left');
+        icon.classList.add('bi-chevron-right');
+    }
+}
+
+function toggleInteractionSrc(target, uid) {
+    setInteractionSrcExpanded(target, uid, true);
+    const urlInput = document.getElementById(`interaction-url-${target}-${uid}`);
+    if (urlInput) urlInput.focus();
+}
+
+function onInteractionUrlInput(target, uid, val) {
+    update_interaction_field(target, uid, 'url', val);
+    const paramsWrap = document.getElementById(`interaction-params-wrap-${target}-${uid}`);
+    const hasValue = !!String(val || '').trim();
+    if (paramsWrap) {
+      paramsWrap.classList.toggle('d-none', !hasValue);
+      paramsWrap.classList.toggle('d-inline-flex', hasValue);
+    }
+    // Auto-expand when user starts typing; auto-collapse if cleared
+    const btn = document.getElementById(`interaction-src-toggle-${target}-${uid}`);
+    const expanded = btn && btn.getAttribute('aria-expanded') === 'true';
+    if (!expanded && hasValue) setInteractionSrcExpanded(target, uid, true);
+    if (expanded && !hasValue) setInteractionSrcExpanded(target, uid, false);
+}
+
 
 // Listen for content saved events to refresh embedded elements inside grids
 (function(){
