@@ -744,41 +744,47 @@ function handleElementMessage(dict, socket_div) {
 // Simple global stream dispatcher to allow components to receive raw stream frames via the central websocket
 window.ClaramaStream = window.ClaramaStream || (function () {
     const handlers = {}; // topic -> Set<function>
+
     function register(topic, fn) {
         const t = topic || '*';
         console.log('ClaramaStream.register', t, fn, handlers);
-        //if (!handlers[t]) handlers[t] = new Set();
-        handlers[t] = fn;
+        if (!handlers[t]) handlers[t] = new Set();
+        handlers[t].add(fn);
         return function unregister() {
             try {
-                handlers[t].delete(fn);
+                const set = handlers[t];
+                if (set) set.delete(fn);
             } catch (e) {
+                // noop
             }
-        }
+        };
     }
 
     function dispatch(topic, msg) {
         const t = topic || '*';
         console.log('ClaramaStream.dispatch', t, msg, handlers);
         const hs = handlers[t];
-        if (hs) {
-            //  hs.forEach(fn => {
-            try {
-                hs(msg, t);
-            } catch (e) {
-                console.error('Stream handler error', e);
-            }
-            // });
-        }
-        // Also dispatch to wildcard handlers
-        const ws = handlers['*'];
-        if (ws && t !== '*') {
-            ws.forEach(fn => {
+        if (hs && hs.forEach) {
+            hs.forEach(fn => {
                 try {
                     fn(msg, t);
                 } catch (e) {
+                    console.error('Stream handler error', e);
                 }
             });
+        }
+        // Also dispatch to wildcard handlers
+        if (t !== '*') {
+            const ws = handlers['*'];
+            if (ws && ws.forEach) {
+                ws.forEach(fn => {
+                    try {
+                        fn(msg, t);
+                    } catch (e) {
+                        // noop
+                    }
+                });
+            }
         }
     }
 
