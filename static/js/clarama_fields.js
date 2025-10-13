@@ -215,6 +215,8 @@ function get_fields(fields, cell, field_submit) {
         'environment': socket_div.attr("environment")
     }
 
+    var error = false;
+
     $('ul.stream').each(
         function (index) {
             var stream = $(this);
@@ -227,11 +229,21 @@ function get_fields(fields, cell, field_submit) {
 
             var stream_cells = get_cell(stream, "");
 
+            if (stream_cells === null) {
+                error = true;
+                return false;
+            }
+
             console.log("Saving stream " + current_stream);
             stream_dict = {};
             stream_dict[current_stream] = stream_cells;
             registry['streams'].push(stream_dict);
         });
+
+    if (error) {
+        flash("Save cancelled due to error");
+        return null;
+    }
 
     if (fields) {
         // console.log("get_fields fields", fields)
@@ -314,7 +326,7 @@ function initializeCellNavigation() {
                 if ($ti.length) $ti.focus();
             }
             const prevTop = prevCell.getBoundingClientRect().top + window.pageYOffset;
-            window.scrollTo({ top: prevTop - 100, behavior: 'smooth' });
+            window.scrollTo({top: prevTop - 100, behavior: 'smooth'});
             return prevCell;
         }
         return null;
@@ -812,7 +824,7 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
             aceEditor.commands.removeCommand('runCellAndStay');
             aceEditor.commands.addCommand({
                 name: 'runCellAndStay',
-                bindKey: { win: 'Ctrl-Enter'},
+                bindKey: {win: 'Ctrl-Enter'},
                 exec: function (editor) {
                     const $cell = $(editor.container).closest('.clarama-cell-item');
                     const $runBtn = $cell.find('.celleditrun').first();
@@ -825,7 +837,7 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
             aceEditor.commands.removeCommand('runCellAndNext');
             aceEditor.commands.addCommand({
                 name: 'runCellAndNext',
-                bindKey: { win: 'Shift-Enter'},
+                bindKey: {win: 'Shift-Enter'},
                 exec: function (editor) {
                     const $cell = $(editor.container).closest('.clarama-cell-item');
                     const $runBtn = $cell.find('.celleditrun').first();
@@ -848,7 +860,7 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
             aceEditor.commands.removeCommand('jumpPrevCell');
             aceEditor.commands.addCommand({
                 name: 'jumpPrevCell',
-                bindKey: { win: 'Ctrl-Up' },
+                bindKey: {win: 'Ctrl-Up'},
                 exec: function (editor) {
                     const $cell = $(editor.container).closest('.clarama-cell-item');
                     if (!$cell.length) return;
@@ -860,7 +872,7 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
                         const $ti = $prevEditor.find('input[type="text"], textarea, .ace_text-input').first();
                         if ($ti.length) $ti.focus();
                         const prevTop = $prev[0].getBoundingClientRect().top + window.pageYOffset;
-                        window.scrollTo({ top: prevTop - 100, behavior: 'smooth' });
+                        window.scrollTo({top: prevTop - 100, behavior: 'smooth'});
                     }
                 }
             });
@@ -868,7 +880,7 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
             aceEditor.commands.removeCommand('jumpNextCell');
             aceEditor.commands.addCommand({
                 name: 'jumpNextCell',
-                bindKey: { win: 'Ctrl-Down' },
+                bindKey: {win: 'Ctrl-Down'},
                 exec: function (editor) {
                     const $cell = $(editor.container).closest('.clarama-cell-item');
                     if (!$cell.length) return;
@@ -880,7 +892,7 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
                         const $ti = $nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
                         if ($ti.length) $ti.focus();
                         const nextTop = $next[0].getBoundingClientRect().top + window.pageYOffset;
-                        window.scrollTo({ top: nextTop - 100, behavior: 'smooth' });
+                        window.scrollTo({top: nextTop - 100, behavior: 'smooth'});
                     }
                 }
             });

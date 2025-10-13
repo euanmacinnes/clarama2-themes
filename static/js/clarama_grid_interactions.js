@@ -276,6 +276,23 @@ function filePath(field) {
     return field.closest(".clarama-grid").attr("file_path");
 }
 
+function getOriginalUrlFromField(field) {
+    try {
+        if (!field) return undefined;
+        // If a jQuery object was passed
+        var $el = (field.jquery) ? field : $(field);
+        var ou = $el.closest('.embedded').attr('original_url');
+        if (ou === undefined || ou === null || ou === '') {
+            // fallback to first embedded on page
+            try { ou = $('.embedded').eq(0).attr('original_url'); } catch(_) {}
+        }
+        return ou;
+    } catch (e) {
+        try { console.warn('getOriginalUrlFromField failed', e); } catch(_) {}
+        return undefined;
+    }
+}
+
 function triggerTabInteraction(field, url, field_values = "", contextM = false) {
     console.log("triggerTabInteraction field_values", field_values);
 
@@ -286,6 +303,23 @@ function triggerTabInteraction(field, url, field_values = "", contextM = false) 
     let fullUrl = "/content/default/" + resolveRelativeFilePath(final_field, url);
     if (fullUrl.charAt(fullUrl.length - 1) == "?") fullUrl = fullUrl.slice(0, -1);
     console.log('triggerTabInteraction fullUrl', fullUrl);
+    // Ensure original_url is included in field_values for tab interactions
+    try {
+        if (field_values && typeof field_values === 'object') {
+            if (!('original_url' in field_values) || !field_values.original_url) {
+                var ou = contextM ? (field_values.original_url || undefined) : getOriginalUrlFromField(field);
+                if (!ou) {
+                    try { ou = $('.embedded').eq(0).attr('original_url'); } catch(_) {}
+                }
+                if (ou) field_values.original_url = ou;
+            }
+        } else {
+            field_values = {};
+            var ou2 = contextM ? undefined : getOriginalUrlFromField(field);
+            if (!ou2) { try { ou2 = $('.embedded').eq(0).attr('original_url'); } catch(_) {} }
+            if (ou2) field_values.original_url = ou2;
+        }
+    } catch (e) { try { console.warn('Failed to ensure original_url for tab', e); } catch(_) {} }
     console.log('triggerTabInteraction data', JSON.stringify(field_values));
     
     fetch($CLARAMA_ROOT + fullUrl + "?b64params=" + btoa(JSON.stringify(field_values)),
@@ -391,44 +425,68 @@ function showInteractionContent(field, interaction, relativeP, field_values, con
     const newIC = document.createElement("div");
     newIC.className = "clarama-post-embedded clarama-replaceable";
     newIC.setAttribute("url", `${ICurl}`);
-    newIC.setAttribute("json", JSON.stringify(field_values));
+    try {
+            if (!field_values || typeof field_values !== 'object') field_values = {};
+            if (!('original_url' in field_values) || !field_values.original_url) {
+                var ou3 = contextM ? (field_values.original_url || undefined) : getOriginalUrlFromField(field);
+                if (!ou3) { try { ou3 = $('.embedded').eq(0).attr('original_url'); } catch(_) {} }
+                if (ou3) field_values.original_url = ou3;
+            }
+        } catch (e) { try { console.warn('Failed to ensure original_url for interaction content', e); } catch(_) {} }
+        newIC.setAttribute("json", JSON.stringify(field_values));
     // newIC.setAttribute("autorun", "True");
     return newIC;
 }
 
-function setInteractionSrcExpanded(target, uid, expanded) {
-    const wrap = document.getElementById(`interaction-src-wrap-${target}-${uid}`);
-    const btn  = document.getElementById(`interaction-src-toggle-${target}-${uid}`);
-    if (!wrap || !btn) return;
 
-    wrap.classList.toggle('d-none', !expanded);
-    btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    btn.style.display = expanded ? 'none' : '';
+// Listen for content saved events to refresh embedded elements inside grids
+(function(){
+    try {
+        if (typeof window !== 'undefined' && !window.__claramaGridSavedListener) {
+            window.__claramaGridSavedListener = true;
+            window.addEventListener('onContentSaved', function(ev){
+                try {
+                    var detail = ev && ev.detail ? ev.detail : {};
+                    // Try extract a URL from the payload
+                    var savedUrl = detail.url;
+                    if (!savedUrl) return;
+                    savedUrl = '/render/embed' + String(savedUrl);
 
-    const icon = btn.querySelector('i');
-    if (icon) {
-        icon.classList.remove('bi-chevron-left');
-        icon.classList.add('bi-chevron-right');
+                    // Find all grids (editing grids will be present in DOM); keep scope limited to grids
+                    var $grids = $('.clarama-edit-grid');
+                    $grids.each(function(){
+                        var $grid = $(this);
+                        // Match embedded widgets by exact url attribute
+                        var $targets = $grid.find('.clarama-post-embedded, .clarama-embedded').filter(function(){
+                            var u = $(this).attr('url') || '';
+                            return u === savedUrl;
+                        });
+                        if ($targets.length === 0) return;
+
+                        $targets.each(function(){
+                            var $el = $(this);
+                            try {
+                                // Mark not loaded to allow reload
+                                $el.attr('clarama_loaded', false);
+                                // Prefer POST reload for post-embedded
+                                if ($el.hasClass('clarama-post-embedded') && typeof $el.load_post === 'function') {
+                                    $el.load_post();
+                                } else if ($el.hasClass('clarama-embedded') && typeof $el.load === 'function') {
+                                    $el.load();
+                                } else if (typeof $.fn.load_post === 'function' && $el.hasClass('clarama-post-embedded')) {
+                                    $el.load_post();
+                                }
+                            } catch (e) {
+                                try { console.warn('Grid saved reload failed', e); } catch(_){ }
+                            }
+                        });
+                    });
+                } catch (e) {
+                    try { console.warn('onContentSaved handler error', e); } catch(_){ }
+                }
+            });
+        }
+    } catch (e) {
+        try { console.warn('Failed installing onContentSaved grid listener', e); } catch(_){ }
     }
-}
-
-function toggleInteractionSrc(target, uid) {
-    setInteractionSrcExpanded(target, uid, true);
-    const urlInput = document.getElementById(`interaction-url-${target}-${uid}`);
-    if (urlInput) urlInput.focus();
-}
-
-function onInteractionUrlInput(target, uid, val) {
-    update_interaction_field(target, uid, 'url', val);
-    const paramsWrap = document.getElementById(`interaction-params-wrap-${target}-${uid}`);
-    const hasValue = !!String(val || '').trim();
-    if (paramsWrap) {
-      paramsWrap.classList.toggle('d-none', !hasValue);
-      paramsWrap.classList.toggle('d-inline-flex', hasValue);
-    }
-    // Auto-expand when user starts typing; auto-collapse if cleared
-    const btn = document.getElementById(`interaction-src-toggle-${target}-${uid}`);
-    const expanded = btn && btn.getAttribute('aria-expanded') === 'true';
-    if (!expanded && hasValue) setInteractionSrcExpanded(target, uid, true);
-    if (expanded && !hasValue) setInteractionSrcExpanded(target, uid, false);
-}
+})();

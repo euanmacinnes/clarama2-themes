@@ -251,7 +251,14 @@ function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
  * @param {string|boolean} autorun
  */
 function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
-    fetch(task_url)
+    var fetch_options = {
+        method: 'POST',
+        body: JSON.stringify({}),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+    fetch(task_url, fetch_options)
         .then((response) => {
             if (response.ok) {
                 console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " response " + response.status);
@@ -895,11 +902,11 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
                     ? dict.values.output
                     : (typeof dict.output !== 'undefined' ? dict.output : "");
-                    let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
-                    chunk = html_decode(chunk);
-                    if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
-                        window.__claramaRunIntent[taskIndex].sawChat = true;
-                    }
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+                if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                    window.__claramaRunIntent[taskIndex].sawChat = true;
+                }
 
                 const cbInspect = "cell_insights_inspect_callback_" + taskIndex;
 
@@ -977,13 +984,17 @@ function onMessage(event, socket_url, webSocket, socket_div) {
 
                 if (taskIndex) {
                     const cbChat = "cell_insights_chat_callback_" + taskIndex;
-                
+
                     // If a chat stream callback is already active, just deliver the chunk.
                     if (typeof window[cbChat] === "function") {
-                        try { window[cbChat](chunk); } catch (e) { console.error(e); }
+                        try {
+                            window[cbChat](chunk);
+                        } catch (e) {
+                            console.error(e);
+                        }
                         return; // handled by chat (keep callback for subsequent chunks)
                     }
-                
+
                     try {
                         // Open insights if closed
                         if (!isInsightsOpen(taskIndex)) {
@@ -992,7 +1003,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                                 openInsights($cell, taskIndex);
                             }
                         }
-                
+
                         // Ensure the Chat tab is active
                         const chatBtnId = `insights-chat-tab-${taskIndex}`;
                         const chatBtn = document.getElementById(chatBtnId);
@@ -1004,18 +1015,22 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                                 chatBtn.click?.();
                             }
                         }
-                
+
                         // After opening + tab switch, try to deliver chunk again if a callback is now wired
                         const cbChatNow = "cell_insights_chat_callback_" + taskIndex;
                         if (typeof window[cbChatNow] === "function") {
-                            try { window[cbChatNow](chunk); } catch (e) { console.error(e); }
+                            try {
+                                window[cbChatNow](chunk);
+                            } catch (e) {
+                                console.error(e);
+                            }
                             return;
                         }
                     } catch (e) {
                         console.error("Auto-open Insights for chat failed:", e);
                     }
                 }
-                
+
                 return; // nothing to deliver
             }
 
@@ -1109,7 +1124,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 process_template(dict['type'], dict['values'], $(resulter));
                 var options = dict['values']
                 var handle = bTableStream(dict['values']['table_id'], options);
-                console.log("WEBSOCKET TABLE STREAM OPTIONS: ", options);
+                console.log("WEBSOCKET TABLE STREAM OPTIONS: ");
+                console.log(options);
                 add_topic(options['topic'])
                 startLiveStream(false, options['query'], options['topic'], options['url']);
 
@@ -1166,7 +1182,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                         window.__claramaRunIntent[taskIndex].sawException = true;
                     }
                 }
-  
+
                 // Auto-close Insights after a successful run if no chat arrived
                 try {
                     if (dict['type'] === 'task_step_completed') {
@@ -1182,8 +1198,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                             delete window.__claramaRunIntent[taskIndex];
                         }
                     }
-                } catch (e) { 
-                    console.error('Post-run Insights autoclose failed', e); 
+                } catch (e) {
+                    console.error('Post-run Insights autoclose failed', e);
                 }
             }
         } catch (err) {

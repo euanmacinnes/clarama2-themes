@@ -51,17 +51,47 @@ function get_tab_data(cell, tab_id) {
     var dataid = cell.attr('dataid');
     var editor_id = "content_query_" + dataid + "_tab_" + tab_id;
 
+    // Prefer locating elements within the provided cell to be resilient to DOM reorganization
+    var $tabBlock = cell.find('.tab-content-block[data-tab-id="' + tab_id + '"]');
+    var $editorEl = $tabBlock.find('.clarama-field-editor').first();
+
+    var code = '';
     try {
-        var editor = ace.edit(editor_id);
-        var code = editor.getValue();
+        if ($editorEl.length && $editorEl.attr('id')) {
+            code = ace.edit($editorEl.attr('id')).getValue();
+        } else {
+            // Fallback to legacy/global id lookup
+            code = ace.edit(editor_id).getValue();
+        }
     } catch (e) {
-        console.warn("Editor not found for " + editor_id + ", using empty content");
-        var code = "";
+        // If ACE editor instance is not available (e.g., element moved or not yet initialized), fallback to raw text
+        try {
+            if ($editorEl.length) {
+                code = $editorEl.text();
+            } else {
+                var $fallback = $('#' + editor_id);
+                code = $fallback.length ? $fallback.text() : '';
+            }
+            console.warn("ACE editor not available for tab " + tab_id + ", using text fallback.");
+        } catch (e2) {
+            console.warn("Failed to obtain editor content for " + editor_id, e2);
+            code = '';
+        }
     }
 
-    // Get source file path from the tab content block
-    var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
-    var source = $("#" + source_input_id).val() || "";
+    // Get source file path from the tab content block (prefer local lookup)
+    var source = '';
+    try {
+        var $srcInput = $tabBlock.find('input.source-input-field').first();
+        if ($srcInput.length) {
+            source = $srcInput.val() || '';
+        } else {
+            var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
+            source = $("#" + source_input_id).val() || '';
+        }
+    } catch (e) {
+        source = '';
+    }
 
     return {
         "tab_id": tab_id,
@@ -88,10 +118,20 @@ function get_data_cell(cell) {
     var tab_ids = get_tab_ids(cell);
     var tabs_data = [];
 
+    var error = false;
+
     tab_ids.forEach(function (tab_id) {
         var tab_data = get_tab_data(cell, tab_id);
+        if (tab_data === null) {
+            error = true;
+            return false;
+        }
+
         tabs_data.push(tab_data);
     });
+
+    if (error)
+        return null;
 
     if (tabs_data.length === 0) {
         var legacy_id = "content_query_" + dataid;
@@ -131,10 +171,37 @@ function get_data_cell(cell) {
     var chart_legend = cell.find('.chart-legend').val();
     var chart_xaxis_type = cell.find('.chart-xaxis-type').val();
 
-    // Chart advanced YAML
-    var chart_advanced = cell.find('.chart-advanced');
-    var editor = ace.edit(chart_advanced.attr('id'));
-    var chart_advanced_yaml = editor.getValue();
+    // Chart advanced YAML (guard for missing ACE/editor)
+    var chart_advanced_yaml = '';
+    try {
+        var chart_advanced = cell.find('.chart-advanced');
+        if (chart_advanced.length && chart_advanced.attr('id')) {
+            try {
+                var editorChart = ace.edit(chart_advanced.attr('id'));
+                chart_advanced_yaml = editorChart.getValue();
+            } catch (eAce) {
+                chart_advanced_yaml = chart_advanced.text() || '';
+            }
+        }
+    } catch (e) {
+        chart_advanced_yaml = '';
+    }
+
+    // Table advanced YAML (guard for missing ACE/editor)
+    var table_advanced_yaml = '';
+    try {
+        var table_advanced = cell.find('.table-advanced');
+        if (table_advanced.length && table_advanced.attr('id')) {
+            try {
+                var editorTable = ace.edit(table_advanced.attr('id'));
+                table_advanced_yaml = editorTable.getValue();
+            } catch (eAce) {
+                table_advanced_yaml = table_advanced.text() || '';
+            }
+        }
+    } catch (e) {
+        table_advanced_yaml = '';
+    }
 
     var chart_series_groups = [];
     var chart_series_formats = [];
@@ -171,10 +238,21 @@ function get_data_cell(cell) {
     var chart3d_tick_size_y = cell.find('.chart3d-tick-size-y').val();
     var chart3d_tick_size_z = cell.find('.chart3d-tick-size-z').val();
 
-    // Chart advanced YAML
-    var chart3d_advanced = cell.find('.chart3d-advanced');
-    var editor3d = ace.edit(chart3d_advanced.attr('id'));
-    var chart3d_advanced_yaml = editor3d.getValue();
+    // Chart3D advanced YAML (guard for missing ACE/editor)
+    var chart3d_advanced_yaml = '';
+    try {
+        var chart3d_advanced = cell.find('.chart3d-advanced');
+        if (chart3d_advanced.length && chart3d_advanced.attr('id')) {
+            try {
+                var editor3d = ace.edit(chart3d_advanced.attr('id'));
+                chart3d_advanced_yaml = editor3d.getValue();
+            } catch (eAce) {
+                chart3d_advanced_yaml = chart3d_advanced.text() || '';
+            }
+        }
+    } catch (e) {
+        chart3d_advanced_yaml = '';
+    }
 
     var chart3d_series_objs = [];
 
@@ -334,8 +412,11 @@ function get_data_cell(cell) {
         'multiselect-row': table_multiselect_row,
         'pagination': table_pagination,
         'sortable': table_sortable,
-        'pagesize': table_pagesize
+        'pagesize': table_pagesize,
+        'advanced': table_advanced_yaml
     };
+
+    console.log("table config:", table);
 
     // reset the tab_ids to start from 0
     let tabCounter = 0;
@@ -594,13 +675,19 @@ function get_test_cell(cell) {
 function get_data_stream_cell(cell) {
     try {
         var obj = get_data_cell(cell);
+
+        if (obj === null) {
+            console.error('get_data_stream_cell failed', e);
+            return null;
+        }
+
         if (obj && typeof obj === 'object') {
             obj.type = 'data_stream';
         }
         return obj;
     } catch (e) {
         console.error('get_data_stream_cell failed', e);
-        return { type: 'data_stream', output: 'table', tabs: [], table: {}, chart: {} };
+        return {type: 'data_stream', output: 'table', tabs: [], table: {}, chart: {}};
     }
 }
 
@@ -614,7 +701,7 @@ function get_cell_values(cell) {
     var cell_type = cell.attr("celltype");
     console.log("celltype: ", cell_type);
     // Get the cell-type specific details
-    cell_data = window["get_" + cell_type + "_cell"](cell);
+    var cell_data = window["get_" + cell_type + "_cell"](cell);
 
     console.log('cell data: ', cell_data);
     // cell_data["content"] = "locals().keys()";
@@ -631,13 +718,21 @@ function get_cell_values(cell) {
  */
 function get_cell(cell_owner, topic) {
     var owner_cells = [];
+    var error = false;
 
     cell_owner.find(".clarama-cell-content").each(
         function (index) {
             var input = $(this);
 
             //console.log("Getting cell values for " + input.attr('id') + ':' + input.attr('class') + ' = ' + input.attr("celltype"))
-            cell = get_cell_values(input);
+            var cell = get_cell_values(input);
+
+            if (cell === null) {
+                console.error("get_cell_values returned null for " + input.attr('id') + ':' + input.attr('class') + ' = ' + input.attr("celltype"))
+
+                error = true;
+                return false;
+            }
 
             // Then let's add in the generic cell information, like the loop
             // we are too low down here, the clarama-cell is near the editable fields far down from clarama-cell-item, so let's go back up to that one
@@ -647,7 +742,7 @@ function get_cell(cell_owner, topic) {
             //console.log(input.closest(".clarama-cell-item").find('.loop-iterable'));
             cell['loop-iterable'] = input.closest(".clarama-cell-item").find('.loop-iterable').val();
 
-            if (topic != "") {
+            if (topic !== "") {
                 console.log("Getting Cell with STEP: " + topic)
                 cell['topic'] = topic;
                 cell['step'] = topic;
@@ -655,6 +750,9 @@ function get_cell(cell_owner, topic) {
 
             owner_cells.push(cell);
         });
+
+    if (error)
+        return null;
 
     return owner_cells;
 }

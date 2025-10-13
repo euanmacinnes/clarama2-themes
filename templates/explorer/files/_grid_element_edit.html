@@ -1,7 +1,7 @@
 <div class="container-fluid row tight" style="height: 100%; padding-bottom: 2px;">
     <div id="{{ target }}" element-type="{{ file_type }}" grid-id="{{ grid_id }}" autorun="{{ autorun }}"
         class="col clarama-element clarama-post-embedded clarama-edit-element slate-panel-target tight"
-        url="{{ embedded_url }}">
+        url="{{ embedded_url }}" onload="add_topic('{{element_content_url}}');">
     </div>
     <div id="grid-elem-dropdown-{{ target }}" class="dropdown col-auto align-middle tight"
         style="position: absolute; top: 4px; right: 3px;">
