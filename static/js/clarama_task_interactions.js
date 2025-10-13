@@ -277,7 +277,7 @@ function task_save(parent) {
                     } else {
                         console.log('Submission was not successful.');
                         console.log(data);
-                        flash("Couldn't save content: " + data['error'], "danger");
+                        flash("Couldn't save content: " + data['error'] + '\n' + JSON.stringify(task_registry), "danger");
                     }
                 },
                 error: function (data) {

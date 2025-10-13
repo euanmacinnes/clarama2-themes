@@ -55,8 +55,9 @@ function get_tab_data(cell, tab_id) {
         var editor = ace.edit(editor_id);
         var code = editor.getValue();
     } catch (e) {
-        console.warn("Editor not found for " + editor_id + ", using empty content");
-        var code = "";
+        console.warn("Editor not found for " + editor_id);
+        flash("Editor not found for " + editor_id);
+        return null;
     }
 
     // Get source file path from the tab content block
@@ -88,10 +89,20 @@ function get_data_cell(cell) {
     var tab_ids = get_tab_ids(cell);
     var tabs_data = [];
 
+    var error = false;
+
     tab_ids.forEach(function (tab_id) {
         var tab_data = get_tab_data(cell, tab_id);
+        if (tab_data === null) {
+            error = true;
+            return false;
+        }
+
         tabs_data.push(tab_data);
     });
+
+    if (error)
+        return null;
 
     if (tabs_data.length === 0) {
         var legacy_id = "content_query_" + dataid;
@@ -594,13 +605,18 @@ function get_test_cell(cell) {
 function get_data_stream_cell(cell) {
     try {
         var obj = get_data_cell(cell);
+
+        if (obj === null)
+            console.error('get_data_stream_cell failed', e);
+        return null;
+
         if (obj && typeof obj === 'object') {
             obj.type = 'data_stream';
         }
         return obj;
     } catch (e) {
         console.error('get_data_stream_cell failed', e);
-        return { type: 'data_stream', output: 'table', tabs: [], table: {}, chart: {} };
+        return {type: 'data_stream', output: 'table', tabs: [], table: {}, chart: {}};
     }
 }
 
@@ -614,7 +630,7 @@ function get_cell_values(cell) {
     var cell_type = cell.attr("celltype");
     console.log("celltype: ", cell_type);
     // Get the cell-type specific details
-    cell_data = window["get_" + cell_type + "_cell"](cell);
+    var cell_data = window["get_" + cell_type + "_cell"](cell);
 
     console.log('cell data: ', cell_data);
     // cell_data["content"] = "locals().keys()";
@@ -631,13 +647,21 @@ function get_cell_values(cell) {
  */
 function get_cell(cell_owner, topic) {
     var owner_cells = [];
+    var error = false;
 
     cell_owner.find(".clarama-cell-content").each(
         function (index) {
             var input = $(this);
 
             //console.log("Getting cell values for " + input.attr('id') + ':' + input.attr('class') + ' = ' + input.attr("celltype"))
-            cell = get_cell_values(input);
+            var cell = get_cell_values(input);
+
+            if (cell === null) {
+                console.error("get_cell_values returned null for " + input.attr('id') + ':' + input.attr('class') + ' = ' + input.attr("celltype"))
+
+                error = true;
+                return false;
+            }
 
             // Then let's add in the generic cell information, like the loop
             // we are too low down here, the clarama-cell is near the editable fields far down from clarama-cell-item, so let's go back up to that one
@@ -647,7 +671,7 @@ function get_cell(cell_owner, topic) {
             //console.log(input.closest(".clarama-cell-item").find('.loop-iterable'));
             cell['loop-iterable'] = input.closest(".clarama-cell-item").find('.loop-iterable').val();
 
-            if (topic != "") {
+            if (topic !== "") {
                 console.log("Getting Cell with STEP: " + topic)
                 cell['topic'] = topic;
                 cell['step'] = topic;
@@ -655,6 +679,9 @@ function get_cell(cell_owner, topic) {
 
             owner_cells.push(cell);
         });
+
+    if (error)
+        return null;
 
     return owner_cells;
 }

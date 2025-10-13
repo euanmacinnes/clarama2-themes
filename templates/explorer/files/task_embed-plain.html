@@ -32,10 +32,10 @@
         <div class="container-fluid bg-light">
             <div class="row">
                 <div class="d-flex flex-row-reverse clarama-task">
-                                    <button type="button" class="btn btn-light btn-sm me-2" title="Task arguments"
-                                            onclick="openTaskArgsModal('{{ internal_topic }}_socket_args', 'Task Arguments')">
-                                        <i class="bi bi-question-circle"></i>
-                                    </button>
+                    <button type="button" class="btn btn-light btn-sm me-2" title="Task arguments"
+                            onclick="openTaskArgsModal('{{ internal_topic }}_socket_args', 'Task Arguments')">
+                        <i class="bi bi-question-circle"></i>
+                    </button>
                     <div class="btn-group" role="group" aria-label="task_functions">
                         <button id="run" type="button" class="btn btn-c2 kernel-play-button" socket="run_socket"
                                 kill="False"><i
@@ -87,11 +87,12 @@
     </script>
 
     {% include theme("explorer/files/_grid_popup.html") %}
-    
+
     <script type="application/json" id="{{ internal_topic }}_socket_args">
     {{ task_arguments | json_pprint | safe }}
+
     </script>
-    
+
     {% include theme("explorer/files/task_response_templates.html") %}
     {% include theme("web/common_dialogs.html") %}
 

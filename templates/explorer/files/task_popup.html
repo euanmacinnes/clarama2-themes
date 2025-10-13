@@ -45,13 +45,14 @@
             {% endfor %}
             <div class="col-auto clarama-task">
                 <div class="btn-group" role="group" aria-label="task_functions">
-                    <button id="run" type="button" class="btn btn-c2 kernel-play-button" socket="run_socket"
+                    <button id="run" type="button" class="btn btn-c2 kernel-play-button"
+                            socket="run_socket"
                             kill="False"><i
                             class="bi bi-play-fill h2"></i></button>
                     <button type="button" class="btn btn-c2 kernel_status" id="popup-kernel-status"> Loading...
                     </button>
                     <button type="button" class="btn btn-light btn-sm ms-1" title="Task parameters"
-                            onclick="openTaskArgsModal('{{ grid_id }}json', 'Task Parameters')">
+                            onclick="openTaskArgsModal('run_socket_args', 'Task Parameters')">
                         <i class="bi bi-question-circle"></i>
                     </button>
                 </div>
@@ -73,7 +74,7 @@
          task="{{ file_url }}" kill="True" refresh="True"></div>
 </div>
 
-<script type="application/json" id="{{ grid_id }}json">
+<script type="application/json" id="run_socket_args">
     {{ task_arguments
 |
 json_pprint
