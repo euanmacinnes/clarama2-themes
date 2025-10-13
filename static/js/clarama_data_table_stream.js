@@ -77,6 +77,23 @@
 
     // bTableStream API (now uses central ClaramaStream via clarama_websocket.js)
     function bTableStream(table_id, options) {
+        // Ensure any previous stream for this table is stopped to avoid duplicate handlers
+        try {
+            const $existing = $('#' + table_id);
+            const prevStop = $existing && $existing.data && $existing.data('claramaStreamUnregister');
+            if (typeof prevStop === 'function') {
+                try {
+                    prevStop();
+                } catch (e) { /* noop */
+                }
+                // Clear stored reference
+                try {
+                    $existing.data('claramaStreamUnregister', null);
+                } catch (e) { /* noop */
+                }
+            }
+        } catch (e) { /* noop */
+        }
         const topic = options && options.topic;
         if (!topic) throw new Error('bTableStream requires options.topic');
 
@@ -106,8 +123,8 @@
         const resultsets = new Map(); // resultset index -> {headings, assembler, $table}
         // Buffer for chunks that may arrive before the start frame per resultset
         const preStartChunks = new Map(); // resultset index -> Array<chunkMsg>
-        // Buffer for end frames that may arrive before all chunks have been processed
-        const pendingEnds = new Map(); // resultset index -> endMsg buffered until chunks complete
+        // Diagnostics log per resultset capturing arrival order of frames
+        const diagLogs = new Map(); // resultset index -> Array<{t, n, last, ts}>
         let hasMultipleResultsets = false;
         let tabsCreated = false;
 
@@ -202,6 +219,11 @@
             } catch (e) {
                 console.error('bootstrapTable init failed', e);
             }
+            // Attach diagnostics button
+            try {
+                attachDiagnosticsUI($table, resultsetIndex);
+            } catch (e) { /* noop */
+            }
 
             // Store the resultset info
             resultsets.set(resultsetIndex, {headings, assembler, $table});
@@ -248,37 +270,76 @@
             tabsCreated = true;
         }
 
-        // Determine if a pending end can be processed for the given resultset
-        function __isEndSatisfied(rsData, endMsg) {
-            if (!rsData || !rsData.assembler) return false;
-            const asm = rsData.assembler;
-            // If server provided last_chunk_no, ensure we've advanced beyond it
-            const lastRaw = (endMsg && endMsg.last_chunk_no);
-            const hasLast = !(lastRaw === undefined || lastRaw === null || lastRaw === '');
-            if (hasLast) {
-                const last = Number(lastRaw);
-                if (!Number.isNaN(last)) {
-                    return asm.nextExpected >= (last + 1);
-                }
-            }
-            // Fallback: ensure assembler has no gaps buffered
+        // Attach a small diagnostics '?' icon to the table header to show chunk arrival order
+        function attachDiagnosticsUI($table, resultsetIndex) {
             try {
-                return !(asm.buffer && asm.buffer.size > 0);
-            } catch (e) { return true; }
+                const $wrapper = $table.closest('.bootstrap-table');
+                if (!$wrapper || $wrapper.length === 0) return;
+                // Find or create toolbar container
+                let $toolbar = $wrapper.find('.fixed-table-toolbar');
+                if ($toolbar.length === 0) {
+                    $toolbar = $('<div class="fixed-table-toolbar"></div>');
+                    // Prepend so it shows above the table
+                    $wrapper.prepend($toolbar);
+                }
+                // Ensure a container for custom tools
+                let $tools = $toolbar.find('.bs-bars');
+                if ($tools.length === 0) {
+                    $tools = $('<div class="bs-bars" role="toolbar"></div>');
+                    $toolbar.append($tools);
+                }
+                // If button already exists for this resultset, skip
+                const btnId = `diag_btn_${$table.attr('id')}`;
+                if ($(`#${btnId}`).length) return;
+                const $btn = $(`<button type="button" id="${btnId}" class="btn btn-sm btn-light" title="Show stream diagnostics">?</button>`);
+                // Slight styling
+                $btn.css({marginLeft: '6px'});
+                $btn.on('click', function () {
+                    try {
+                        const log = diagLogs.get(resultsetIndex) || [];
+                        if (!log.length) {
+                            alert('No diagnostics recorded yet.');
+                            return;
+                        }
+                        const lines = log.map((e, idx) => {
+                            const ts = new Date(e.ts).toLocaleTimeString();
+                            if (e.t === 'chunk') return `${idx + 1}. [${ts}] chunk ${e.n}`;
+                            if (e.t === 'start') return `${idx + 1}. [${ts}] start`;
+                            if (e.t === 'end') return `${idx + 1}. [${ts}] end${(e.last !== undefined && e.last !== null && e.last !== '') ? ` last_chunk_no=${e.last}` : ''}`;
+                            if (e.t === 'error') return `${idx + 1}. [${ts}] error`;
+                            return `${idx + 1}. [${ts}] ${e.t}`;
+                        });
+                        alert(`Stream diagnostics for resultset ${resultsetIndex}:\n\n` + lines.join('\n'));
+                    } catch (e) {
+                        alert('Failed to show diagnostics: ' + e);
+                    }
+                });
+                $tools.append($btn);
+            } catch (e) { /* noop */
+            }
         }
 
-        function __maybeTryEmitEnd(resultsetIndex) {
+        let unregister = function () {
+        };
+
+        function __cleanup(reason) {
             try {
-                const rsData = resultsets.get(resultsetIndex);
-                const pending = pendingEnds.get(resultsetIndex);
-                if (!pending || !rsData) return;
-                if (__isEndSatisfied(rsData, pending)) {
-                    pendingEnds.delete(resultsetIndex);
-                    if (options && typeof options.onend === 'function') {
-                        try { options.onend(pending); } catch (e) { /* noop */ }
-                    }
-                }
-            } catch (e) { /* noop */ }
+                if (unregister) unregister();
+            } catch (e) { /* noop */
+            }
+            try {
+                $container.data('claramaStreamUnregister', null);
+            } catch (e) { /* noop */
+            }
+            try {
+                preStartChunks.clear();
+            } catch (e) { /* noop */
+            }
+            try {
+                resultsets.clear();
+            } catch (e) { /* noop */
+            }
+            // No need to destroy tables here; the page may keep them for viewing results
         }
 
         function onFrame(msg) {
@@ -306,8 +367,33 @@
             // Get or create the resultset data
             let resultsetData = resultsets.get(resultsetIndex);
 
+            // Record diagnostics entry for arrival order
+            try {
+                let arr = diagLogs.get(resultsetIndex);
+                if (!arr) {
+                    arr = [];
+                    diagLogs.set(resultsetIndex, arr);
+                }
+                arr.push({t: type, n: (msg && msg.chunk_no), last: (msg && msg.last_chunk_no), ts: Date.now()});
+            } catch (e) { /* noop */
+            }
+
             if (type === 'start') {
                 const headings = msg.cols || [];
+
+                // If a duplicate 'start' arrives with identical columns after data has begun, ignore to prevent clearing the table
+                if (resultsetData && Array.isArray(resultsetData.headings)) {
+                    const prev = resultsetData.headings || [];
+                    const sameCols = (prev.length === headings.length) && prev.every((v, i) => v === headings[i]);
+                    const progressed = (resultsetData.assembler && Number(resultsetData.assembler.nextExpected) > 0);
+                    if (sameCols && progressed) {
+                        try {
+                            console.warn(`Ignoring duplicate start for resultset ${resultsetIndex} to prevent table reset`);
+                        } catch (e) {
+                        }
+                        return;
+                    }
+                }
 
                 // Create or reset the resultset
                 if (resultsetData) {
@@ -350,6 +436,11 @@
                     } catch (e) {
                         console.error('bootstrapTable init failed', e);
                     }
+                    // Re-attach diagnostics button after reinit
+                    try {
+                        attachDiagnosticsUI(resultsetData.$table, resultsetIndex);
+                    } catch (e) { /* noop */
+                    }
                 } else {
                     // Create a new resultset
                     resultsetData = createTableForResultset(resultsetIndex, headings);
@@ -361,14 +452,15 @@
                     if (early && early.length) {
                         // No strict need to sort; assembler can buffer out-of-order
                         early.forEach(ch => {
-                            try { resultsetData.assembler.onChunk(ch); } catch (e) { /* noop */ }
+                            try {
+                                resultsetData.assembler.onChunk(ch);
+                            } catch (e) { /* noop */
+                            }
                         });
                         preStartChunks.delete(resultsetIndex);
                     }
-                } catch (e) { /* noop */ }
-
-                // In case an 'end' arrived early, try to emit it now if satisfied
-                __maybeTryEmitEnd(resultsetIndex);
+                } catch (e) { /* noop */
+                }
 
                 if (options && options.onopen) options.onopen(msg);
             } else if (type === 'chunk') {
@@ -385,34 +477,48 @@
                 }
 
                 resultsetData.assembler.onChunk(msg);
-                // After processing a chunk, see if an 'end' is pending and now satisfied
-                __maybeTryEmitEnd(resultsetIndex);
             } else if (type === 'end') {
-                // If resultset not initialised yet, or chunks are still pending, buffer the end
-                if (!resultsetData) {
-                    pendingEnds.set(resultsetIndex, msg);
-                    return;
+                try {
+                    __cleanup('end');
+                } catch (e) { /* noop */
                 }
-                if (__isEndSatisfied(resultsetData, msg)) {
-                    // Safe to process end now
-                    if (options && options.onend) options.onend(msg);
-                    pendingEnds.delete(resultsetIndex);
-                } else {
-                    // Wait until missing chunks arrive
-                    pendingEnds.set(resultsetIndex, msg);
-                }
+                if (options && options.onend) options.onend(msg);
             } else if (type === 'error') {
                 console.error('Stream error', msg.error || msg);
+                try {
+                    __cleanup('error');
+                } catch (e) { /* noop */
+                }
                 if (options && options.onerror) options.onerror(msg);
             }
         }
 
-        const unregister = (window.ClaramaStream && window.ClaramaStream.register) ? window.ClaramaStream.register(topic, onFrame) : function () {
+        unregister = (window.ClaramaStream && window.ClaramaStream.register) ? window.ClaramaStream.register(topic, onFrame) : function () {
         };
+        // Store unregister on the table element so a subsequent bTableStream call can dispose the previous one
+        try {
+            $container.data('claramaStreamUnregister', unregister);
+        } catch (e) { /* noop */
+        }
+        // Auto-unregister on window unload to prevent leaks
+        try {
+            $(window).on('unload.bTableStream_' + table_id, function () {
+                try {
+                    unregister();
+                } catch (e) {
+                }
+            });
+        } catch (e) { /* noop */
+        }
 
         // return an API to allow caller to stop listening and access resultset info
         return {
-            stop: unregister,
+            stop: function () {
+                try {
+                    __cleanup('stop');
+                } catch (e) {
+                }
+            },
             getResultsets: () => Array.from(resultsets.keys()),
             hasMultipleResultsets: () => hasMultipleResultsets,
             activateTab: (resultsetIndex) => {
