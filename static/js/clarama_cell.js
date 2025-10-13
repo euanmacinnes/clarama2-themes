@@ -147,6 +147,17 @@ function get_data_cell(cell) {
     var editor = ace.edit(chart_advanced.attr('id'));
     var chart_advanced_yaml = editor.getValue();
 
+    // Table advanced YAML
+    var table_advanced_yaml = '';
+
+    try {
+        var table_advanced = cell.find('.table-advanced');
+        var editor = ace.edit(table_advanced.attr('id'));
+        table_advanced_yaml = editor.getValue();
+    } catch (e) {
+        console.error(e, "Error parsing table advanced YAML");
+    }
+
     var chart_series_groups = [];
     var chart_series_formats = [];
     var chart_series_annos = [];
@@ -345,8 +356,11 @@ function get_data_cell(cell) {
         'multiselect-row': table_multiselect_row,
         'pagination': table_pagination,
         'sortable': table_sortable,
-        'pagesize': table_pagesize
+        'pagesize': table_pagesize,
+        'advanced': table_advanced_yaml
     };
+
+    console.log("table config:", table);
 
     // reset the tab_ids to start from 0
     let tabCounter = 0;
@@ -606,9 +620,10 @@ function get_data_stream_cell(cell) {
     try {
         var obj = get_data_cell(cell);
 
-        if (obj === null)
+        if (obj === null) {
             console.error('get_data_stream_cell failed', e);
-        return null;
+            return null;
+        }
 
         if (obj && typeof obj === 'object') {
             obj.type = 'data_stream';

@@ -677,11 +677,25 @@
                 }
 
                 // Initialize streaming table subscription
+                /*
                 if (window.bTableStream) {
-                    window.bTableStream(tableId, {topic: topic});
+                    // Parse optional columns metadata for display names and descriptions
+                    let columnsMeta = [];
+                    try {
+                        const raw = `{columns_meta_content}`;
+                        console.log('columns_meta_content', raw);
+                        if (raw && raw !== 'None' && raw !== '') {
+                            columnsMeta = JSON.parse(raw);
+                        }
+                    } catch (e) {
+                        columnsMeta = [];
+                    }
+                    window.bTableStream(tableId, {topic: topic, columnsMeta: columnsMeta});
                 } else {
                     console.error('bTableStream is not available on window');
                 }
+                */
+
             } catch (e) {
                 console.error('bTableStream template init error', e);
             }
