@@ -21,18 +21,33 @@
             <div class="col-auto">
                 <ul class="btn-group clarama-task tight" role="group" aria-label="task_functions">
                     <button id="save" type="button" class="btn btn-c2 clarama-task clarama-task-save"
-                            url="{{ file_url }}" title="save"><i
-                            class="bi bi-floppy"></i></button>
+                            url="{{ file_url }}" title="save">
+                        <i class="bi bi-floppy"></i>
+                    </button>
                     <button id="publish" type="button" class="btn btn-c2 clarama-task clarama-task-publish"
-                            title="publish as .ai.yaml"><i
-                            class="bi bi-upload"></i></button>
+                            title="publish as .ai.yaml">
+                        <i class="bi bi-upload"></i>
+                    </button>
                     <button id="editrun" type="button"
                             class="btn btn-c2-play kernel-play-button clarama-task-editrun"
-                            socket="edit_socket" kill="False" title="play"><i
-                            class="bi bi-play-fill h3"></i></button>
+                            socket="edit_socket" kill="False" title="play">
+                        <i class="bi bi-play-fill h3"></i>
+                    </button>
+                    <button id="shortcutPrefsBtn" aria-haspopup="true" aria-expanded="false" 
+                            style="border-top-right-radius: 0%; border-bottom-right-radius: 0%;"
+                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                            class="btn btn-c2 dropdown-toggle" title="Keyboard shortcuts">
+                        <i class="bi bi-keyboard"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-start shadow-sm p-3" aria-labelledby="shortcutPrefsBtn" style="min-width: 260px;">
+                        <li class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="sc_enabled">
+                            <label class="form-check-label" for="sc_enabled"><strong>Enable shortcuts</strong></label>
+                        </li>
+                    </ul>
                     <button type="button" class="btn btn-c2" id="edit-kernel-status" data-bs-toggle="tooltip"
                             data-bs-placement="bottom"
-                            title="Unique Kernel ID within the Environment"> Loading...
+                            title="Unique Kernel ID within the Environment">Loading...
                     </button>
                     <button type="button" class="btn btn-c2" id="kernel_memory_free" data-bs-toggle="tooltip"
                             data-bs-placement="bottom"

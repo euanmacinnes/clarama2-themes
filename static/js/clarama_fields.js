@@ -457,6 +457,9 @@ function initializeCellNavigation() {
     });
 
     $(document).off('keydown.cellNavJump').on('keydown.cellNavJump', function (e) {
+        const prefs = readShortcutPrefs();
+        if (!prefs.enabled) return;
+
         if (e.altKey) return;
         const isCtrl = !!e.ctrlKey;
         if (!isCtrl) return;
@@ -482,37 +485,35 @@ function initializeCellNavigation() {
     const DOUBLE_SHIFT_MS = 400;
 
     $(document).on('keydown', function (e) {
+        const prefs = readShortcutPrefs();
+        if (!prefs.enabled) return;
+    
+        // maintain double-shift detection state
         if (e.key !== 'Shift') {
             shiftSequenceValid = false;
             shiftTapCount = 0;
-            return;
         }
         if (e.repeat) return;
-
+    
         const $t = $(e.target);
         const inInsightsConsole = $t.is('textarea.console-input') > 0;
-
-        // Shift + Enter: Run current cell and move to next (DISABLED inside Insights console)
+    
+        // Shift + Enter : run & move next (disabled inside Insights console)
         if (e.shiftKey && e.keyCode === 13) {
             if (inInsightsConsole) return;
             e.preventDefault();
-
+    
             const currentCell = getCurrentCell();
             if (!currentCell) return;
-
+    
             const runSuccess = runCurrentCell(currentCell);
-
-            if (runSuccess) {
-                setTimeout(() => {
-                    moveToNextCell(currentCell);
-                }, 300);
-            }
+            if (runSuccess) setTimeout(() => { moveToNextCell(currentCell); }, 300);
+            return;
         }
-
-        // Ctrl + Enter: Run current cell in place
+    
+        // Ctrl + Enter : run in place
         if (e.ctrlKey && e.keyCode === 13) {
             e.preventDefault();
-
             const currentCell = getCurrentCell();
             if (!currentCell) return;
             runCurrentCell(currentCell);
@@ -521,6 +522,9 @@ function initializeCellNavigation() {
     });
 
     $(document).on('keyup', function (e) {
+        const prefs = readShortcutPrefs();
+        if (!prefs.enabled) return;
+
         if (e.key !== 'Shift') return;
         const now = Date.now();
         if (shiftSequenceValid && (now - lastShiftUpTs) <= DOUBLE_SHIFT_MS) {
@@ -545,6 +549,67 @@ function initializeCellNavigation() {
         }
     });
 }
+
+// === Shortcut Prefs ============================================
+const SC_LS_KEY = 'clarama_shortcuts_prefs';
+
+function getDefaultShortcutPrefs() {
+    return { enabled: true };
+}
+
+function readShortcutPrefs() {
+    try {
+        const raw = localStorage.getItem(SC_LS_KEY);
+        if (!raw) return getDefaultShortcutPrefs();
+        const parsed = JSON.parse(raw);
+        return Object.assign(getDefaultShortcutPrefs(), parsed);
+    } catch (_) {
+        return getDefaultShortcutPrefs();
+    }
+}
+
+function writeShortcutPrefs(p) {
+    localStorage.setItem(SC_LS_KEY, JSON.stringify(p));
+}
+
+function syncShortcutTogglesToUI() {
+    const p = readShortcutPrefs();
+    const el = document.getElementById('sc_enabled');
+    if (el) el.checked = !!p.enabled;
+}
+
+function disableAllShortcuts() {
+    const p = readShortcutPrefs();
+    p.enabled = false;
+    writeShortcutPrefs(p);
+    syncShortcutTogglesToUI();
+    flash("Disabled all Clarama shortcuts", "info");
+}
+
+function enableAllShortcuts() {
+    const p = readShortcutPrefs();
+    p.enabled = true;
+    writeShortcutPrefs(p);
+    syncShortcutTogglesToUI();
+    flash("Enabled all Clarama shortcuts", "info");
+}
+
+// === Wire up the dropdown =====================================
+(function wireShortcutPrefsDropdown() {
+    $(document).on('shown.bs.dropdown', '#shortcutPrefsBtn', function () {
+        syncShortcutTogglesToUI();
+    });
+
+    $(document).on('change', '#sc_enabled', function () {
+        if (this.checked) {
+            enableAllShortcuts();
+        } else {
+            disableAllShortcuts();
+        }
+    });
+
+    syncShortcutTogglesToUI();
+})();
 
 function defaultInt(value, default_value) {
     if (value === undefined) return default_value;
@@ -826,6 +891,8 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
                 name: 'runCellAndStay',
                 bindKey: {win: 'Ctrl-Enter'},
                 exec: function (editor) {
+                    const prefs = readShortcutPrefs();
+                    if (!prefs.enabled) return;
                     const $cell = $(editor.container).closest('.clarama-cell-item');
                     const $runBtn = $cell.find('.celleditrun').first();
                     if ($runBtn.length) {
@@ -839,6 +906,8 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
                 name: 'runCellAndNext',
                 bindKey: {win: 'Shift-Enter'},
                 exec: function (editor) {
+                    const prefs = readShortcutPrefs();
+                    if (!prefs.enabled) return;
                     const $cell = $(editor.container).closest('.clarama-cell-item');
                     const $runBtn = $cell.find('.celleditrun').first();
                     if ($runBtn.length) {
@@ -862,6 +931,8 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
                 name: 'jumpPrevCell',
                 bindKey: {win: 'Ctrl-Up'},
                 exec: function (editor) {
+                    const prefs = readShortcutPrefs();
+                    if (!prefs.enabled) return;
                     const $cell = $(editor.container).closest('.clarama-cell-item');
                     if (!$cell.length) return;
                     const step = parseInt($cell.attr('step'));
@@ -882,6 +953,8 @@ $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', functio
                 name: 'jumpNextCell',
                 bindKey: {win: 'Ctrl-Down'},
                 exec: function (editor) {
+                    const prefs = readShortcutPrefs();
+                    if (!prefs.enabled) return;
                     const $cell = $(editor.container).closest('.clarama-cell-item');
                     if (!$cell.length) return;
                     const step = parseInt($cell.attr('step'));
