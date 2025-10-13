@@ -1124,7 +1124,8 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 process_template(dict['type'], dict['values'], $(resulter));
                 var options = dict['values']
                 var handle = bTableStream(dict['values']['table_id'], options);
-                console.log("WEBSOCKET TABLE STREAM OPTIONS: ", options);
+                console.log("WEBSOCKET TABLE STREAM OPTIONS: ");
+                console.log(options);
                 add_topic(options['topic'])
                 startLiveStream(false, options['query'], options['topic'], options['url']);
 

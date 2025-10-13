@@ -22,6 +22,11 @@
 (function (global) {
     'use strict';
 
+    // helper to interpret truthy hidden flags from YAML/JSON
+    function __isHidden(v) {
+        return v === true || v === 'true' || v === 1 || v === '1';
+    }
+
     // Ordered assembler for chunk frames
     class ClaramaStreamAssembler {
         constructor(onRows) {
@@ -74,6 +79,25 @@
     function bTableStream(table_id, options) {
         const topic = options && options.topic;
         if (!topic) throw new Error('bTableStream requires options.topic');
+
+        // Build a mapping of column name -> metadata {display_name, description, hidden}
+        const colMetaMap = {};
+        try {
+            const metaArr = (options && Array.isArray(options.columns_meta)) ? options.columns_meta : [];
+            for (const m of metaArr) {
+                if (m && m.name) {
+                    colMetaMap[String(m.name)] = {
+                        display_name: m.display_name,
+                        description: m.description,
+                        hidden: m.hidden
+                    };
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        console.log('bTableStream column meta-map', colMetaMap);
 
         const $container = $('#' + table_id);
         let $tabsRoot = null; // wrapper that will hold tabs and tab-content when needed
@@ -139,7 +163,14 @@
             });
 
             // Initialize the bootstrap table
-            const table_columns = headings.map(col => ({field: col, title: col, sortable: true}));
+            const table_columns = headings.map(col => {
+                const meta = colMetaMap[col] || {};
+                const title = (meta.display_name && String(meta.display_name).trim()) ? String(meta.display_name) : col;
+                const c = {field: col, title: title, sortable: true};
+                if (meta.description) c.titleTooltip = String(meta.description);
+                if (__isHidden(meta.hidden)) c.visible = false;
+                return c;
+            });
             try {
                 $table.bootstrapTable('destroy').bootstrapTable({
                     exportDataType: 'all', exportTypes: ['json', 'xml', 'csv', 'txt', 'excel', 'pdf'],
@@ -150,6 +181,20 @@
                         }
                     }
                 });
+                // Apply tooltip via title attribute on header cells as a fallback
+                setTimeout(() => {
+                    try {
+                        const $ths = $table.closest('.bootstrap-table').find('th');
+                        $ths.each(function () {
+                            const field = $(this).data('field');
+                            const meta = colMetaMap[field] || {};
+                            if (meta && meta.description) {
+                                this.setAttribute('title', String(meta.description));
+                            }
+                        });
+                    } catch (e) {
+                    }
+                }, 0);
             } catch (e) {
                 console.error('bootstrapTable init failed', e);
             }
@@ -233,7 +278,14 @@
                     resultsetData.assembler.reset();
 
                     // Reinitialize the table
-                    const table_columns = headings.map(col => ({field: col, title: col, sortable: true}));
+                    const table_columns = headings.map(col => {
+                        const meta = colMetaMap[col] || {};
+                        const title = (meta.display_name && String(meta.display_name).trim()) ? String(meta.display_name) : col;
+                        const c = {field: col, title: title, sortable: true};
+                        if (meta.description) c.titleTooltip = String(meta.description);
+                        if (meta.hidden === true || meta.hidden === 'true' || meta.hidden === 1 || meta.hidden === '1') c.visible = false;
+                        return c;
+                    });
                     try {
                         resultsetData.$table.bootstrapTable('destroy').bootstrapTable({
                             exportDataType: 'all', exportTypes: ['json', 'xml', 'csv', 'txt', 'excel', 'pdf'],
@@ -244,6 +296,20 @@
                                 }
                             }
                         });
+                        // Apply tooltip via title attribute on header cells as a fallback
+                        setTimeout(() => {
+                            try {
+                                const $ths = resultsetData.$table.closest('.bootstrap-table').find('th');
+                                $ths.each(function () {
+                                    const field = $(this).data('field');
+                                    const meta = colMetaMap[field] || {};
+                                    if (meta && meta.description) {
+                                        this.setAttribute('title', String(meta.description));
+                                    }
+                                });
+                            } catch (e) {
+                            }
+                        }, 0);
                     } catch (e) {
                         console.error('bootstrapTable init failed', e);
                     }

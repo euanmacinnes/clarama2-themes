@@ -114,6 +114,17 @@
                         <input type="string" class="form-control table-title" id="c{{ loop_index }}" name="title"
                                value="{% if table is defined %}{{ table['title'] }}{% endif %}">
                     </div>
+                    <button type="button" class="btn btn-c2 ms-3" data-bs-toggle="collapse" href="#tableYamlEditor"
+                            role="button" aria-expanded="false" aria-controls="tableYamlEditor">Advanced
+                    </button>
+                </div>
+                <div class="container-fluid mb-2 collapse" id="tableYamlEditor">
+                    <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}_table_advanced"
+                         name="task_step_field_yaml_{{ loop_index }}"
+                         editor="yaml"
+                         class="source-editor form-control clarama-field-editor table-advanced"
+                         celltype="code"
+                         style="min-height: 100px">{{ table['advanced'] }}</div>
                 </div>
                 <div class="d-flex align-items-center my-3">
                     <table width="100%" class="table-centered">
