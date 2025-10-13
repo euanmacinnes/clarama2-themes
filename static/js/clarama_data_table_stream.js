@@ -106,6 +106,8 @@
         const resultsets = new Map(); // resultset index -> {headings, assembler, $table}
         // Buffer for chunks that may arrive before the start frame per resultset
         const preStartChunks = new Map(); // resultset index -> Array<chunkMsg>
+        // Buffer for end frames that may arrive before all chunks have been processed
+        const pendingEnds = new Map(); // resultset index -> endMsg buffered until chunks complete
         let hasMultipleResultsets = false;
         let tabsCreated = false;
 
@@ -246,6 +248,39 @@
             tabsCreated = true;
         }
 
+        // Determine if a pending end can be processed for the given resultset
+        function __isEndSatisfied(rsData, endMsg) {
+            if (!rsData || !rsData.assembler) return false;
+            const asm = rsData.assembler;
+            // If server provided last_chunk_no, ensure we've advanced beyond it
+            const lastRaw = (endMsg && endMsg.last_chunk_no);
+            const hasLast = !(lastRaw === undefined || lastRaw === null || lastRaw === '');
+            if (hasLast) {
+                const last = Number(lastRaw);
+                if (!Number.isNaN(last)) {
+                    return asm.nextExpected >= (last + 1);
+                }
+            }
+            // Fallback: ensure assembler has no gaps buffered
+            try {
+                return !(asm.buffer && asm.buffer.size > 0);
+            } catch (e) { return true; }
+        }
+
+        function __maybeTryEmitEnd(resultsetIndex) {
+            try {
+                const rsData = resultsets.get(resultsetIndex);
+                const pending = pendingEnds.get(resultsetIndex);
+                if (!pending || !rsData) return;
+                if (__isEndSatisfied(rsData, pending)) {
+                    pendingEnds.delete(resultsetIndex);
+                    if (options && typeof options.onend === 'function') {
+                        try { options.onend(pending); } catch (e) { /* noop */ }
+                    }
+                }
+            } catch (e) { /* noop */ }
+        }
+
         function onFrame(msg) {
             console.log('onFrame', msg);
             const type = msg && msg.type;
@@ -332,6 +367,9 @@
                     }
                 } catch (e) { /* noop */ }
 
+                // In case an 'end' arrived early, try to emit it now if satisfied
+                __maybeTryEmitEnd(resultsetIndex);
+
                 if (options && options.onopen) options.onopen(msg);
             } else if (type === 'chunk') {
                 // If start hasn't arrived yet, buffer the chunk for this resultset and return
@@ -347,8 +385,22 @@
                 }
 
                 resultsetData.assembler.onChunk(msg);
+                // After processing a chunk, see if an 'end' is pending and now satisfied
+                __maybeTryEmitEnd(resultsetIndex);
             } else if (type === 'end') {
-                if (options && options.onend) options.onend(msg);
+                // If resultset not initialised yet, or chunks are still pending, buffer the end
+                if (!resultsetData) {
+                    pendingEnds.set(resultsetIndex, msg);
+                    return;
+                }
+                if (__isEndSatisfied(resultsetData, msg)) {
+                    // Safe to process end now
+                    if (options && options.onend) options.onend(msg);
+                    pendingEnds.delete(resultsetIndex);
+                } else {
+                    // Wait until missing chunks arrive
+                    pendingEnds.set(resultsetIndex, msg);
+                }
             } else if (type === 'error') {
                 console.error('Stream error', msg.error || msg);
                 if (options && options.onerror) options.onerror(msg);
