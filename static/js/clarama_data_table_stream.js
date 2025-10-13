@@ -104,6 +104,8 @@
 
         // Track resultsets and their tables
         const resultsets = new Map(); // resultset index -> {headings, assembler, $table}
+        // Buffer for chunks that may arrive before the start frame per resultset
+        const preStartChunks = new Map(); // resultset index -> Array<chunkMsg>
         let hasMultipleResultsets = false;
         let tabsCreated = false;
 
@@ -318,11 +320,29 @@
                     resultsetData = createTableForResultset(resultsetIndex, headings);
                 }
 
+                // Flush any chunks that arrived early (before start) for this resultset
+                try {
+                    const early = preStartChunks.get(resultsetIndex);
+                    if (early && early.length) {
+                        // No strict need to sort; assembler can buffer out-of-order
+                        early.forEach(ch => {
+                            try { resultsetData.assembler.onChunk(ch); } catch (e) { /* noop */ }
+                        });
+                        preStartChunks.delete(resultsetIndex);
+                    }
+                } catch (e) { /* noop */ }
+
                 if (options && options.onopen) options.onopen(msg);
             } else if (type === 'chunk') {
-                // Create resultset if it doesn't exist (shouldn't happen, but just in case)
+                // If start hasn't arrived yet, buffer the chunk for this resultset and return
                 if (!resultsetData) {
-                    console.warn(`Received chunk for resultset ${resultsetIndex} without start frame`);
+                    let arr = preStartChunks.get(resultsetIndex);
+                    if (!arr) {
+                        arr = [];
+                        preStartChunks.set(resultsetIndex, arr);
+                    }
+                    arr.push(msg);
+                    console.warn(`Buffered early chunk for resultset ${resultsetIndex} (chunk_no=${msg && msg.chunk_no}) until start frame arrives`);
                     return;
                 }
 
