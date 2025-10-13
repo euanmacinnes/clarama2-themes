@@ -51,18 +51,47 @@ function get_tab_data(cell, tab_id) {
     var dataid = cell.attr('dataid');
     var editor_id = "content_query_" + dataid + "_tab_" + tab_id;
 
+    // Prefer locating elements within the provided cell to be resilient to DOM reorganization
+    var $tabBlock = cell.find('.tab-content-block[data-tab-id="' + tab_id + '"]');
+    var $editorEl = $tabBlock.find('.clarama-field-editor').first();
+
+    var code = '';
     try {
-        var editor = ace.edit(editor_id);
-        var code = editor.getValue();
+        if ($editorEl.length && $editorEl.attr('id')) {
+            code = ace.edit($editorEl.attr('id')).getValue();
+        } else {
+            // Fallback to legacy/global id lookup
+            code = ace.edit(editor_id).getValue();
+        }
     } catch (e) {
-        console.warn("Editor not found for " + editor_id);
-        flash("Editor not found for " + editor_id);
-        return null;
+        // If ACE editor instance is not available (e.g., element moved or not yet initialized), fallback to raw text
+        try {
+            if ($editorEl.length) {
+                code = $editorEl.text();
+            } else {
+                var $fallback = $('#' + editor_id);
+                code = $fallback.length ? $fallback.text() : '';
+            }
+            console.warn("ACE editor not available for tab " + tab_id + ", using text fallback.");
+        } catch (e2) {
+            console.warn("Failed to obtain editor content for " + editor_id, e2);
+            code = '';
+        }
     }
 
-    // Get source file path from the tab content block
-    var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
-    var source = $("#" + source_input_id).val() || "";
+    // Get source file path from the tab content block (prefer local lookup)
+    var source = '';
+    try {
+        var $srcInput = $tabBlock.find('input.source-input-field').first();
+        if ($srcInput.length) {
+            source = $srcInput.val() || '';
+        } else {
+            var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
+            source = $("#" + source_input_id).val() || '';
+        }
+    } catch (e) {
+        source = '';
+    }
 
     return {
         "tab_id": tab_id,
@@ -142,20 +171,36 @@ function get_data_cell(cell) {
     var chart_legend = cell.find('.chart-legend').val();
     var chart_xaxis_type = cell.find('.chart-xaxis-type').val();
 
-    // Chart advanced YAML
-    var chart_advanced = cell.find('.chart-advanced');
-    var editor = ace.edit(chart_advanced.attr('id'));
-    var chart_advanced_yaml = editor.getValue();
+    // Chart advanced YAML (guard for missing ACE/editor)
+    var chart_advanced_yaml = '';
+    try {
+        var chart_advanced = cell.find('.chart-advanced');
+        if (chart_advanced.length && chart_advanced.attr('id')) {
+            try {
+                var editorChart = ace.edit(chart_advanced.attr('id'));
+                chart_advanced_yaml = editorChart.getValue();
+            } catch (eAce) {
+                chart_advanced_yaml = chart_advanced.text() || '';
+            }
+        }
+    } catch (e) {
+        chart_advanced_yaml = '';
+    }
 
-    // Table advanced YAML
+    // Table advanced YAML (guard for missing ACE/editor)
     var table_advanced_yaml = '';
-
     try {
         var table_advanced = cell.find('.table-advanced');
-        var editor = ace.edit(table_advanced.attr('id'));
-        table_advanced_yaml = editor.getValue();
+        if (table_advanced.length && table_advanced.attr('id')) {
+            try {
+                var editorTable = ace.edit(table_advanced.attr('id'));
+                table_advanced_yaml = editorTable.getValue();
+            } catch (eAce) {
+                table_advanced_yaml = table_advanced.text() || '';
+            }
+        }
     } catch (e) {
-        console.error(e, "Error parsing table advanced YAML");
+        table_advanced_yaml = '';
     }
 
     var chart_series_groups = [];
@@ -193,10 +238,21 @@ function get_data_cell(cell) {
     var chart3d_tick_size_y = cell.find('.chart3d-tick-size-y').val();
     var chart3d_tick_size_z = cell.find('.chart3d-tick-size-z').val();
 
-    // Chart advanced YAML
-    var chart3d_advanced = cell.find('.chart3d-advanced');
-    var editor3d = ace.edit(chart3d_advanced.attr('id'));
-    var chart3d_advanced_yaml = editor3d.getValue();
+    // Chart3D advanced YAML (guard for missing ACE/editor)
+    var chart3d_advanced_yaml = '';
+    try {
+        var chart3d_advanced = cell.find('.chart3d-advanced');
+        if (chart3d_advanced.length && chart3d_advanced.attr('id')) {
+            try {
+                var editor3d = ace.edit(chart3d_advanced.attr('id'));
+                chart3d_advanced_yaml = editor3d.getValue();
+            } catch (eAce) {
+                chart3d_advanced_yaml = chart3d_advanced.text() || '';
+            }
+        }
+    } catch (e) {
+        chart3d_advanced_yaml = '';
+    }
 
     var chart3d_series_objs = [];
 
