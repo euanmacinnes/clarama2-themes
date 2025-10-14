@@ -2,7 +2,7 @@
 
 {% block content %}
     <div class="input-group">
-        <input data-id="{{ field_id }}" name="{{ field_name }}" type="text"
+        <input data-id="{{ field_id }}" name="{{ field_name }}" type="text" data-sticky="true"
                class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus clarama-field clarama-delay-field"
                placeholder="{{ get(field_config,'placeholder') }}"
                 {{ field_config | required }}

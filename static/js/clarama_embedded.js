@@ -348,13 +348,7 @@ $.fn.load_post = function (onfinished, args, json) {
                                     parent = embedded.parent();
                                     embedded.replaceWith(html);
                                     enable_interactions(parent);
-                                    try {
-                                        if (typeof initStickyFields === 'function') {
-                                            initStickyFields(parent);
-                                        }
-                                    } catch (e) {
-                                        console.log('Sticky init failed (replaceable)', e);
-                                    }
+                                    initStickyFields(parent);
                                 } else {
                                     console.log("INTERACTIONS " + embedded.attr("id") + ': ' + final_url);
                                     console.log({html: html});
@@ -363,13 +357,7 @@ $.fn.load_post = function (onfinished, args, json) {
                                         embedded.html(html).promise()
                                             .done(function () {
                                                 enable_interactions(embedded);
-                                                try {
-                                                    if (typeof initStickyFields === 'function') {
-                                                        initStickyFields(embedded);
-                                                    }
-                                                } catch (e) {
-                                                    console.log('Sticky init failed (post)', e);
-                                                }
+                                                initStickyFields(embedded);
                                             });
                                     } catch (err) {
                                         console.error("Error loading html in " + embedded.attr("id"));
@@ -525,13 +513,7 @@ $.fn.load = function (onfinished, args) {
                                 embedded.html(html).promise()
                                     .done(function () {
                                         enable_interactions(embedded);
-                                        try {
-                                            if (typeof initStickyFields === 'function') {
-                                                initStickyFields(embedded);
-                                            }
-                                        } catch (e) {
-                                            console.log('Sticky init failed (get)', e);
-                                        }
+                                        initStickyFields(embedded);
                                     });
                             } catch (err) {
                                 embedded.html('<p>Clarama Embedded Error : ' + err.message + '</p>');

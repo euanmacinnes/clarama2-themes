@@ -21,7 +21,7 @@
     >
         <div class="tagcloud-box border rounded p-2 d-flex flex-wrap gap-1" id="box-{{ field_id }}"
              aria-label="Tag Cloud"></div>
-        <input type="hidden" class="clarama-field" id="input-{{ field_id }}" name="{{ field_name }}">
+        <input type="hidden" class="clarama-field" id="input-{{ field_id }}" name="{{ field_name }}" data-sticky="true">
     </div>
 
     <script>
@@ -140,6 +140,16 @@
                 const arr = listFromBox(box).map(t => ({id: t.id, value: t.text}));
                 // Store as JSON array for fidelity
                 hidden.value = JSON.stringify(arr);
+            }
+
+            function renderFromHidden() {
+                if (!box || !hidden) return;
+                // Clear current tags
+                box.querySelectorAll('.clarama-tag').forEach(el => el.remove());
+                try {
+                    const arr = JSON.parse(hidden.value || '[]');
+                    if (Array.isArray(arr)) arr.forEach(addIfMissing);
+                } catch(e) { /* ignore malformed */ }
             }
 
             function triggerInteraction() {
@@ -272,12 +282,13 @@
             // Initial options
             const tmplData = {{ (field_config.get('data',{}) | tojson) | safe }};
             const defaultVal = {{ (field_value or field_config.get('default')) | tojson | safe }};
-
+            renderFromHidden();
             if (sourceUrl) {
                 fetch(sourceUrl).then(r => r.json()).then(json => {
                     const opts = normalizeOptions((json && json.results) ? json.results : (json && json.data) ? json.data : json);
-                    // If defaults are actual selected tags, add them; otherwise seed with options as the cloud contents
-                    if (defaultVal) {
+                    if (hidden && hidden.value) {
+                        updateHidden();
+                    } else if (defaultVal) {
                         ensureDefaults(defaultVal);
                     } else {
                         opts.slice(0, 50).forEach(addIfMissing);
@@ -286,7 +297,9 @@
                     initializing = false;
                 }).catch(() => { /* fallback to manual */
                     const opts = normalizeOptions(tmplData && tmplData.options);
-                    if (defaultVal) {
+                    if (hidden && hidden.value) {
+                        updateHidden();
+                    } else if (defaultVal) {
                         ensureDefaults(defaultVal);
                     } else {
                         opts.slice(0, 50).forEach(addIfMissing);
@@ -297,13 +310,19 @@
             } else {
                 const opts = normalizeOptions(tmplData && tmplData.options);
                 console.log('TAGCLOUD manual options');
-                if (defaultVal) {
+                if (hidden && hidden.value) {
+                    updateHidden();
+                } else if (defaultVal) {
                     ensureDefaults(defaultVal);
                 } else {
                     opts.slice(0, 50).forEach(addIfMissing);
                 }
                 updateHidden();
                 initializing = false;
+            }
+
+            if (hidden) {
+                hidden.addEventListener('change', function(){ renderFromHidden(); updateHidden(); });
             }
         })();
     </script>

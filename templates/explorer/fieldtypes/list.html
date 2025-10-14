@@ -72,6 +72,7 @@
         <input type="hidden"
                name="{{ field_name }}"
                class="clarama-field"
+               data-sticky="true"
                fieldtype="html"
                 {% if cfg.get('required') %} required {% endif %}
                value="">
@@ -96,6 +97,9 @@
             var $tbody = $root.find('tbody');
             var $hidden = $root.find('input[type="hidden"].clarama-field');
 
+            function parseHidden() {
+                return JSON.parse($hidden.val() || '');
+            }
 
             var useRemote = {{ (data_cfg.get('source') and 'true') or 'false' }};
             var remoteSrc = {{ (data_cfg.get('source') or '') | tojson }};
@@ -125,6 +129,7 @@
             }
 
             var isReadonly = {{ (cfg.get('readonly') and 'true') or 'false' }};
+            var rows = Array.isArray(initialRows) ? initialRows.slice() : [];
 
             function renderRow(row, idx) {
                 var tr = $('<tr>');
@@ -270,7 +275,10 @@
                 return tr;
             }
 
-            var rows = Array.isArray(initialRows) ? initialRows.slice() : [];
+            (function primeFromSticky(){
+                var stick = parseHidden();
+                if (Array.isArray(stick) && stick.length) rows = stick.slice();
+            })();
 
             function syncHidden() {
                 $hidden.val(JSON.stringify(rows));
@@ -385,6 +393,14 @@
                         cb && cb();
                         return;
                     }
+
+                    var stick = parseHidden();
+                    if (Array.isArray(stick) && stick.length) {
+                        rebuildOrInit();
+                        cb && cb();
+                        return;
+                    }
+
                     // Build URL
                     var url = "/web/data/execute/query/" + resolvePath(src);
                     var params = [];
@@ -407,7 +423,8 @@
                         success: function (data) {
                             if (data && data.data === 'ok' && data.results) {
                                 var mapped = mapRemoteToRows(data.results);
-                                if (mapped && mapped.length > 0) {
+                                var stickNow = parseHidden();
+                                if ((!Array.isArray(stickNow) || stickNow.length === 0) && mapped && mapped.length > 0) {
                                     rows = mapped;
                                 }
                             }
@@ -434,5 +451,17 @@
                 rebuildOrInit();
             }
         });
+
+        $hidden.on('change', function () {
+            var v = parseHidden();
+            if (Array.isArray(v)) {
+            rows = v.slice();
+            rebuildOrInit();
+            }
+        });
+
+        setTimeout(function(){ $hidden.trigger('change'); }, 0);
+        setTimeout(function(){ $hidden.trigger('change'); }, 300);
+        setTimeout(function(){ $hidden.trigger('change'); }, 1000);
     </script>
 {% endblock %}

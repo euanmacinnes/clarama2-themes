@@ -3,6 +3,7 @@
 {% block content %}
     <input data-id="{{ field_id }}" name="{{ field_name }}" type="text"
            class="form-control clarama-field clarama-delay-field"
+           data-sticky="true"
            fieldtype="html"
             {{ field_config | required }}
             {{ field_config | readonly }}

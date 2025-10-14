@@ -2,13 +2,11 @@
 
 {% block content %}
     <div id="{{ field_id }}"
-         name="{{ field_name }}"
          editor="{{ get(field_config,'language') or 'sql' }}"
-         class="source-editor form-control clarama-field clarama-editor-field"
+         class="source-editor form-control clarama-editor-field"
          fieldtype="aceeditor"
             {{ field_config | required }}
             {{ field_config | readonly }}
-            {{ field_config | sticky }}
          style="min-height:{{ get(field_config,'min-height','0') }} ;height: 100%"
             {% if field_config.get('data',{}).get('source') %}
          sourceurl="{{ field_config['data'] | datasource }}"
@@ -16,10 +14,69 @@
             {% include theme("explorer/files/field_tooltip.html") %}
     >{{ field_value or get(field_config,'default','') | unsafe }}</div>
 
+    <input type="hidden"
+        id="mirror-{{ field_id }}"
+        data-id="{{ field_id }}"
+        name="{{ field_name }}"
+        class="clarama-field"
+        fieldtype="html"
+        data-sticky="true"
+        value="{{ field_value or get(field_config,'default','') }}"/>
+
     <script type="text/javascript">
         $(document).ready(() => {
             $('.source-editor').editor();
         });
+    
+        (function () {
+            const root   = document.getElementById('{{ field_id }}');
+            const mirror = document.getElementById('mirror-{{ field_id }}');
+            let syncing = false;
+        
+            function bind() {
+                if (!window.ace || !ace.edit) return false;
+                const ed = ace.edit(root);
+                if (!ed || !ed.session) return false;
+        
+                function syncFromEditor() {
+                    if (syncing) return;
+                    syncing = true;
+                    const v = ed.getValue();
+                    if (mirror.value !== v) {
+                        mirror.value = v;
+                        if (window.jQuery) $(mirror).trigger('change');
+                        else mirror.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    syncing = false;
+                }
+
+                function syncFromMirror() {
+                    if (syncing) return;
+                    syncing = true;
+                    const v = mirror.value || '';
+                    if (ed.getValue() !== v) {
+                        ed.setValue(v, -1);
+                    }
+                    syncing = false;
+                }
+        
+                syncFromMirror();
+        
+                ed.session.on('change', syncFromEditor);
+                mirror.addEventListener('change', syncFromMirror);
+        
+                setTimeout(syncFromMirror, 0);
+                setTimeout(syncFromMirror, 300);
+                setTimeout(syncFromMirror, 1000);
+        
+                return true;
+            }
+        
+            if (!bind()) {
+                const iv = setInterval(function(){ if (bind()) clearInterval(iv); }, 100);
+                setTimeout(() => clearInterval(iv), 5000);
+            }
+        })();
     </script>
 
 {% endblock %}

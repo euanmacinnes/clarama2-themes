@@ -3,6 +3,7 @@
 {% block content %}
     <input data-id="{{ field_id }}" name="{{ field_name }}" type="number"
            class="form-control clarama-field clarama-delay-field"
+           data-sticky="true"
            fieldtype="html"
            autocomplete="{{ get(field_config,'autocomplete','on') }}"
             {{ field_config | required }}

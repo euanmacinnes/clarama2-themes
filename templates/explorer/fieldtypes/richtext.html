@@ -6,6 +6,7 @@
             {{ field_config | required }}
             {{ field_config | readonly }}
               class="row text-editor form-control clarama-text-editor clarama-field clarama-rtf-field"
+              data-sticky="true"
               celltype="text"
               {% if field_config.get('data',{}).get('source') %}
               sourceurl="{{ field_config['data'] | datasource }}"
@@ -39,6 +40,28 @@
                     {%- endif -%}
                 ]
             });
+
+            function syncEditorFromTextarea() {
+                var html = $ta.val() || '';
+                if ($ta.trumbowyg('html') !== html) {
+                    $ta.trumbowyg('html', html);
+                }
+            }
+
+            function syncTextareaFromEditor() {
+                var html = $ta.trumbowyg('html') || '';
+                if ($ta.val() !== html) {
+                    $ta.val(html).trigger('change');
+                }
+            }
+
+            syncEditorFromTextarea();
+            $ta.on('tbwchange tbwblur', syncTextareaFromEditor);
+            $ta.on('change', syncEditorFromTextarea);
+
+            setTimeout(syncEditorFromTextarea, 0);
+            setTimeout(syncEditorFromTextarea, 300);
+            setTimeout(syncEditorFromTextarea, 1000);
         });
     </script>
 
