@@ -687,7 +687,6 @@ button.btn-c2-play:hover {
     border: 1px dashed #dee2e6;
     border-radius: .5rem;
     padding: .35rem .6rem;
-    transition: background-color .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
 }
 
 .trash.trash-over{
