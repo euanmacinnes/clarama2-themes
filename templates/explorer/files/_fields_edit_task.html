@@ -12,7 +12,8 @@
         <i class="fs-5 bi bi-plus-square-dotted pe-2"></i> Add Blank
     </div>
     <div class="col">&nbsp;</div>
-    <div class="col-auto trash d-flex align-items-center"><i class="fs-5 bi bi-trash3 pe-1"></i> Drag here to remove
+    <div class="col-auto trash d-flex align-items-center">
+        <i class="fs-5 bi bi-trash3 pe-1"></i> Drag here to remove
     </div>
     <div class="col">&nbsp;</div>
 </div>
@@ -21,3 +22,65 @@
          file_url="{{ file_url | path }}" grid_id="{{ grid_id }}">
     </div>
 </div>
+
+<script>
+    (function(){
+        function enableHighlight() {
+            document.addEventListener('dragenter', function(e){
+                const z = e.target.closest('.trash'); 
+                if (!z) return;
+                e.preventDefault();
+                z.classList.add('trash-over');
+            }, true);
+        
+            document.addEventListener('dragover', function(e){
+                const z = e.target.closest('.trash'); 
+                if (!z) return;
+                e.preventDefault();
+                z.classList.add('trash-over');
+            }, true);
+        
+            ['dragleave','drop'].forEach(evt => {
+                document.addEventListener(evt, function(e){
+                    const z = e.target.closest('.trash'); 
+                    if (!z) return;
+                    z.classList.remove('trash-over');
+                }, true);
+            });
+        }
+        
+        function enableGridStackHighlight() {
+            let dragging = false;
+        
+            function updateHover(x, y){
+                document.querySelectorAll('.trash.trash-over').forEach(el => el.classList.remove('trash-over'));
+                const under = document.elementFromPoint(x, y);
+                const zone = under && under.closest ? under.closest('.trash') : null;
+                if (zone) zone.classList.add('trash-over');
+            }
+        
+            const obs = new MutationObserver(() => {
+            dragging = !!document.querySelector('.grid-stack-item.ui-draggable-dragging');
+                if (!dragging) {
+                    document.querySelectorAll('.trash.trash-over').forEach(el => el.classList.remove('trash-over'));
+                }
+            });
+            obs.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
+        
+            // While dragging, track pointer and highlight the trash we’re over
+            document.addEventListener('mousemove', function(e){
+                if (!dragging) return;
+                updateHover(e.clientX, e.clientY);
+            }, true);
+        
+            document.addEventListener('mouseup', function(){
+                if (!dragging) return;
+                dragging = false;
+                document.querySelectorAll('.trash.trash-over').forEach(el => el.classList.remove('trash-over'));
+            }, true);
+        }
+        
+        enableHighlight();
+        enableGridStackHighlight();
+    })();
+</script>

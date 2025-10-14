@@ -683,6 +683,23 @@ button.btn-c2-play:hover {
     justify-self: end;
 }
 
+.trash{
+    border: 1px dashed #dee2e6;
+    border-radius: .5rem;
+    padding: .35rem .6rem;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.trash.trash-over{
+    background-color: #f53142;
+    color: #fbfbfb;
+    border-color: #f5c2c7;
+}
+
+.trash.trash-over .bi{
+    transform: scale(1.15);
+}
+
 .embedded-dropdown-menu .dropdown-menu,
 .embedded-dropdown-menu .gi-grid {
     box-sizing: border-box;
