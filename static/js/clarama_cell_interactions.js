@@ -573,7 +573,7 @@ function teardownDragDivider(cellItem) {
 /**
  * Sets the output type for a data cell
  * @param {string} id_template - Base ID for the data cell elements
- * @param {string} value - Output type ('table', 'chart', or 'code')
+ * @param {string} value - Output type ('table', 'chart', 'chart3d' or 'code')
  * @param {string} Options - ID suffix for the options accordion
  * @description Updates button states and visibility of options based on the selected output type
  */
@@ -694,10 +694,11 @@ function datacell_setOutput(id_template, value, Options) {
 }
 
 /**
- * Sets the output type for a data *stream* cell (table | chart)
- * @param {string} id_template e.g. "task_step_1"
- * @param {('table'|'chart')} value
- * @param {string|number} Options e.g. loop_index "1"
+ * Sets the output type for a data stream cell
+ * @param {string} id_template - Base ID for the data stream cell elements
+ * @param {string} value - Output type ('table' or 'chart')
+ * @param {string} Options - ID suffix for the options accordion
+ * @description Updates button states and visibility of options based on the selected output type
  */
 function datastreamcell_setOutput(id_template, value, Options) {
     if (!value) value = 'table';
@@ -705,7 +706,6 @@ function datastreamcell_setOutput(id_template, value, Options) {
     // hidden field
     $('#' + id_template + '_output').val(value);
   
-    // only the two buttons that exist in the stream editor
     const types = ['table', 'chart'];
     types.forEach(t => {
         const $btn = $('#' + id_template + '_' + t);
@@ -725,9 +725,14 @@ function datastreamcell_setOutput(id_template, value, Options) {
     });
 
     // Show the selected panel
-    const panelMap = {table: 'collapseTableOptions_', chart: 'collapseChartOptions_'};
+    const panelMap = {
+        table: 'collapseTableOptions_', 
+        chart: 'collapseChartOptions_'
+    };
     const toShow = document.getElementById(panelMap[value] + Options);
-    if (toShow) bootstrap.Collapse.getOrCreateInstance(toShow, { toggle: false }).show();
+    if (toShow) {
+        bootstrap.Collapse.getOrCreateInstance(toShow, { toggle: false }).show();
+    }
 }
 
 /**

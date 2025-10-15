@@ -445,8 +445,7 @@ function clear_insights_gina_chat(taskIndex) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* DATA MODE                                                               */
-
+/* DATA MODE                                                              */
 /* ---------------------------------------------------------------------- */
 
 /** Resolve current Data Inspector "source" value depending on cell mode */

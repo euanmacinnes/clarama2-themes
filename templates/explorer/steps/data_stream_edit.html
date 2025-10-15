@@ -425,6 +425,23 @@
             });
         }
 
+        function hideDataStreamCellPanelById(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            try {
+                const inst = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+                inst.hide();
+            } catch (e) {
+                el.classList.remove('show');
+                el.style.height = '';
+            }
+        }
+        
+        function closeAllOptionPanels() {
+            hideDataStreamCellPanelById(`collapseTableOptions_${loopIndex}`);
+            hideDataStreamCellPanelById(`collapseChartOptions_${loopIndex}`);
+        }
+
         function updateAllTabDropdowns(loopIndex) {
             const currentTabs = [];
             $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').each(function () {
@@ -710,6 +727,20 @@
             if ($firstTab.length) {
                 activateTab($firstTab[0]);
                 updateAllTabDropdowns(loopIndex);
+            }
+        }
+
+        const contentRow = $(`#dataStreamEditTabContentContainer_${loopIndex}`).closest('.cell-split').find('.content-row').get(0);
+        if (contentRow) {
+            const mo = new MutationObserver((muts) => {
+                if (contentRow.classList.contains('split-active')) {
+                    closeAllOptionPanels();
+                }
+            });
+            mo.observe(contentRow, { attributes: true, attributeFilter: ['class'] });
+            // If already open on load, close immediately
+            if (contentRow.classList.contains('split-active')) {
+                closeAllOptionPanels();
             }
         }
     });
