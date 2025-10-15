@@ -694,6 +694,43 @@ function datacell_setOutput(id_template, value, Options) {
 }
 
 /**
+ * Sets the output type for a data *stream* cell (table | chart)
+ * @param {string} id_template e.g. "task_step_1"
+ * @param {('table'|'chart')} value
+ * @param {string|number} Options e.g. loop_index "1"
+ */
+function datastreamcell_setOutput(id_template, value, Options) {
+    if (!value) value = 'table';
+  
+    // hidden field
+    $('#' + id_template + '_output').val(value);
+  
+    // only the two buttons that exist in the stream editor
+    const types = ['table', 'chart'];
+    types.forEach(t => {
+        const $btn = $('#' + id_template + '_' + t);
+        const isActive = (t === value);
+        $btn
+            .toggleClass('btn-c2', isActive)
+            .toggleClass('btn-c2-secondary', !isActive)
+            .attr('aria-pressed', isActive ? 'true' : 'false')
+            .attr('aria-expanded', isActive ? 'true' : 'false');
+    });
+
+    const allAccordions = ['collapseTableOptions_', 'collapseChartOptions_'];
+
+    allAccordions.forEach(prefix => {
+        const el = document.getElementById(prefix + Options);
+        if (el) bootstrap.Collapse.getOrCreateInstance(el, { toggle: false }).hide();
+    });
+
+    // Show the selected panel
+    const panelMap = {table: 'collapseTableOptions_', chart: 'collapseChartOptions_'};
+    const toShow = document.getElementById(panelMap[value] + Options);
+    if (toShow) bootstrap.Collapse.getOrCreateInstance(toShow, { toggle: false }).show();
+}
+
+/**
  * Moves focus to the next cell in sequence
  * @param {jQuery} currentButton - jQuery object representing the current cell's button
  * @description Finds the next cell based on step number and focuses its editor

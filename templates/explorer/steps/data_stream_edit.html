@@ -54,7 +54,7 @@
                                         aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
                                         aria-controls="collapseTableOptions_{{ loop_index }}"
                                         class="btn {% if output=='table' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
-                                        onclick="datacell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
+                                        onclick="datastreamcell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
                                     <i class="bi bi-table"></i>
                                 </button>
                                 <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse"
@@ -63,7 +63,7 @@
                                         aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
                                         aria-controls="collapseChartOptions_{{ loop_index }}"
                                         class="btn rounded-0 {% if output=='chart' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
-                                        onclick="datacell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
+                                        onclick="datastreamcell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
                                     <i class="bi bi-graph-up-arrow"></i>
                                 </button>
                             </div>
