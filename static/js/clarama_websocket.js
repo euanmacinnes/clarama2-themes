@@ -346,9 +346,9 @@ function handleTaskInteractionResume(resumeMessage) {
                 pendingTask.resumedFrom.add(resumingElementId);
 
                 //console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} has received resume from:`,
-                    Array.from(pendingTask.resumedFrom));
+                //    Array.from(pendingTask.resumedFrom));
                 //console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for:`,
-                    pendingTask.waitingFor.filter(elem => !pendingTask.resumedFrom.has(elem)));
+                //   pendingTask.waitingFor.filter(elem => !pendingTask.resumedFrom.has(elem)));
 
                 // Check if all required elements have sent resume messages
                 const allResumed = pendingTask.waitingFor.every(elem => pendingTask.resumedFrom.has(elem));
