@@ -47,7 +47,7 @@
         $('#add_content_browsefile').on('dblclick', 'option', function () {
             const selectedItem = $(this);
             if (!isFolder(selectedItem)) {
-                console.log("File selected: " + selectedItem.val());
+                //console.log("File selected: " + selectedItem.val());
                 add_selected_file();
             }
         });
@@ -62,7 +62,7 @@
 
                 const adjacent = button && button.prev ? button.prev(".browse-field") : null;
 
-                console.log("ADJACENT", adjacent);
+                //console.log("ADJACENT", adjacent);
 
                 $(this).data('inputId', inputId);
                 $(this).data('adjacent', adjacent);
@@ -78,7 +78,7 @@
 
     async function add_selected_file() {
         const selected_val = "./" + $("#add_content_browsefile").val(); // ./ bec current directory
-        console.log("adding " + selected_val);
+        //console.log("adding " + selected_val);
         if (selected_val == null) {
             flash("No file selected!");
             return;
@@ -94,7 +94,7 @@
 
         if (targetInput === null) {
             targetInput = $("#browseFileModal").data('adjacent');
-            console.log("targetInput", targetInput);
+            //console.log("targetInput", targetInput);
             inputId = 'relative';
         } else {
             target = inputId.replace('_elemInput', '');
@@ -127,15 +127,15 @@
                 let tableSourceDir = absolutePath.substring(0, absolutePath.lastIndexOf('/')) + "/" + nameOnly + " fields";
 
                 const targetPath = path.split('?')[0].split('/').slice(3).join('/');
-                console.log("targetPath", targetPath)
+                //console.log("targetPath", targetPath)
                 relativePath = getRelativePath("{{ file_url | path }}", targetPath);
-                console.log("relativePath", relativePath)
+                //console.log("relativePath", relativePath)
 
-                console.log("table source path", tableSourceDir)
+                //console.log("table source path", tableSourceDir)
                 fetch("/content/json/" + tableSourceDir)
                     .then((response) => response.json())
                     .then(async (json_files) => {
-                        console.log("json files", json_files)
+                        //console.log("json files", json_files)
 
                         all_fields = json_files['results']['files'];
                         for (const filePath of all_fields) {
@@ -148,9 +148,9 @@
                             try {
                                 // did async-await to ensure itll run finish first before proceeding to next loop
                                 await add_selected_content('/content/element/{{ file_url }}', relativeFullFilePath);
-                                console.log("success");
+                                //console.log("success");
                             } catch (err) {
-                                console.error("error", err)
+                                console.error("BROWSE FILE MODAL error {{ file_url }}" + relativeFullFilePath, err)
                             }
                         }
                         ;
@@ -184,6 +184,7 @@
             flash("File path stored successfully! " + newSource);
         } else {
             flash("Target input field not found!", "danger");
+            console.error("BROWSE FILE MODAL Target input field not found!");
         }
 
         try {
@@ -194,7 +195,7 @@
             } else if ($ && $("#browseFileModal").modal) {
                 $("#browseFileModal").modal('hide');
             } else {
-                throw new Error('No Bootstrap modal implementation available to hide modal.');
+                throw new Error('BROWSE FILE MODAL No Bootstrap modal implementation available to hide modal.');
             }
         } catch(e) {
             reportError('browse_file_modal.html::add_selected_file hide', e);

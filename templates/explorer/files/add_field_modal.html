@@ -98,7 +98,7 @@
             document.getElementById('new_content').value = '';
             const selectedItem = $(this);
             if (!isFolder(selectedItem)) {
-                console.log("File selected: " + selectedItem.val());
+                //console.log("File selected: " + selectedItem.val());
                 handle_add_selected_content('/content/element/{{ file_url }}')
             }
         });
