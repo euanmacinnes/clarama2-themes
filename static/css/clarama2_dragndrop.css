@@ -240,41 +240,52 @@ button.btn-c2-play:hover {
   padding: 0px;
 }
 
-/* @keyframes shake {
-    0% {
-        transform: translate(1px, 1px) rotate(0deg);
-    }
-    10% {
-        transform: translate(-1px, -2px) rotate(-1deg);
-    }
-    20% {
-        transform: translate(-3px, 0px) rotate(1deg);
-    }
-    30% {
-        transform: translate(3px, 2px) rotate(0deg);
-    }
-    40% {
-        transform: translate(1px, -1px) rotate(1deg);
-    }
-    50% {
-        transform: translate(-1px, 2px) rotate(-1deg);
-    }
-    60% {
-        transform: translate(-3px, 1px) rotate(0deg);
-    }
-    70% {
-        transform: translate(3px, 1px) rotate(-1deg);
-    }
-    80% {
-        transform: translate(-1px, -1px) rotate(1deg);
-    }
-    90% {
-        transform: translate(1px, 2px) rotate(0deg);
-    }
-    100% {
-        transform: translate(1px, -2px) rotate(-1deg);
-    }
-} */
+.clarama-focus-bar {
+    list-style: none;
+    margin: 6px 0 10px 0;
+    padding: 6px 10px;
+    border: 1px dashed #6af;
+    background: rgba(102,166,255,.12);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.clarama-focus-bar .arrow {
+    font-size: 1.1rem;
+}
+
+.clarama-focus-bar .label {
+    font-weight: 600;
+}
+
+.clarama-focus-bar .hint {
+    opacity: .7;
+    font-size: .9rem;
+}
+
+.clarama-cell-item.is-focused {
+    display: none !important;
+}
+
+.clarama-focused-group {
+    overflow: hidden;
+    will-change: height, opacity;
+}
+
+.clarama-focused-group.is-animating {
+    transition: height 260ms ease, opacity 220ms ease;
+    opacity: 0.98;
+}
+
+.clarama-focused-group.is-collapsed {
+    height: 0 !important;
+    opacity: 0.0;
+    pointer-events: none;
+}
 
 .print_response {
     white-space: pre-wrap;

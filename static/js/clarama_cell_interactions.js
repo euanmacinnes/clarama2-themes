@@ -1041,3 +1041,178 @@ function taskCellPaste() {
         });
     }
 }
+
+function focusCellAnimation($el, opts = {}) {
+    const el = $el[0]; if (!el) return Promise.resolve();
+    const dur = opts.duration ?? 260, ease = opts.easing ?? 'ease';
+
+    const from = el.getBoundingClientRect().height;
+    el.style.height = from + 'px';
+    el.style.opacity = '1';
+    void el.offsetHeight;
+
+    return new Promise((resolve) => {
+        const onEnd = (e) => {
+            if (e.target !== el || e.propertyName !== 'height') return;
+            el.removeEventListener('transitionend', onEnd);
+            // Final focused state
+            el.style.height = '0px';
+            el.style.opacity = '0';
+            el.style.transition = ''; // clear transition
+            $el.addClass('is-focused');
+            resolve();
+        };
+        el.addEventListener('transitionend', onEnd);
+        el.style.transition = `height ${dur}ms ${ease}, opacity ${Math.min(dur,220)}ms ${ease}`;
+        // Target
+        el.style.height = '0px';
+        el.style.opacity = '0';
+    });
+}
+
+function unfocusCellAnimation($el, opts = {}) {
+    const el = $el[0]; if (!el) return Promise.resolve();
+    const dur = opts.duration ?? 260, ease = opts.easing ?? 'ease';
+
+    $el.removeClass('is-focused');
+    el.style.height = '0px';
+    el.style.opacity = '0';
+    void el.offsetHeight;
+
+    // Measure target
+    el.style.height = 'auto';
+    el.style.opacity = '1';
+    const target = el.getBoundingClientRect().height;
+    el.style.height = '0px';
+    el.style.opacity = '0';
+    void el.offsetHeight;
+
+    return new Promise((resolve) => {
+        const onEnd = (e) => {
+            if (e.target !== el || e.propertyName !== 'height') return;
+            el.removeEventListener('transitionend', onEnd);
+            el.style.height = '';
+            el.style.opacity = '1';
+            el.style.transition = ''; //clear transition
+            resolve();
+        };
+        el.addEventListener('transitionend', onEnd);
+        el.style.transition = `height ${dur}ms ${ease}, opacity ${Math.min(dur,220)}ms ${ease}`;
+        el.style.height = target + 'px';
+        el.style.opacity = '1';
+    });
+}
+
+const BAR_CLASS   = 'clarama-focus-bar';
+const GROUP_CLASS = 'clarama-focused-group';
+
+function prepareFocusBar($stream) {
+    let $bar   = $stream.children('.' + BAR_CLASS).first();
+    let $group = $();
+    if ($bar.length) {
+        const sel = $bar.attr('data-target');
+        if (sel) {
+            $group = $(sel);
+        }
+    }
+    if (!$bar.length || !$group.length) {
+        const uid = 'cgrp-' + Math.random().toString(36).slice(2, 9);
+        $bar   = $(`
+            <div class="${BAR_CLASS}" data-target="#${uid}" role="button" tabindex="0"
+                    title="Show hidden cells above">
+                <span class="arrow">▼</span>
+                <span class="label">Hidden cells above</span>
+                <span class="hint ms-1">(click to reveal)</span>
+            </div>
+        `);
+        $group = $(`<div id="${uid}" class="${GROUP_CLASS}"></div>`);
+        // start focused
+        $group.addClass('is-focused').css({ height: 0, opacity: 0 });
+    }
+    return { $bar, $group };
+}
+
+async function focusCell($cell) {
+    const $stream = $cell.closest('.stream');
+    if (!$stream.length) return;
+
+    // Do nothing if it's the first cell
+    const collapsedCells = $cell.prevAll('li.clarama-cell-item');
+    if (!collapsedCells.length) return;
+
+    const { $bar, $group } = prepareFocusBar($stream);
+
+    $bar.insertBefore($cell);
+    $group.insertBefore($cell);
+
+    const $above = $group.prevAll('li.clarama-cell-item')
+                         .not('.' + GROUP_CLASS)
+                         .not('.' + BAR_CLASS);
+    if (!$above.length) return;
+
+    $($above.get().reverse()).each(function(){ $group.append(this); });
+
+    $group.removeClass('is-focused');
+    const el = $group[0];
+    if (!el) return;
+
+    const prevStyle = el.getAttribute('style') || '';
+    el.style.height = 'auto';
+    el.style.opacity = '1';
+    const naturalHeight = el.getBoundingClientRect().height;
+    el.setAttribute('style', prevStyle);
+
+    $group.css({ height: naturalHeight + 'px', opacity: 1 });
+    void el.offsetHeight;
+
+    await focusCellAnimation($group);
+    $group.css({ height: '0px', opacity: 0 });
+}
+
+async function unfocusCell($stream, $group, $bar) {
+    await unfocusCellAnimation($group);
+
+    // Restore cells to the list and remove bar/group
+    const $after = $bar.nextAll('.clarama-cell-item').first();
+    const $cells = $group.children('li.clarama-cell-item');
+    if ($after.length) {
+        $cells.insertBefore($after);
+    } else {
+        $stream.append($cells);
+    }
+
+    $bar.remove();
+    $group.remove();
+}
+
+function cell_toggle_focus($root) {
+    $root.find('.stream')
+        .off('dblclick.focusAbove').on('dblclick.focusAbove', '.clarama-cell-item .panel', function(){
+            const $cell = $(this).closest('.clarama-cell-item');
+
+            let $prev = $cell.prev();
+            if ($prev.hasClass(GROUP_CLASS)) $prev = $prev.prev();
+
+            if ($prev.hasClass(BAR_CLASS)) {
+                const sel = $prev.attr('data-target');
+                const $group = sel ? $(sel) : $();
+                if ($group.length) {
+                    const $stream = $cell.closest('.stream');
+                    unfocusCell($stream, $group, $prev);
+                    return;
+                }
+            }
+
+            focusCell($cell);
+        })
+        .on('click.focusBar keydown.focusBar', '.' + BAR_CLASS, function(e){
+            if (e.type === 'keydown' && !['Enter', ' '].includes(e.key)) return;
+            const $bar = $(this);
+            const sel = $bar.attr('data-target');
+            const $group = sel ? $(sel) : $();
+            if ($group.length) {
+                const $stream = $bar.closest('.stream');
+                unfocusCell($stream, $group, $bar);
+            }
+        });
+}
