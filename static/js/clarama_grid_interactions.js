@@ -7,7 +7,7 @@ var currentModalAddContentPath = "";
 
 // Ensure resolveRelativeFilePath is globally accessible
 if (typeof window !== 'undefined' && typeof window.resolveRelativeFilePath !== 'function') {
-    window.resolveRelativeFilePath = function(currentPath, relativePath) {
+    window.resolveRelativeFilePath = function (currentPath, relativePath) {
         try {
             if (!currentPath) return (relativePath || '').replace(/^\.\//, '');
             // If relativePath looks absolute (starts with http(s):// or begins with /content or /render etc.), just normalize slashes and strip leading "./"
@@ -37,7 +37,7 @@ if (typeof window !== 'undefined' && typeof window.resolveRelativeFilePath !== '
 function handle_add_selected_content(url, selecte_v = "") {
     add_selected_content(url, selecte_v)
         .then(() => {
-            console.log("success");
+            // console.log("success");
         })
         .catch((err) => {
             console.error("error", err);
@@ -57,8 +57,8 @@ $(document).on('contextmenu', function (event) {
 
     const elementId = $(target).attr('gs-id');
     const gridId = $(grid).attr('grid_id');
-    console.log("elementId", elementId);
-    console.log("gridId", gridId);
+    // console.log("elementId", elementId);
+    // console.log("gridId", gridId);
 
     const elementInteractions = eval(gridId + "elements[elementId]['links']");
     if (!elementInteractions) return;
@@ -113,7 +113,7 @@ $(document).on('contextmenu', function (event) {
         if (canvas && window.Chart && typeof Chart.getChart === 'function') {
             const chart = Chart.getChart(canvas);
             if (chart && typeof chart.getElementsAtEventForMode === 'function') {
-                const elements = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+                const elements = chart.getElementsAtEventForMode(event, 'nearest', {intersect: true}, true);
                 if (elements && elements.length > 0) {
                     const el = elements[0];
                     const datasetIndex = el.datasetIndex;
@@ -160,7 +160,7 @@ $(document).on('contextmenu', function (event) {
             const table_selection = rawTableSelection ? JSON.parse(rawTableSelection) : {};
             const chart_selection = rawChartSelection ? JSON.parse(rawChartSelection) : {};
             const field_values = merge_dicts(merge_dicts(field_registry, table_selection), chart_selection);
-            console.log("field_values", field_values);
+            // console.log("field_values", field_values);
 
             const url = $button.data('url');
             // console.log('Clicked menu item URL:', url);
@@ -175,13 +175,22 @@ $(document).on('contextmenu', function (event) {
             // Build augmented query params to include context selections
             const extraParams = [];
             if (table_selection && table_selection.row) {
-                try { extraParams.push('row=' + encodeURIComponent(JSON.stringify(table_selection.row))); } catch (e) {}
+                try {
+                    extraParams.push('row=' + encodeURIComponent(JSON.stringify(table_selection.row)));
+                } catch (e) {
+                }
             }
             if (table_selection && table_selection.field) {
-                try { extraParams.push('field=' + encodeURIComponent(table_selection.field)); } catch (e) {}
+                try {
+                    extraParams.push('field=' + encodeURIComponent(table_selection.field));
+                } catch (e) {
+                }
             }
             if (chart_selection && Object.keys(chart_selection).length) {
-                try { extraParams.push('chart_selection=' + encodeURIComponent(JSON.stringify(chart_selection))); } catch (e) {}
+                try {
+                    extraParams.push('chart_selection=' + encodeURIComponent(JSON.stringify(chart_selection)));
+                } catch (e) {
+                }
             }
             const baseParams = (params || '').toString().trim();
             const query = [baseParams, ...extraParams].filter(Boolean).join('&');
@@ -284,44 +293,63 @@ function getOriginalUrlFromField(field) {
         var ou = $el.closest('.embedded').attr('original_url');
         if (ou === undefined || ou === null || ou === '') {
             // fallback to first embedded on page
-            try { ou = $('.embedded').eq(0).attr('original_url'); } catch(_) {}
+            try {
+                ou = $('.embedded').eq(0).attr('original_url');
+            } catch (_) {
+            }
         }
         return ou;
     } catch (e) {
-        try { console.warn('getOriginalUrlFromField failed', e); } catch(_) {}
+        try {
+            console.warn('getOriginalUrlFromField failed', e);
+        } catch (_) {
+        }
         return undefined;
     }
 }
 
 function triggerTabInteraction(field, url, field_values = "", contextM = false) {
-    console.log("triggerTabInteraction field_values", field_values);
+    // console.log("triggerTabInteraction field_values", field_values);
 
     let final_field;
     if (!contextM) final_field = filePath(field);
     else final_field = field;
- 
+
     let fullUrl = "/content/default/" + resolveRelativeFilePath(final_field, url);
     if (fullUrl.charAt(fullUrl.length - 1) == "?") fullUrl = fullUrl.slice(0, -1);
-    console.log('triggerTabInteraction fullUrl', fullUrl);
+    // console.log('triggerTabInteraction fullUrl', fullUrl);
     // Ensure original_url is included in field_values for tab interactions
     try {
         if (field_values && typeof field_values === 'object') {
             if (!('original_url' in field_values) || !field_values.original_url) {
                 var ou = contextM ? (field_values.original_url || undefined) : getOriginalUrlFromField(field);
                 if (!ou) {
-                    try { ou = $('.embedded').eq(0).attr('original_url'); } catch(_) {}
+                    try {
+                        ou = $('.embedded').eq(0).attr('original_url');
+                    } catch (_) {
+                    }
                 }
                 if (ou) field_values.original_url = ou;
             }
         } else {
             field_values = {};
             var ou2 = contextM ? undefined : getOriginalUrlFromField(field);
-            if (!ou2) { try { ou2 = $('.embedded').eq(0).attr('original_url'); } catch(_) {} }
+            if (!ou2) {
+                try {
+                    ou2 = $('.embedded').eq(0).attr('original_url');
+                } catch (_) {
+                }
+            }
             if (ou2) field_values.original_url = ou2;
         }
-    } catch (e) { try { console.warn('Failed to ensure original_url for tab', e); } catch(_) {} }
-    console.log('triggerTabInteraction data', JSON.stringify(field_values));
-    
+    } catch (e) {
+        try {
+            console.warn('Failed to ensure original_url for tab', e);
+        } catch (_) {
+        }
+    }
+    //console.log('triggerTabInteraction data', JSON.stringify(field_values));
+
     fetch($CLARAMA_ROOT + fullUrl + "?b64params=" + btoa(JSON.stringify(field_values)),
         {
             // headers: {
@@ -333,7 +361,7 @@ function triggerTabInteraction(field, url, field_values = "", contextM = false) 
         })
         .then(response => response.text())
         .then(htmlContent => {
-            console.log("htmlContent", htmlContent)
+            //console.log("htmlContent", htmlContent)
             const newWindow = window.open("", "_blank");
             if (newWindow) {
                 newWindow.document.write(htmlContent);
@@ -348,12 +376,12 @@ function triggerTabInteraction(field, url, field_values = "", contextM = false) 
 }
 
 function showPopupNearMouse(field, url, field_values = "") {
-    console.log("showPopupNearMouse field", field)
-    console.log("showPopupNearMouse url", url)
-    console.log("showPopupNearMouse field_values", field_values)
+    //console.log("showPopupNearMouse field", field)
+    //console.log("showPopupNearMouse url", url)
+    //console.log("showPopupNearMouse field_values", field_values)
     const ipopup = document.getElementById('interactionPopup');
-    console.log("showPopupNearMouse ipopup", ipopup)
-    console.log("showPopupNearMouse lastMouseEvent", lastMouseEvent)
+    //console.log("showPopupNearMouse ipopup", ipopup)
+    //console.log("showPopupNearMouse lastMouseEvent", lastMouseEvent)
 
     if (lastMouseEvent) {
         const popupMaxWidthPercent = 43;
@@ -426,21 +454,31 @@ function showInteractionContent(field, interaction, relativeP, field_values, con
     newIC.className = "clarama-post-embedded clarama-replaceable";
     newIC.setAttribute("url", `${ICurl}`);
     try {
-            if (!field_values || typeof field_values !== 'object') field_values = {};
-            if (!('original_url' in field_values) || !field_values.original_url) {
-                var ou3 = contextM ? (field_values.original_url || undefined) : getOriginalUrlFromField(field);
-                if (!ou3) { try { ou3 = $('.embedded').eq(0).attr('original_url'); } catch(_) {} }
-                if (ou3) field_values.original_url = ou3;
+        if (!field_values || typeof field_values !== 'object') field_values = {};
+        if (!('original_url' in field_values) || !field_values.original_url) {
+            var ou3 = contextM ? (field_values.original_url || undefined) : getOriginalUrlFromField(field);
+            if (!ou3) {
+                try {
+                    ou3 = $('.embedded').eq(0).attr('original_url');
+                } catch (_) {
+                }
             }
-        } catch (e) { try { console.warn('Failed to ensure original_url for interaction content', e); } catch(_) {} }
-        newIC.setAttribute("json", JSON.stringify(field_values));
+            if (ou3) field_values.original_url = ou3;
+        }
+    } catch (e) {
+        try {
+            console.warn('Failed to ensure original_url for interaction content', e);
+        } catch (_) {
+        }
+    }
+    newIC.setAttribute("json", JSON.stringify(field_values));
     // newIC.setAttribute("autorun", "True");
     return newIC;
 }
 
 function setInteractionSrcExpanded(target, uid, expanded) {
     const wrap = document.getElementById(`interaction-src-wrap-${target}-${uid}`);
-    const btn  = document.getElementById(`interaction-src-toggle-${target}-${uid}`);
+    const btn = document.getElementById(`interaction-src-toggle-${target}-${uid}`);
     if (!wrap || !btn) return;
 
     wrap.classList.toggle('d-none', !expanded);
@@ -465,8 +503,8 @@ function onInteractionUrlInput(target, uid, val) {
     const paramsWrap = document.getElementById(`interaction-params-wrap-${target}-${uid}`);
     const hasValue = !!String(val || '').trim();
     if (paramsWrap) {
-      paramsWrap.classList.toggle('d-none', !hasValue);
-      paramsWrap.classList.toggle('d-inline-flex', hasValue);
+        paramsWrap.classList.toggle('d-none', !hasValue);
+        paramsWrap.classList.toggle('d-inline-flex', hasValue);
     }
     // Auto-expand when user starts typing; auto-collapse if cleared
     const btn = document.getElementById(`interaction-src-toggle-${target}-${uid}`);
@@ -477,11 +515,11 @@ function onInteractionUrlInput(target, uid, val) {
 
 
 // Listen for content saved events to refresh embedded elements inside grids
-(function(){
+(function () {
     try {
         if (typeof window !== 'undefined' && !window.__claramaGridSavedListener) {
             window.__claramaGridSavedListener = true;
-            window.addEventListener('onContentSaved', function(ev){
+            window.addEventListener('onContentSaved', function (ev) {
                 try {
                     var detail = ev && ev.detail ? ev.detail : {};
                     // Try extract a URL from the payload
@@ -491,16 +529,16 @@ function onInteractionUrlInput(target, uid, val) {
 
                     // Find all grids (editing grids will be present in DOM); keep scope limited to grids
                     var $grids = $('.clarama-edit-grid');
-                    $grids.each(function(){
+                    $grids.each(function () {
                         var $grid = $(this);
                         // Match embedded widgets by exact url attribute
-                        var $targets = $grid.find('.clarama-post-embedded, .clarama-embedded').filter(function(){
+                        var $targets = $grid.find('.clarama-post-embedded, .clarama-embedded').filter(function () {
                             var u = $(this).attr('url') || '';
                             return u === savedUrl;
                         });
                         if ($targets.length === 0) return;
 
-                        $targets.each(function(){
+                        $targets.each(function () {
                             var $el = $(this);
                             try {
                                 // Mark not loaded to allow reload
@@ -514,16 +552,25 @@ function onInteractionUrlInput(target, uid, val) {
                                     $el.load_post();
                                 }
                             } catch (e) {
-                                try { console.warn('Grid saved reload failed', e); } catch(_){ }
+                                try {
+                                    console.warn('Grid saved reload failed', e);
+                                } catch (_) {
+                                }
                             }
                         });
                     });
                 } catch (e) {
-                    try { console.warn('onContentSaved handler error', e); } catch(_){ }
+                    try {
+                        console.warn('onContentSaved handler error', e);
+                    } catch (_) {
+                    }
                 }
             });
         }
     } catch (e) {
-        try { console.warn('Failed installing onContentSaved grid listener', e); } catch(_){ }
+        try {
+            console.warn('Failed installing onContentSaved grid listener', e);
+        } catch (_) {
+        }
     }
 })();

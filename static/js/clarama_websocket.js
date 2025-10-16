@@ -54,8 +54,8 @@ let socket_topics = ['clarama-systemwide'];
  * Requires an open task_active_socket.
  */
 function topic_subscribe() {
-    console.log("CLARAMA_WEBSOCKET.JS registering topics. This is universal for ALL socket divs, as there is only ONE actual websocket on the page");
-    console.log(socket_topics);
+    // console.log("CLARAMA_WEBSOCKET.JS registering topics. This is universal for ALL socket divs, as there is only ONE actual websocket on the page");
+    // console.log(socket_topics);
     task_active_socket.send(JSON.stringify({topics: socket_topics}));
 }
 
@@ -79,14 +79,14 @@ function processTaskMessages() {
 function update_topics(topic) {
     if (task_active_socket !== undefined)
         if (task_active_socket.readyState === WebSocket.OPEN) {
-            console.log("CLARAMA_WEBSOCKET.JS updating universal topics for page to " + socket_topics);
+            // console.log("CLARAMA_WEBSOCKET.JS updating universal topics for page to " + socket_topics);
             task_active_socket.send(JSON.stringify({topics: socket_topics}));
             return;
         } else {
-            console.log("CLARAMA_WEBSOCKET.js: update_topic socket was not open");
+            console.warn("CLARAMA_WEBSOCKET.js: update_topic socket was not open");
         }
     else {
-        console.log("CLARAMA_WEBSOCKET.js: update_topic  socket undefined, pushing on queue");
+        console.warn("CLARAMA_WEBSOCKET.js: update_topic  socket undefined, pushing on queue");
     }
 }
 
@@ -96,8 +96,8 @@ function update_topics(topic) {
 function add_topic(topic) {
     if (socket_topics.indexOf(topic) === -1) {
         socket_topics.push(topic);
-        console.log("CLARAMA_WEBSOCKET.js: ADD TOPIC " + topic);
-        console.log(socket_topics);
+        //console.log("CLARAMA_WEBSOCKET.js: ADD TOPIC " + topic);
+        //console.log(socket_topics);
     }
     update_topics(topic);
 }
@@ -109,8 +109,8 @@ function remove_topic(topic) {
     const idx = socket_topics.indexOf(topic);
     if (idx !== -1) {
         socket_topics.splice(idx, 1);
-        console.log("CLARAMA_WEBSOCKET.js: REMOVE TOPIC " + topic);
-        console.log(socket_topics);
+        //console.log("CLARAMA_WEBSOCKET.js: REMOVE TOPIC " + topic);
+        //console.log(socket_topics);
     }
 
     update_topics(topic);
@@ -162,7 +162,7 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kerne
  * @param {string|boolean} autorun
  */
 function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
-    console.log("CLARAMA_WEBSOCKET.js: GET TASK " + task_url + " getting, with kernel_status " + kernel_status);
+    //console.log("CLARAMA_WEBSOCKET.js: GET TASK " + task_url + " getting, with kernel_status " + kernel_status);
 
     const topic = new URLSearchParams(task_url.split('?')[1]).get('topic');
     let element_id = null;
@@ -174,7 +174,7 @@ function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
         }
     }
 
-    console.log('current_elem: ', element_id);
+    // console.log('current_elem: ', element_id);
     let elementsObjects = [];
 
     for (let prop in window) {
@@ -199,24 +199,24 @@ function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
                 waitInteractions = elementData.links.filter(link => link.wait === true || link.wait === 'true');
 
                 if (waitInteractions.length > 0) {
-                    console.log(`Element "${targetId}" has ${waitInteractions.length} wait interaction(s):`);
+                    //console.log(`Element "${targetId}" has ${waitInteractions.length} wait interaction(s):`);
                     waitInteractions.forEach((interaction, index) => {
                         console.log(`  [${index + 1}] UID: ${interaction.uid || 'N/A'}, Element: ${interaction.element || 'N/A'}`);
                     });
                 } else {
-                    console.log(`Element "${targetId}" has no wait interactions (${elementData.links.length} total interactions)`);
+                    //console.log(`Element "${targetId}" has no wait interactions (${elementData.links.length} total interactions)`);
                 }
             } else {
-                console.log(`Element "${targetId}" has no links/interactions`);
+                //console.log(`Element "${targetId}" has no links/interactions`);
             }
         } else {
-            console.log(`Element "${targetId}" not found in ${elementsData.name}`);
+            console.warn(`Element "${targetId}" not found in ${elementsData.name}`);
         }
     });
 
     // If there are wait interactions, set up waiting mechanism
     if (waitInteractions.length > 0) {
-        console.log(`CLARAMA_WEBSOCKET.js: Element ${element_id} waiting for ${waitInteractions.length} interactions to resume`);
+        //console.log(`CLARAMA_WEBSOCKET.js: Element ${element_id} waiting for ${waitInteractions.length} interactions to resume`);
 
         // Store the pending task execution details
         const pendingTaskKey = `pendingTask_${element_id}`;
@@ -261,12 +261,11 @@ function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
     fetch(task_url, fetch_options)
         .then((response) => {
             if (response.ok) {
-                console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " response " + response.status);
+                // console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " response " + response.status);
                 return response.json();
             }
-            ;
 
-            console.error("ERROR calling", task_url, response);
+            console.error("WEBSOCKET executeTask ERROR calling", task_url, response);
             return Promise.reject(response);
         })
         .then((task_response) => {
@@ -283,7 +282,7 @@ function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
 
 
             embedded.attr('task_kernel_id', kernel_id);
-            console.log("CLARAMA_WEBSOCKET.js: EXECUTE TASK " + task_url + " connected to kernel " + kernel_id)
+            //console.log("CLARAMA_WEBSOCKET.js: EXECUTE TASK " + task_url + " connected to kernel " + kernel_id)
 
             let active_selector = ('#environment_' + environment_file).replaceAll('.', "_");
 
@@ -328,11 +327,11 @@ function handleTaskInteractionResume(resumeMessage) {
     }
 
     if (!resumingElementId) {
-        console.log("CLARAMA_WEBSOCKET.js: Could not extract element ID from step_id:", step_id);
+        console.error("CLARAMA_WEBSOCKET.js: Could not extract element ID from step_id:", step_id);
         return;
     }
 
-    console.log(`CLARAMA_WEBSOCKET.js: Received task_interaction_resume from ${resumingElementId}`);
+    // console.log(`CLARAMA_WEBSOCKET.js: Received task_interaction_resume from ${resumingElementId}`);
 
     // Check all pending tasks to see which ones are waiting for this element
     for (let prop in window) {
@@ -341,27 +340,27 @@ function handleTaskInteractionResume(resumeMessage) {
             const waitingElementId = prop.replace('pendingTask_', 'element_');
 
             if (pendingTask && pendingTask.waitingFor && pendingTask.waitingFor.includes(resumingElementId)) {
-                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} was waiting for ${resumingElementId}`);
+                // console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} was waiting for ${resumingElementId}`);
 
                 // Mark this element as resumed
                 pendingTask.resumedFrom.add(resumingElementId);
 
-                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} has received resume from:`,
-                    Array.from(pendingTask.resumedFrom));
-                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for:`,
-                    pendingTask.waitingFor.filter(elem => !pendingTask.resumedFrom.has(elem)));
+                //console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} has received resume from:`,
+                //    Array.from(pendingTask.resumedFrom));
+                //console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for:`,
+                //   pendingTask.waitingFor.filter(elem => !pendingTask.resumedFrom.has(elem)));
 
                 // Check if all required elements have sent resume messages
                 const allResumed = pendingTask.waitingFor.every(elem => pendingTask.resumedFrom.has(elem));
 
                 if (allResumed) {
-                    console.log(`CLARAMA_WEBSOCKET.js: All wait interactions complete for ${waitingElementId}, proceeding with task execution`);
+                    //console.log(`CLARAMA_WEBSOCKET.js: All wait interactions complete for ${waitingElementId}, proceeding with task execution`);
                     executeTask(pendingTask.embedded, pendingTask.task_url, pendingTask.socket_id, pendingTask.autorun, pendingTask.kernel_status);
 
                     // Clean up the pending task
                     delete window[prop];
                 } else {
-                    console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for more resume messages`);
+                    //console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for more resume messages`);
                 }
             }
         }
@@ -391,7 +390,7 @@ function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
         env_url = '&environment=' + environment;
 
         //refresh = true;
-        console.log("CLARAMA_WEBSOCKET.js: overriding environment with " + env_url);
+        //console.log("CLARAMA_WEBSOCKET.js: overriding environment with " + env_url);
     }
 
     if (refresh_kernel === true) refresh = true;
@@ -423,7 +422,7 @@ function start_socket(reconnect = false, embedded) {
 
     if (task_active_socket !== undefined) {
         if (task_active_socket.readyState !== WebSocket.OPEN) {
-            console.log("CLARAMA_WEBSOCKET.JS resetting socket with state " + task_active_socket.readyState);
+            //console.log("CLARAMA_WEBSOCKET.JS resetting socket with state " + task_active_socket.readyState);
             task_active_socket.close();
             task_active_socket = undefined;
         }
@@ -433,7 +432,7 @@ function start_socket(reconnect = false, embedded) {
         let webSocket = new WebSocket(socket_address);
 
         task_active_socket = webSocket;
-        console.log("CLARAMA_WEBSOCKET.JS start_socket " + task_active_socket);
+        //console.log("CLARAMA_WEBSOCKET.JS start_socket " + task_active_socket);
 
         webSocket.onerror = function (event) {
             onError(event, socket_address, webSocket, embedded)

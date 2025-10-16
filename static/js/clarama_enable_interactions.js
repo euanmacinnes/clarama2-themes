@@ -30,7 +30,7 @@ function toolbar_interactions(toolbar) {
 }
 
 function enable_interactions(parent, reload = false, runtask = false) {
-    console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class"));
+    // console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class"));
 
     //      parent.find('.clarama-execute').execute();
     parent.find(".dropdown-toggle").dropdown();
@@ -104,22 +104,26 @@ function enable_interactions(parent, reload = false, runtask = false) {
 
     // Wire kernel info click handlers for dynamically loaded content
     try {
-        parent.find('#edit-kernel-status, #run-kernel-status, #explore-kernel-status').each(function(){
+        parent.find('#edit-kernel-status, #run-kernel-status, #explore-kernel-status').each(function () {
             var $el = $(this);
-            if($el.data('wired')) return;
+            if ($el.data('wired')) return;
             $el.data('wired', 1);
-            $el.css('cursor','pointer');
-            if(!$el.attr('title')){ $el.attr('title','Click to view kernel info'); }
-            $el.on('click', function(){
+            $el.css('cursor', 'pointer');
+            if (!$el.attr('title')) {
+                $el.attr('title', 'Click to view kernel info');
+            }
+            $el.on('click', function () {
                 var kid = $el.data('kernel-id') || $.trim($el.text());
-                if(window.ClaramaKernel && window.ClaramaKernel.openKernelInfo){
+                if (window.ClaramaKernel && window.ClaramaKernel.openKernelInfo) {
                     window.ClaramaKernel.openKernelInfo(kid);
                 } else {
                     console.warn('ClaramaKernel not available to open kernel info');
                 }
             });
         });
-    } catch(e) { console.warn('Kernel info wiring failed', e); }
+    } catch (e) {
+        console.warn('Kernel info wiring failed', e);
+    }
 
     if (reload) {
         parent.find('.clarama-post-embedded').attr('clarama_loaded', false);
@@ -127,7 +131,7 @@ function enable_interactions(parent, reload = false, runtask = false) {
     }
 
     if (runtask) {
-        console.log("runtask autorun")
+        // console.log("runtask autorun")
         parent.find('.clarama-post-embedded').attr('autorun', true);
         parent.find('.clarama-embedded').attr('autorun', true);
     }

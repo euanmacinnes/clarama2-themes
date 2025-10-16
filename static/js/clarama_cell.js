@@ -16,7 +16,7 @@ function get_code_cell(cell) {
     var editor = ace.edit(id);
     var code = editor.getValue();
 
-    console.log("Getting code " + id);
+    // console.log("Getting code " + id);
 
     return {"type": "code", "content": code};
 }
@@ -34,7 +34,7 @@ function get_tab_ids(cell) {
         var tab_id = $(this).data('tab-id');
         if (tab_id !== undefined && tab_id !== null) {
             tab_ids.push(tab_id);
-            console.log("found tab_id: ", tab_id);
+            // console.log("found tab_id: ", tab_id);
         }
     });
     tab_ids = [...new Set(tab_ids)];
@@ -108,7 +108,7 @@ function get_tab_data(cell, tab_id) {
 function get_data_cell(cell) {
     var dataid = cell.attr('dataid');
 
-    console.log("Getting data cell " + dataid);
+    // console.log("Getting data cell " + dataid);
 
     // Get output type
     var output_id = "task_step_" + dataid + "_output";
@@ -259,7 +259,7 @@ function get_data_cell(cell) {
     // Extract series groups
     var series_groups = cell.find('.chart-series-groups');
     series_groups.each(function () {
-        console.log(this);
+        // console.log(this);
         var srs = {
             'series-tab': $(this).find('.series-tab').val(),            // Input Source Tab
             'series-type': $(this).find('.series-type').val(),          // Series type
@@ -272,14 +272,14 @@ function get_data_cell(cell) {
             'series-u': $(this).find('.series-u').val(),                // unit axis
             'series-l': $(this).find('.series-l').val()                 // label axis (e.g. for point name at X/Y)
         };
-        console.log(srs);
+        // console.log(srs);
         chart_series_groups.push(srs);
     });
 
     // Extract series formats
     var series_formats = cell.find('.chart-series-formats');
     series_formats.each(function () {
-        console.log(this);
+        // console.log(this);
         var srs = {
             'format-nrx': $(this).find('.format-nrx').val(),            // name regex
             'format-ua': $(this).find('.format-ua').val(),              // unit axis
@@ -293,14 +293,14 @@ function get_data_cell(cell) {
             'format-col-back': $(this).find('.chart-col-back').val(),  // background colour
             'format-title': $(this).find('.format-title').val()         // series title
         };
-        console.log(srs);
+        // console.log(srs);
         chart_series_formats.push(srs);
     });
 
     // Extract series annotations
     var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
-        console.log(this);
+        // console.log(this);
         var srs = {
             'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
             'anno-label': $(this).find('.anno-label').val(),            // label
@@ -317,14 +317,14 @@ function get_data_cell(cell) {
             'anno-col': $(this).find('.chart-col').val(),                // colour
             'anno-col-back': $(this).find('.chart-col-back').val(),      // background colour
         };
-        console.log(srs);
+        // console.log(srs);
         chart_series_annos.push(srs);
     });
 
     // Extract series objects
     var series_objs = cell.find('.chart3d-series-objects');
     series_objs.each(function () {
-        console.log(this);
+        // console.log(this);
         const uvVal = $(this).find('.obj-uv').val();
         const colVal = $(this).find('.obj-colour').val();
         var srs = {
@@ -336,7 +336,7 @@ function get_data_cell(cell) {
             'obj-primitive': $(this).find('.obj-primitive').find('option:selected').attr('id'),     // primitive
             'transform-matrix': $(this).find('.obj-transform-matrix').val() || ''                   // transform matrix variable name
         };
-        console.log(srs);
+        // console.log(srs);
         chart3d_series_objs.push(srs);
     });
 
@@ -416,7 +416,7 @@ function get_data_cell(cell) {
         'advanced': table_advanced_yaml
     };
 
-    console.log("table config:", table);
+    // console.log("table config:", table);
 
     // reset the tab_ids to start from 0
     let tabCounter = 0;
@@ -455,10 +455,10 @@ function get_data_cell(cell) {
         tabCounter++;
     });
 
-    console.log("Table config:", table);
-    console.log("Chart config:", chart);
-    console.log("Chart3d config:", chart3d);
-    console.log("Tabs data:", tabs_data);
+    // console.log("Table config:", table);
+    // console.log("Chart config:", chart);
+    // console.log("Chart3d config:", chart3d);
+    // console.log("Tabs data:", tabs_data);
 
     return {
         "type": "data",
@@ -477,7 +477,7 @@ function get_data_cell(cell) {
  */
 function get_text_cell(cell) {
     var myContent = cell.trumbowyg('html');
-    console.log("Getting text " + myContent);
+    // console.log("Getting text " + myContent);
     return {"type": "markdown", "content": myContent};
 }
 
@@ -488,7 +488,7 @@ function get_question_cell(cell) {
 
     var question = $("#" + id).val();
 
-    console.log("Getting question " + question);
+    // console.log("Getting question " + question);
 
     return {
         "type": "question",
@@ -506,19 +506,19 @@ function get_notification_cell(cell) {
 
     var id = "content_query_" + dataid;
 
-    console.log("Getting data " + id);
+    //console.log("Getting data " + id);
 
     var message_content = $("#" + id + "_message_content").trumbowyg('html');
-    console.log("MESSAGE CONTENT:")
-    console.log(message_content)
+    //console.log("MESSAGE CONTENT:")
+    //console.log(message_content)
 
     //var targets = $("#" + id + "_targets").val();
     var id = id + "_targets"
     var editor = ace.edit(id);
     var targets = editor.getValue();
 
-    console.log("MESSAGE TARGETS:")
-    console.log(targets)
+    //console.log("MESSAGE TARGETS:")
+    //console.log(targets)
 
 
     return {
@@ -538,7 +538,7 @@ function get_source_cell(cell) {
 
     var id = "content_query_" + dataid;
 
-    console.log("Getting data " + id);
+    //console.log("Getting data " + id);
 
     var source_id = "task_step_" + dataid + "_source";
     var source = $("#" + source_id).val();
@@ -559,7 +559,7 @@ function get_task_cell(cell) {
 
     var id = "content_query_" + dataid;
 
-    console.log("Getting data " + id);
+    // console.log("Getting data " + id);
 
     var task_id = "task_step_" + dataid + "_task";
     var task_ping = "task_step_" + dataid + "_ping";
@@ -610,7 +610,7 @@ function get_shell_cell(cell) {
     var editor = ace.edit(id);
     var code = editor.getValue();
 
-    console.log("Getting shell " + id);
+    // console.log("Getting shell " + id);
 
     return {"type": "shell", "content": code};
 }
@@ -699,11 +699,11 @@ function get_data_stream_cell(cell) {
  */
 function get_cell_values(cell) {
     var cell_type = cell.attr("celltype");
-    console.log("celltype: ", cell_type);
+    // console.log("celltype: ", cell_type);
     // Get the cell-type specific details
     var cell_data = window["get_" + cell_type + "_cell"](cell);
 
-    console.log('cell data: ', cell_data);
+    // console.log('cell data: ', cell_data);
     // cell_data["content"] = "locals().keys()";
     return cell_data;
 }
@@ -743,7 +743,7 @@ function get_cell(cell_owner, topic) {
             cell['loop-iterable'] = input.closest(".clarama-cell-item").find('.loop-iterable').val();
 
             if (topic !== "") {
-                console.log("Getting Cell with STEP: " + topic)
+                // console.log("Getting Cell with STEP: " + topic)
                 cell['topic'] = topic;
                 cell['step'] = topic;
             }

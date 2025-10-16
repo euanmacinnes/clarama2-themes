@@ -76,7 +76,7 @@
 
     <script>
         function show_schedule() {
-            console.log("Ok");
+            //console.log("Ok");
             $("#schedule_form").removeClass('loop-hidden');
             $("#schedule_form").addClass('loop-show');
             $("#schedule_form").addClass('loop-show');
@@ -90,6 +90,7 @@
 
     <script type="application/json" id="{{ internal_topic }}_socket_args">
     {{ task_arguments | json_pprint | safe }}
+
 
     </script>
 
