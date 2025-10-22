@@ -1,5 +1,86 @@
 //  Copyright (c) 2024. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
 
+(function(){
+    const PREFIX = 'clarama_sticky_';
+    const USE_COOKIE_MAX = 400;         // only fall back to cookies for tiny values
+    const LS_OK = (function() { 
+        try {
+            localStorage.setItem('__t','1');
+            localStorage.removeItem('__t');
+            return true;
+        } catch(_) {
+            return false;
+        }
+    })();
+
+    function lsKey(name) {
+        return name;
+    }
+
+    function migrateStickyCookiesToLocalStorage() {
+        if (!LS_OK) return;
+        try {
+            const cookies = document.cookie.split(';');
+            cookies.forEach(c => {
+                let kv = c.trim();
+                const eq = kv.indexOf('=');
+                if (eq < 0) return;
+                const k = decodeURIComponent(kv.slice(0, eq));
+                const v = decodeURIComponent(kv.slice(eq+1));
+                if (k.startsWith(PREFIX)) {
+                    localStorage.setItem(lsKey(k), v);
+                    // delete cookie
+                    document.cookie = k + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+                }
+            });
+        } catch(e) { /* ignore */ }
+    }
+
+    window.claramaSetCookie = function(name, value, days) {
+        try {
+            const val = String(value ?? '');
+            if (LS_OK) {
+                localStorage.setItem(lsKey(name), val);
+                return;
+            }
+            if (val.length > USE_COOKIE_MAX) return;
+            var expires = "";
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days*24*60*60*1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + encodeURIComponent(val) + expires + "; path=/";
+        } catch(_) { /* ignore */ }
+    };
+
+    window.claramaGetCookie = function(name){
+        try {
+            if (LS_OK) {
+                const v = localStorage.getItem(lsKey(name));
+                if (v !== null && v !== undefined) return v;
+            }
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i=0; i<ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0)==' ') c = c.substring(1);
+                if (c.indexOf(nameEQ) == 0) return decodeURIComponent(c.substring(nameEQ.length));
+            }
+        } catch(_) { /* ignore */ }
+        return null;
+    };
+
+    window.claramaDeleteCookie = function(name){
+        try {
+            if (LS_OK) localStorage.removeItem(lsKey(name));
+            document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+        } catch(_) { /* ignore */ }
+    };
+
+    migrateStickyCookiesToLocalStorage();
+})();
+
 function _arrayBufferToBase64(buffer) {
     var binary = '';
     var bytes = new Uint8Array(buffer);
@@ -1083,14 +1164,8 @@ function initStickyFields(context) {
             if (isSelect2($el) && typeof $el.select2 === 'function') {
                 var data = $el.select2('data') || [];
                 if (!Array.isArray(data)) data = [data];
-                var ser = data.filter(Boolean).map(function (d) {
-                    return {id: String(d.id), text: String(d.text || '')};
-                });
-                if ($el.prop('multiple')) {
-                    payload = JSON.stringify(ser);
-                } else {
-                    payload = JSON.stringify(ser[0] || null);
-                }
+                var ids = (data || []).filter(Boolean).map(d => String(d.id));
+                payload = $el.prop('multiple') ? JSON.stringify(ids) : JSON.stringify(ids[0] || null);
             } else {
                 var selected = $el.find('option:selected');
                 if ($el.prop('multiple')) {
@@ -1189,14 +1264,8 @@ function claramaSaveStickyCookies(context) {
                 if (isSelect2($el) && typeof $el.select2 === 'function') {
                     var data = $el.select2('data') || [];
                     if (!Array.isArray(data)) data = [data];
-                    var ser = data.filter(Boolean).map(function (d) {
-                        return {id: String(d.id), text: String(d.text || '')};
-                    });
-                    if ($el.prop('multiple')) {
-                        payload = JSON.stringify(ser);
-                    } else {
-                        payload = JSON.stringify(ser[0] || null);
-                    }
+                    var ids = (data || []).filter(Boolean).map(d => String(d.id));
+                    payload = $el.prop('multiple') ? JSON.stringify(ids) : JSON.stringify(ids[0] || null);
                 } else {
                     var selected = $el.find('option:selected');
                     if ($el.prop('multiple')) {
