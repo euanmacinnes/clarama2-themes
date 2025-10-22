@@ -1161,11 +1161,18 @@ function initStickyFields(context) {
     function persistSelect($el) {
         var payload;
         try {
-            if (isSelect2($el) && typeof $el.select2 === 'function') {
+            if (isSelect2($el)) {
                 var data = $el.select2('data') || [];
                 if (!Array.isArray(data)) data = [data];
-                var ids = (data || []).filter(Boolean).map(d => String(d.id));
-                payload = $el.prop('multiple') ? JSON.stringify(ids) : JSON.stringify(ids[0] || null);
+                if ($el.prop('multiple')) {
+                    var arr = data.filter(Boolean).map(function(d){
+                        return { id: String(d.id), text: String(d.text ?? '') };
+                    });
+                    payload = JSON.stringify(arr);
+                } else {
+                    var d = data.filter(Boolean)[0] || null;
+                    payload = d ? JSON.stringify({ id: String(d.id), text: String(d.text ?? '') }) : 'null';
+                }
             } else {
                 var selected = $el.find('option:selected');
                 if ($el.prop('multiple')) {
@@ -1261,11 +1268,18 @@ function claramaSaveStickyCookies(context) {
         function persistSelect($el) {
             var payload;
             try {
-                if (isSelect2($el) && typeof $el.select2 === 'function') {
+                if (isSelect2($el)) {
                     var data = $el.select2('data') || [];
                     if (!Array.isArray(data)) data = [data];
-                    var ids = (data || []).filter(Boolean).map(d => String(d.id));
-                    payload = $el.prop('multiple') ? JSON.stringify(ids) : JSON.stringify(ids[0] || null);
+                    if ($el.prop('multiple')) {
+                        var arr = data.filter(Boolean).map(function(d){
+                            return { id: String(d.id), text: String(d.text ?? '') };
+                        });
+                        payload = JSON.stringify(arr);
+                    } else {
+                        var d = data.filter(Boolean)[0] || null;
+                        payload = d ? JSON.stringify({ id: String(d.id), text: String(d.text ?? '') }) : 'null';
+                    }
                 } else {
                     var selected = $el.find('option:selected');
                     if ($el.prop('multiple')) {
