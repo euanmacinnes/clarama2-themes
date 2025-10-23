@@ -22,7 +22,6 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         if (dict.clear)
             resetConversation();
 
-        console.log("GINA user input requested.");
         window.__ginaHandshakeDone = true;
         window.waitingForAiUserInput = false;
         window.__ginaSetInputsEnabled(true, "Type your question.");
@@ -1305,12 +1304,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     ginaContainer.addEventListener("keydown", (e) => {
-        if (!e.target.matches(".gina-input")) return;
-        // Send on Enter, but allow Shift+Enter for new lines
-        if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (!e.target.matches('.gina-input')) return;
+        // Shift+Enter make a newline
+        if (e.key === 'Enter' && e.shiftKey) {
+            e.stopPropagation();
+            return;
+        }
+        // Plain Enter sends
+        if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing) {
             e.preventDefault();
-            const block = e.target.closest(".gina-block");
-            const btn = block?.querySelector(".gina-send-btn");
+            e.stopPropagation();
+            const block = e.target.closest('.gina-block');
+            const btn = block?.querySelector('.gina-send-btn');
             if (btn && !btn.disabled) btn.click();
         }
         // Allow escape key to toggle Gina close

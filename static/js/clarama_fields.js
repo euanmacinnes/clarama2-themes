@@ -577,6 +577,7 @@ function initializeCellNavigation() {
         if (e.repeat) return;
     
         const $t = $(e.target);
+        if ($t.is('.gina-input') || $t.closest('.gina-block').length) return;
         const inInsightsConsole = $t.is('textarea.console-input') > 0;
     
         // Shift + Enter : run & move next (disabled inside Insights console)
@@ -605,6 +606,9 @@ function initializeCellNavigation() {
     $(document).on('keyup', function (e) {
         const prefs = readShortcutPrefs();
         if (!prefs.enabled) return;
+
+        const $t = $(e.target);
+        if ($t.is('.gina-input') || $t.closest('.gina-block').length) return;
 
         if (e.key !== 'Shift') return;
         const now = Date.now();
