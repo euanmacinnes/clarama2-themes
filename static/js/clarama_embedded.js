@@ -619,7 +619,7 @@ function execute_json_url(clarama_url, reload = false) {
         console.log("Executed " + clarama_url)
 
         if (reload)
-            window.location.reload()
+            window.location.reload();
 
         if (json['data'] == 'ok') {
             flash(json['results']);

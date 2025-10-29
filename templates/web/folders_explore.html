@@ -383,6 +383,7 @@
         function content_new_explore() {
             var new_content = $("#new_content").val().trim();
             var new_content_type = $("#new_content_type").val();
+            const reload = isValidFilename(new_content);
 
             if (!isValidFilename(new_content)) return;
 
@@ -399,7 +400,7 @@
                 "&new_content_type=" +
                 encodeURIComponent(new_content_type);
 
-            execute_json_url(file, true);
+            execute_json_url(file, reload);
         }
 
         function context_rename() {
@@ -782,7 +783,7 @@
             const isImageFile = file =>
                 ['text/plain', 'text/html', 'image/jpeg', 'image/png', 'image/svg+xml', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/pdf', 'application/x-zip'].includes(file.type);
 
-
+            
             // Based on: https://flaviocopes.com/how-to-upload-files-fetch/
             const imageUpload = dataRefs => {
 
