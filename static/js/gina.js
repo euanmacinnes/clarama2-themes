@@ -1476,3 +1476,28 @@ document.addEventListener("DOMContentLoaded", () => {
     window.__ginaFinalizeBlockAfterError = finalizeBlockAfterError;
     window.__ginaCheckDocking = checkDocking;
 });
+
+(function () {
+    function enforceSingleBlock() {
+        const latest = document.getElementById('gina-latest');
+        if (!latest) return;
+
+        // Remove older blocks, keep the first one we find.
+        const blocks = latest.querySelectorAll('.gina-block');
+        for (let i = 1; i < blocks.length; i++) {
+            blocks[i].remove();
+        }
+    }
+
+    const latest = document.getElementById('gina-latest');
+    if (!latest) return;
+
+    const mo = new MutationObserver(() => {
+        const x = window.scrollX, y = window.scrollY;
+        enforceSingleBlock();
+        requestAnimationFrame(() => window.scrollTo(x, y));
+    });
+
+    mo.observe(latest, { childList: true, subtree: true });
+    enforceSingleBlock();
+})();
