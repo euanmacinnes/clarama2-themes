@@ -1168,8 +1168,8 @@ document.addEventListener("DOMContentLoaded", () => {
             toggleSendButtonFor(block);
             checkDocking();
         } catch (err) {
-            console.error("GINA: failed to render next conversation block:", err);
-            flash("Failed to load the next conversation block. Please try again.", "danger");
+            // console.error("GINA: failed to render next conversation block:", err);
+            // flash("Failed to load the next conversation block. Please try again.", "danger");
         }
     }
 

@@ -236,10 +236,6 @@ button.btn-c2-play:hover {
     40%, 60% { transform: rotate(20deg); }
 }
 
-.cell-toolbar {
-  padding: 0px;
-}
-
 .clarama-focus-bar {
     list-style: none;
     margin: 6px 0 10px 0;

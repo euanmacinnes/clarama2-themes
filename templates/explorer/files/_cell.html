@@ -31,27 +31,32 @@
         </div>
     </div>
     <div class="col-remainder" style="padding:0px;">
-        <div class="container-fluid">
-            <div class="row flex-nowrap align-items-center" style="padding:0px;">
-                <div class="col">
-                    <input type="text" id="loop-iterable-{{ task_index }}"
-                           loop-id="{{ task_index }}"
-                           class="form-control loop-iterable loop-inactive"
-                           value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
-                </div>
-                {% include theme("explorer/files/_cell_insert.html") %}
-                <div class="col-auto hoverover auto-hover"
-                     id="task_toolbar_{{ stream }}_{{ task_index }}_trash"
-                     opacity="0.04"
-                     style="opacity: 0.04; padding-left: 0;">
-                    <button type="button" class="btn delete_step" data-bs-toggle="tooltip"
-                            data-bs-placement="bottom" title="Delete this step" 
-                            style="--bs-btn-padding-y: 0.1rem; --bs-btn-padding-x: 0.25rem;">
+        <div class="cell-hover-target" data-task-index="{{ task_index }}" aria-hidden="true"></div>
+
+        <div class="cell-toolbar-floating d-none" id="cell_toolbar_floating_{{ task_index }}">
+            <div class="container-fluid px-1">
+                <div class="row flex-nowrap align-items-center g-1" style="padding:0;">
+                    <div class="col">
+                        <input type="text" id="loop-iterable-{{ task_index }}"
+                                loop-id="{{ task_index }}"
+                                class="form-control loop-iterable loop-inactive"
+                                value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
+                    </div>
+                    {% include theme("explorer/files/_cell_insert.html") %}
+                    <div class="col-auto hoverover auto-hover"
+                        id="task_toolbar_{{ stream }}_{{ task_index }}_trash"
+                        opacity="0.04"
+                        style="opacity: 0.04; padding-left: 0;">
+                        <button type="button" class="btn delete_step" data-bs-toggle="tooltip"
+                                data-bs-placement="bottom" title="Delete this step"
+                                style="--bs-btn-padding-y: 0.1rem; --bs-btn-padding-x: 0.25rem;">
                             <i class="bi bi-trash" style="font-size: 1.3rem;"></i>
-                    </button>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
+
         <div class="container-fluid">
             <div class="loop loop-edge loop-hidden loop-{{ task_index }}">&nbsp;</div>
             <div class="row" data-task-index="{{ task_index }}">
@@ -138,5 +143,59 @@
 
         initializeCellCopyPaste();
     });
-</script>
 
+    (function () {
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function setupFloatingToolbarForCell($cell) {
+            const $colRem   = $cell.find('.col-remainder').first();
+            const $target   = $colRem.find('.cell-hover-target');
+            const taskIndex = $target.data('task-index');
+            const $float    = $colRem.find('#cell_toolbar_floating_' + taskIndex);
+
+            if ($float.length === 0 || $target.length === 0) return;
+
+            let hoverLock = false;   // stays visible while mouse is over either target or floating area
+
+            function positionAtMouse(e) {
+                const rect   = $colRem[0].getBoundingClientRect();
+                const fw     = $float.outerWidth();
+                const fh     = $float.outerHeight();
+                const maxX   = Math.max(0, rect.width  - fw);
+                const maxY   = Math.max(0, rect.height - fh);
+
+                // Centre the bar at the cursor, but clamp so it remains fully visible
+                const x = clamp(e.clientX - rect.left - fw / 2, 0, maxX);
+                const y = clamp(e.clientY - rect.top  - fh / 2, 0, maxY);
+
+                $float.css({ left: x + 'px', top: y + 'px' });
+            }
+
+            function show(e) {
+            $float.removeClass('d-none');
+                positionAtMouse(e);
+            }
+
+            function hide() {
+                if (!hoverLock) $float.addClass('d-none');
+            }
+
+            // Show & follow mouse while in the thin top band
+            $target.on('mouseenter', show);
+            $target.on('mousemove', positionAtMouse);
+            $target.on('mouseleave', function () { setTimeout(hide, 80); });
+
+            // Keep visible while interacting with the floating toolbar itself
+            $float.on('mouseenter', function () { hoverLock = true; });
+            $float.on('mouseleave', function () { hoverLock = false; hide(); });
+        }
+
+        // Initialise for all cells on load and whenever cells are (re)rendered
+        $(document).ready(function () {
+            $('li.clarama-cell-item').each(function () {
+                setupFloatingToolbarForCell($(this));
+            });
+        });
+    })();
+</script>
+  

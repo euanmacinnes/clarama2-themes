@@ -21,16 +21,82 @@ CELL LAYOUT
 }
 
 .toolbar-btn i {
-    font-size: 1rem;                
-    transition: font-size 0.3s ease; 
-}
-
-.cell-toolbar:hover .toolbar-btn i {
-    font-size: 1.1rem;
+    font-size: 1rem;        
 }
 
 .toolbar-ellipsis-hidden {
     display: none !important;
+}
+
+.col-remainder {
+    position: relative;
+}
+
+.cell-hover-target {
+    height: 12px;
+    margin: 0;
+    padding: 0;
+}
+
+.cell-toolbar-floating {
+    position: absolute;
+    z-index: 50;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+    background: rgb(137, 190, 255);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    border-radius: .25rem;
+    max-width: 100%;
+}
+
+.cell-toolbar-floating .hoverover {
+    opacity: 1 !important;
+}
+
+.cell-toolbar-floating hr {
+    display: none;
+}
+
+.cell-toolbar-floating .row {
+    flex-wrap: nowrap;
+}
+
+.cell-toolbar-floating .row > .col:first-child {
+    flex: 1 1 640px;
+    min-width: 260px;
+}
+
+.cell-toolbar-floating .loop-iterable {
+    width: 100%;
+}
+
+.cell-toolbar-floating .col-auto {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.cell-toolbar-floating .loop-iterable {
+    background-color: #fff !important;
+    color: #212529;
+    border-color: #ced4da;
+    box-shadow: 0 0 0 0 rgba(0,0,0,0);
+}
+  
+.cell-toolbar-floating .loop-inactive {
+    opacity: 1 !important;
+}
+
+.cell-toolbar-floating .insert_step:hover i {
+    color: white !important;
+}
+
+.cell-toolbar-floating .toolbar-btn:hover .toolbar-ellipsis {
+    color: white !important;
+}
+
+.cell-toolbar-floating .delete_step:hover i {
+    color: #dc3545 !important;
 }
 
 .content-row {
