@@ -534,17 +534,18 @@ function get_notification_cell(cell) {
  * @returns {Object} Object containing the cell type and source information
  */
 function get_source_cell(cell) {
-    var dataid = cell.attr('dataid');
+    var $local = cell.find('input[id$="_source"]').first();
+    var source = '';
+    if ($local.length) {
+        source = $local.val();
+    } else {
+        var dataid = String(cell.attr('dataid') || '');
+        var source_id = "task_step_" + dataid + "_source";
+        source = $("#" + source_id).val() || '';
+    }
 
-    var id = "content_query_" + dataid;
-
-    //console.log("Getting data " + id);
-
-    var source_id = "task_step_" + dataid + "_source";
-    var source = $("#" + source_id).val();
-
-    return {
-        "type": "source",
+    return { 
+        "type": "source", 
         "source": source
     };
 }

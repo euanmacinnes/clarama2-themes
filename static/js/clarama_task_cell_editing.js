@@ -138,6 +138,10 @@ function updateInsightsIds(cellElement, oldStep, newStep) {
             // task index
             const dti = $n.attr('data-task-index');
             if (dti === A_STEP) $n.attr('data-task-index', B_STEP);
+
+            // dataid
+            const did = $n.attr('dataid');
+            if (did === A_STEP) $n.attr('dataid', B_STEP);
         });
     }
 
