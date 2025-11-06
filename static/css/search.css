@@ -526,3 +526,35 @@ input[type="search"]::-webkit-search-cancel-button {
     outline: 2px solid #fff;
     outline-offset: 2px;
 }
+
+#scrollTopBtn {
+    position: fixed;
+    right: 16px;
+    bottom: 20px;
+    z-index: 1040; /* below modals (1050), above most things */
+    width: 36px; height: 36px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(48,48,48,.95);
+    color: #fff;
+    font-size: 16px; line-height: 1;
+    box-shadow: 0 4px 14px rgba(0,0,0,.3);
+    display: inline-flex; align-items: center; justify-content: center;
+    opacity: 0; transform: translateY(8px);
+    pointer-events: none; /* hidden by default */
+    transition: opacity .18s ease, transform .18s ease;
+}
+
+#scrollTopBtn:hover {
+    background: #3b3b3b;
+}
+
+#scrollTopBtn:focus-visible {
+    outline: 3px solid #6af; outline-offset: 2px;
+}
+
+#scrollTopBtn.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
