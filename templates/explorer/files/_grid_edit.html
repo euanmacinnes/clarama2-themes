@@ -170,11 +170,7 @@
             document.getElementById('interaction-params').value = params;
 
             if (type == "element") showElementOptions(url, initialType);
-            if (doWait === 'True') {
-                wait_cb.checked = true;
-            } else {
-                wait_cb.checked = false;
-            }
+            wait_cb.checked = String(doWait).toLowerCase() === 'true';
 
             if (menuItem) {
                 cmItem_field.classList.remove('d-none');

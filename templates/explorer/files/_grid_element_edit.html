@@ -98,7 +98,7 @@
                         {% set current_element = link.element if link.element is defined else link %}
                         {% set current_element_url = link.url if link.element is defined else elements[link]['url'] %}
                         {% set current_element_params = link.params if link.element is defined else elements[link]['params'] %}
-                        {% set do_wait = link.wait if link.wait is defined else false %}
+                        {% set do_wait = (link.wait is defined) and (link.wait|string|lower in ['true','1','yes','on']) %}
                         {% include theme("explorer/files/_grid_interaction_edit.html") %}
                     {% endif %}
                 {% endfor %}
@@ -128,7 +128,7 @@
                         {% set current_element = link.element if link.element is defined else link %}
                         {% set current_element_url = link.url if link.element is defined else elements[link]['url'] %}
                         {% set current_element_params = link.params if link.element is defined else elements[link]['params'] %}
-                        {% set do_wait = link.wait if link.wait is defined else false %}
+                        {% set do_wait = (link.wait is defined) and (link.wait|string|lower in ['true','1','yes','on']) %}
                         {% set menu_item_name = link.menu_item_name %}
                         {% include theme("explorer/files/_grid_interaction_edit.html") %}
                     {% endif %}
