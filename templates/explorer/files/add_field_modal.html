@@ -143,8 +143,9 @@
             console.log("element " + element);
 
             // now add element
-            new_element_data = {"url": selected_val};
+            new_element_data = {"url": selected_val, "links": []};
             slate_data = saveGrid();
+            slate_data["grid_id"] = "{{ grid_id }}";
 
             if (isDict(slate_data['elements'])) {
                 console.log("is dict slate_data elements");
@@ -169,6 +170,7 @@
                         if (data['data'] == 'ok') {
                             let html = data['results'];
                             addContent(element, new_element_data, html);
+                            enable_interactions($("#" + element).parent(), true);
                         } else {
                             console.log('Submission was not successful.');
                             console.log(data);

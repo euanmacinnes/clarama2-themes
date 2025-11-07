@@ -60,7 +60,8 @@ $(document).on('contextmenu', function (event) {
     // console.log("elementId", elementId);
     // console.log("gridId", gridId);
 
-    const elementInteractions = eval(gridId + "elements[elementId]['links']");
+    let elementInteractions = eval(gridId + "elements[elementId]['links']");
+    if (!Array.isArray(elementInteractions)) { elementInteractions = []; }
     if (!elementInteractions) return;
     const menuInteractions = [];
 
