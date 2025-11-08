@@ -708,6 +708,11 @@ function bChart(chart_id, chart_data) {
 
         var current_dataset = data[current_dataset_index];
 
+        if (!sg['series-x'] || !sg['series-y']) {
+            console.warn("Skipping series group due to missing series-x / series-y", sg);
+            continue;
+        }
+
         var xaxis_id = current_dataset['cols'].indexOf(sg['series-x']);
         var yaxis_id = current_dataset['cols'].indexOf(sg['series-y']);
         var zaxis_id = current_dataset['cols'].indexOf(sg['series-z']);
@@ -726,58 +731,42 @@ function bChart(chart_id, chart_data) {
             yaxis_scale['title']['description'] = sg['series-u'];
 
         if (xaxis_id >= 0 && yaxis_id >= 0) {
-            xaxis = current_dataset['rows'][xaxis_id];
-            yaxis = current_dataset['rows'][yaxis_id];
+            const xaxisRaw = current_dataset['rows'][xaxis_id];
+            const yaxisRaw = current_dataset['rows'][yaxis_id];
+            let xaxis = Array.isArray(xaxisRaw) ? xaxisRaw.slice() : [];
+            let yaxis = Array.isArray(yaxisRaw) ? yaxisRaw.slice() : [];
 
             if (xaxis !== undefined && yaxis !== undefined) {
 
                 if (time) {
-                    var needs_z = "yes";
-                    if (xaxis.length > 1) {
-                        var xz = 0
-                        var found = false;
-
-                        while (xz < xaxis.length && !found) {
-
-                            if (xaxis[xz] !== undefined)
-                                if (xaxis[xz].indexOf("Z") >= 0) {
-                                    needs_z = "no";
-                                    found = true;
-                                } else {
-                                    if (xaxis[xz].indexOf("+00:00") >= 0)
-                                        needs_z = "00";
-                                    else
-                                        needs_z = "yes";
-                                    found = true;
-                                }
-
-                            xz++;
-
-                            if (xz > 10)
-                                found = true;
+                    let needs_z = "yes";
+                    if (xaxis.length > 0) {
+                        const probe = xaxis.find(v => v !== undefined && v !== null);
+                        if (probe instanceof Date) {
+                            needs_z = "done";
+                        } else if (typeof probe === "string") {
+                            if (probe.indexOf("Z") >= 0) needs_z = "no";
+                            else if (probe.indexOf("+00:00") >= 0) needs_z = "00";
+                            else needs_z = "yes";
                         }
                     }
-
+                
                     if (needs_z === "yes") {
-                        for (p = 0; p < xaxis.length; p++) {
-                            ndt = new Date(xaxis[p] + 'Z');
-                            xaxis[p] = ndt;
-                        }
+                        xaxis = xaxis.map(v => new Date(String(v) + 'Z'));
                     } else if (needs_z === "00") {
-                        for (p = 0; p < xaxis.length; p++) {
-                            var val = xaxis[p];
-                            ndt = new Date(val.substring(0, val.length - 6) + 'Z');
-                        }
-                    } else {
-                        for (p = 0; p < xaxis.length; p++) {
-                            ndt = new Date(xaxis[p]);
-                            xaxis[p] = ndt;
-                        }
+                        xaxis = xaxis.map(v => {
+                            const s = String(v);
+                            return new Date(s.substring(0, s.length - 6) + 'Z');
+                        });
+                    } else if (needs_z === "no") {
+                        xaxis = xaxis.map(v => new Date(String(v)));
+                    } else if (needs_z === "done") {
+                        // already Date objects — leave as-is
                     }
-
+                
                     console.log("Converted X Axis");
                     console.log(xaxis);
-                }
+                }                
 
                 labels = xaxis
 
@@ -1054,8 +1043,8 @@ function bChart(chart_id, chart_data) {
     console.log(datasets);
     console.log("FINAL SCALES: " + Object.keys(chart_scales).length);
     console.log(chart_scales);
-    console.log("FINAL FORMATS: " + Object.keys(formats).length);
-    console.log(formats);
+    console.log("FINAL FORMATS: " + (formats ? Object.keys(formats).length : 0));
+    if (formats) console.log(formats);
 
     if (category || category_grouped || category_bulk) {
         const unique_labels = [...new Set(labels)] // Get unique list of labels for the x axis
