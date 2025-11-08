@@ -139,4 +139,5 @@ function enable_interactions(parent, reload = false, runtask = false) {
     parent.find('.clarama-post-embedded').load_post();
     parent.find('.clarama-embedded').load();
     Prism.highlightAll(); // Manually trigger highlighting
+    exposeInteractionSourcesUnder(parent);
 }

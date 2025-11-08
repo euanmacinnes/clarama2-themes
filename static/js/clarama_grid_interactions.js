@@ -493,6 +493,41 @@ function setInteractionSrcExpanded(target, uid, expanded) {
     }
 }
 
+function exposeInteractionSourcesUnder($scope) {
+    try {
+        const root = ($scope && $scope.length) ? $scope[0] : document;
+        const urlInputs = root.querySelectorAll('input[id^="interaction-url-"]');
+        urlInputs.forEach(inp => {
+            const id = String(inp.id || '');
+            if (!id.startsWith('interaction-url-')) return;
+            // id format: interaction-url-<target>-<uid>  (uid is last token)
+            const suffix = id.substring('interaction-url-'.length);
+            const parts = suffix.split('-');
+            const uid = parts.pop();
+            const target = parts.join('-');
+
+            // (1) Apply your existing show/hide rules based on URL value
+            onInteractionUrlInput(target, uid, inp.value || '');
+
+            // (2) If the action type is 'modal', force-expand the source area
+            const typeSel =
+                document.getElementById(`interaction-element-${target}-${uid}`) ||
+                document.getElementById(`interaction-elem-${target}-${uid}`);
+            const selected = typeSel && (typeSel.value || '').toLowerCase();
+            if (selected === 'modal') {
+                setInteractionSrcExpanded(target, uid, true);
+                const paramsWrap = document.getElementById(`interaction-params-wrap-${target}-${uid}`);
+                if (paramsWrap) {
+                    paramsWrap.classList.remove('d-none');
+                    paramsWrap.classList.add('d-inline-flex');
+                }
+            }
+        });
+    } catch (e) {
+        try { console.warn('exposeInteractionSourcesUnder failed', e); } catch (_) {}
+    }
+}
+
 function toggleInteractionSrc(target, uid) {
     setInteractionSrcExpanded(target, uid, true);
     const urlInput = document.getElementById(`interaction-url-${target}-${uid}`);
@@ -514,6 +549,14 @@ function onInteractionUrlInput(target, uid, val) {
     if (expanded && !hasValue) setInteractionSrcExpanded(target, uid, false);
 }
 
+// Run once on initial load
+try {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => exposeInteractionSourcesUnder($(document.body)));
+    } else {
+        exposeInteractionSourcesUnder($(document.body));
+    }
+} catch (_) {}
 
 // Listen for content saved events to refresh embedded elements inside grids
 (function () {
