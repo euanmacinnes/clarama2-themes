@@ -12,7 +12,7 @@
                    value="{{ source }}">
             <button type="button" class="gridbrowsefile"
                     data-bs-toggle="modal" data-bs-target="#browseFileModal"
-                    inputId="task_step_{{ loop_index }}_source_{{ tab_id }}" filters="*.source.yaml|*.csv|*.xlsx">
+                    inputId="task_step_{{ loop_index }}_source_{{ tab_id }}" filters="*.source.yaml|*.csv|*.xlsx|*.parquet">
                 <i class="bi bi-folder2-open"></i>
             </button>
             {% if source %}
