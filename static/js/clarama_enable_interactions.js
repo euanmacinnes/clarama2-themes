@@ -35,6 +35,7 @@ function enable_interactions(parent, reload = false, runtask = false) {
     parent.find(".dropdown-toggle").dropdown();
     parent.find('.clarama-field-select2').initselect();
 
+    // --- Scope Select2 dropdowns to modal/popup so typing works
     (function scopeSelect2ToContainer() {
         const $container =
             parent.closest('.modal').first().length
@@ -52,9 +53,7 @@ function enable_interactions(parent, reload = false, runtask = false) {
                     }
                     $el.select2('destroy');
                 }
-            } catch (e) {
-                // safe to ignore and proceed with fresh init
-            }
+            } catch (e) { /* no-op */ }
             $el.select2(Object.assign({}, opts, {
                 dropdownParent: $container,
                 width: (opts && opts.width) || 'resolve'
@@ -114,19 +113,41 @@ function enable_interactions(parent, reload = false, runtask = false) {
     fields.filter('.clarama-delay-field').interact_delay();
     fields.filter('.clarama-editor-field').interact_editor();
     fields.filter('.clarama-rtf-field').interact_rtf();
-    fields.filter('.clarama-daterange').daterangepicker({
-        timePicker: true,
-        timePickerSeconds: true,
-        alwaysShowCalendars: true,
-        ranges: {
-            'Today': [moment(), moment()],
-            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-            'This Month': [moment().startOf('month'), moment().endOf('month')],
-            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-        }
-    });
+
+    // --- DateRangePicker: ensure it renders inside the modal/popup
+    (function scopeDaterangeToContainer() {
+        const $drpContainer =
+            parent.closest('.modal').first().length
+                ? parent.closest('.modal').first()
+                : ($('#interactionPopup').length ? $('#interactionPopup') : parent);
+
+        fields.filter('.clarama-daterange').each(function () {
+            const $el = $(this);
+
+            const drp = $el.data('daterangepicker');
+            if (drp) {
+                drp.remove();  
+                $el.off('.daterangepicker');
+                $el.removeData('daterangepicker');
+            }
+
+            $el.daterangepicker({
+                parentEl: $drpContainer,
+                timePicker: true,
+                timePickerSeconds: true,
+                alwaysShowCalendars: true,
+                ranges: {
+                    'Today': [moment(), moment()],
+                    'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                    'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                    'This Month': [moment().startOf('month'), moment().endOf('month')],
+                    'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                }
+            });
+        });
+    })();
+
     hoverover_this(parent.find('.hoverover'));
 
     // Wire kernel info click handlers for dynamically loaded content
