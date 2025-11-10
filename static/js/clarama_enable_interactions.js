@@ -35,15 +35,11 @@ function enable_interactions(parent, reload = false, runtask = false) {
     parent.find(".dropdown-toggle").dropdown();
     parent.find('.clarama-field-select2').initselect();
 
-    // --- Scope Select2 dropdowns to modal/popup so typing works
+    // --- Scope Select2 dropdowns only when an element is inside a modal/popup
     (function scopeSelect2ToContainer() {
-        const $container =
-            parent.closest('.modal').first().length
-                ? parent.closest('.modal').first()
-                : ($('#interactionPopup').length ? $('#interactionPopup') : parent);
-
         parent.find('.clarama-field-select2').each(function () {
             const $el = $(this);
+            const $host = $el.closest('.modal, #interactionPopup').first(); // element-level check
             let opts = {};
             try {
                 if ($el.data('select2')) {
@@ -54,10 +50,17 @@ function enable_interactions(parent, reload = false, runtask = false) {
                     $el.select2('destroy');
                 }
             } catch (e) { /* no-op */ }
-            $el.select2(Object.assign({}, opts, {
-                dropdownParent: $container,
-                width: (opts && opts.width) || 'resolve'
-            }));
+
+            if ($host.length) {
+                $el.select2(Object.assign({}, opts, {
+                    dropdownParent: $host,
+                    width: (opts && opts.width) || 'resolve'
+                }));
+            } else {
+                $el.select2(Object.assign({}, opts, {
+                    width: (opts && opts.width) || 'resolve'
+                }));
+            }
         });
     })();
 
@@ -114,25 +117,22 @@ function enable_interactions(parent, reload = false, runtask = false) {
     fields.filter('.clarama-editor-field').interact_editor();
     fields.filter('.clarama-rtf-field').interact_rtf();
 
-    // --- DateRangePicker: ensure it renders inside the modal/popup
+    // --- DateRangePicker: mount inside modal/popup only when needed
     (function scopeDaterangeToContainer() {
-        const $drpContainer =
-            parent.closest('.modal').first().length
-                ? parent.closest('.modal').first()
-                : ($('#interactionPopup').length ? $('#interactionPopup') : parent);
-
-        fields.filter('.clarama-daterange').each(function () {
+        parent.find('.clarama-daterange').each(function () {
             const $el = $(this);
+            const $host = $el.closest('.modal, #interactionPopup').first(); // element-level check
 
-            const drp = $el.data('daterangepicker');
-            if (drp) {
-                drp.remove();  
-                $el.off('.daterangepicker');
-                $el.removeData('daterangepicker');
-            }
+            try {
+                const drp = $el.data('daterangepicker');
+                if (drp) {
+                    drp.remove();
+                    $el.off('.daterangepicker');
+                    $el.removeData('daterangepicker');
+                }
+            } catch (e) { /* no-op */ }
 
-            $el.daterangepicker({
-                parentEl: $drpContainer,
+            const common = {
                 timePicker: true,
                 timePickerSeconds: true,
                 alwaysShowCalendars: true,
@@ -144,7 +144,13 @@ function enable_interactions(parent, reload = false, runtask = false) {
                     'This Month': [moment().startOf('month'), moment().endOf('month')],
                     'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
                 }
-            });
+            };
+
+            if ($host.length) {
+                $el.daterangepicker(Object.assign({}, common, { parentEl: $host }));
+            } else {
+                $el.daterangepicker(common);
+            }
         });
     })();
 
