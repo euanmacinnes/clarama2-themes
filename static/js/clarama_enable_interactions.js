@@ -26,7 +26,6 @@ function toolbar_interactions(toolbar) {
             }
         });
     });
-
 }
 
 function enable_interactions(parent, reload = false, runtask = false) {
@@ -35,6 +34,34 @@ function enable_interactions(parent, reload = false, runtask = false) {
     //      parent.find('.clarama-execute').execute();
     parent.find(".dropdown-toggle").dropdown();
     parent.find('.clarama-field-select2').initselect();
+
+    (function scopeSelect2ToContainer() {
+        const $container =
+            parent.closest('.modal').first().length
+                ? parent.closest('.modal').first()
+                : ($('#interactionPopup').length ? $('#interactionPopup') : parent);
+
+        parent.find('.clarama-field-select2').each(function () {
+            const $el = $(this);
+            let opts = {};
+            try {
+                if ($el.data('select2')) {
+                    const inst = $el.data('select2');
+                    if (inst && inst.options && inst.options.options) {
+                        opts = inst.options.options;
+                    }
+                    $el.select2('destroy');
+                }
+            } catch (e) {
+                // safe to ignore and proceed with fresh init
+            }
+            $el.select2(Object.assign({}, opts, {
+                dropdownParent: $container,
+                width: (opts && opts.width) || 'resolve'
+            }));
+        });
+    })();
+
     parent.find('.source-editor').editor();
     parent.find('.text-editor').trumbowyg({
         autogrow: true,
