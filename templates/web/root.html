@@ -37,8 +37,8 @@
 
                             {% for branch in branches %}
                                 <li>
-                                    <a class="text-capitalize nav-link  fw-bold text-white  fst-italic dropdown-item py-2 px-3"
-                                       href="/content/explore/?set_branch={{ branch }}">
+                                    <a class="text-capitalize nav-link fw-bold text-white fst-italic dropdown-item py-2 px-3 branch-switch-link"
+                                       href="#" data-set-branch="{{ branch }}">
                                         <i class="bi bi-signpost h5 me-2"></i>{{ branch }}
                                     </a>
                                 </li>
@@ -341,8 +341,23 @@
             const toast = new bootstrap.Toast(el, {delay: 5000});
             toast.show();
         });
-    });
 
+        var links = document.querySelectorAll('.branch-switch-link[data-set-branch]');
+        if (!links.length) return;
+
+        links.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                var branch = this.getAttribute('data-set-branch');
+                if (!branch) return;
+
+                var url = new URL(window.location.href);
+                url.searchParams.set('set_branch', branch);
+                window.location.href = url.toString();
+            });
+        });
+    });
 
     function updateUrlToDefault(url) {
         return updateUrlToDefaultImpl(url);
