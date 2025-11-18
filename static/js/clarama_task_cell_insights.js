@@ -392,7 +392,17 @@ function setStreamText(streamId, text, {append = false} = {}) {
     attachCodeInsertBars(htmlDiv);
 }
 
-/** Stream loop: arms websocket callback key and handles idle close */
+/**
+ * Attach a streaming handler for Insights chat output.
+ *
+ * @param {string|number} taskIndex  Task index for the cell.
+ * @param {function(string)} onChunk Callback invoked for each decoded text chunk.
+ *
+ * Details:
+ * - Registers a per-task callback on window keyed by `cell_insights_chat_callback_<taskIndex>`.
+ * - Handles idle timeouts; when no new chunks arrive for a short period,
+ *   the current reply is finalised and the console is re-enabled.
+ */
 function armStream(taskIndex, onChunk) {
     const cbKey = `cell_insights_chat_callback_${taskIndex}`;
     let sawFirstChunk = false;
@@ -472,7 +482,19 @@ function resolveDataSource(taskIndex) {
     return {mode: "tabbed", source: sourceVal, tabId};
 }
 
-/** Send a dataQuery via the Insights console to kernel (Data Inspector tab) */
+/**
+ * Send a data inspector query to the kernel for the given cell.
+ *
+ * @param {jQuery} cell_button  jQuery object for a button inside the cell.
+ * @param {string} [dataQuery]  Optional query string; if omitted, value is read
+ *                              from the active .console-input field.
+ *
+ * Behaviour:
+ * - Determines the current taskIndex from the cell.
+ * - Ensures the active tab is the "Data Inspector" tab before sending.
+ * - Builds a field registry via get_field_values() and posts a "data" request
+ *   to the backend using postToKernel.
+ */
 function cell_insights_data_run(cell_button, dataQuery) {
     const taskIndex = (cell_button && (cell_button.attr("step") || cell_button.attr("data-task-index"))) || null;
     if (!taskIndex) {

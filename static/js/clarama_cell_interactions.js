@@ -94,8 +94,21 @@ function cell_edit_run(parent) {
 }
 
 /**
- * Initialize insights for new cells
- * @param {jQuery} newElement - The newly created cell element
+ * Initialise insights + editors for a newly created cell.
+ *
+ * @param {jQuery} newElement  - <li.clarama-cell-item> that was just inserted.
+ *
+ * Steps:
+ * - Calls enable_interactions(newElement).
+ * - Ensures the insights bar reflects the correct taskIndex (step or data-task-index).
+ * - Binds data-task-index into:
+ *      * .insights-toggle-bar
+ *      * .console-input
+ *      * .execute-console
+ * - Reinitialises sticky fields, Select2 dropdowns and embedded ACE editors.
+ * - If a left-hand editor exists, enables code-insert bars immediately; otherwise
+ *   defers until observeEditorReady() detects the editor.
+ * - Syncs the insights console and initialises chat reprompt controls.
  */
 function initializeNewCellinsights(newElement) {
     enable_interactions(newElement);
