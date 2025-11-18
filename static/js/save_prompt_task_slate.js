@@ -235,6 +235,11 @@ function setupSaveHooks() {
  * Show the unsaved changes modal
  */
 function showUnsavedChangesModal(target, actionType) {
+    // Close GINA if it is currently open
+    if (window.__ginaCloseIfOpen && typeof window.__ginaCloseIfOpen === 'function') {
+        window.__ginaCloseIfOpen();
+    }
+
     const modal = new bootstrap.Modal(document.getElementById('unsaved-changes-modal'));
     
     $('#unsaved-changes-modal').data('target', target);

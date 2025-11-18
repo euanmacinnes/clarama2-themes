@@ -610,6 +610,20 @@ function findKernelId() {
 }
 
 // --- Kernel call ----------------------------------------------------------
+/**
+ * Send a user question to the GINA kernel.
+ *
+ * @param {string} questionText    Raw text from the active .gina-input.
+ * @param {HTMLElement} [forBlock] Optional .gina-block element used to show
+ *                                 errors if the network call fails.
+ *
+ * Behaviour:
+ * - Serialises any necessary context (e.g. conversation history) into a payload.
+ * - POSTs to the Clarama backend, which forwards to the GINA kernel.
+ * - On success, the actual assistant reply is delivered asynchronously via
+ *   WebSocket and rendered by kernel callbacks (see gina_kernel_message).
+ * - On error, shows a flash message and finalises the current block with an error.
+ */
 function runQuestionThroughKernel(questionText, forBlock) {
     get_field_values({}, true, function (field_registry) {
         field_registry["clarama_task_kill"] = false;
@@ -986,6 +1000,13 @@ document.addEventListener("DOMContentLoaded", () => {
         checkDocking();
     }
 
+    /**
+     * Open the main GINA panel in docked mode.
+     *
+     * - Collapses the main content area so the chat can sit under the navbar.
+     * - Marks #gina-wrapper as .is-open and #gina-chat-container as active + mode-docked.
+     * - Ensures the first .gina-input is focused and auto-sized.
+     */
     function openGina() {
         mainContent?.classList.add("hidden", "collapsed");
       
@@ -1031,6 +1052,18 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+
+    // Expose helper so other scripts (e.g. unsaved-changes prompts)
+    // can safely close GINA if it's currently open.
+    window.__ginaCloseIfOpen = function () {
+        try {
+            if (ginaContainer && ginaContainer.classList.contains("active")) {
+                closeGina();
+            }
+        } catch (e) {
+            console.warn("GINA: error while trying to close from external caller", e);
+        }
+    };
 
     // --- Helpers --------------------------------------------------------------
     function setProcessingState(v) {
