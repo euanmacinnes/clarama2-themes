@@ -194,7 +194,7 @@ $(document).on('contextmenu', function (event) {
                 }
             }
             const baseParams = (params || '').toString().trim();
-            const query = [baseParams, ...extraParams].filter(Boolean).join('&');
+            const query = [baseParams, extraParams.join('&')].filter(Boolean).join('&');
             const finalUrl = url + (query ? ('?' + query) : '');
 
             if (elem == "modal") showModalWithContent(fileU, finalUrl, field_values, true);
@@ -266,10 +266,94 @@ document.addEventListener('mousemove', function (e) {
 // tbh idk why itll disappear, but the record did pass to the interaction tho but im guessing because when the task runs, itll get the field values agn which will override
 function showModalWithContent(field, url, field_values = "", contextM = false) {
     $('#interactionModal').modal('show');
-    const iModal = document.getElementById("interactionModalBody");
-    iModal.innerHTML = '';
-    iModal.append(showInteractionContent(field, 'modal', url, field_values, contextM));
-    enable_interactions($("#interactionModalBody"), true, true);
+    const $modal = $('#interactionModal');
+    const $body  = $('#interactionModalBody');
+
+    $body.html('');
+    $body.append(showInteractionContent(field, 'modal', url, field_values, contextM));
+    enable_interactions($body, true, true);
+
+    $modal.one('shown.bs.modal', function () {
+        try {
+            const fv  = (field_values && typeof field_values === 'object') ? field_values : {};
+            const row = fv.row || {};
+            if (!row || typeof row !== 'object') return;
+
+            const entries = Object.entries(row);
+            if (!entries.length) return;
+
+            const normalise = s => String(s || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '_');
+
+            const pending = new Set(entries.map(([label]) => normalise(label)));
+
+            const tick = setInterval(() => {
+                entries.forEach(([label, rawVal]) => {
+                    const inputName = normalise(label);
+                    if (!pending.has(inputName)) return;
+
+                    const $field = $body.find(`[name="${inputName}"]`);
+                    if (!$field.length) return;
+
+                    const idVal   = rawVal != null ? String(rawVal) : null;
+                    const textVal = idVal || '';
+
+                    if ($field.is('select')) {
+                        const idKey     = $field.attr('id_column');      // which row key is the ID?
+                        const valueKey  = $field.attr('value_column');   // which row key is the label?
+                        const selectKey = $field.attr('select_column');  // optional "display" column
+
+                        if (idKey || valueKey || selectKey) {
+                            if (idKey && row[idKey] != null) {
+                                idVal = String(row[idKey]);
+                            }
+                            if (valueKey && row[valueKey] != null) {
+                                textVal = String(row[valueKey]);
+                            } else if (selectKey && row[selectKey] != null) {
+                                textVal = String(row[selectKey]);
+                            } else if (!textVal && idVal) {
+                                textVal = idVal;
+                            }
+                        }
+
+                        const id   = idVal || textVal;
+                        const text = textVal || idVal || '';
+
+                        $field.find('option[data-autoinjected="1"]').remove();
+
+                        if (id) {
+                            if ($field.find(`option[value="${id.replace(/"/g, '&quot;')}"]`).length === 0) {
+                                const opt = new Option(text, id, true, true);
+                                opt.setAttribute('data-autoinjected', '1');
+                                $field.append(opt);
+                            }
+
+                            $field.val(id).trigger('change');
+                        } else {
+                            $field.val(text).trigger('change');
+                        }
+                    } else {
+                        const v = idVal || textVal;
+                        $field.val(v).trigger('change');
+                    }
+
+                    pending.delete(inputName);
+                });
+
+                if (!pending.size) {
+                    clearInterval(tick);
+                }
+            }, 100);
+        } catch (e) {
+            console.warn('modal prefill failed', e);
+        }
+    });
+
+    $modal.one('hidden.bs.modal', function () {
+        $body.empty();
+    });
 }
 
 function playHiddenContent(field, url, field_values = "", contextM = false) {
