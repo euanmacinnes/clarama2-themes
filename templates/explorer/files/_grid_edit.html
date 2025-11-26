@@ -114,7 +114,7 @@
         return typeof v === 'object' && v !== null && !(v instanceof Array) && !(v instanceof Date);
     }
 
-    var {{ grid_id }}elements = {{ element_json | to_json | safe }};
+    var {{ grid_id }}elements = {{ (element_json or {}) | to_json | safe }};
     console.log("{{ grid_id }}elements", {{ grid_id }}elements);
 
     var {{ grid_id }}settings = {};

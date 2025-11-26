@@ -1,6 +1,6 @@
 <div class="grid-reference grid-{{ grid_id }}" grid_id="{{ grid_id }}"></div>
 <script type="text/javascript">
-    var {{ grid_id }}elements = {{ element_json | to_json | safe }};
+    var {{ grid_id }}elements = {{ (element_json or {}) | to_json | safe }};
 
     var {{ grid_id }}subOptions = {
         cellHeight: 55, // should be 50 - top/bottom
