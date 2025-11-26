@@ -409,12 +409,12 @@
         const saveButton = document.getElementById("save")
             || document.getElementById("markdown_save")
             || document.getElementById("content_editor_raw_save");
-        if ((e.ctrlKey || e.metaKey) && e.key === "s" && saveButton) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S") && saveButton) {
             e.preventDefault();
             saveButton.click();
         }
         const ginaButton = document.getElementById("gina-button");
-        if ((e.ctrlKey || e.metaKey) && e.key === "g" && ginaButton) { // Ctrl+g to toggle GINA
+        if ((e.ctrlKey || e.metaKey) && (e.key === "g" || e.key === "G") && ginaButton) { // Ctrl+g to toggle GINA
             e.preventDefault();
             ginaButton.click();
         }

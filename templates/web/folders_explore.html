@@ -957,17 +957,17 @@
                     $('#deleteConfirmModal').modal('show');
                 }
 
-                if (e.ctrlKey && e.key === "c") {               // Ctrl + c (copy)
+                if (e.ctrlKey && (e.key === "c" || e.key === "C")) {    // Ctrl + c (copy)
                     e.preventDefault();
                     context_copy();
                 }
 
-                if (e.ctrlKey && e.key === "x") {               // Ctrl + c (cut)
+                if (e.ctrlKey && (e.key === "x" || e.key === "X")) {    // Ctrl + x (cut)
                     e.preventDefault();
                     context_cut();
                 }
 
-                // if (e.ctrlKey && e.key === "v") {               // Ctrl + v (paste)
+                // if (e.ctrlKey && (e.key === "v" || e.key === "V")) {  // Ctrl + v (paste)
                 //     e.preventDefault();
                 //     context_paste();
                 // }
