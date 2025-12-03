@@ -855,8 +855,8 @@ function initializeCellCopyPaste() {
     $('#panel-context-menu').children()[0].onclick = taskCellCopy;
     $('#panel-context-menu').children()[1].onclick = taskCellPaste;
 
-    // Right-click event on cell results
-    $('[id^="results_"]').on('contextmenu', function (e) {
+    // Right-click event on cell + insights results
+    $('[id^="results_"], [id^="insights-results-"]').on('contextmenu', function (e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -912,7 +912,7 @@ function initializeCellCopyPaste() {
     });
 
     $(document).on('contextmenu', function (e) {
-        if (!$(e.target).closest('.panel, .cell-editor, [id^="results_"]').length) {
+        if (!$(e.target).closest('.panel, .cell-editor, [id^="results_"], [id^="insights-results-"]').length) {
             $('#panel-context-menu').hide();
             $('#output-context-menu').hide();
         }
