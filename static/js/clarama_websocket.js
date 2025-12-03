@@ -1113,6 +1113,53 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET TABLE MESSAGE:" + webSocket.url);
                 process_template(dict['type'], dict['values'], $(resulter));
                 bTable(dict['values']['table_id'], dict['results']);
+
+                try {
+                    const stepId = String(dict.step_id || "");
+                    let taskIndex = null;
+
+                    const m = stepId.match(/(\d+)$/);
+                    if (m) {
+                        taskIndex = m[1];
+                    } else {
+                        const digits = stepId.replace(/\D/g, "");
+                        taskIndex = digits || null;
+                    }
+
+                    if (
+                        taskIndex &&
+                        window.__insightsDataRoute &&
+                        window.__insightsDataRoute[taskIndex] &&
+                        window.__insightsDataRoute[taskIndex].active
+                    ) {
+                        // Only reroute when the Data Inspector tab is currently active
+                        const activeId = getActiveTabId(taskIndex) || "";
+                        if (!activeId.startsWith("insights-data-inspector-tab-")) {
+                            return;
+                        }
+
+                        const fromHost    = document.getElementById(`results_${taskIndex}`);
+                        const insightsHost = document.getElementById(`insights-results-${taskIndex}`);
+                        if (!fromHost || !insightsHost) {
+                            return;
+                        }
+
+                        const tables = fromHost.querySelectorAll("table");
+                        if (!tables.length) {
+                            return;
+                        }
+                        const table = tables[tables.length - 1];
+
+                        const pagers = fromHost.querySelectorAll(".fixed-table-pagination");
+                        const pager  = pagers.length ? pagers[pagers.length - 1] : null;
+
+                        insightsHost.innerHTML = "";
+                        insightsHost.appendChild(table);
+                        insightsHost.appendChild(pager);
+                    }
+                } catch (e) {
+                    console.error("Failed to reroute Data Inspector table into Insights results:", e);
+                }
             }
 
             if (dict['class'] === "template_chart") {

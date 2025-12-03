@@ -523,28 +523,19 @@ function cell_insights_data_run(cell_button, dataQuery) {
         const task_registry = buildTaskRegistry($cell);
         const spec = ensureStreamScaffold(task_registry);
 
-        spec.target = "insights_variables";
-        spec.type = "data";
+        spec.type   = "data";
         spec.output = "table";
-        spec.clear = true;
+        spec.clear  = false;
         spec.source = source;
         spec.content = query;
 
-        console.log("spec: ", spec);
-
-        // If tabbed, keep spec.tabs aligned to active tab
         if (mode === "tabbed" && tabId != null) {
-            spec.tabs = Array.isArray(spec.tabs) ? spec.tabs : [];
-            let foundIdx = spec.tabs.findIndex(t => String(t?.tab_id ?? "") === String(tabId));
-            if (foundIdx < 0) {
-                spec.tabs.push({tab_id: Number(tabId) || 0});
-                foundIdx = spec.tabs.length - 1;
-            }
-            spec.tabs[foundIdx] = Object.assign({}, spec.tabs[foundIdx], {
+            const activeTabSpec = {
                 tab_id: Number(tabId) || 0,
                 source,
                 content: query
-            });
+            };
+            spec.tabs = [activeTabSpec];
         }
 
         task_registry.parameters = field_registry;
@@ -1614,7 +1605,7 @@ function cell_insights_code_run(taskIndex, code) {
         return;
     }
 
-    const resultsElId = `code-results-${taskIndex}`;
+    const resultsElId = `insights-results-${taskIndex}`;
     const resultsEl = document.getElementById(resultsElId);
 
     const legacyOutEl =

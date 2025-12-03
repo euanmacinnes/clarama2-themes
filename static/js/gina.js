@@ -63,17 +63,6 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         const outContainer = block?.querySelector(".gina-output-container");
         if (outContainer) outContainer.style.display = "block";
 
-        // Helper: escape HTML
-        function escHtml(s) {
-            return (s || "").replace(/[&<>\"']/g, (c) => ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#39;"
-            }[c]));
-        }
-
         if (out) {
             out.classList.remove("loading");
             out.style.whiteSpace = "normal"; // use HTML rendering

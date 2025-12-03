@@ -157,6 +157,16 @@ CELL LAYOUT
     flex-direction: column;
 }
 
+.cell-insights .insights-content {
+    overflow-x: visible;
+}
+
+.cell-insights .insights-response {
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+}
+
 /* Loop state helpers */
 .loop-hidden {
     display: none;
