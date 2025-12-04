@@ -1,21 +1,29 @@
 {% if not table is defined %}
     {% set table={'title':''} %}
 {% endif %}
+
 {% if not table['pagination'] is defined %}
     {% do table.update({'pagination': True}) %}
     {% do table.update({'pagesize': 15}) %}
     {% do table.update({'sortable': True}) %}
 {% endif %}
 
+{% if not table['column_headers'] is defined %}
+    {% do table.update({'column_headers': True}) %}
+{% endif %}
+
 {% if not chart is defined %}
     {% set chart={'title': '', 'subtitle': '', 'legend': 'Off', 'xaxis-type': 'category'} %}
 {% endif %}
+
 {% if not chart['series-annos'] is defined %}
     {% do chart.update({'series-annos': [{}]}) %}
 {% endif %}
+
 {% if not chart['series-groups'] is defined %}
     {% do chart.update({'series-groups': [{}]}) %}
 {% endif %}
+
 {% if not chart['series-formats'] is defined %}
     {% do chart.update({'series-formats': [{}]}) %}
 {% endif %}
@@ -159,6 +167,7 @@
                         <thead>
                         <tr>
                             <th>Format</th>
+                            <th>Column Headers</th>
                             <th>Search</th>
                             <th>Export</th>
                             <th>Filter</th>
@@ -181,7 +190,12 @@
                                     <option {{ selected("centered",style) }} id="centered">Centered</option>
                                     <option {{ selected("metric",style) }} id="metric">Metric</option>
                                     <option {{ selected("worksheet",style) }} id="worksheet">Worksheet</option>
-                                </select></td>
+                                </select>
+                            </td>
+                            <td><input class="form-check-input table-column-headers"
+                                       type="checkbox" {{ table['column_headers'] | checked }}
+                                       name="column_headers" id="column_headers">
+                            </td>
                             <td><input class="form-check-input table-search" name="search"
                                        type="checkbox" {{ table['search'] | checked }}
                                        value="" id="search">
