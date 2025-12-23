@@ -8,8 +8,8 @@
     {% do table.update({'sortable': True}) %}
 {% endif %}
 
-{% if not table['column_headers'] is defined %}
-    {% do table.update({'column_headers': True}) %}
+{% if not table['header'] is defined %}
+    {% do table.update({'header': True}) %}
 {% endif %}
 
 {% if not chart is defined %}
@@ -192,9 +192,9 @@
                                     <option {{ selected("worksheet",style) }} id="worksheet">Worksheet</option>
                                 </select>
                             </td>
-                            <td><input class="form-check-input table-column-headers"
-                                       type="checkbox" {{ table['column_headers'] | checked }}
-                                       name="column_headers" id="column_headers">
+                            <td><input class="form-check-input table-header"
+                                       type="checkbox" {{ table['header'] | checked }}
+                                       name="header" id="header">
                             </td>
                             <td><input class="form-check-input table-search" name="search"
                                        type="checkbox" {{ table['search'] | checked }}
