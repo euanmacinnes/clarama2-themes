@@ -4,7 +4,7 @@
     <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
         <a id="menu_open" class="dropdown-item content_item bi bi-eye fs4" href="#">&nbsp;Open</a>
         <a id="menu_download" class="dropdown-item content_item bi bi-download" href="#">&nbsp;Download</a>
-        <a id="menu_favorites" class="dropdown-item content_item bi bi-star" href="#" onclick="favorite_listing();">&nbsp;Favorite</a>
+        <a id="menu_fileinfo" class="dropdown-item content_item bi bi-info-circle" href="#">&nbsp;File Info</a>
         <hr/>
         <a class="dropdown-item content_item bi bi-pencil rename" href="#" onclick="context_rename();">&nbsp;Rename</a>
         <a class="dropdown-item content_item bi bi-scissors" href="#" onclick="context_cut();">&nbsp;Cut</a>
@@ -13,6 +13,11 @@
         <hr/>
         <a class="dropdown-item content_item bi bi-trash3" href="#" data-bs-toggle="modal"
            data-bs-target="#deleteConfirmModal">&nbsp;Delete</a>
+    </div>
+    <!-- Small popover for File Info -->
+    <div id="fileinfo-popover"
+         class="dropdown-menu dropdown-menu-sm"
+         style="position: absolute; display: none;">
     </div>
 
     <!-- Just Paste, for the drop area -->
@@ -315,13 +320,14 @@
 
     <script>
 
-        function favorite_listing() {
-            var file_div = $("#context-menu").attr('file_div').split("_");
-            var file = $("#context-menu").attr("listing_file");
-            var fullpath = $("#context-menu").attr('listing_fullpath');
-            var icon = $("#context-menu").attr('listing_icon');
-
-            toggle_favorite(file, fullpath, icon, '{{username}}', file_div[0]);
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         function isValidFilename(name) {
@@ -568,10 +574,16 @@
                 if (!$(e.target).closest("#dropzone-context-menu, .upload_dropZone").length) {
                     $("#dropzone-context-menu").removeClass("show").hide();
                 }
-                if (!$(e.target).closest('.listing').length) {
+
+                if (!$(e.target).closest('#context-menu, .listing').length) {
                     $('#context-menu').removeClass("show").hide();
                 }
+
+                if (!$(e.target).closest('#fileinfo-popover, #menu_fileinfo').length) {
+                    $('#fileinfo-popover').removeClass("show").hide();
+                }
             });
+
 
             $('.listing_div').on('focusout', function () {
                 rename_finished(this);
@@ -590,6 +602,13 @@
 
                 // Hide dropzone menu if it's open
                 $("#dropzone-context-menu").removeClass("show").hide();
+
+                // Hide any existing File Info popover when opening a new context menu
+                $('#fileinfo-popover')
+                    .removeClass("show")
+                    .hide()
+                    .removeAttr('data-source-path')
+                    .attr('data-has-content', 'false');
 
                 var top = e.pageY - 10;
                 var left = e.pageX - 10;
@@ -611,18 +630,9 @@
                     "listing_icon": icon
                 });
 
-                var starIcon = document.getElementById("menu_favorites");
-                if (favoriteFiles.some(row => row[1] === fullpath)) {
-                    starIcon.classList.remove('bi-star');
-                    starIcon.classList.add('bi-star-fill');
-                    starIcon.textContent = " Favorited";
-                } else {
-                    starIcon.classList.remove('bi-star-fill');
-                    starIcon.classList.add('bi-star');
-                    starIcon.textContent = " Favorite";
-                }
-
                 $('#menu_open').attr("href", url);
+                const infoUrl = "/render/info/" + filepath;
+                $('#menu_fileinfo').attr("data-fileinfo-url", infoUrl);
                 $('#menu_download').attr("href", "/content/download/" + filepath);
                 $('#menu_delete').attr("href", "/content/delete/" + filepath);
 
@@ -635,10 +645,133 @@
                 return false;
             });
 
-            // Context menu item click
-            $("#context-menu a").on("click", function () {
+            // Context menu item click (generic close, except File Info which we override below)
+            $("#context-menu a").not('#menu_fileinfo').on("click", function () {
                 $(this).parent().removeClass("show").hide();
+                $('#fileinfo-popover').removeClass("show").hide();
             });
+
+            (function initFileInfoPopover() {
+                const $fileInfo = $('#menu_fileinfo');
+                const $popover = $('#fileinfo-popover');
+
+                function positionPopover() {
+                    const btnRect = $fileInfo[0].getBoundingClientRect();
+                    const scrollX = window.pageXOffset;
+                    const scrollY = window.pageYOffset;
+
+                    $popover.css({
+                        top: btnRect.top + scrollY,
+                        left: btnRect.right + scrollX
+                    });
+                }
+
+                function showPopover() {
+                    positionPopover();
+                    $popover.show().addClass('show');
+                }
+
+                function hidePopover() {
+                    $popover.removeClass('show').hide();
+                }
+
+                $fileInfo.on('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const url = $(this).attr('data-fileinfo-url');
+                    if (!url) return;
+
+                    // If already visible for this same file, toggle it off
+                    const currentSource = $popover.attr('data-source-path');
+                    if ($popover.is(':visible') && currentSource === url) {
+                        hidePopover();
+                        return;
+                    }
+
+                    $popover
+                        .attr('data-has-content', 'false')
+                        .attr('data-source-path', url)
+
+                    showPopover();
+
+                    const fullUrl = (typeof $CLARAMA_ROOT !== 'undefined' ? $CLARAMA_ROOT : '') + url;
+
+                    fetch(fullUrl)
+                        .then(resp => resp.text())
+                        .then(text => {
+                            console.log('File info: ', text);
+
+                            let data;
+                            try {
+                                data = JSON.parse(text);
+                            } catch (err) {
+                                console.error('File info JSON parse error:', err);
+                                $popover.html('<div class="px-2 py-1 small text-danger">Unable to retrieve file information (invalid JSON).</div>');
+                                return;
+                            }
+
+                            let res = null;
+                            if (data && data.results) {
+                                res = data.results;
+                            } else if (data && data.content_file) {
+                                res = data;
+                            }
+
+                            if (!res) {
+                                $popover.html('<div class="px-2 py-1 text-danger">Unable to retrieve file information (no results).</div>');
+                                return;
+                            }
+
+                            const modes = Array.isArray(res.modes) ? res.modes.join(', ') : '';
+
+                            const isDirectory = !!res.is_directory;
+                            let detailsHtml = '';
+
+                            if (isDirectory) {
+                                // Directory: show filename, number of files, number of folders
+                                const fileCount =
+                                    Array.isArray(res.files) ? res.files.length :
+                                    (typeof res.file_count === 'number' ? res.file_count : 0);
+
+                                const folderCount =
+                                    Array.isArray(res.folders) ? res.folders.length :
+                                    (typeof res.folder_count === 'number' ? res.folder_count : 0);
+
+                                detailsHtml = [
+                                    '<div class="mt-1"><strong>Files</strong><br>' + fileCount + '</div>',
+                                    '<div class="mt-1"><strong>Folders</strong><br>' + folderCount + '</div>'
+                                ].join('');
+                            } else {
+                                detailsHtml = [
+                                    (res.file_size != null)
+                                        ? '<div class="mt-1"><strong>File Size</strong><br>' + escapeHtml(res.file_size) + '</div>'
+                                        : '',
+                                    (res.modified_date != null)
+                                        ? '<div class="mt-1"><strong>Last Modified</strong><br>' + escapeHtml(res.modified_date) + '</div>'
+                                        : ''
+                                ].join('');
+                            }
+
+                            const html = [
+                                '<div class="px-2 py-1">',
+                                    '<div><strong>Name</strong><br><code>' + escapeHtml(res.filename) + '</code></div>',
+                                    detailsHtml,
+                                '</div>'
+                            ].join('');
+
+                            $popover
+                                .attr('data-has-content', 'true')
+                                .html(html);
+
+                            showPopover();
+                        })
+                        .catch(err => {
+                            console.error('File info fetch error:', err);
+                            $popover.html('<div class="px-2 py-1 small text-danger">Unable to retrieve file information (request failed).</div>');
+                        });
+                });
+            })();
 
             // Toggle “New …” UI (scoped, namespaced)
             $('#explore-card')
@@ -1153,8 +1286,16 @@
             position: relative;
             z-index: auto;
         }
+
+        #fileinfo-popover {
+            z-index: 20002 !important;
+            max-width: 420px;
+            white-space: normal;
+            font-size: 1.0 rem;
+            line-height: 1.4;
+        }
+
         .drop-target { outline: 2px dashed #0d6efd; }
     </style>
 
 {% endblock %}
-
