@@ -30,10 +30,15 @@ function bChart3d(chart_id, chart_data) {
     const primArray = dfDictToArrayOfDicts(s_objects);
     canvas.setAttribute("primitives", primArray);
     initCube(canvas, datasets, primArray, axisConfig)
-    if (canvas !== undefined) {
-        console.log("Destroying existing chart " + chart_id);
-        canvas.destroy();
+
+    try {
+        if (canvas !== undefined) {
+            console.log("Destroying existing chart " + chart_id);
+            canvas.destroy();
+        }
+    } catch (e) {
     }
+
     var chart_element = $('#' + chart_id);
     console.log("Chart: " + chart_id + ' - ');
     console.log(chart_data);
