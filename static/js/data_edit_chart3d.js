@@ -332,11 +332,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     // --- programs (uniform color) -------------------------------------------
     const vsPos = `
         attribute vec3 a_position;
+        attribute float a_psize;
         uniform mat4 u_mvp;
         uniform float u_pointSize;
         void main(){
             gl_Position = u_mvp * vec4(a_position, 1.0);
-            gl_PointSize = u_pointSize;
+            gl_PointSize = (a_psize > 0.0) ? a_psize : u_pointSize;
         }
     `;
     const fsUniform = `
@@ -359,6 +360,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
     const locU = (p) => ({
         a_position: gl.getAttribLocation(p, "a_position"),
+        a_psize: gl.getAttribLocation(p, "a_psize"),
         u_mvp: gl.getUniformLocation(p, "u_mvp"),
         u_color: gl.getUniformLocation(p, "u_color"),
         u_pointSize: gl.getUniformLocation(p, "u_pointSize"),
@@ -372,13 +374,14 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     // --- programs (per-vertex color) ----------------------------------------
     const vsPosColor = `
         attribute vec3 a_position;
+        attribute float a_psize;
         attribute vec4 a_color;
         varying vec4 v_color;
         uniform mat4 u_mvp;
         uniform float u_pointSize;
         void main(){
             gl_Position = u_mvp * vec4(a_position, 1.0);
-            gl_PointSize = u_pointSize;
+            gl_PointSize = (a_psize > 0.0) ? a_psize : u_pointSize;
             v_color = a_color;
         }
     `;
@@ -401,6 +404,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const progPointsVary = prog(vsPosColor, fsPointsVary);
     const locV = (p) => ({
         a_position: gl.getAttribLocation(p, "a_position"),
+        a_psize: gl.getAttribLocation(p, "a_psize"),
         a_color: gl.getAttribLocation(p, "a_color"),
         u_mvp: gl.getUniformLocation(p, "u_mvp"),
         u_pointSize: gl.getUniformLocation(p, "u_pointSize"),
@@ -1077,9 +1081,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         // If caller passed column names, attempt df-dict path first
         let requestedCols = null;
         if (Array.isArray(columnNamesOrCount)) {
-            requestedCols = columnNamesOrCount;
+            requestedCols = columnNamesOrCount.map(c => String(c).toLowerCase());
         } else if (typeof columnNamesOrCount === 'string') {
-            requestedCols = [columnNamesOrCount];
+            requestedCols = [columnNamesOrCount.toLowerCase()];
         }
 
         // df_to_dict-like object: {cols:[...], orientation:'byrow'|'bycol', rows:[...]}
@@ -1088,17 +1092,15 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             const orientation = ((data.orientation || data.orient || 'byrow') + '').toLowerCase();
             const rows = data.rows || data.data || data.values;
             if (Array.isArray(cols) && Array.isArray(rows)) {
-                // Build column index map (case-insensitive match fallback)
+                // Build column index map (case-insensitive match)
                 const colIndex = new Map();
                 for (let i = 0; i < cols.length; i++) {
-                    const name = String(cols[i]);
-                    colIndex.set(name, i);
-                    colIndex.set(name.toLowerCase(), i);
+                    const name = String(cols[i]).toLowerCase();
+                    if (!colIndex.has(name)) colIndex.set(name, i);
                 }
                 const idxs = [];
                 for (const rc of requestedCols) {
-                    const exact = colIndex.get(rc);
-                    const ci = (exact !== undefined) ? exact : colIndex.get(String(rc).toLowerCase());
+                    const ci = colIndex.get(rc);
                     if (ci === undefined) {
                         console.warn('toFloat32: missing column', rc);
                         return null;
@@ -1167,10 +1169,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         const uvs = toFloat32(uvRaw, ['u', 'v']);
         const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
 
-        // Normalize positions so data ranges fit the axis cube
-        const vertsN = normalizeXYZSeq(verts);
-        const edgesN = normalizeXYZSeq(edges);
-
         const name = prim.name || prim.id || 'obj';
 
         // Determine mode
@@ -1180,6 +1178,13 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             else if (verts && (verts.length % 9 === 0)) mode = 'triangle';
             else mode = 'point';
         }
+
+        const hasPS = vertsRaw && (vertsRaw.cols || vertsRaw.columns || []).some(c => String(c).toLowerCase() === 'ps');
+        const pointsizes = (mode === 'point' && hasPS) ? toFloat32(vertsRaw, ['ps']) : null;
+
+        // Normalize positions so data ranges fit the axis cube
+        const vertsN = normalizeXYZSeq(verts);
+        const edgesN = normalizeXYZSeq(edges);
 
         let program = null;
         let locations = null;
@@ -1191,6 +1196,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
         const vboSource = (mode === 'line' && edgesN) ? edgesN : vertsN;
         const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, vboSource);
+        let psbo = createBufferAndUpload(gl.ARRAY_BUFFER, pointsizes);
         let cbo = null, uvbo = null, ebo = null;
         let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
         let modeGL = gl.POINTS;
@@ -1289,6 +1295,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             vbo,
             cbo,
             uvbo,
+            psbo,
             ebo,
             colorSize,
             usesColorVary,
@@ -1386,6 +1393,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
             // point size (if program supports it)
             if (o.locations.u_pointSize) gl.uniform1f(o.locations.u_pointSize, Math.max(4.0, 5.0 * dpr));
+
+            if (o.psbo && o.locations.a_psize !== -1) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, o.psbo);
+                gl.vertexAttribPointer(o.locations.a_psize, 1, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(o.locations.a_psize);
+            }
 
             // colors
             if (o.usesColorVary && o.cbo) {
