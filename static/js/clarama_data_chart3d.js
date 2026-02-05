@@ -39,8 +39,16 @@ function bChart3d(chart_id, chart_data) {
     } catch (e) {
     }
 
-    var chart_element = $('#' + chart_id);
-    console.log("Chart: " + chart_id + ' - ');
+    var chart_element = $('#c_' + chart_id);
+    console.log("Chart: c_" + chart_id + ' - ');
     console.log(chart_data);
-    chart_element.attr("chart", new Chart(chart_element, config));
+    if (chart_element.length > 0) {
+        try {
+            chart_element.attr("chart", new Chart(chart_element, config));
+        } catch (e) {
+            console.error("Failed to create Chart.js instance on #c_" + chart_id + ":", e);
+        }
+    } else {
+        console.warn("Chart element #c_" + chart_id + " not found, cannot attach Chart.js instance");
+    }
 }
