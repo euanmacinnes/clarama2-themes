@@ -1015,10 +1015,21 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     function getOrLoadTexture(url, onLoaded) {
-        if (!url) return;
+        console.info('Requesting Texture:', url);
+        if (!url) {
+            console.info('Texture has no URL, request rejected');
+            return;
+        }
+        console.info('Loading Texture:', url);
         const cached = textureCache.get(url);
-        if (cached && cached !== 'loading') return cached;
-        if (cached === 'loading') return;
+        if (cached && cached !== 'loading') {
+            console.info('Returning cached texture');
+            return cached;
+        }
+        if (cached === 'loading') {
+            console.info('New texture, not loaded, Creating Texture while loading occurs');
+            return;
+        }
         // mark as loading
         textureCache.set(url, 'loading');
 
@@ -1037,6 +1048,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         if (isHttpUrl(url)) img.crossOrigin = 'anonymous';
         img.onload = () => {
             try {
+                console.info('Texture ' + url + ' loaded from HTTP, uploading to GPU');
                 gl.bindTexture(gl.TEXTURE_2D, tex);
                 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
@@ -1053,7 +1065,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             }
         };
         img.onerror = () => {
-            console.warn('Failed to load texture URL:', url);
+            console.error('Failed to load texture URL:', url);
             requestAnimationFrame(render);
         };
         try {
