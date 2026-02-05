@@ -33,7 +33,7 @@ function bChart3d(chart_id, chart_data) {
 
     try {
         if (canvas !== undefined) {
-            console.log("Destroying existing chart " + chart_id);
+            console.log("Destroying existing chart " + chart_id + " in canvas " + canvas);
             canvas.destroy();
         }
     } catch (e) {
