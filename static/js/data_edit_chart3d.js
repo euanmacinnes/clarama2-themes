@@ -1142,6 +1142,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                     console.warn('toFloat32: unknown orientation', orientation);
                     return null;
                 }
+                console.info("FLOAT32 For array " + columnNamesOrCount, idxs, out);
                 return new Float32Array(out);
             }
         }
@@ -1444,6 +1445,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             } else {
                 gl.drawArrays(o.modeGL, 0, o.countVerts);
             }
+
+            // cleanup: disable attributes to prevent state leakage to next primitives
+            if (o.locations.a_position !== -1) gl.disableVertexAttribArray(o.locations.a_position);
+            if (o.locations.a_psize !== -1) gl.disableVertexAttribArray(o.locations.a_psize);
+            if (o.locations.a_color !== -1) gl.disableVertexAttribArray(o.locations.a_color);
+            if (o.locations.a_uv !== -1) gl.disableVertexAttribArray(o.locations.a_uv);
         }
 
         // ---------- 2D overlay (ticks + titles) ----------
