@@ -405,11 +405,11 @@
         var colorNames = Object.keys(window.chartColors);
 
         $(window).resize(function () {
-            $('#c_{chart_id_content}').height($('#c_{chart_id_content}').width() / 1.7);
+            $('#c_{chart_id_content}').height(Math.round($('#c_{chart_id_content}').width() / 1.7));
         });
 
         $(document).ready(() => {
-            $('#c_{chart_id_content}').height($('#c_{chart_id_content}').width() / 1.7);
+            $('#c_{chart_id_content}').height(Math.round($('#c_{chart_id_content}').width() / 1.7));
         });
     </script>
 
