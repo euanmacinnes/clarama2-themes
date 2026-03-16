@@ -145,8 +145,6 @@
     });
 
     (function () {
-        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
         function setupFloatingToolbarForCell($cell) {
             const $colRem   = $cell.find('.col-remainder').first();
             const $target   = $colRem.find('.cell-hover-target');
@@ -157,32 +155,29 @@
 
             let hoverLock = false;   // stays visible while mouse is over either target or floating area
 
-            function positionAtMouse(e) {
-                const rect   = $colRem[0].getBoundingClientRect();
-                const fw     = $float.outerWidth();
-                const fh     = $float.outerHeight();
-                const maxX   = Math.max(0, rect.width  - fw);
-                const maxY   = Math.max(0, rect.height - fh);
+            function positionCentered() {
+                const rect = $colRem[0].getBoundingClientRect();
+                const fw   = $float.outerWidth();
+                const fh   = $float.outerHeight();
 
-                // Centre the bar at the cursor, but clamp so it remains fully visible
-                const x = clamp(e.clientX - rect.left - fw / 2, 0, maxX);
-                const y = clamp(e.clientY - rect.top  - fh / 2, 0, maxY);
+                // Centre the bar horizontally within the column remainder
+                const x = Math.max(0, (rect.width - fw) / 2);
+                const y = Math.max(0, (rect.height - fh) / 2);
 
                 $float.css({ left: x + 'px', top: y + 'px' });
             }
 
             function show(e) {
-            $float.removeClass('d-none');
-                positionAtMouse(e);
+                $float.removeClass('d-none');
+                positionCentered();
             }
 
             function hide() {
                 if (!hoverLock) $float.addClass('d-none');
             }
 
-            // Show & follow mouse while in the thin top band
+            // Show when hovering the thin top band
             $target.on('mouseenter', show);
-            $target.on('mousemove', positionAtMouse);
             $target.on('mouseleave', function () { setTimeout(hide, 80); });
 
             // Keep visible while interacting with the floating toolbar itself
