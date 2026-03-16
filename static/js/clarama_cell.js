@@ -462,8 +462,11 @@ function get_data_cell(cell) {
     // console.log("Chart3d config:", chart3d);
     // console.log("Tabs data:", tabs_data);
 
+    var cell_name = cell.closest('.clarama-cell-item').find('.data-cell-name').val() || '';
+
     return {
         "type": "data",
+        "name": cell_name,
         "output": output,
         "tabs": tabs_data,
         "table": table,

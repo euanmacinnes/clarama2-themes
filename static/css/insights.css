@@ -99,6 +99,22 @@ CELL LAYOUT
     color: #dc3545 !important;
 }
 
+.cell-name-tag {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 10;
+    font-size: 0.65rem;
+    font-family: monospace;
+    line-height: 1.4;
+    padding: 1px 5px;
+    background: rgba(50, 100, 180, 0.1);
+    color: #4a7fb5;
+    border-bottom-left-radius: 4px;
+    pointer-events: none;
+    opacity: 0.85;
+}
+
 .content-row {
     display: flex;
     align-items: stretch;

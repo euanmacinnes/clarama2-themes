@@ -32,6 +32,9 @@
     </div>
     <div class="col-remainder" style="padding:0px;">
         <div class="cell-hover-target" data-task-index="{{ task_index }}" aria-hidden="true"></div>
+        {% if task_step.get('type') == 'data' and task_step.get('name') %}
+        <div class="cell-name-tag" id="cell_name_tag_{{ task_index }}">{{ task_step.get('name') }}</div>
+        {% endif %}
 
         <div class="cell-toolbar-floating d-none" id="cell_toolbar_floating_{{ task_index }}">
             <div class="container-fluid px-1">
@@ -72,7 +75,7 @@
                             <div id="step_{{ stream }}_{{ task_index }}"
                                  class="clarama-post-embedded cell-editor"
                                  post_json="json_{{ task_index }}"
-                                 url="{{ call('clarama_content.content_template_render','explorer/steps/' ~ task_step['type'] ~ '_edit') }}?loop_index={{ task_index }}">
+                                 url="{{ call('clarama_content.content_template_render','explorer/steps/' ~ task_step['type'] ~ '_edit') }}?loop_index={{ task_index }}&name={{ task_step.get('name', '') }}">
                             </div>
                             <!-- the Results -->
                             <div class="container-fluid cell-response">

@@ -145,6 +145,15 @@ function initializeNewCellinsights(newElement) {
  * @description Attaches click event handlers to insert step buttons, handling both
  * new cell creation and insertion of steps before or after existing cells
  */
+function nextDataCellName() {
+    var maxIdx = -1;
+    $('.data-cell-name').each(function () {
+        var m = ($(this).val() || '').match(/^data(\d+)$/);
+        if (m) maxIdx = Math.max(maxIdx, parseInt(m[1]));
+    });
+    return 'data' + (maxIdx + 1);
+}
+
 function cell_insert_step(parent) {
     parent.find(".insert_step").off('click');
     parent.find(".insert_step").on("click", function (event) {
@@ -159,7 +168,8 @@ function cell_insert_step(parent) {
 
             new_step_id = new_step_id + 1;
 
-            get_html('/step/stream/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/',
+            var nameParam = steptype === 'data' ? '?name=' + encodeURIComponent(nextDataCellName()) : '';
+            get_html('/step/stream/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/' + nameParam,
                 function (new_step) {
                     var $new_element = $(new_step);
 
@@ -190,7 +200,8 @@ function cell_insert_step(parent) {
 
             new_step_id = new_step_id + 1;
 
-            get_html('/step/' + step_stream.attr('stream') + '/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/',
+            var nameParam = steptype === 'data' ? '?name=' + encodeURIComponent(nextDataCellName()) : '';
+            get_html('/step/' + step_stream.attr('stream') + '/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/' + nameParam,
                 function (new_step) {
                     var $new_element = $(new_step);
 

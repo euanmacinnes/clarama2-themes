@@ -54,6 +54,7 @@
     {% set seriesobjects = [{}] %}
 {% endif %}
 
+<input type="hidden" class="data-cell-name" value="{{ name if name is defined else '' }}">
 <div class="clarama-cell-content" celltype="data" dataid="{{ loop_index }}">
     <div class="tab-content" id="dataEditTabContentContainer_{{ loop_index }}">
         <div class="bg-c2-light rounded-top text-light px-2" style="padding-top: .25rem !important;">
