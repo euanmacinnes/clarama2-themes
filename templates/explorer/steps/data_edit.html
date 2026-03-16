@@ -135,6 +135,9 @@
                         </li>
                     </ul>
                 </div>
+                {% if name is defined and name %}
+                <span class="cell-name-tag">{{ name }}</span>
+                {% endif %}
             </div>
         </div>
         {% for tab in tabs %}

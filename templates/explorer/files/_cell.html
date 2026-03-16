@@ -32,24 +32,21 @@
     </div>
     <div class="col-remainder" style="padding:0px;">
         <div class="cell-hover-target" data-task-index="{{ task_index }}" aria-hidden="true"></div>
-        {% if task_step.get('type') == 'data' and task_step.get('name') %}
-        <div class="cell-name-tag" id="cell_name_tag_{{ task_index }}">{{ task_step.get('name') }}</div>
-        {% endif %}
 
         <div class="cell-toolbar-floating d-none" id="cell_toolbar_floating_{{ task_index }}">
             <div class="container-fluid px-1">
                 <div class="row flex-nowrap align-items-center g-1" style="padding:0;">
                     <div class="col">
                         <input type="text" id="loop-iterable-{{ task_index }}"
-                                loop-id="{{ task_index }}"
-                                class="form-control loop-iterable loop-inactive"
-                                value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
+                               loop-id="{{ task_index }}"
+                               class="form-control loop-iterable loop-inactive"
+                               value="{%- if step is defined -%}{{ step['loop-iterable'] }}{%- endif -%}">
                     </div>
                     {% include theme("explorer/files/_cell_insert.html") %}
                     <div class="col-auto hoverover auto-hover"
-                        id="task_toolbar_{{ stream }}_{{ task_index }}_trash"
-                        opacity="0.04"
-                        style="opacity: 0.04; padding-left: 0;">
+                         id="task_toolbar_{{ stream }}_{{ task_index }}_trash"
+                         opacity="0.04"
+                         style="opacity: 0.04; padding-left: 0;">
                         <button type="button" class="btn delete_step" data-bs-toggle="tooltip"
                                 data-bs-placement="bottom" title="Delete this step"
                                 style="--bs-btn-padding-y: 0.1rem; --bs-btn-padding-x: 0.25rem;">
@@ -149,43 +146,56 @@
 
     (function () {
         function setupFloatingToolbarForCell($cell) {
-            const $colRem   = $cell.find('.col-remainder').first();
-            const $target   = $colRem.find('.cell-hover-target');
+            const $colRem = $cell.find('.col-remainder').first();
+            const $target = $colRem.find('.cell-hover-target');
             const taskIndex = $target.data('task-index');
-            const $float    = $colRem.find('#cell_toolbar_floating_' + taskIndex);
+            const $float = $colRem.find('#cell_toolbar_floating_' + taskIndex);
 
             if ($float.length === 0 || $target.length === 0) return;
 
             let hoverLock = false;   // stays visible while mouse is over either target or floating area
 
-            function positionCentered() {
+            function clamp(v, min, max) {
+                return Math.max(min, Math.min(max, v));
+            }
+
+            function position(e) {
                 const rect = $colRem[0].getBoundingClientRect();
-                const fw   = $float.outerWidth();
-                const fh   = $float.outerHeight();
+                const fw = $float.outerWidth();
+                const fh = $float.outerHeight();
 
-                // Centre the bar horizontally within the column remainder
+                // X: centred horizontally within the column remainder
                 const x = Math.max(0, (rect.width - fw) / 2);
-                const y = Math.max(0, (rect.height - fh) / 2);
+                // Y: follows the mouse, clamped to remain fully visible
+                const y = clamp(e.clientY - rect.top - fh / 2, 0, Math.max(0, rect.height - fh));
 
-                $float.css({ left: x + 'px', top: y + 'px' });
+                $float.css({left: x + 'px', top: y + 'px'});
             }
 
             function show(e) {
                 $float.removeClass('d-none');
-                positionCentered();
+                position(e);
             }
 
             function hide() {
                 if (!hoverLock) $float.addClass('d-none');
             }
 
-            // Show when hovering the thin top band
+            // Show & track mouse Y while in the thin top band
             $target.on('mouseenter', show);
-            $target.on('mouseleave', function () { setTimeout(hide, 80); });
+            $target.on('mousemove', position);
+            $target.on('mouseleave', function () {
+                setTimeout(hide, 80);
+            });
 
             // Keep visible while interacting with the floating toolbar itself
-            $float.on('mouseenter', function () { hoverLock = true; });
-            $float.on('mouseleave', function () { hoverLock = false; hide(); });
+            $float.on('mouseenter', function () {
+                hoverLock = true;
+            });
+            $float.on('mouseleave', function () {
+                hoverLock = false;
+                hide();
+            });
         }
 
         // Initialise for all cells on load and whenever cells are (re)rendered

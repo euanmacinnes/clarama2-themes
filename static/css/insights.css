@@ -21,7 +21,7 @@ CELL LAYOUT
 }
 
 .toolbar-btn i {
-    font-size: 1rem;        
+    font-size: 1rem;
 }
 
 .toolbar-ellipsis-hidden {
@@ -45,7 +45,7 @@ CELL LAYOUT
     left: 0;
     pointer-events: auto;
     background: rgb(137, 190, 255);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
     border-radius: .25rem;
     max-width: 100%;
 }
@@ -80,9 +80,9 @@ CELL LAYOUT
     background-color: #fff !important;
     color: #212529;
     border-color: #ced4da;
-    box-shadow: 0 0 0 0 rgba(0,0,0,0);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
 }
-  
+
 .cell-toolbar-floating .loop-inactive {
     opacity: 1 !important;
 }
@@ -100,19 +100,13 @@ CELL LAYOUT
 }
 
 .cell-name-tag {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 10;
-    font-size: 0.65rem;
-    font-family: monospace;
-    line-height: 1.4;
-    padding: 1px 5px;
-    background: rgba(50, 100, 180, 0.1);
-    color: #4a7fb5;
-    border-bottom-left-radius: 4px;
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(16, 16, 16, 1);
+    border-radius: 3px;
     pointer-events: none;
-    opacity: 0.85;
+    white-space: nowrap;
 }
 
 .content-row {
@@ -256,7 +250,7 @@ CELL LAYOUT
     background-color: #e9ecef;
     border-color: #007bff;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
 }
 
 .variable-item.selected {
@@ -352,6 +346,7 @@ CELL LAYOUT
 .execute-console {
     transition: opacity 120ms ease, filter 120ms ease;
 }
+
 .execute-console:disabled {
     opacity: .5;
     filter: grayscale(25%);
@@ -375,7 +370,7 @@ CELL LAYOUT
 }
 
 .insights-console .input-group .btn:focus {
-    box-shadow: 0 0 0 .2rem rgba(0,123,255,.25) !important;
+    box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .25) !important;
 }
 
 /* Center helper text inside variables panel */
@@ -443,6 +438,7 @@ body.dragging {
     appearance: none;
     box-shadow: none;
 }
+
 .insights-toggle-bar:focus {
     outline: none;
 }
@@ -455,7 +451,7 @@ body.dragging {
 /* Bulb glow */
 .insight-bulb-glow {
     color: #ffc107;
-    text-shadow: 0 0 6px rgba(255,193,7,.8), 0 0 14px rgba(255,193,7,.6);
+    text-shadow: 0 0 6px rgba(255, 193, 7, .8), 0 0 14px rgba(255, 193, 7, .6);
 }
 
 /* =====================================================================
@@ -495,6 +491,7 @@ body.dragging {
     overflow-wrap: anywhere;
     display: inline-flex;
 }
+
 .insights-gina-chat-user .insights-gina-chat-bubble {
     background: #e7f5ff;
     border-color: #74c0fc;
@@ -517,7 +514,7 @@ body.dragging {
 
 .insights-gina-chat-container .code-insert-bar {
     position: absolute;
-    inset-inline-start: .25rem; 
+    inset-inline-start: .25rem;
     top: 8px;
     bottom: 8px;
     width: 18px;
@@ -532,8 +529,9 @@ body.dragging {
     opacity: .7;
     transition: opacity .15s ease, transform .15s ease;
     outline: none;
-    box-shadow: 0 0 0 1px rgba(0,0,0,.06) inset;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .06) inset;
 }
+
 .insights-gina-chat-container .code-insert-bar.disabled {
     opacity: .3;
     cursor: not-allowed;
@@ -547,7 +545,7 @@ body.dragging {
 }
 
 .insights-gina-chat-container .code-insert-bar:focus {
-    box-shadow: 0 0 0 2px rgba(13,110,253,.25);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, .25);
 }
 
 .insights-gina-chat-container .ginacode {
@@ -568,10 +566,10 @@ body.dragging {
     FORM LAYOUT TWEAKS (INSIGHTS ONLY)
     ===================================================================== */
 .cell-insights .row:has(#gfe_dep_field) > [class^="col-"],
-.cell-insights .row:has(#gfe_to)        > [class^="col-"],
-.cell-insights .row:has(#gfe_layout)    > [class^="col-"],
-.cell-insights .row:has(#gfe_ext)       > [class^="col-"],
-.cell-insights .row:has(#gfe_result_expr)  > [class^="col-"],
+.cell-insights .row:has(#gfe_to) > [class^="col-"],
+.cell-insights .row:has(#gfe_layout) > [class^="col-"],
+.cell-insights .row:has(#gfe_ext) > [class^="col-"],
+.cell-insights .row:has(#gfe_result_expr) > [class^="col-"],
 .cell-insights .row:has(#gfe_result_value) > [class^="col-"] {
     flex: 0 0 100% !important;
     max-width: 100% !important;
