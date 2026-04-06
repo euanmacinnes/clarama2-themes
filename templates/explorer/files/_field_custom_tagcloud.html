@@ -1,7 +1,7 @@
 {# Custom options for Tag Cloud field #}
 <div class="row g-3 align-items-start">
     <div class="col-12 col-md-6">
-        <label class="form-label">Drag-and-drop Mode</label>
+        <label class="field-label">Drag-and-drop Mode</label>
         <select id="tc_mode" class="form-select clarama-field"
                 title="When dragging between tag clouds, choose whether to copy or move the tag to the destination.">
             {% set mode_val = get(field_config,'mode','move') %}
@@ -13,7 +13,7 @@
     </div>
     <div class="col-12 col-md-6 d-flex align-items-end">
         <div class="form-check">
-            <input class="form-check-input clarama-field" type="checkbox" id="tc_editable"
+            <input class="form-check-input clarama-field field-check-input" type="checkbox" id="tc_editable"
                    {% if get(field_config,'editable', False) %}checked{% endif %}>
             <label class="form-check-label" for="tc_editable">Allow inline editing</label>
         </div>
@@ -23,13 +23,13 @@
 
 <div class="row g-3 mt-1 align-items-start">
     <div class="col-12 col-md-3">
-        <label class="form-label" for="tc_max_tags">Max tags (optional)</label>
+        <label class="field-label" for="tc_max_tags">Max tags (optional)</label>
         <input id="tc_max_tags" type="number" min="0" class="form-control clarama-field"
                value="{{ get(field_config,'max_tags','') }}" placeholder="e.g. 5">
         <div class="form-text">Limit how many tags can be selected/added.</div>
     </div>
     <div class="col-12 col-md-3">
-        <label class="form-label" for="tc_interact_on">Interaction trigger</label>
+        <label class="field-label" for="tc_interact_on">Interaction trigger</label>
         {% set inter_val = get(field_config,'interact_on','added') %}
         <select id="tc_interact_on" class="form-select clarama-field">
             <option value="added" {% if (inter_val|lower) == 'added' %}selected{% endif %}>On tag added</option>
@@ -38,7 +38,7 @@
         <div class="form-text">Choose when to trigger interactions.</div>
     </div>
     <div class="col-12 col-md-3">
-        <label class="form-label" for="tc_v_align">Vertical alignment</label>
+        <label class="field-label" for="tc_v_align">Vertical alignment</label>
         {% set va_val = get(field_config,'v_align','top') %}
         <select id="tc_v_align" class="form-select clarama-field">
             <option value="top" {% if (va_val|lower) == 'top' %}selected{% endif %}>Top</option>
@@ -47,7 +47,7 @@
         </select>
     </div>
     <div class="col-12 col-md-3">
-        <label class="form-label" for="tc_tag_size">Tag size</label>
+        <label class="field-label" for="tc_tag_size">Tag size</label>
         {% set size_val = get(field_config,'tag_size','md') %}
         <select id="tc_tag_size" class="form-select clarama-field">
             <option value="sm" {% if (size_val|lower) == 'sm' %}selected{% endif %}>Small</option>

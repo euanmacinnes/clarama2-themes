@@ -2,20 +2,20 @@
 <div class="row g-3 align-items-start">
     <div class="col-12 col-md-4 d-flex align-items-end">
         <div class="form-check">
-            <input class="form-check-input clarama-field" type="checkbox" id="dr_time_enabled"
+            <input class="form-check-input clarama-field field-check-input" type="checkbox" id="dr_time_enabled"
                    {% if get(field_config,'time_enabled', True) %}checked{% endif %}>
             <label class="form-check-label" for="dr_time_enabled">Enable time</label>
         </div>
     </div>
     <div class="col-12 col-md-4 d-flex align-items-end">
         <div class="form-check">
-            <input class="form-check-input clarama-field" type="checkbox" id="dr_milliseconds"
+            <input class="form-check-input clarama-field field-check-input" type="checkbox" id="dr_milliseconds"
                    {% if get(field_config,'milliseconds', False) %}checked{% endif %}>
             <label class="form-check-label" for="dr_milliseconds">Enable milliseconds</label>
         </div>
     </div>
     <div class="col-12">
-        <label class="form-label">Default ranges</label>
+        <label class="field-label">Default ranges</label>
         <textarea id="dr_ranges" class="form-control clarama-field" rows="5" placeholder='One range per line, e.g.:
 Last 15 minutes|now-15m -> now
 Last 24 hours|now-24h -> now

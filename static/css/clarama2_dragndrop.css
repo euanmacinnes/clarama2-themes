@@ -18,7 +18,7 @@ body {
 }
 
 .custom-dynamic-container {
-    overflow: hidden;
+    overflow: visible;
 }
 
 .bg-cell-config, .border-cell-config {
@@ -369,6 +369,21 @@ button.btn-c2-play:hover {
     padding-right: 8px;
     padding-left: 8px;
     height: 100%;
+}
+
+/* Use this class on checkboxes in field editor panels to prevent clarama-field width:100% override */
+.field-check-input {
+    width: 1em !important;
+    height: 1em !important;
+    flex-shrink: 0;
+}
+
+/* Use this class in field editor panels instead of form-label */
+.field-label {
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    padding-right: 8px;
+    padding-left: 8px;
 }
 
 .cell-editor {
