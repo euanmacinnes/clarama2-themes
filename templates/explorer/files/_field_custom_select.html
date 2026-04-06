@@ -32,5 +32,13 @@
                 Disabled states. Leave blank to use defaults (0,1,2,3).
             </div>
         </div>
+        <div class="col-12 mt-2">
+            <div class="form-check">
+                <input class="form-check-input clarama-field" type="checkbox" id="sel_allow_custom"
+                       {% if get(field_config,'allow_custom', False) %}checked{% endif %}>
+                <label class="form-check-label" for="sel_allow_custom">Allow custom values</label>
+            </div>
+            <div class="form-text">When enabled, users can type in a value that is not in the list.</div>
+        </div>
     </div>
 </div>

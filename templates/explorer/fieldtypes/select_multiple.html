@@ -17,6 +17,7 @@
                 select_column="{{ field_config['select_column'] }}"{% endif %}
                 {% if field_config.get('disable_column') is defined %}
                 disable_column="{{ field_config['disable_column'] }}"{% endif %}
+                {% if field_config.get('allow_custom') %}allow_custom="true"{% endif %}
                 class="form-control clarama-field-select2 clarama-field clarama-select-field"
                 data-sticky="true"
                 {% include theme("explorer/files/field_tooltip.html") %}

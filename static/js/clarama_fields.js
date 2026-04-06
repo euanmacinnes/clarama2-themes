@@ -804,9 +804,11 @@ $.fn.initselect = function () {
                     close_on_select = false
 
 
+                var allow_custom = embedded.attr("allow_custom") === "true";
                 embedded.select2({
                     selectionCssClass: "select2-select",
                     closeOnSelect: close_on_select,
+                    tags: allow_custom,
                     dataType: 'json',
                     minimumResultsForSearch: 1,
                     ajax: {
@@ -908,7 +910,8 @@ $.fn.initselect = function () {
                     }
                 });
             } else {
-                embedded.select2({width: "100%", closeOnSelect: embedded.attr('closeOnSelect') || false});
+                var allow_custom = embedded.attr("allow_custom") === "true";
+                embedded.select2({width: "100%", closeOnSelect: embedded.attr('closeOnSelect') || false, tags: allow_custom});
             }
 
             embedded.attr("clarama_data_set", true)

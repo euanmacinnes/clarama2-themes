@@ -1422,6 +1422,7 @@
                 field_data['value_column'] = $('#value_column').val() || '';
                 field_data['select_column'] = $('#select_column').val() || '';
                 field_data['disable_column'] = $('#disable_column').val() || '';
+                field_data['allow_custom'] = !!($('#sel_allow_custom').prop('checked'));
             } else {
                 field_data['maxlength'] = $('#str_maxlength').val() || '';
                 field_data['transform'] = $('#str_transform').val() || '';
