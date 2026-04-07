@@ -809,6 +809,11 @@ $.fn.initselect = function () {
                     selectionCssClass: "select2-select",
                     closeOnSelect: close_on_select,
                     tags: allow_custom,
+                    createTag: allow_custom ? function(params) {
+                        var term = $.trim(params.term);
+                        if (term === '') return null;
+                        return { id: term, text: term, newTag: true };
+                    } : undefined,
                     dataType: 'json',
                     minimumResultsForSearch: 1,
                     ajax: {
