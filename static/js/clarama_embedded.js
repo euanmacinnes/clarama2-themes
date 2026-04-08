@@ -33,7 +33,10 @@ function seq(arr, callback, index) {
             }
         })
     } catch (error) {
-        try { console.error('seq execution error:', error); } catch (_) {}
+        try {
+            console.error('seq execution error:', error);
+        } catch (_) {
+        }
     }
 }
 
@@ -81,30 +84,40 @@ function insertScript($script, callback) {
 var current_embedded = '';
 
 // Helper: dispatch custom events on embedded elements and standardize error logging
-function claramaDispatch(embeddedJQ, eventName, detail){
+function claramaDispatch(embeddedJQ, eventName, detail) {
     try {
         const target = embeddedJQ && embeddedJQ[0] ? embeddedJQ[0] : null;
         if (!target) return;
-        const evt = new CustomEvent(eventName, { detail: detail || {}, bubbles: true });
+        const evt = new CustomEvent(eventName, {detail: detail || {}, bubbles: true});
         target.dispatchEvent(evt);
     } catch (e) {
-        try { console.warn('claramaDispatch failed', e); } catch(_){}
+        try {
+            console.warn('claramaDispatch failed', e);
+        } catch (_) {
+        }
     }
 }
 
-function claramaReportError(context, embeddedJQ, error, extra){
+function claramaReportError(context, embeddedJQ, error, extra) {
     try {
         const msg = (error && error.message) ? error.message : String(error);
         console.error('[Clarama]', context, msg, error);
-        const detail = { context: context, message: msg, error: error ? { name: error.name, stack: error.stack } : null, extra: extra || {} };
+        const detail = {
+            context: context,
+            message: msg,
+            error: error ? {name: error.name, stack: error.stack} : null,
+            extra: extra || {}
+        };
         claramaDispatch(embeddedJQ, 'clarama:load:error', detail);
-    } catch (_) {}
+    } catch (_) {
+    }
 }
 
-function claramaReportSuccess(context, embeddedJQ, extra){
+function claramaReportSuccess(context, embeddedJQ, extra) {
     try {
-        claramaDispatch(embeddedJQ, 'clarama:load:success', { context: context, extra: extra || {} });
-    } catch (_) {}
+        claramaDispatch(embeddedJQ, 'clarama:load:success', {context: context, extra: extra || {}});
+    } catch (_) {
+    }
 }
 
 window.onerror = function (message, source, lineno, colno, error) {
@@ -213,11 +226,17 @@ function loadHTML(url, element) {
     }
 
     if (!target) {
-        try { console.warn('loadHTML: target element not found for', element); } catch(_) {}
+        try {
+            console.warn('loadHTML: target element not found for', element);
+        } catch (_) {
+        }
         return;
     }
 
-    try { target.innerHTML = '<p>Loading...</p>'; } catch(_) {}
+    try {
+        target.innerHTML = '<p>Loading...</p>';
+    } catch (_) {
+    }
 
     fetch($CLARAMA_ROOT + url)
         .then((response) => response.text())
@@ -227,7 +246,10 @@ function loadHTML(url, element) {
             try {
                 target.innerHTML = html;
             } catch (err) {
-                try { target.innerHTML = err.message; } catch(_) {}
+                try {
+                    target.innerHTML = err.message;
+                } catch (_) {
+                }
             }
             runScripts(target)
         })
@@ -248,8 +270,11 @@ $.fn.load_post = function (onfinished, args, json) {
         var embedded = $(this);
         console.log("POST loading " + embedded.attr("class") + " = " + embedded.attr("url") + JSON.stringify(args));
 
-        if (embedded.attr("clarama_loaded") !== "true") {
+        var current_state = embedded.attr("clarama_loaded");
 
+        if (current_state !== "true" && current_state !== "loading") {
+
+            embedded.attr("clarama_loaded", "loading");
             console.log("embedded.attr(autorun) loadpost", embedded.attr("autorun"))
             embedded.html('<div class="d-flex justify-content-center align-items-center"><div class="loading-spinner"></div></div>')
                 .promise()
@@ -286,7 +311,10 @@ $.fn.load_post = function (onfinished, args, json) {
                             // Ignore, leave it as blank JSON to default the content (e.g. for new steps)
                         }
                     } else if (json_div) {
-                        try { console.warn('JSON div not found or has no innerHTML:', json_div); } catch(_) {}
+                        try {
+                            console.warn('JSON div not found or has no innerHTML:', json_div);
+                        } catch (_) {
+                        }
                     }
 
                     if (json_attr !== undefined) {
@@ -306,7 +334,10 @@ $.fn.load_post = function (onfinished, args, json) {
                             json_payload['original_url'] = embedded.closest(".embedded").attr("original_url");
                         } catch (e) {
                             console.error("Error decoding JSON", e);
-                            claramaReportError('decode b64 json', embedded, e, {encodedClass: json_encoded_class, url: url});
+                            claramaReportError('decode b64 json', embedded, e, {
+                                encodedClass: json_encoded_class,
+                                url: url
+                            });
                         }
                     }
 
@@ -345,6 +376,7 @@ $.fn.load_post = function (onfinished, args, json) {
                                 console.log(final_url)
 
                                 if (embedded.hasClass("clarama-replaceable")) {
+                                    embedded.attr("clarama_loaded", "true");
                                     parent = embedded.parent();
                                     embedded.replaceWith(html);
                                     enable_interactions(parent);
@@ -356,10 +388,12 @@ $.fn.load_post = function (onfinished, args, json) {
                                         current_embedded = final_url;
                                         embedded.html(html).promise()
                                             .done(function () {
+                                                embedded.attr("clarama_loaded", "true");
                                                 enable_interactions(embedded);
                                                 initStickyFields(embedded);
                                             });
                                     } catch (err) {
+                                        embedded.attr("clarama_loaded", "false");
                                         console.error("Error loading html in " + embedded.attr("id"));
                                         console.log(err);
                                     }
@@ -373,18 +407,23 @@ $.fn.load_post = function (onfinished, args, json) {
                                         try {
                                             (new Function(onloadAttr)).call(embedded[0]);
                                         } catch (e) {
-                                            claramaReportError('execute onload attr (post)', embedded, e, { url: final_url });
+                                            claramaReportError('execute onload attr (post)', embedded, e, {url: final_url});
                                         }
                                     }
-                                } catch (_) {}
+                                } catch (_) {
+                                }
 
                                 //console.log('POST onfinished:' + typeof(onfinished) + '-' + onfinished);
 
                                 if (typeof onfinished === 'function') {
                                     //console.log("POST finished, calling onfinished")
-                                    try { onfinished(); } catch(e){ claramaReportError('onfinished callback (post)', embedded, e, {url: final_url}); }
+                                    try {
+                                        onfinished();
+                                    } catch (e) {
+                                        claramaReportError('onfinished callback (post)', embedded, e, {url: final_url});
+                                    }
                                 }
-                                claramaReportSuccess('post', embedded, { url: final_url });
+                                claramaReportSuccess('post', embedded, {url: final_url});
                             } catch (err) {
                                 embedded.html('<p>Clarama Embedded Error : ' + err.message + '</p>');
                                 console.error(err, err.stack);
@@ -393,13 +432,13 @@ $.fn.load_post = function (onfinished, args, json) {
                             //runScripts(embedded.attr('id'))
                         })
                         .catch((error) => {
+                            embedded.attr("clarama_loaded", "false");
                             embedded.html('<div class="alert alert-danger"><strong>Load error</strong>: ' + (error && error.message ? error.message : error) + '<br><small>' + $CLARAMA_ROOT + final_url + '</small></div>');
                             console.warn('JQuery Error loading ' + $CLARAMA_ROOT + final_url)
                             console.warn(error);
-                            claramaReportError('post fetch', embedded, error, { url: $CLARAMA_ROOT + final_url });
+                            claramaReportError('post fetch', embedded, error, {url: $CLARAMA_ROOT + final_url});
                         });
 
-                    embedded.attr("clarama_loaded", true)
                 });
         }
     });
@@ -451,7 +490,7 @@ function merge_dicts(a, b) {
 function reload(embedded, args) {
     console.log("embedded", embedded)
     console.log("Reloading " + embedded.attr('url') + " with args " + JSON.stringify(args))
-    embedded.attr("clarama_loaded", 'false');
+    embedded.attr("clarama_loaded", "false");
     embedded.attr("autorun", 'true');
 
     if (embedded.hasClass('clarama-embedded'))
@@ -471,7 +510,10 @@ $.fn.load = function (onfinished, args) {
         var embedded = $(this);
         // console.log("GET loading " + embedded.attr("class") + " = " + embedded.attr("url") + ' with args ' + JSON.stringify(args));
 
-        if ((embedded.attr("clarama_loaded") !== "true") && (embedded.attr("autorun") !== "False")) {
+        var current_state = embedded.attr("clarama_loaded");
+
+        if (current_state !== "true" && current_state !== "loading" && (embedded.attr("autorun") !== "False")) {
+            embedded.attr("clarama_loaded", "loading");
             console.log("embedded.attr(autorun) load", embedded.attr("autorun"))
             embedded.html('<div class="d-flex justify-content-center align-items-center"><div class="loading-spinner"></div></div>')
                 .promise()
@@ -505,6 +547,7 @@ $.fn.load = function (onfinished, args) {
                             if (html == "[]\n") {
                                 html = "";
                             }
+
                             console.log('GET Embedded JQuery Loaded ' + $CLARAMA_ROOT + url)
                             console.log({'html': html})
                             try {
@@ -512,26 +555,32 @@ $.fn.load = function (onfinished, args) {
                                 current_embedded = final_url;
                                 embedded.html(html).promise()
                                     .done(function () {
+                                        embedded.attr("clarama_loaded", "true");
                                         enable_interactions(embedded);
                                         initStickyFields(embedded);
                                     });
                             } catch (err) {
+                                embedded.attr("clarama_loaded", "false");
                                 embedded.html('<p>Clarama Embedded Error : ' + err.message + '</p>');
                                 console.error(err, err.stack);
                             }
 
                             if (typeof onfinished === 'function') {
-                                try { onfinished(); } catch(e){ claramaReportError('onfinished callback (get)', embedded, e, {url: final_url}); }
+                                try {
+                                    onfinished();
+                                } catch (e) {
+                                    claramaReportError('onfinished callback (get)', embedded, e, {url: final_url});
+                                }
                             }
-                            claramaReportSuccess('get', embedded, { url: final_url });
+                            claramaReportSuccess('get', embedded, {url: final_url});
                         })
                         .catch((error) => {
+                            embedded.attr("clarama_loaded", "false");
                             embedded.html('<div class="alert alert-danger"><strong>Load error</strong>: ' + (error && error.message ? error.message : error) + '<br><small>' + $CLARAMA_ROOT + final_url + '</small></div>');
                             console.warn('JQuery Error loading ' + $CLARAMA_ROOT + url)
                             console.warn(error);
-                            claramaReportError('get fetch', embedded, error, { url: $CLARAMA_ROOT + final_url });
+                            claramaReportError('get fetch', embedded, error, {url: $CLARAMA_ROOT + final_url});
                         });
-                    embedded.attr("clarama_loaded", true)
                 });
         }
         // else

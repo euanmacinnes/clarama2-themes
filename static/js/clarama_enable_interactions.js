@@ -49,7 +49,8 @@ function enable_interactions(parent, reload = false, runtask = false) {
                     }
                     $el.select2('destroy');
                 }
-            } catch (e) { /* no-op */ }
+            } catch (e) { /* no-op */
+            }
 
             if ($host.length) {
                 $el.select2(Object.assign({}, opts, {
@@ -130,7 +131,8 @@ function enable_interactions(parent, reload = false, runtask = false) {
                     $el.off('.daterangepicker');
                     $el.removeData('daterangepicker');
                 }
-            } catch (e) { /* no-op */ }
+            } catch (e) { /* no-op */
+            }
 
             const common = {
                 timePicker: true,
@@ -147,7 +149,7 @@ function enable_interactions(parent, reload = false, runtask = false) {
             };
 
             if ($host.length) {
-                $el.daterangepicker(Object.assign({}, common, { parentEl: $host }));
+                $el.daterangepicker(Object.assign({}, common, {parentEl: $host}));
             } else {
                 $el.daterangepicker(common);
             }
@@ -180,8 +182,8 @@ function enable_interactions(parent, reload = false, runtask = false) {
     }
 
     if (reload) {
-        parent.find('.clarama-post-embedded').attr('clarama_loaded', false);
-        parent.find('.clarama-embedded').attr('clarama_loaded', false);
+        parent.find('.clarama-post-embedded').attr('clarama_loaded', "false");
+        parent.find('.clarama-embedded').attr('clarama_loaded', "false");
     }
 
     if (runtask) {

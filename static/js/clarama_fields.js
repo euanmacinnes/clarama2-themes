@@ -811,6 +811,7 @@ $.fn.initselect = function () {
                     tags: allow_custom,
                     createTag: allow_custom ? function(params) {
                         var term = $.trim(params.term);
+                        console.log("createTag fired, term:", term);
                         if (term === '') return null;
                         return { id: term, text: term, newTag: true };
                     } : undefined,
