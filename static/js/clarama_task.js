@@ -136,8 +136,6 @@ function cell_item_run(cell_button) {
                     flash(`Cell ${taskIndex} executing..`, "success");
                     // flash("CLARAMA_TASK.js: Executing!");
 
-                    moveToNextCell(cell_button);
-
                     const memText = $('#kernel_memory_free').text() || '';
                     const match = memText.match(/(\d+(?:\.\d+)?)\s*%?/); // grab number part
                     if (match) {

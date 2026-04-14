@@ -1,0 +1,39 @@
+{# Custom options for select_multiple fields #}
+<div class="mb-2">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <input class="form-check-input clarama-field field-check-input" type="checkbox" id="sel_allow_custom"
+               {% if get(field_config,'allow_custom', False) %}checked{% endif %}>
+        <label class="form-check-label mb-0" for="sel_allow_custom">Allow custom values</label>
+    </div>
+    <div class="form-text mb-3">When enabled, users can type in a value that is not in the list.</div>
+
+    <label class="field-label">Column mappings (indices)</label>
+    <div class="form-text mb-2">Specify which columns from your data source map to ID, Display Text, Selected and
+        Disabled states. Leave blank to use defaults (0,1,2,3).
+    </div>
+    <div class="row g-2">
+        <div class="col-3">
+            <label class="field-label">ID column</label>
+            <input id="id_column" name="id_column" type="number" min="0" class="form-control clarama-field"
+                   fieldtype="html" placeholder="0" value="{{ get(field_config,'id_column','') }}"/>
+        </div>
+        <div class="col-3">
+            <label class="field-label">Value column</label>
+            <input id="value_column" name="value_column" type="number" min="0"
+                   class="form-control clarama-field" fieldtype="html" placeholder="1"
+                   value="{{ get(field_config,'value_column','') }}"/>
+        </div>
+        <div class="col-3">
+            <label class="field-label">Selected column</label>
+            <input id="select_column" name="select_column" type="number" min="0"
+                   class="form-control clarama-field" fieldtype="html" placeholder="2"
+                   value="{{ get(field_config,'select_column','') }}"/>
+        </div>
+        <div class="col-3">
+            <label class="field-label">Disabled column</label>
+            <input id="disable_column" name="disable_column" type="number" min="0"
+                   class="form-control clarama-field" fieldtype="html" placeholder="3"
+                   value="{{ get(field_config,'disable_column','') }}"/>
+        </div>
+    </div>
+</div>

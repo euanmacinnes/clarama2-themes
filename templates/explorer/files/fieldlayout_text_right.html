@@ -1,7 +1,8 @@
 {% if field_type != "hidden" %}
     <div class="container-fluid" style="height: 100%;">
         <div class="row" style="height: 100%; padding: 0;">
-            <div class="col-sm-{{ field_spacing or get(field_config,'spacing',3) }} resizable-col" id="resizable-col-{{ field_id }}" style="position: relative;">
+            <div class="col-sm-{{ field_spacing or get(field_config,'spacing',3) }} resizable-col"
+                 id="resizable-col-{{ field_id }}" style="position: relative;">
                 <label style="white-space:nowrap;overflow:hidden;">
                     {% if get(field_config,'required',False) %}
                         <strong>{{ get(field_config,'name',field) }}</strong>
@@ -21,86 +22,97 @@
     <script>
         // $('[data-bs-toggle="tooltip"]').tooltip();
 
-        $('.resize-handle').each(function() {
-            const handle = this;
-            // console.log("handle", handle)
-            const resizableCol = document.getElementById(handle.getAttribute('data-target'));
-            // console.log("resizableCol", resizableCol)
-            const gridItem = resizableCol.closest('.grid-stack-item'); 
-            // console.log("gridItem", gridItem)
-            const gridItemElement = gridItem.getAttribute('gs-id');
-            // console.log("gridItemElement", gridItemElement)
+        $('.resize-handle').each(function () {
+            if (this === undefined) return;
 
-            function disableGridStackDrag() {
-                if (gridItem) {
-                    // console.log("disableGridStackDrag")
-                    gridItem.gridstackNode?.el?.classList.remove('ui-draggable-dragging');
-                    gridItem.style.pointerEvents = 'none';
+            try {
+                const handle = this;
+                console.log("handle", handle);
+                const resizableCol = document.getElementById(handle.getAttribute('data-target'));
+                // console.log("resizableCol", resizableCol)
+                const gridItem = resizableCol.closest('.grid-stack-item');
+
+                if (gridItem === undefined)
+                    return;
+                // console.log("gridItem", gridItem)
+                const gridItemElement = gridItem.getAttribute('gs-id');
+
+                // console.log("gridItemElement", gridItemElement)
+
+                function disableGridStackDrag() {
+                    if (gridItem) {
+                        // console.log("disableGridStackDrag")
+                        gridItem.gridstackNode?.el?.classList.remove('ui-draggable-dragging');
+                        gridItem.style.pointerEvents = 'none';
+                    }
                 }
-            }
-            
-            function enableGridStackDrag() {
-                if (gridItem) {
-                    // console.log("enableGridStackDrag")
-                    gridItem.style.pointerEvents = '';
+
+                function enableGridStackDrag() {
+                    if (gridItem) {
+                        // console.log("enableGridStackDrag")
+                        gridItem.style.pointerEvents = '';
+                    }
                 }
-            }
-            
-            handle.addEventListener('mousedown', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                disableGridStackDrag();
-                
-                const startX = e.clientX; // how much is moved 
-                const startWidth = resizableCol.offsetWidth;
-                
-                function doDrag(e) {
-                    // console.log("dodrag")
 
-                    // defined how far it can be dragged, else if all the way it'll hv layout issues
-                    const rowWidth = resizableCol.parentElement.offsetWidth;
-                    const minCols = 1;
-                    const maxCols = 9;
+                handle.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-                    const minPx = (minCols / 12) * rowWidth;
-                    const maxPx = (maxCols / 12) * rowWidth;
+                    disableGridStackDrag();
 
-                    const newWidth = Math.max(minPx, Math.min(startWidth + (e.clientX - startX), maxPx)); // this kimits dragging dist
-                    let newColSize = Math.round((newWidth / rowWidth) * 12); 
-                    // safety check in case newColSize becomes 0 or 13 or -ve
-                    newColSize = Math.max(1, Math.min(newColSize, 12));
-                    
-                    resizableCol.classList.forEach(cls => {
-                        if (cls.startsWith('col-sm-')) {
-                            resizableCol.classList.remove(cls);
+                    const startX = e.clientX; // how much is moved
+                    const startWidth = resizableCol.offsetWidth;
+
+                    function doDrag(e) {
+                        // console.log("dodrag")
+
+                        // defined how far it can be dragged, else if all the way it'll hv layout issues
+                        const rowWidth = resizableCol.parentElement.offsetWidth;
+                        const minCols = 1;
+                        const maxCols = 9;
+
+                        const minPx = (minCols / 12) * rowWidth;
+                        const maxPx = (maxCols / 12) * rowWidth;
+
+                        const newWidth = Math.max(minPx, Math.min(startWidth + (e.clientX - startX), maxPx)); // this kimits dragging dist
+                        let newColSize = Math.round((newWidth / rowWidth) * 12);
+                        // safety check in case newColSize becomes 0 or 13 or -ve
+                        newColSize = Math.max(1, Math.min(newColSize, 12));
+
+                        resizableCol.classList.forEach(cls => {
+                            if (cls.startsWith('col-sm-')) {
+                                resizableCol.classList.remove(cls);
+                            }
+                        });
+
+                        resizableCol.classList.add(`col-sm-${newColSize}`);
+                        // set(field_config,'spacing',newColSize)
+                        addColToGridElem(gridItemElement, newColSize)
+                    }
+
+                    function stopDrag() {
+                        // console.log("stopdrag")
+                        document.removeEventListener('mousemove', doDrag);
+                        document.removeEventListener('mouseup', stopDrag);
+                        enableGridStackDrag();
+                    }
+
+                    document.addEventListener('mousemove', doDrag);
+                    document.addEventListener('mouseup', stopDrag);
+                });
+
+                if (window.GridStack) {
+                    // console.log("window.GridStack")
+                    GridStack.init({
+                        draggable: {
+                            handle: ':not(.resize-handle)',
+                            cancel: '.resize-handle'
                         }
                     });
-                    
-                    resizableCol.classList.add(`col-sm-${newColSize}`);
-                    // set(field_config,'spacing',newColSize)
-                    addColToGridElem(gridItemElement, newColSize)
                 }
-                
-                function stopDrag() {
-                    // console.log("stopdrag")
-                    document.removeEventListener('mousemove', doDrag);
-                    document.removeEventListener('mouseup', stopDrag);
-                    enableGridStackDrag();
-                }
-                
-                document.addEventListener('mousemove', doDrag);
-                document.addEventListener('mouseup', stopDrag);
-            });
-
-            if (window.GridStack) {
-                // console.log("window.GridStack")
-                GridStack.init({
-                    draggable: {
-                        handle: ':not(.resize-handle)',
-                        cancel: '.resize-handle'
-                    }
-                });
+            } catch (e) {
+                console.warn("GRIDSTACK not found, resizing not supported");
+                return;
             }
         });
     </script>

@@ -1,6 +1,6 @@
 <div class="grid-reference grid-{{ grid_id }}" grid_id="{{ grid_id }}"></div>
 <script type="text/javascript">
-    var {{ grid_id }}elements = {{ element_json | to_json | safe }};
+    var {{ grid_id }}elements = {{ (element_json or {}) | to_json | safe }};
 
     var {{ grid_id }}subOptions = {
         cellHeight: 55, // should be 50 - top/bottom
@@ -31,3 +31,6 @@
     var {{ grid_id }}grid = GridStack.addGrid(document.querySelector('#{{ grid_id }}-containment-wrapper'), {{ grid_id }}options);
 
 </script>
+
+{% include theme("explorer/files/browse_file_modal.html") %}
+{% include theme("explorer/files/file_modal_shared_logic.html") %}

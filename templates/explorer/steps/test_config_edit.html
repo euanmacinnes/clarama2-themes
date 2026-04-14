@@ -1,7 +1,7 @@
 {% if not test %}
     {% set test = {'browser': 'chromium','headless': False, 'viewport': {'width': 1280, 'height': 720}, 'video': 'on', 'screenshot': 'on'} %}
 {% endif %}
-<div class="clarama-cell-content" celltype="test" dataid="{{ loop_index }}">
+<div class="clarama-cell-content clarama-cell-border" celltype="test" dataid="{{ loop_index }}">
     <div class="col mb-3" style="padding: 0">
         Test Configuration
         <hr/>

@@ -125,18 +125,19 @@
                                             <div class="col-10">
                                                 <form id="new_content_form" class="col">
                                                     <div class="btn-group d-flex" role="group"
-                                                         aria-label="task_functions" style="width=100%;">
+                                                         aria-label="task_functions" style="width: 100%;">
                                                         <input id="new_content" name="new_content" type="text"
                                                                value="Untitled" class="form-control"
-                                                               style="width: 100%;">
+                                                               maxlength="64" style="width: 100%;">
                                                         <input id="new_content_type" name="new_content_type"
                                                                type="hidden" value=""
                                                                class="form-control new_content_type"
                                                                style="width: 100%;">
-                                                        <button type="submit" class="btn btn-secondary"><i
+                                                        <button type="submit" class="btn btn-c2-secondary"><i
                                                                 class="bi bi-floppy"></i></button>
-                                                        <button type="button" class="btn btn-secondary toggle_hide"><i
-                                                                class="bi bi-x fs-4"></i></button>
+                                                        <button type="button" class="btn btn-c2-secondary toggle_hide">
+                                                            <i
+                                                                    class="bi bi-x fs-4"></i></button>
                                                     </div>
                                                 </form>
                                             </div>
@@ -154,6 +155,7 @@
                                        listing_icon="bi-folder-fill"
                                        class="container-fluid listing text-black p-0"
                                        style="text-decoration:none"
+                                       draggable="true"
                                     >
                                         <div class="row">
                                             <div class="col">
@@ -185,7 +187,8 @@
                                        listing_fullpath="{{ url_for('clarama_content.content_get',mode='default', filename=local_url + file) }}"
                                        listing_icon="{{ get(filetypes, file | fileextension, 'bi-clipboard2-data') }}"
                                        class="container-fluid listing text-black p-0"
-                                       style="text-decoration:none">
+                                       style="text-decoration:none"
+                                       draggable="true">
                                         <div class="row align-items-center">
                                             <div class="col">
                                                 <div class="row row-cols-auto align-items-center flex-nowrap"
@@ -219,9 +222,9 @@
                                             <input id="upload_image_background" data-post-name="image_background"
                                                    data-post-url="{{ url_for("clarama_content.content_get",mode='explore', filename=local_url) }}"
                                                    class="position-absolute invisible"
-                                                   type="file" multiple accept="image/jpeg, image/png, image/svg+xml"/>
+                                                   type="file"/>
                                             <label for="upload_image_background" type="button"
-                                                   class="btn btn-primary m-1">Choose file(s)</label></p>
+                                                   class="btn btn-c2 m-1">Choose file(s)</label></p>
                                         <div class="upload_gallery d-flex flex-wrap justify-content-center gap-3 mb-0"></div>
                                     </fieldset>
                                 </form>
@@ -283,9 +286,28 @@
                     Are you sure you want to delete this?
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button id="confirmDeleteBtn" type="button" class="btn btn-danger" onclick="context_delete()">Yes
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Move confirmation Modal -->
+    <div class="modal fade" id="moveConfirmModal" tabindex="-1" aria-labelledby="moveConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="moveConfirmModalLabel">Confirm Move</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="moveConfirmText">
+                    Are you sure you want to move the selected item(s)?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="confirmMoveBtn" type="button" class="btn btn-danger">Move</button>
                 </div>
             </div>
         </div>
@@ -303,21 +325,42 @@
         }
 
         function isValidFilename(name) {
-            // Disallow slashes
-            if (name.includes("/")) {
-                flash("File or folder name cannot contain a slash (/).", "danger");
+            // Trim whitespace for validation but keep original for submission
+            if (typeof name !== 'string') {
+                flash("Invalid name.", "danger");
                 return false;
             }
+            const trimmed = name.trim();
 
-            // Disallow starting with '.' or '..'
-            if (name.startsWith(".") || name.startsWith("..")) {
-                flash("File or folder name cannot start with '.' or '..'.", "danger");
-                return false;
-            }
-
-            if (name.trim() === "") {
+            // 1. Required and max length 64
+            if (trimmed.length === 0) {
                 flash("File or folder name cannot be empty.", "danger");
                 return false;
+            }
+            if (trimmed.length > 64) {
+                flash("Name too long (max 64 characters).", "danger");
+                return false;
+            }
+
+            // 2. Cannot be '.' or '..' (but allow dotfiles like '.env')
+            if (trimmed === '.' || trimmed === '..') {
+                flash("Name cannot be '.' or '..'.", "danger");
+                return false;
+            }
+
+            // 3. Disallow '/'
+            if (trimmed.includes('/')) {
+                flash("Name cannot contain '/'.", "danger");
+                return false;
+            }
+
+            // 4. Disallow NUL and other ASCII control characters (0x00-0x1F)
+            for (let i = 0; i < trimmed.length; i++) {
+                const code = trimmed.charCodeAt(i);
+                if (code >= 0 && code < 32) {
+                    flash("Name cannot contain control characters.", "danger");
+                    return false;
+                }
             }
 
             return true;
@@ -340,6 +383,7 @@
         function content_new_explore() {
             var new_content = $("#new_content").val().trim();
             var new_content_type = $("#new_content_type").val();
+            const reload = isValidFilename(new_content);
 
             if (!isValidFilename(new_content)) return;
 
@@ -356,7 +400,7 @@
                 "&new_content_type=" +
                 encodeURIComponent(new_content_type);
 
-            execute_json_url(file, true);
+            execute_json_url(file, reload);
         }
 
         function context_rename() {
@@ -512,12 +556,12 @@
 
             // Form submission (scoped to folder page only)
             $('#explore-card')
-               .off('submit.exploreNew', '#new_content_form')
-               .on('submit.exploreNew', '#new_content_form', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                content_new_explore();
-            });
+                .off('submit.exploreNew', '#new_content_form')
+                .on('submit.exploreNew', '#new_content_form', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    content_new_explore();
+                });
 
             // Click outside any listing to hide the context menu
             $(document).on("click contextmenu", function (e) {
@@ -598,25 +642,25 @@
 
             // Toggle “New …” UI (scoped, namespaced)
             $('#explore-card')
-               .off('click.exploreNew', '.toggle_show')
-               .on('click.exploreNew', '.toggle_show', function (e) {
-                e.stopPropagation();             // don’t bubble into modal listeners
-                e.stopImmediatePropagation();    // don’t trigger other global handlers
-                const new_class = this.getAttribute("new_file_class");
-                const new_type  = this.getAttribute("new_file_type");
-                const $scope = $('#explore-card');
-                $scope.find(".new_content_type").val(new_type);
-                $scope.find(".new_item")
-                    .removeClass("bi-folder bi-journal-arrow-down bi-file-earmark-spreadsheet bi-blockquote-left bi-table bi-database bi-menu-app bi-eye bi-sliders")
-                    .addClass(new_class);
-                $scope.find(".toggle_target").show('fast');
-            });
+                .off('click.exploreNew', '.toggle_show')
+                .on('click.exploreNew', '.toggle_show', function (e) {
+                    e.stopPropagation();             // don’t bubble into modal listeners
+                    e.stopImmediatePropagation();    // don’t trigger other global handlers
+                    const new_class = this.getAttribute("new_file_class");
+                    const new_type = this.getAttribute("new_file_type");
+                    const $scope = $('#explore-card');
+                    $scope.find(".new_content_type").val(new_type);
+                    $scope.find(".new_item")
+                        .removeClass("bi-folder bi-journal-arrow-down bi-file-earmark-spreadsheet bi-blockquote-left bi-table bi-database bi-menu-app bi-eye bi-sliders")
+                        .addClass(new_class);
+                    $scope.find(".toggle_target").show('fast');
+                });
 
             $('#explore-card')
-               .off('click.exploreNew', '.toggle_hide')
-               .on('click.exploreNew', '.toggle_hide', function () {
-                $('#explore-card .toggle_target').hide('fast');
-            });
+                .off('click.exploreNew', '.toggle_hide')
+                .on('click.exploreNew', '.toggle_hide', function () {
+                    $('#explore-card .toggle_target').hide('fast');
+                });
 
             $(".click_delete").click(function (e) {
                 e.preventDefault();
@@ -739,7 +783,7 @@
             const isImageFile = file =>
                 ['text/plain', 'text/html', 'image/jpeg', 'image/png', 'image/svg+xml', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/pdf', 'application/x-zip'].includes(file.type);
 
-
+            
             // Based on: https://flaviocopes.com/how-to-upload-files-fetch/
             const imageUpload = dataRefs => {
 
@@ -913,23 +957,204 @@
                     $('#deleteConfirmModal').modal('show');
                 }
 
-                if (e.ctrlKey && e.key === "c") {               // Ctrl + c (copy)
+                if (e.ctrlKey && (e.key === "c" || e.key === "C")) {    // Ctrl + c (copy)
                     e.preventDefault();
                     context_copy();
                 }
 
-                if (e.ctrlKey && e.key === "x") {               // Ctrl + c (cut)
+                if (e.ctrlKey && (e.key === "x" || e.key === "X")) {    // Ctrl + x (cut)
                     e.preventDefault();
                     context_cut();
                 }
 
-                // if (e.ctrlKey && e.key === "v") {               // Ctrl + v (paste)
+                // if (e.ctrlKey && (e.key === "v" || e.key === "V")) {  // Ctrl + v (paste)
                 //     e.preventDefault();
                 //     context_paste();
                 // }
 
             });
         });
+        // Drag-to move/copy between folders (Ctrl = copy, default = move)
+        (function(){
+            const getSelectedFilepaths = window.getSelectedFilepaths || function(){
+                const paths=[]; $('.multi-select-checkbox:checked').each(function(){
+                    const p=$(this).closest('.favorites-div').find('a').attr('listing_filepath');
+                    if(p) paths.push(p);
+                });
+                return paths;
+            };
+
+            function getDragPathsFromAnchor(anchor){
+                const selected = getSelectedFilepaths();
+                if (selected && selected.length>0) return selected;
+                const fp = anchor.getAttribute('listing_filepath');
+                return fp ? [fp] : [];
+            }
+
+            function setDropEffect(e){
+                try { e.dataTransfer.dropEffect = e.ctrlKey ? 'copy' : 'move'; } catch(_){}
+            }
+
+            function isInvalidMove(paths, target){
+                // Disallow moving into itself or its descendant
+                for (const p of paths){
+                    if (p === target) return `Cannot move '${p}' into itself.`;
+                    if (target.startsWith(p + '/')) return `Cannot move '${p}' into its own subfolder.`;
+                }
+                return null;
+            }
+
+            function pasteMany(paths, targetPath, mode){
+                paths.forEach(path=>{
+                    const url = `/render/paste/${targetPath}?source=${encodeURIComponent(path)}&mode=${mode}`;
+                    execute_json_url(url, true);
+                });
+            }
+
+            // State for pending move confirmation
+            let pendingDrop = null;
+            const moveModalEl = document.getElementById('moveConfirmModal');
+            const moveTextEl = document.getElementById('moveConfirmText');
+            const confirmBtn = document.getElementById('confirmMoveBtn');
+            if (confirmBtn){
+                confirmBtn.addEventListener('click', function(){
+                    if (!pendingDrop) return;
+                    const {paths, targetPath} = pendingDrop;
+                    pasteMany(paths, targetPath, 'cut');
+                    pendingDrop = null;
+                    // hide modal
+                    const modal = bootstrap.Modal.getInstance(moveModalEl) || new bootstrap.Modal(moveModalEl);
+                    modal.hide();
+                });
+            }
+
+            // Drag start from any listing (file or folder)
+            document.addEventListener('dragstart', function(e){
+                const a = e.target && e.target.closest && e.target.closest('a.listing');
+                if (!a) return;
+                const paths = getDragPathsFromAnchor(a);
+                if (!paths.length) return;
+                try {
+                    e.dataTransfer.setData('application/json', JSON.stringify({paths}));
+                    e.dataTransfer.effectAllowed = 'copyMove';
+                } catch(_){}
+            });
+
+            function handleDragOver(e){
+                const a = e.currentTarget;
+                e.preventDefault();
+                setDropEffect(e);
+                a.classList.add('drop-target');
+            }
+            function clearDragOver(e){
+                const a = e.currentTarget;
+                a.classList.remove('drop-target');
+            }
+
+            function onDropToTarget(e, targetPath){
+                e.preventDefault();
+                let payload = null;
+                try { payload = JSON.parse(e.dataTransfer.getData('application/json')||'{}'); } catch(_){}
+                const paths = (payload && payload.paths) || [];
+                if (!paths.length) return;
+
+                const invalid = isInvalidMove(paths, targetPath);
+                if (invalid){ flash(invalid, 'warning'); return; }
+
+                const isCopy = !!e.ctrlKey;
+                if (isCopy){
+                    pasteMany(paths, targetPath, 'copy');
+                } else {
+                    // Determine if any dragged item is a folder (present in DOM with folder icon)
+                    let movingFolder = false;
+                    document.querySelectorAll('a.listing[listing_icon="bi-folder-fill"]').forEach(a => {
+                        const fp = a.getAttribute('listing_filepath');
+                        if (paths.includes(fp)) movingFolder = true;
+                    });
+
+                    if (movingFolder){
+                        // Ask confirmation only when moving folders
+                        if (moveTextEl){
+                            const name = targetPath.split('/').filter(Boolean).slice(-1)[0] || targetPath;
+                            moveTextEl.textContent = `Move ${paths.length} item(s) to '${name}'?`;
+                        }
+                        pendingDrop = {paths, targetPath};
+                        const modal = new bootstrap.Modal(moveModalEl);
+                        modal.show();
+                    } else {
+                        // Move files immediately without confirmation
+                        pasteMany(paths, targetPath, 'cut');
+                    }
+                }
+            }
+
+            // Make folder rows act as drop targets
+            document.querySelectorAll('a.listing[listing_icon="bi-folder-fill"]').forEach(a=>{
+                a.addEventListener('dragover', handleDragOver);
+                a.addEventListener('dragenter', handleDragOver);
+                a.addEventListener('dragleave', clearDragOver);
+                a.addEventListener('drop', function(e){
+                    clearDragOver(e);
+                    const targetPath = a.getAttribute('listing_filepath');
+                    onDropToTarget(e, targetPath);
+                });
+            });
+
+            // Allow dropping to the folder dropzone (current folder)
+            document.querySelectorAll('.upload_dropZone').forEach(zone=>{
+                zone.addEventListener('dragover', function(e){ e.preventDefault(); setDropEffect(e); zone.classList.add('highlight'); });
+                zone.addEventListener('dragleave', function(){ zone.classList.remove('highlight'); });
+                zone.addEventListener('drop', function(e){ zone.classList.remove('highlight'); onDropToTarget(e, zone.getAttribute('data-filepath')); });
+            });
+        })();
     </script>
 
+    <style>
+        /* Ensure navbar dropdown is above the list items in Folders Explore */
+        #explore-card .navbar,
+        #explore-card .card-header {
+            position: relative;
+            z-index: 2; /* must be above any list item stacking */
+        }
+
+        #explore-card .navbar .collapse,
+        #explore-card .navbar .dropdown,
+        #explore-card .navbar .dropdown-menu {
+            overflow: visible;
+        }
+
+        #nav-menu .navbar,
+        #nav_menu .card-header {
+            position: relative;
+            z-index: 30000; /* must be above any list item stacking */
+        }
+
+        /* Force the dropdown menu to sit above everything else within the card */
+        #nav-menu .dropdown-menu,
+        #nav-menu .dropdown-menu.show {
+            position: absolute; /* ensure positioned for z-index to apply */
+            z-index: 30001 !important; /* above navbar and list */
+        }
+
+        /* Force the dropdown menu to sit above everything else within the card */
+        #explore-card .dropdown-menu,
+        #explore-card .dropdown-menu.show {
+            position: absolute; /* ensure positioned for z-index to apply */
+            z-index: 20001 !important; /* above navbar and list */
+        }
+
+        #explore-card .card-body,
+        #explore-card .list-group {
+            overflow: visible; /* avoid clipping dropdown */
+        }
+
+        /* Keep list items below the dropdown by removing any elevated stacking */
+        #explore-card .list-group-item {
+            position: relative;
+            z-index: auto;
+        }
+        .drop-target { outline: 2px dashed #0d6efd; }
+    </style>
+
 {% endblock %}
+

@@ -67,7 +67,7 @@ function chart3d_options_initialize(loop_index) {
 
     // jQuery to handle click event for all so remove buttons
     $(document).on('click', '.cell-delete-series-object', function () {
-        $(this).closest('li').remove();
+        $(this).closest('.list-group-item').remove();
     });
 
     addSOBtn.addEventListener("click", function () {
@@ -111,4 +111,3 @@ function addSeriesObj() {
     newSA.setAttribute("url", `/template/render/explorer/steps/data_edit_chart3d_series_object?loop_index=${newIndex}`);
     return newSA;
 }
-

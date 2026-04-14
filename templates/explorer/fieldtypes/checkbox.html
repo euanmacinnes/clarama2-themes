@@ -3,10 +3,12 @@
 {% block content %}
     <div class="form-check form-switch">
         <input class="form-check-input clarama-field clarama-change-field clarama-now-field"
-               fieldtype="html"
+               fieldtype="html" 
+               data-sticky="true"
                type="checkbox"
                 {{ field_config | required }}
                 {{ field_config | readonly }}
+                {{ field_config | sticky }}
                value="{{ field_value or get(field_config,'default','') }}"
                data-id="{{ field_id }}"
                name="{{ field_name }}"

@@ -21,8 +21,17 @@
                        checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
                 <label class="form-check-label nowrap" for="readonly">Read-Only</label>
             </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input clarama-field clarama-now-field" fieldtype="html"
+                       type="checkbox" id="sticky" name="sticky"
+                        {% if get(field_config,'sticky','') | lower == 'true' %}
+                       checked {% endif %} {% include theme("explorer/files/field_tooltip.html") %}>
+                <label class="form-check-label nowrap" for="sticky">Sticky</label>
+            </div>
         </div>
-        <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}" title="Save"></i>
+        <button style="background-color: rgba(255, 255, 255, 0); border-color: rgba(255, 255, 255, 0); color: white;">
+            <i id="save" class="fs-3 bi bi-floppy" onclick="save_field();" url="{{ file_url }}" title="Save"></i>
+        </button>
     </div>
 
     <!-- Preview at the top -->
@@ -32,6 +41,10 @@
         </div>
         <div class="card-body">
             <div id="dependencies-preview" class="mb-2"></div>
+            <div id="list-columns-warning" class="alert alert-warning py-2 px-3 d-none" role="alert"
+                 style="margin-bottom:8px;">
+                Preview note: For List fields, at least two columns must be supplied.
+            </div>
             <div id="preview" class="clarama-embedded" url="{{ embedded_url(filename=file_url) }}"></div>
         </div>
     </div>
@@ -55,7 +68,17 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-dependencies" data-bs-toggle="tab" data-bs-target="#pane-dependencies"
-                    type="button" role="tab" aria-controls="pane-dependencies" aria-selected="false">Dependency Testing
+                    type="button" role="tab" aria-controls="pane-dependencies" aria-selected="false">Dependent Fields
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-custom" data-bs-toggle="tab" data-bs-target="#pane-custom"
+                    type="button" role="tab" aria-controls="pane-custom" aria-selected="false">Custom
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-suggestions" data-bs-toggle="tab" data-bs-target="#pane-suggestions"
+                    type="button" role="tab" aria-controls="pane-suggestions" aria-selected="false">Suggestions
             </button>
         </li>
     </ul>
@@ -65,10 +88,17 @@
         <div class="tab-pane fade show active" id="pane-fieldtype" role="tabpanel" aria-labelledby="tab-fieldtype">
             <div class="container-fluid">
                 <div class="row g-3 my-2">
-                    {% for key, ftype in fieldtypes.items() %}
+                    {# Build a sortable list of (key, ftype) and sort by group then name #}
+                    {% set ft_list = [] %}
+                    {% for k, v in fieldtypes.items() %}
+                        {% set _ = ft_list.append({'key': k, 'v': v, 'group': v.get('group',''), 'name': v.get('name','')}) %}
+                    {% endfor %}
+                    {% for item in ft_list|sort(attribute='group')|sort(attribute='name') %}
+                        {% set key = item.key %}
+                        {% set ftype = item.v %}
                         <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                             <label id="field_{{ key }}" key="{{ key }}"
-                                   class="btn w-100 {% if field_config['type'] == key %} clicked btn-primary {% else %} btn-light {% endif %} field">
+                                   class="btn w-100 {% if field_config['type'] == key %} clicked btn-c2 {% else %} btn-light {% endif %} field">
                                 <i class="bi fs-4 {{ ftype['icon'] }} w-100"></i>
                                 <div class="text-center mt-1"><b>{{ ftype['name'] }}</b></div>
                             </label>
@@ -95,7 +125,7 @@
                     Select a field file in the box below, then click the [+] button to add to the list
                 </p>
                 <div class="input-group mb-2">
-                    <input type="text" class="form-control" id="dependency-input"
+                    <input type="text" class="form-control" id="dependency-file-input"
                            placeholder="pick a .field.yaml">
                     <button type="button" class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
                             data-bs-target="#browseFileModal" filters="*.field.yaml" inputId="dependency-file-input"
@@ -104,11 +134,12 @@
                             class="bi bi-plus-lg"></i></button>
                 </div>
                 <label class="form-label">Dependencies (fields this field depends on)</label>
-                <input id="dependency-file-input" type="text" class="form-control d-none"/>
                 <ul id="dependencies-list" class="list-group">
                     {% for d in deps %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span class="dep-text">{{ d }}</span>
+                        <li class="list-group-item d-flex align-items-center dep-item" draggable="true">
+                            <span class="dep-handle bi bi-grip-vertical me-2" title="Drag to reorder"
+                                  style="cursor: grab;"></span>
+                            <span class="dep-text flex-grow-1">{{ d }}</span>
                             <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i
                                     class="bi bi-x"></i></button>
                         </li>
@@ -126,13 +157,15 @@
             {% set mode_manual = has_options %}
             <div class="mb-3">
                 <label class="form-label me-3">Data Mode</label>
+                {% set is_list = (get(field_config,'type','') == 'list') %}
+                {% set has_columns = data_cfg and ('columns' in data_cfg) %}
                 <div class="btn-group" role="group" aria-label="Data Mode">
                     <input type="radio" class="btn-check" name="data-mode" id="data-mode-manual" autocomplete="off"
                            {% if mode_manual %}checked{% endif %}>
                     <label class="btn btn-outline-secondary" for="data-mode-manual">Manually Entered</label>
 
                     <input type="radio" class="btn-check" name="data-mode" id="data-mode-remote" autocomplete="off"
-                           {% if not mode_manual %}checked{% endif %}>
+                           {% if (not mode_manual) %}checked{% endif %}>
                     <label class="btn btn-outline-secondary" for="data-mode-remote">Remote</label>
                 </div>
             </div>
@@ -240,8 +273,20 @@
                      style="min-height: 0; height: 160px;"
                      placeholder="Enter query (SQL/Path/YAML)">{{ query }}</div>
                 <div class="form-text mt-2">The first column is used as the ID, the second is used as the value. It does
-                    not matter what the columns are called
+                    not matter what the columns are called<br/><br/>
                 </div>
+
+
+                <!-- Quick Insert Global Field Expression -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="m-0">Global Fields</h6> take dependent field values, if found, and insert into the
+                        Query above prior to execution
+                    </div>
+
+                    {% include theme("explorer/files/field_edit_fields.html") %}
+                </div>
+
                 <script type="text/javascript">$(function () {
                     $('#field_data_query').editor();
                 });</script>
@@ -277,6 +322,24 @@
                 </div>
 
                 <div class="col">
+                    <label class="form-label" for="pattern">Pattern</label>
+                    <input id="pattern" name="pattern" type="text" class="form-control clarama-field"
+                           placeholder="regular expression (e.g., ^[A-Z]{3}-\\d{4}$)"
+                           value="{{ get(field_config,'pattern','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    <div class="form-text">Optional input validation regex pattern.</div>
+                </div>
+
+                <div class="col">
+                    <label class="form-label" for="autocomplete">Autocomplete</label>
+                    <input id="autocomplete" name="autocomplete" type="text" class="form-control clarama-field"
+                           placeholder="on | off | email | username | name | organization | ..."
+                           value="{{ get(field_config,'autocomplete','on') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    <div class="form-text">HTML autocomplete attribute value. Use "off" to disable or a hint like
+                        "email".
+                    </div>
+                </div>
+
+                <div class="col">
                     <label class="form-label">Description</label>
                     <textarea id="description" name="description" class="form-control clarama-field"
                               autocomplete="on" rows="4"
@@ -291,46 +354,113 @@
                         'true').
                     </div>
                 </div>
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col">
-                            <label class="form-label">Minimum</label>
-                            <input id="minimum" name="minimum" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="0"
-                                   value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Maximum</label>
-                            <input id="maximum" name="maximum" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="100"
-                                   value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Step</label>
-                            <input id="step" name="step" type="number"
-                                   class="form-control clarama-field clarama-delay-field"
-                                   fieldtype="html" placeholder="1"
-                                   value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Size</label>
-                            <input id="size" name="size" type="number"
-                                   class="form-control clarama-field clarama-delay-field"
-                                   fieldtype="html" placeholder="4"
-                                   value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
-                        <div class="col">
-                            <label class="form-label">Spacing</label>
-                            <input id="spacing" name="spacing" type="number"
-                                   class="form-control clarama-field clarama-delay-field" fieldtype="html"
-                                   placeholder="2"
-                                   value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
-                        </div>
+                <div class="col" id="filters_group"
+                     style="display: {% if get(field_config,'type','') in ['c2file','browse'] %}block{% else %}none{% endif %};">
+                    <label class="form-label">Filters (for Browse File)</label>
+                    <input id="filters" name="filters" type="text" class="form-control clarama-field"
+                           placeholder="e.g., *.field.yaml|*.task.yaml|*.source.yaml|*.csv"
+                           value="{{ get(field_config,'filters','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    <div class="form-text">Pipe-separated list of file patterns. Example: *.field.yaml|*.task.yaml</div>
+                </div>
+                <div class="row align-items-start">
+                    <div class="col align-items-start">
+                        <label class="form-label">Minimum</label>
+                        <input id="minimum" name="minimum" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="0"
+                               value="{{ get(field_config,'minimum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Maximum</label>
+                        <input id="maximum" name="maximum" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="100"
+                               value="{{ get(field_config,'maximum','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Step</label>
+                        <input id="step" name="step" type="number"
+                               class="form-control clarama-field clarama-delay-field"
+                               fieldtype="html" placeholder="1"
+                               value="{{ get(field_config,'step','') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Size</label>
+                        <input id="size" name="size" type="number"
+                               class="form-control clarama-field clarama-delay-field"
+                               fieldtype="html" placeholder="4"
+                               value="{{ get(field_config,'size','4') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Spacing</label>
+                        <input id="spacing" name="spacing" type="number"
+                               class="form-control clarama-field clarama-delay-field" fieldtype="html"
+                               placeholder="2"
+                               value="{{ get(field_config,'spacing','3') }}" {% include theme("explorer/files/field_tooltip.html") %}/>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Custom Pane (per-field-type options) -->
+        <div class="tab-pane fade" id="pane-custom" role="tabpanel" aria-labelledby="tab-custom">
+            <div class="mb-3">
+                <div id="custom-dynamic-container" class="custom-dynamic-container"></div>
+            </div>
+
+            <!-- Hidden templates for dynamic injection -->
+            <template id="tpl-custom-string">
+                {% include theme('explorer/files/_field_custom_string.html') %}
+            </template>
+            <template id="tpl-custom-number">
+                {% include theme('explorer/files/_field_custom_number.html') %}
+            </template>
+            <template id="tpl-custom-datetime">
+                {% include theme('explorer/files/_field_custom_datetime.html') %}
+            </template>
+            <template id="tpl-custom-date">
+                {% include theme('explorer/files/_field_custom_date.html') %}
+            </template>
+            <template id="tpl-custom-time">
+                {% include theme('explorer/files/_field_custom_time.html') %}
+            </template>
+            <template id="tpl-custom-list">
+                {% include theme('explorer/files/_field_custom_list.html') %}
+            </template>
+            <template id="tpl-custom-checkbox">
+                {% include theme('explorer/files/_field_custom_checkbox.html') %}
+            </template>
+            <template id="tpl-custom-select">
+                {% include theme('explorer/files/_field_custom_select.html') %}
+            </template>
+            <template id="tpl-custom-select_multiple">
+                {% include theme('explorer/files/_field_custom_select_multiple.html') %}
+            </template>
+            <template id="tpl-custom-file">
+                {% include theme('explorer/files/_field_custom_file.html') %}
+            </template>
+            <template id="tpl-custom-textarea">
+                {% include theme('explorer/files/_field_custom_textarea.html') %}
+            </template>
+            <template id="tpl-custom-tagcloud">
+                {% include theme('explorer/files/_field_custom_tagcloud.html') %}
+            </template>
+            <template id="tpl-custom-daterange">
+                {% include theme('explorer/files/_field_custom_daterange.html') %}
+            </template>
+        </div>
+
+        <!-- Suggestions Pane -->
+        <div class="tab-pane fade" id="pane-suggestions" role="tabpanel" aria-labelledby="tab-suggestions">
+            {% set suggestions = get(field_config,'suggestions',[]) %}
+            {% if suggestions is string %}
+                {% set suggestions = [suggestions] %}
+            {% endif %}
+            <label class="form-label">Suggestions (one per line)</label>
+            <textarea id="suggestions" class="form-control clarama-field" rows="6"
+                      placeholder="Enter suggestion per line">{% for s in suggestions %}{{ s }}
+            {% endfor %}</textarea>
+            <div class="form-text">Shown as typeahead or helper list where supported.</div>
         </div>
     </div>
 </div>
@@ -350,12 +480,38 @@
     }
 
     $(function () {
+        function renderCustomPane(t) {
+            try {
+                var k = String(t || '').toLowerCase();
+                var tplId = 'tpl-custom-string';
+                tplId = 'tpl-custom-' + k;
+                var tpl = document.getElementById(tplId);
+                console.log(tpl);
+                var html = tpl ? tpl.innerHTML : '';
+
+                $('#custom-dynamic-container').html(html);
+            } catch (e) { /* ignore */
+                flash("Error loading options", "danger");
+                console.error(e);
+            }
+        }
+
         // Click handlers
         $(document).on('click', '.field', function () {
-            $(".field").removeClass("clicked btn-primary").addClass("btn-light");
+            $(".field").removeClass("clicked btn-c2").addClass("btn-light");
             key = $(this).attr("key");
-            $(this).addClass("clicked btn-primary").removeClass("btn-light");
-            update_preview();
+            $(this).addClass("clicked btn-c2").removeClass("btn-light");
+            // Toggle custom mode availability for list type
+
+            // Show/Hide filters field for browse-like types (c2file, browse)
+            if (key === 'c2file' || key === 'browse') {
+                $('#filters_group').show();
+            } else {
+                $('#filters_group').hide();
+            }
+            // Render custom options dynamically
+            renderCustomPane(key);
+            schedule_update_preview(false, 'field type changed', 0);
         });
 
         // Any field change (including dependency dropdowns rendered with .clarama-field) triggers preview refresh
@@ -372,45 +528,156 @@
                 }
             } catch (err) { /* ignore and fall through to update */
             }
-            update_preview();
+            schedule_update_preview(false, 'field form changed');
         });
         // React to editor changes as well
         try {
             var queryEditor = ace.edit('field_data_query');
             queryEditor.session.on('change', function (e) {
                 // Editor is outside preview containers; safe to refresh
-                update_preview();
+                schedule_update_preview(false, 'query editor changed');
+            });
+            // Quick insert handler
+            $(document).on('click', '#gfe_insert', function () {
+                try {
+                    var from = ($('#gfe_dep_field').find('option:selected').val() || $('#gfe_dep_field').val() || '').trim();
+                    var layout = $('#gfe_layout').val() || '';
+                    var to = ($('#gfe_to').val() || '').trim();
+                    var ext = ($('#gfe_ext').val() || '').trim();
+                    if (!from) {
+                        flash('Please enter a dependent field (from).', 'warning');
+                        return;
+                    }
+                    // Build token parts
+                    var token = '';
+                    if (to) {
+                        token = from.toLowerCase() + '=>' + to + (layout || '');
+                    } else {
+                        token = from.toLowerCase() + (layout || '');
+                    }
+                    if (ext) {
+                        token += ':' + ext;
+                    }
+                    var text = '[[' + token + ']]';
+                    // Insert at current cursor
+                    var pos = queryEditor.getCursorPosition();
+                    queryEditor.session.insert(pos, text);
+                    queryEditor.focus();
+                } catch (e) { /* ignore */
+                }
             });
 
-            // When user clicks within a [[ ... ]] token, open the Global Field Editor modal
-            queryEditor.container.addEventListener('mouseup', function () {
-                setTimeout(function () {
+            // Resultant Substitution preview (Global Fields box)
+            var _gfeTimer = null;
+
+            function buildGfeToken() {
+                var from = ($('#gfe_dep_field').find('option:selected').val() || $('#gfe_dep_field').val() || '').trim();
+                var layout = $('#gfe_layout').val() || '';
+                var to = ($('#gfe_to').val() || '').trim();
+                var ext = ($('#gfe_ext').val() || '').trim();
+                if (!from) return '';
+                var token = to ? (from.toLowerCase() + '=>' + to + (layout || '')) : (from.toLowerCase() + (layout || ''));
+                if (ext) token += ':' + ext;
+                return '[[ ' + token + ' ]]';
+            }
+
+            function gfeCollectValues() {
+                // Prefer global helper if available
+                if (typeof get_field_values === 'function') {
                     try {
-                        var pos = queryEditor.getCursorPosition();
-                        var line = queryEditor.session.getLine(pos.row);
-                        // find closest [[ ... ]] spanning the cursor column
-                        var start = line.lastIndexOf('[[', pos.column);
-                        var end = line.indexOf(']]', pos.column);
-                        if (start !== -1 && end !== -1 && end > start) {
-                            var inside = line.substring(start + 2, end).trim();
-                            if (inside.length > 0) {
-                                openGlobalFieldEditorForToken(inside, function (newToken) {
-                                    // replace only this occurrence within the line
-                                    var before = line.substring(0, start);
-                                    var after = line.substring(end + 2);
-                                    var replacement = '[[ ' + newToken.trim() + ' ]]';
-                                    var newLine = before + replacement + after;
-                                    queryEditor.session.replace({
-                                        start: {row: pos.row, column: 0},
-                                        end: {row: pos.row, column: line.length}
-                                    }, newLine);
-                                });
-                            }
-                        }
-                    } catch (ex) { /* ignore */
+                        return get_field_values({}, true, undefined) || {};
+                    } catch (e) {
                     }
-                }, 0);
+                }
+                // Fallback: no values
+                return {};
+            }
+
+            function updateGfePreviewDebounced() {
+                if (_gfeTimer) clearTimeout(_gfeTimer);
+                _gfeTimer = setTimeout(updateGfePreview, 300);
+            }
+
+            function updateGfePreview() {
+                var expr = buildGfeToken();
+                var $expr = $('#gfe_result_expr');
+                var $val = $('#gfe_result_value');
+                if (!$expr.length || !$val.length) return;
+                if (!expr) {
+                    $expr.text('');
+                    $val.text('');
+                    return;
+                }
+                // Show expression immediately, and loading indicator for value
+                $expr.text(expr);
+                $val.text('…');
+                $.ajax({
+                    url: '/web/preview_global_field',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        expression: expr,
+                        fields: JSON.stringify(gfeCollectValues())
+                    },
+                    success: function (data) {
+                        try {
+                            var outExpr = (data && data.expression) != null ? data.expression : expr;
+                            var outRes = (data && data.result) != null ? data.result : '';
+                            $expr.text(String(outExpr));
+                            $val.text(String(outRes));
+                        } catch (e) {
+                            $val.text('error parsing response');
+                        }
+                    },
+                    error: function (xhr) {
+                        var msg = xhr && (xhr.responseText || xhr.statusText || xhr.status) || 'error';
+                        $val.text(String(msg));
+                    }
+                });
+            }
+
+            $(document).on('change input', '#gfe_dep_field, #gfe_to, #gfe_layout, #gfe_ext', function () {
+                updateGfePreviewDebounced();
             });
+            // Also update when dependencies list changes, as it can change available values
+            $(document).on('click', '#add-dependency, .remove-dep', function () {
+                setTimeout(updateGfePreviewDebounced, 0);
+            });
+            $(document).on('keyup change', '#dependency-file-input', function () {
+                setTimeout(updateGfePreviewDebounced, 0);
+            });
+            // Initial preview
+            setTimeout(updateGfePreviewDebounced, 200);
+
+            // When user clicks within a [[ ... ]] token, open the Global Field Editor modal
+            {#queryEditor.container.addEventListener('mouseup', function () {#}
+            {#     setTimeout(function () {#}
+            {#         try {#}
+            {#             var pos = queryEditor.getCursorPosition();#}
+            {#             var line = queryEditor.session.getLine(pos.row);#}
+            {#             // find closest [[ ... ]] spanning the cursor column#}
+            {#             var start = line.lastIndexOf('[[', pos.column);#}
+            {#             var end = line.indexOf(']]', pos.column);#}
+            {#             if (start !== -1 && end !== -1 && end > start) {#}
+            {#                 var inside = line.substring(start + 2, end).trim();#}
+            {#                 if (inside.length > 0) {#}
+            {#                     openGlobalFieldEditorForToken(inside, function (newToken) {#}
+            {#                         // replace only this occurrence within the line#}
+            {#                         var before = line.substring(0, start);#}
+            {#                         var after = line.substring(end + 2);#}
+            {#                         var replacement = '[[ ' + newToken.trim() + ' ]]';#}
+            {#                         var newLine = before + replacement + after;#}
+            {#                         queryEditor.session.replace({#}
+            {#                             start: {row: pos.row, column: 0},#}
+            {#                             end: {row: pos.row, column: line.length}#}
+            {#                         }, newLine);#}
+            {#                     });#}
+            {#                 }#}
+            {#             }#}
+            {#         } catch (ex) { /* ignore */#}
+            {#         }#}
+            {#     }, 0);#}
+            {# });#}
         } catch (e) {
         }
 
@@ -424,8 +691,8 @@
                 $body.empty();
                 $body.append('<div id="gfe-inline" class="my-2"></div>');
                 $body.append('<div class="d-flex justify-content-end gap-2 mt-2">\
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>\
-                    <button type="button" class="btn btn-primary" id="gfe-inline-apply">Apply</button>\
+                    <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Cancel</button>\
+                    <button type="button" class="btn btn-c2" id="gfe-inline-apply">Apply</button>\
                 </div>');
 
                 // Initialize editor after modal shown to ensure layout is correct
@@ -467,14 +734,12 @@
             if (this.checked) {
                 $("#manual-data").show();
                 $("#remote-data").hide();
-                update_preview();
             }
         });
         $("#data-mode-remote").on('change', function () {
             if (this.checked) {
                 $("#manual-data").hide();
                 $("#remote-data").show();
-                update_preview();
             }
         });
 
@@ -488,12 +753,95 @@
         });
         $(document).on('click', '.remove-option', function () {
             $(this).closest('tr').remove();
-            update_preview();
+            schedule_update_preview(false, 'manual option removed');
         });
+
+        // Custom columns add/remove
+        $(document).on('click', '#add-column-row', function () {
+            $("#custom-columns-table tbody").append(`<tr>
+                <td><input type=\"text\" class=\"form-control col-key\" value=\"\"></td>
+                <td><input type=\"text\" class=\"form-control col-name\" value=\"\"></td>
+                <td>
+                    <select class=\"form-select form-select-sm col-type\">
+                        <option value=\"string\" selected>string</option>
+                        <option value=\"number\">number</option>
+                        <option value=\"checkbox\">checkbox</option>
+                        <option value=\"select\">select</option>
+                        <option value=\"select_multiple\">select_multiple</option>
+                        <option value=\"date\">date</option>
+                        <option value=\"time\">time</option>
+                        <option value=\"datetime\">datetime</option>\n                        <option value=\"file\">file</option>
+                    </select>
+                </td>Add
+                <td><input type=\"text\" class=\"form-control col-options\" value=\"\"></td>
+                <td>
+                    <div class=\"input-group input-group-sm col-field-container\">\
+                        <input type=\"text\" class=\"form-control col-field browse-field\" placeholder=\"pick a .field.yaml\" value=\"\">\
+                        <button type=\"button\" class=\"btn btn-outline-secondary browse-col-field\" title=\"Browse .field.yaml\" data-bs-toggle=\"modal\" data-bs-target=\"#browseFileModal\" filters=\"*.field.yaml\"><i class=\"bi bi-folder2-open\"></i></button>\
+                    </div>
+                </td>
+                <td><button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-column\"><i class=\"bi bi-trash\"></i></button></td>
+            </tr>`);
+            schedule_update_preview(false, 'column added');
+        });
+        $(document).on('click', '.remove-column', function () {
+            $(this).closest('tr').remove();
+            schedule_update_preview(false, 'column removed');
+        });
+        // React to edits in columns table to update preview/warning
+        $(document).on('input change', '#custom-columns-table input, #custom-columns-table select', function () {
+            schedule_update_preview(false, 'columns edited');
+        });
+
+        // Enable drag-and-drop reordering for dependencies
+        function initDependencyDragAndDrop() {
+            var $list = $("#dependencies-list");
+            if (!$list.length) return;
+            // delegate events for dynamically added items
+            var dragSrcEl = null;
+            var overAfter = false;
+            $list.on('dragstart', 'li.dep-item', function (e) {
+                dragSrcEl = this;
+                this.classList.add('dragging');
+                e.originalEvent.dataTransfer.effectAllowed = 'move';
+                try {
+                    e.originalEvent.dataTransfer.setData('text/plain', 'drag');
+                } catch (ex) {
+                }
+            });
+            $list.on('dragend', 'li.dep-item', function () {
+                this.classList.remove('dragging');
+                dragSrcEl = null;
+            });
+            $list.on('dragover', 'li.dep-item', function (e) {
+                e.preventDefault(); // allow drop
+                var rect = this.getBoundingClientRect();
+                var midpoint = rect.top + rect.height / 2;
+                overAfter = (e.originalEvent.clientY > midpoint);
+                this.classList.add('drag-over');
+            });
+            $list.on('dragleave', 'li.dep-item', function () {
+                this.classList.remove('drag-over');
+            });
+            $list.on('drop', 'li.dep-item', function (e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                if (!dragSrcEl || dragSrcEl === this) return;
+                if (overAfter) {
+                    this.parentNode.insertBefore(dragSrcEl, this.nextSibling);
+                } else {
+                    this.parentNode.insertBefore(dragSrcEl, this);
+                }
+                update_dependencies_json();
+            });
+        }
+
+        // Initialize now and also after modal closes (in case list created later)
+        setTimeout(initDependencyDragAndDrop, 0);
 
         // Dependencies add/remove
         $("#add-dependency").on('click', function () {
-            var val = $("#dependency-input").val().trim();
+            var val = $("#dependency-file-input").val().trim();
             if (!val) return;
             var exists = false;
             $("#dependencies-list .dep-text").each(function () {
@@ -502,11 +850,12 @@
                 }
             });
             if (!exists) {
-                $("#dependencies-list").append(`<li class=\"list-group-item d-flex justify-content-between align-items-center\">
-                    <span class=\"dep-text\">${val}</span>
-                    <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-dep\"><i class=\"bi bi-x\"></i></button>
-                </li>`);
-                $("#dependency-input").val('');
+                $("#dependencies-list").append(`<li class=\"list-group-item d-flex align-items-center dep-item\" draggable=\"true\">\
+                                    <span class=\"dep-handle bi bi-grip-vertical me-2\" title=\"Drag to reorder\" style=\"cursor: grab;\"></span>\
+                                    <span class=\"dep-text flex-grow-1\">${val}</span>\
+                                    <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-dep\"><i class=\"bi bi-x\"></i></button>\
+                                </li>`);
+                $("#dependency-file-input").val('');
                 update_dependencies_json();
             }
         });
@@ -530,9 +879,10 @@
                 }
             });
             if (!exists) {
-                $("#dependencies-list").append(`<li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span class="dep-text">${val}</span>
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i class="bi bi-x"></i></button>
+                $("#dependencies-list").append(`<li class="list-group-item d-flex align-items-center dep-item" draggable="true">\
+                    <span class="dep-handle bi bi-grip-vertical me-2" title="Drag to reorder" style="cursor: grab;"></span>\
+                    <span class="dep-text flex-grow-1">${val}</span>\
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-dep"><i class="bi bi-x"></i></button>\
                 </li>`);
                 update_dependencies_json();
             }
@@ -544,7 +894,12 @@
                 arr.push($(this).text());
             });
             $("#dependencies-json").val(JSON.stringify(arr));
-            update_preview();
+            // Keep dependent field dropdown in sync with current dependencies
+            try {
+                refreshDependentFieldList();
+            } catch (e) { /* ignore */
+            }
+            schedule_update_preview(true, 'dependencies list changed', 300);
         }
 
         // Remote data preview: fetch via same API used by select2 and render with bootstrap-table below the editor
@@ -667,11 +1022,27 @@
                             });
                             $tbody.html(trs);
                         }
+                        // After rendering remote preview, warn if only one column is present
+                        try {
+                            var previewCols = (data['results'] && data['results']['cols']) || [];
+                            var colCount = Array.isArray(previewCols) ? previewCols.length : 0;
+                            var $warn = $('#list-columns-warning');
+                            if ($warn.length) {
+                                if (colCount === 1) {
+                                    $warn.text('Preview Result has only one column; two columns must be supplied.').removeClass('d-none');
+                                } else if (colCount > 1) {
+                                    $warn.addClass('d-none');
+                                }
+                            }
+                        } catch (ex) { /* ignore */
+                        }
                     } else {
                         var err = (data && data['error']) ? data['error'] : 'Unknown error fetching data';
                         $('#clarama-query-result').text(err);
                         $thead.html('');
                         $tbody.html('<tr><td class="text-danger">' + err + '</td></tr>');
+                        // Hide the warning on error
+                        $('#list-columns-warning').addClass('d-none');
                     }
                 },
                 error: function (xhr) {
@@ -679,20 +1050,71 @@
                     $('#clarama-query-result').text(msg);
                     $thead.html('');
                     $tbody.html('<tr><td class="text-danger">' + msg + '</td></tr>');
+                    // Hide the warning on request failure
+                    $('#list-columns-warning').addClass('d-none');
                 }
             });
         });
 
         // Initialize dependencies json from server-rendered list, ensure hidden input matches list
-        update_dependencies_json();
+        // update_dependencies_json(); schedule_update_preview does this now
 
-        // Initial preview
-        setTimeout(update_preview, 150);
+        // Populate dependent field listbox from dependencies
+        function refreshDependentFieldList() {
+            try {
+                var deps = [];
+                try {
+                    deps = JSON.parse($("#dependencies-json").val() || '[]') || [];
+                } catch (e) {
+                    deps = [];
+                }
+                var $sel = $("#gfe_dep_field");
+                if ($sel.length === 0) return;
+                var current = $sel.val();
+                $sel.empty();
+                if (deps.length === 0) {
+                    $sel.append('<option value="" disabled selected>No dependencies</option>');
+                    return;
+                }
+                // convert file paths like "/content/path/field_name.field.yaml" to id "field_name"
+                deps.forEach(function (d) {
+                    var name = (d || '').split('/').pop(); // last segment
+                    // remove extension variants
+                    name = name.replace(/\.field\.ya?ml$/i, '');
+                    name = name.replace(/\.[^\.]+$/i, '');
+                    $sel.append('<option value="' + name + '">' + name + '</option>');
+                });
+                if (current) {
+                    $sel.val(current);
+                }
+            } catch (e) { /* ignore */
+            }
+        }
+
+        // Refresh when dependencies change
+        $(document).on('click', '#add-dependency, .remove-dep', function () {
+            setTimeout(function () {
+                refreshDependentFieldList();
+            }, 0);
+        });
+        $(document).on('change', '#dependency-file-input', function () {
+            setTimeout(function () {
+                refreshDependentFieldList();
+            }, 0);
+        });
+        // Initial fill
+        setTimeout(refreshDependentFieldList, 50);
+
+        // Initial render of custom pane and preview
+        renderCustomPane(key);
+        schedule_update_preview(true, 'initial render', 0);
     });
 
     function build_data_json() {
         // Returns a JS object to be encoded to YAML/JSON
         var isManual = $("#data-mode-manual").is(':checked');
+        var isRemote = $("#data-mode-remote").is(':checked');
+        var data = {};
         if (isManual) {
             var options = [];
             $("#manual-options-table tbody tr").each(function () {
@@ -700,17 +1122,100 @@
                 var value = $(this).find('input.option-value').val();
                 if (id !== '' || value !== '') options.push({id: id, value: value});
             });
-            return {options: options};
-        } else {
+            if (options.length > 0) data['options'] = options;
+        }
+        if (isRemote) {
             var src = $("#field_data_source").val();
             var q = getEditorValue("field_data_query");
-            var data = {source: src};
+            if (src && src.trim() !== '') data['source'] = src;
             if (q && q.trim() !== '') data['params'] = {query: q};
-            return data;
         }
+        // Always include columns if any are defined and type is list (even if not in Custom mode),
+        // so columns can coexist with remote/manual data for list fields.
+        if (key === 'list') {
+            var cols = [];
+            $("#custom-columns-table tbody tr").each(function () {
+                var k = $(this).find('input.col-key').val().trim();
+                var n = $(this).find('input.col-name').val().trim();
+                var t = ($(this).find('select.col-type').val() || 'string').trim();
+                var o = $(this).find('input.col-options').val().trim();
+                var f = $(this).find('input.col-field').val() ? $(this).find('input.col-field').val().trim() : '';
+                if (k || n || t || o || f) {
+                    var entry = {key: k || (n || ''), name: n || (k || ''), type: t || 'string'};
+                    if (o) {
+                        var arr = o.split(',').map(function (s) {
+                            return s.trim();
+                        }).filter(function (s) {
+                            return s.length > 0;
+                        });
+                        if (arr.length > 0) entry['options'] = arr;
+                    }
+                    if (f) entry['field'] = f;
+                    cols.push(entry);
+                }
+            });
+            if (cols.length > 0) data['columns'] = cols;
+        }
+        return data;
     }
 
-    function update_preview() {
+    // Debounced preview scheduler with configurable timing and dependency refresh behavior
+    var _updateTimer = null;
+
+    function parseBoolAttr(val, defaultVal) {
+        if (val === undefined || val === null || val === '') return defaultVal;
+        var s = String(val).toLowerCase().trim();
+        if (['true', '1', 'yes', 'y', 'on'].indexOf(s) >= 0) return true;
+        if (['false', '0', 'no', 'n', 'off'].indexOf(s) >= 0) return false;
+        return defaultVal;
+    }
+
+    function schedule_update_preview(markDepsChanged, label, scheduleTime) {
+        if (scheduleTime === undefined || scheduleTime === null) scheduleTime = 2000;
+
+        if (scheduleTime > 0) {
+            if (_updateTimer) {
+                clearTimeout(_updateTimer);
+            }
+            _updateTimer = setTimeout(function () {
+                //flash(label + ":" + scheduleTime + " / " + markDepsChanged);
+                var flag = markDepsChanged;
+                _updateTimer = null;
+                update_preview(flag);
+            }, scheduleTime);
+        } else {
+            //flash(label);
+            update_preview(markDepsChanged);
+        }
+
+    }
+
+    function update_preview(depsChanged) {
+        // Toggle list columns warning when applicable
+        try {
+            var isList = (typeof key !== 'undefined' && String(key).toLowerCase() === 'list');
+            var colsCount = 0;
+            if (isList) {
+                // Count meaningful column rows (any cell filled) from the custom columns table
+                $("#custom-columns-table tbody tr").each(function () {
+                    var k = $(this).find('input.col-key').val().trim();
+                    var n = $(this).find('input.col-name').val().trim();
+                    var t = ($(this).find('select.col-type').val() || '').trim();
+                    var o = $(this).find('input.col-options').val().trim();
+                    var f = $(this).find('input.col-field').val() ? $(this).find('input.col-field').val().trim() : '';
+                    if (k || n || t || o || f) colsCount += 1;
+                });
+            }
+            var $warn = $("#list-columns-warning");
+            if ($warn.length) {
+                if (isList && colsCount === 1) {
+                    $warn.removeClass('d-none');
+                } else {
+                    $warn.addClass('d-none');
+                }
+            }
+        } catch (e) { /* ignore */
+        }
         var codeObj = build_data_json();
         var code = JSON.stringify(codeObj, null, 2); // JSON is valid YAML
         $("#data_text").val(code);
@@ -758,29 +1263,28 @@
             }
         }
 
-        // Build dependency preview elements first
-        var deps = [];
-        try {
-            deps = JSON.parse($("#dependencies-json").val() || '[]') || [];
-        } catch (e) {
-            deps = [];
-        }
-
-        var $depsContainer = $("#dependencies-preview");
-        $depsContainer.empty();
-
+        // Build dependency preview elements only if dependencies changed during debounce window
         var depDivs = [];
-        if (deps.length > 0) {
-            // Add a small title
-            $depsContainer.append('<div class="text-muted small mb-1">Dependencies</div>');
-
-            for (var i = 0; i < deps.length; i++) {
-                var depPath = resolvePath(deps[i]);
-                var depUrl = '/render/embed' + depPath;
-                var depId = 'dep_preview_' + i;
-                var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded bg-light p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div><i class="fs-3 bi bi-arrow-down" style="margin-left: 70px;"></i>';
-                $depsContainer.append(depHtml);
-                depDivs.push('#' + depId);
+        var $depsContainer = $("#dependencies-preview");
+        if (depsChanged === true) {
+            var deps = [];
+            try {
+                deps = JSON.parse($("#dependencies-json").val() || '[]') || [];
+            } catch (e) {
+                deps = [];
+            }
+            $depsContainer.empty();
+            if (deps.length > 0) {
+                // Add a small title
+                $depsContainer.append('<div class="text-muted small mb-1">Dependencies</div>');
+                for (var i = 0; i < deps.length; i++) {
+                    var depPath = resolvePath(deps[i]);
+                    var depUrl = '/render/embed' + depPath;
+                    var depId = 'dep_preview_' + i;
+                    var depHtml = '<div id="' + depId + '" class="clarama-post-embedded border rounded bg-light p-2 mb-1" url="' + depUrl + '" source_url="' + depPath + '"></div><i class="fs-3 bi bi-arrow-down" style="margin-left: 70px;"></i>';
+                    $depsContainer.append(depHtml);
+                    depDivs.push('#' + depId);
+                }
             }
         }
 
@@ -795,9 +1299,30 @@
             + "&minimum=" + encodeURIComponent($("#minimum").val())
             + "&readonly=" + encodeURIComponent($("#readonly").prop('checked'))
             + "&required=" + encodeURIComponent($("#required").prop('checked'))
+            + "&sticky=" + encodeURIComponent($("#sticky").prop('checked'))
             + "&step=" + encodeURIComponent($("#step").val())
             + "&spacing=" + encodeURIComponent($("#spacing").val())
+            + "&filters=" + encodeURIComponent($("#filters").val() || '')
+            + "&pattern=" + encodeURIComponent($("#pattern").val() || '')
+            + "&autocomplete=" + encodeURIComponent($("#autocomplete").val() || '')
+            + "&suggestions=" + encodeURIComponent(($('#suggestions').val() || '').split(/\r?\n/).filter(s => s.trim().length > 0).join('|'))
             + "&data_text=" + encodeURIComponent(code);
+
+        // For select-type fields, include column mapping indices in preview URL so the embedded can honor them
+        try {
+            var _t = String(key || '').toLowerCase();
+            if (_t === 'select' || _t === 'select_multiple') {
+                var _idc = $('#id_column').val() || '';
+                var _valc = $('#value_column').val() || '';
+                var _selc = $('#select_column').val() || '';
+                var _disabc = $('#disable_column').val() || '';
+                mainUrl += "&id_column=" + encodeURIComponent(_idc)
+                    + "&value_column=" + encodeURIComponent(_valc)
+                    + "&select_column=" + encodeURIComponent(_selc)
+                    + "&disable_column=" + encodeURIComponent(_disabc);
+            }
+        } catch (e) { /* ignore */
+        }
 
         function loadMainPreview() {
             $("#preview").attr("url", mainUrl);
@@ -857,9 +1382,55 @@
             "spacing": $("#spacing").val(),
             "readonly": $("#readonly").prop('checked'),
             "required": $("#required").prop('checked'),
+            "sticky": $("#sticky").prop('checked'),
+            "filters": $("#filters").val(),
+            "pattern": $("#pattern").val(),
+            "autocomplete": $("#autocomplete").val(),
+            "suggestions": (function () {
+                try {
+                    return ($('#suggestions').val() || '').split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+                } catch (e) {
+                    return [];
+                }
+            })(),
             "dependencies": deps,
             "data_text": code
         };
+
+        // Include per-type custom options into field_data
+        try {
+            var t = String(key || '').toLowerCase();
+            if (t === 'number') {
+                field_data['unit'] = $('#num_unit').val() || '';
+                field_data['decimals'] = $('#num_decimals').val() || '';
+                field_data['thousands'] = $('#num_thousands').val() || '';
+            } else if (t === 'datetime' || t === 'date' || t === 'time') {
+                field_data['format'] = $('#dt_format').val() || '';
+                field_data['min'] = $('#dt_min').val() || '';
+                field_data['max'] = $('#dt_max').val() || '';
+            } else if (t === 'tagcloud') {
+                field_data['mode'] = ($('#tc_mode').val() || 'move');
+                field_data['editable'] = !!($('#tc_editable').prop('checked'));
+            } else if (t === 'daterange') {
+                field_data['time_enabled'] = !!($('#dr_time_enabled').prop('checked'));
+                field_data['milliseconds'] = !!($('#dr_milliseconds').prop('checked'));
+                // Store ranges as raw text; server persists as-is (string) to allow flexible parsing later
+                field_data['ranges'] = ($('#dr_ranges').val() || '').trim();
+            } else if (t === 'select' || t === 'select_multiple') {
+                // Save custom column mapping options for select/select_multiple
+                field_data['id_column'] = $('#id_column').val() || '';
+                field_data['value_column'] = $('#value_column').val() || '';
+                field_data['select_column'] = $('#select_column').val() || '';
+                field_data['disable_column'] = $('#disable_column').val() || '';
+                field_data['allow_custom'] = !!($('#sel_allow_custom').prop('checked'));
+            } else {
+                field_data['maxlength'] = $('#str_maxlength').val() || '';
+                field_data['transform'] = $('#str_transform').val() || '';
+            }
+        } catch (e) { /* ignore */
+        }
+
+        console.log("Field save data", field_data);
 
         var url = "/content/save/" + $("#save").attr("url");
 
@@ -926,6 +1497,10 @@
                     <li>[[field_name:search]] — expand to: field_name LIKE '%search%' (use mapping below to choose
                         column).
                     </li>
+                    <li>Comparators: [[field_name:==]], [[field_name:=]], [[field_name:!=]] (or <>), [[field_name:>]],
+                        [[field_name:<]], [[field_name:>=]], [[field_name:<=]] — expand to standard SQL comparisons
+                        using the field's value.
+                    </li>
                     <li>Mapping: [[from=>to:layout]] — use field_name <em>from</em> but target DB column
                         <em>to</em>. This is if the field_name differs from the database name.
                     </li>
@@ -946,7 +1521,7 @@
                     "name LIKE '%ann%'".</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

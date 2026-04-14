@@ -16,7 +16,7 @@ function get_code_cell(cell) {
     var editor = ace.edit(id);
     var code = editor.getValue();
 
-    console.log("Getting code " + id);
+    // console.log("Getting code " + id);
 
     return {"type": "code", "content": code};
 }
@@ -34,7 +34,7 @@ function get_tab_ids(cell) {
         var tab_id = $(this).data('tab-id');
         if (tab_id !== undefined && tab_id !== null) {
             tab_ids.push(tab_id);
-            console.log("found tab_id: ", tab_id);
+            // console.log("found tab_id: ", tab_id);
         }
     });
     tab_ids = [...new Set(tab_ids)];
@@ -51,17 +51,47 @@ function get_tab_data(cell, tab_id) {
     var dataid = cell.attr('dataid');
     var editor_id = "content_query_" + dataid + "_tab_" + tab_id;
 
+    // Prefer locating elements within the provided cell to be resilient to DOM reorganization
+    var $tabBlock = cell.find('.tab-content-block[data-tab-id="' + tab_id + '"]');
+    var $editorEl = $tabBlock.find('.clarama-field-editor').first();
+
+    var code = '';
     try {
-        var editor = ace.edit(editor_id);
-        var code = editor.getValue();
+        if ($editorEl.length && $editorEl.attr('id')) {
+            code = ace.edit($editorEl.attr('id')).getValue();
+        } else {
+            // Fallback to legacy/global id lookup
+            code = ace.edit(editor_id).getValue();
+        }
     } catch (e) {
-        console.warn("Editor not found for " + editor_id + ", using empty content");
-        var code = "";
+        // If ACE editor instance is not available (e.g., element moved or not yet initialized), fallback to raw text
+        try {
+            if ($editorEl.length) {
+                code = $editorEl.text();
+            } else {
+                var $fallback = $('#' + editor_id);
+                code = $fallback.length ? $fallback.text() : '';
+            }
+            console.warn("ACE editor not available for tab " + tab_id + ", using text fallback.");
+        } catch (e2) {
+            console.warn("Failed to obtain editor content for " + editor_id, e2);
+            code = '';
+        }
     }
 
-    // Get source file path from the tab content block
-    var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
-    var source = $("#" + source_input_id).val() || "";
+    // Get source file path from the tab content block (prefer local lookup)
+    var source = '';
+    try {
+        var $srcInput = $tabBlock.find('input.source-input-field').first();
+        if ($srcInput.length) {
+            source = $srcInput.val() || '';
+        } else {
+            var source_input_id = "task_step_" + dataid + "_source_" + tab_id;
+            source = $("#" + source_input_id).val() || '';
+        }
+    } catch (e) {
+        source = '';
+    }
 
     return {
         "tab_id": tab_id,
@@ -78,7 +108,7 @@ function get_tab_data(cell, tab_id) {
 function get_data_cell(cell) {
     var dataid = cell.attr('dataid');
 
-    console.log("Getting data cell " + dataid);
+    // console.log("Getting data cell " + dataid);
 
     // Get output type
     var output_id = "task_step_" + dataid + "_output";
@@ -88,10 +118,20 @@ function get_data_cell(cell) {
     var tab_ids = get_tab_ids(cell);
     var tabs_data = [];
 
+    var error = false;
+
     tab_ids.forEach(function (tab_id) {
         var tab_data = get_tab_data(cell, tab_id);
+        if (tab_data === null) {
+            error = true;
+            return false;
+        }
+
         tabs_data.push(tab_data);
     });
+
+    if (error)
+        return null;
 
     if (tabs_data.length === 0) {
         var legacy_id = "content_query_" + dataid;
@@ -115,6 +155,7 @@ function get_data_cell(cell) {
     var table_style = cell.find('.table-style').find('option:selected').attr('id');
     var table_title = cell.find('.table-title').val();
     var table_slate = cell.find('.table-slate').val();
+    var table_header = cell.find('.table-header').prop('checked');
     var table_search = cell.find('.table-search').prop('checked');
     var table_export = cell.find('.table-export').prop('checked');
     var table_filter = cell.find('.table-filter').prop('checked');
@@ -131,10 +172,37 @@ function get_data_cell(cell) {
     var chart_legend = cell.find('.chart-legend').val();
     var chart_xaxis_type = cell.find('.chart-xaxis-type').val();
 
-    // Chart advanced YAML
-    var chart_advanced = cell.find('.chart-advanced');
-    var editor = ace.edit(chart_advanced.attr('id'));
-    var chart_advanced_yaml = editor.getValue();
+    // Chart advanced YAML (guard for missing ACE/editor)
+    var chart_advanced_yaml = '';
+    try {
+        var chart_advanced = cell.find('.chart-advanced');
+        if (chart_advanced.length && chart_advanced.attr('id')) {
+            try {
+                var editorChart = ace.edit(chart_advanced.attr('id'));
+                chart_advanced_yaml = editorChart.getValue();
+            } catch (eAce) {
+                chart_advanced_yaml = chart_advanced.text() || '';
+            }
+        }
+    } catch (e) {
+        chart_advanced_yaml = '';
+    }
+
+    // Table advanced YAML (guard for missing ACE/editor)
+    var table_advanced_yaml = '';
+    try {
+        var table_advanced = cell.find('.table-advanced');
+        if (table_advanced.length && table_advanced.attr('id')) {
+            try {
+                var editorTable = ace.edit(table_advanced.attr('id'));
+                table_advanced_yaml = editorTable.getValue();
+            } catch (eAce) {
+                table_advanced_yaml = table_advanced.text() || '';
+            }
+        }
+    } catch (e) {
+        table_advanced_yaml = '';
+    }
 
     var chart_series_groups = [];
     var chart_series_formats = [];
@@ -144,17 +212,55 @@ function get_data_cell(cell) {
     var chart3d_title = cell.find('.chart3d-title').val();
     var chart3d_legend = cell.find('.chart3d-legend').val();
 
-    // Chart advanced YAML
-    var chart3d_advanced = cell.find('.chart3d-advanced');
-    var editor3d = ace.edit(chart3d_advanced.attr('id'));
-    var chart3d_advanced_yaml = editor3d.getValue();
+    // Axis titles and bounds (optional)
+    var chart3d_axis_title_x = cell.find('.chart3d-axis-title-x').val();
+    var chart3d_axis_title_y = cell.find('.chart3d-axis-title-y').val();
+    var chart3d_axis_title_z = cell.find('.chart3d-axis-title-z').val();
+    var chart3d_axis_min_x = cell.find('.chart3d-axis-min-x').val();
+    var chart3d_axis_max_x = cell.find('.chart3d-axis-max-x').val();
+    var chart3d_axis_min_y = cell.find('.chart3d-axis-min-y').val();
+    var chart3d_axis_max_y = cell.find('.chart3d-axis-max-y').val();
+    var chart3d_axis_min_z = cell.find('.chart3d-axis-min-z').val();
+    var chart3d_axis_max_z = cell.find('.chart3d-axis-max-z').val();
+
+    // Graph bounds (optional, override display range)
+    var chart3d_graph_min_x = cell.find('.chart3d-graph-min-x').val();
+    var chart3d_graph_max_x = cell.find('.chart3d-graph-max-x').val();
+    var chart3d_graph_min_y = cell.find('.chart3d-graph-min-y').val();
+    var chart3d_graph_max_y = cell.find('.chart3d-graph-max-y').val();
+    var chart3d_graph_min_z = cell.find('.chart3d-graph-min-z').val();
+    var chart3d_graph_max_z = cell.find('.chart3d-graph-max-z').val();
+
+    // Tick configuration (optional)
+    var chart3d_tick_step_x = cell.find('.chart3d-tick-step-x').val();
+    var chart3d_tick_step_y = cell.find('.chart3d-tick-step-y').val();
+    var chart3d_tick_step_z = cell.find('.chart3d-tick-step-z').val();
+    var chart3d_tick_size_x = cell.find('.chart3d-tick-size-x').val();
+    var chart3d_tick_size_y = cell.find('.chart3d-tick-size-y').val();
+    var chart3d_tick_size_z = cell.find('.chart3d-tick-size-z').val();
+
+    // Chart3D advanced YAML (guard for missing ACE/editor)
+    var chart3d_advanced_yaml = '';
+    try {
+        var chart3d_advanced = cell.find('.chart3d-advanced');
+        if (chart3d_advanced.length && chart3d_advanced.attr('id')) {
+            try {
+                var editor3d = ace.edit(chart3d_advanced.attr('id'));
+                chart3d_advanced_yaml = editor3d.getValue();
+            } catch (eAce) {
+                chart3d_advanced_yaml = chart3d_advanced.text() || '';
+            }
+        }
+    } catch (e) {
+        chart3d_advanced_yaml = '';
+    }
 
     var chart3d_series_objs = [];
 
     // Extract series groups
     var series_groups = cell.find('.chart-series-groups');
     series_groups.each(function () {
-        console.log(this);
+        // console.log(this);
         var srs = {
             'series-tab': $(this).find('.series-tab').val(),            // Input Source Tab
             'series-type': $(this).find('.series-type').val(),          // Series type
@@ -167,14 +273,14 @@ function get_data_cell(cell) {
             'series-u': $(this).find('.series-u').val(),                // unit axis
             'series-l': $(this).find('.series-l').val()                 // label axis (e.g. for point name at X/Y)
         };
-        console.log(srs);
+        // console.log(srs);
         chart_series_groups.push(srs);
     });
 
     // Extract series formats
     var series_formats = cell.find('.chart-series-formats');
     series_formats.each(function () {
-        console.log(this);
+        // console.log(this);
         var srs = {
             'format-nrx': $(this).find('.format-nrx').val(),            // name regex
             'format-ua': $(this).find('.format-ua').val(),              // unit axis
@@ -188,14 +294,14 @@ function get_data_cell(cell) {
             'format-col-back': $(this).find('.chart-col-back').val(),  // background colour
             'format-title': $(this).find('.format-title').val()         // series title
         };
-        console.log(srs);
+        // console.log(srs);
         chart_series_formats.push(srs);
     });
 
     // Extract series annotations
     var series_annos = cell.find('.chart-series-annotations');
     series_annos.each(function () {
-        console.log(this);
+        // console.log(this);
         var srs = {
             'anno-tab': $(this).find('.anno-tab').val(),                // Input Source Tab
             'anno-label': $(this).find('.anno-label').val(),            // label
@@ -212,24 +318,26 @@ function get_data_cell(cell) {
             'anno-col': $(this).find('.chart-col').val(),                // colour
             'anno-col-back': $(this).find('.chart-col-back').val(),      // background colour
         };
-        console.log(srs);
+        // console.log(srs);
         chart_series_annos.push(srs);
     });
 
     // Extract series objects
     var series_objs = cell.find('.chart3d-series-objects');
     series_objs.each(function () {
-        console.log(this);
+        // console.log(this);
         const uvVal = $(this).find('.obj-uv').val();
         const colVal = $(this).find('.obj-colour').val();
         var srs = {
             'obj-vertices': $(this).find('.obj-vertices').val(),                                    // Input Vertices
             'obj-edges': $(this).find('.obj-edges').val(),                                          // Input edges
             'obj-uv': (uvVal && uvVal !== 'none') ? uvVal : '',
-            'obj-colour': (colVal && colVal !== 'none') ? colVal : '',                                        // colour
+            'obj-colour': (colVal && colVal !== 'none') ? colVal : '',                              // colour
+            'obj-texture': $(this).find('.obj-texture').val() || '',                                // texture file path
             'obj-primitive': $(this).find('.obj-primitive').find('option:selected').attr('id'),     // primitive
+            'transform-matrix': $(this).find('.obj-transform-matrix').val() || ''                   // transform matrix variable name
         };
-        console.log(srs);
+        // console.log(srs);
         chart3d_series_objs.push(srs);
     });
 
@@ -248,12 +356,55 @@ function get_data_cell(cell) {
         'title': chart3d_title,
         'legend': chart3d_legend,
         'advanced': chart3d_advanced_yaml,
-        'series-objects': chart3d_series_objs
+        'series-objects': chart3d_series_objs,
+        // Axis config (GraphScaler-compatible)
+        'axis': {
+            'titles': {x: chart3d_axis_title_x, y: chart3d_axis_title_y, z: chart3d_axis_title_z},
+            'orig_bounds': {
+                x: [chart3d_axis_min_x !== '' ? parseFloat(chart3d_axis_min_x) : undefined,
+                    chart3d_axis_max_x !== '' ? parseFloat(chart3d_axis_max_x) : undefined],
+                y: [chart3d_axis_min_y !== '' ? parseFloat(chart3d_axis_min_y) : undefined,
+                    chart3d_axis_max_y !== '' ? parseFloat(chart3d_axis_max_y) : undefined],
+                z: [chart3d_axis_min_z !== '' ? parseFloat(chart3d_axis_min_z) : undefined,
+                    chart3d_axis_max_z !== '' ? parseFloat(chart3d_axis_max_z) : undefined]
+            },
+            'graph_bounds': {
+                x: [chart3d_graph_min_x !== '' ? parseFloat(chart3d_graph_min_x) : undefined,
+                    chart3d_graph_max_x !== '' ? parseFloat(chart3d_graph_max_x) : undefined],
+                y: [chart3d_graph_min_y !== '' ? parseFloat(chart3d_graph_min_y) : undefined,
+                    chart3d_graph_max_y !== '' ? parseFloat(chart3d_graph_max_y) : undefined],
+                z: [chart3d_graph_min_z !== '' ? parseFloat(chart3d_graph_min_z) : undefined,
+                    chart3d_graph_max_z !== '' ? parseFloat(chart3d_graph_max_z) : undefined]
+            }
+        }
     }
+
+    // Inject tick configuration if provided
+    if (!chart3d.axis) chart3d.axis = {};
+    var ticks = {};
+    if (chart3d_tick_step_x !== '') {
+        ticks.x = ticks.x || {};
+        ticks.x.step = parseFloat(chart3d_tick_step_x);
+    }
+    if (chart3d_tick_step_y !== '') {
+        ticks.y = ticks.y || {};
+        ticks.y.step = parseFloat(chart3d_tick_step_y);
+    }
+    if (chart3d_tick_step_z !== '') {
+        ticks.z = ticks.z || {};
+        ticks.z.step = parseFloat(chart3d_tick_step_z);
+    }
+    if (Object.keys(ticks).length > 0) {
+        chart3d.axis.ticks = ticks;
+    }
+    if (chart3d_tick_size_x !== '') chart3d.axis.tickSizeX = parseFloat(chart3d_tick_size_x);
+    if (chart3d_tick_size_y !== '') chart3d.axis.tickSizeY = parseFloat(chart3d_tick_size_y);
+    if (chart3d_tick_size_z !== '') chart3d.axis.tickSizeZ = parseFloat(chart3d_tick_size_z);
 
     var table = {
         'title': table_title,
         'slate': table_slate,
+        'header': table_header,
         'search': table_search,
         'export': table_export,
         'style': table_style,
@@ -263,8 +414,11 @@ function get_data_cell(cell) {
         'multiselect-row': table_multiselect_row,
         'pagination': table_pagination,
         'sortable': table_sortable,
-        'pagesize': table_pagesize
+        'pagesize': table_pagesize,
+        'advanced': table_advanced_yaml
     };
+
+    // console.log("table config:", table);
 
     // reset the tab_ids to start from 0
     let tabCounter = 0;
@@ -285,7 +439,8 @@ function get_data_cell(cell) {
             if (series_object["obj-vertices"] == currTabId) {
                 series_object["obj-vertices"] = tabCounter;
             }
-            if (series_object["obj-edges"] == currTabId) {
+            if (series_object["obj-edges"] != '' && series_object["obj-edges"] !== 'none' &&
+                series_object["obj-edges"] == currTabId) {
                 series_object["obj-edges"] = tabCounter;
             }
             if (series_object["obj-uv"] !== '' && series_object["obj-uv"] !== 'none' &&
@@ -302,13 +457,16 @@ function get_data_cell(cell) {
         tabCounter++;
     });
 
-    console.log("Table config:", table);
-    console.log("Chart config:", chart);
-    console.log("Chart3d config:", chart3d);
-    console.log("Tabs data:", tabs_data);
+    // console.log("Table config:", table);
+    // console.log("Chart config:", chart);
+    // console.log("Chart3d config:", chart3d);
+    // console.log("Tabs data:", tabs_data);
+
+    var cell_name = cell.closest('.clarama-cell-item').find('.data-cell-name').val() || '';
 
     return {
         "type": "data",
+        "name": cell_name,
         "output": output,
         "tabs": tabs_data,
         "table": table,
@@ -324,7 +482,7 @@ function get_data_cell(cell) {
  */
 function get_text_cell(cell) {
     var myContent = cell.trumbowyg('html');
-    console.log("Getting text " + myContent);
+    // console.log("Getting text " + myContent);
     return {"type": "markdown", "content": myContent};
 }
 
@@ -335,7 +493,7 @@ function get_question_cell(cell) {
 
     var question = $("#" + id).val();
 
-    console.log("Getting question " + question);
+    // console.log("Getting question " + question);
 
     return {
         "type": "question",
@@ -353,19 +511,19 @@ function get_notification_cell(cell) {
 
     var id = "content_query_" + dataid;
 
-    console.log("Getting data " + id);
+    //console.log("Getting data " + id);
 
     var message_content = $("#" + id + "_message_content").trumbowyg('html');
-    console.log("MESSAGE CONTENT:")
-    console.log(message_content)
+    //console.log("MESSAGE CONTENT:")
+    //console.log(message_content)
 
     //var targets = $("#" + id + "_targets").val();
     var id = id + "_targets"
     var editor = ace.edit(id);
     var targets = editor.getValue();
 
-    console.log("MESSAGE TARGETS:")
-    console.log(targets)
+    //console.log("MESSAGE TARGETS:")
+    //console.log(targets)
 
 
     return {
@@ -381,17 +539,18 @@ function get_notification_cell(cell) {
  * @returns {Object} Object containing the cell type and source information
  */
 function get_source_cell(cell) {
-    var dataid = cell.attr('dataid');
+    var $local = cell.find('input[id$="_source"]').first();
+    var source = '';
+    if ($local.length) {
+        source = $local.val();
+    } else {
+        var dataid = String(cell.attr('dataid') || '');
+        var source_id = "task_step_" + dataid + "_source";
+        source = $("#" + source_id).val() || '';
+    }
 
-    var id = "content_query_" + dataid;
-
-    console.log("Getting data " + id);
-
-    var source_id = "task_step_" + dataid + "_source";
-    var source = $("#" + source_id).val();
-
-    return {
-        "type": "source",
+    return { 
+        "type": "source", 
         "source": source
     };
 }
@@ -406,7 +565,7 @@ function get_task_cell(cell) {
 
     var id = "content_query_" + dataid;
 
-    console.log("Getting data " + id);
+    // console.log("Getting data " + id);
 
     var task_id = "task_step_" + dataid + "_task";
     var task_ping = "task_step_" + dataid + "_ping";
@@ -457,9 +616,85 @@ function get_shell_cell(cell) {
     var editor = ace.edit(id);
     var code = editor.getValue();
 
-    console.log("Getting shell " + id);
+    // console.log("Getting shell " + id);
 
     return {"type": "shell", "content": code};
+}
+
+// Server step: extract values for saving/restoring
+function get_server_cell(cell) {
+    try {
+        var server_type = (cell.find('.server-type').val() || '').trim();
+        var instance = (cell.find('.server-instance').val() || '').trim();
+
+        // YAML content via ACE editor on the server-config div
+        var cfgEl = cell.find('.server-config').first();
+        var cfgId = cfgEl.attr('id');
+        var yaml_content = '';
+        try {
+            if (cfgId) {
+                var editor = ace.edit(cfgId);
+                yaml_content = editor.getValue();
+            } else {
+                yaml_content = cfgEl.text() || '';
+            }
+        } catch (e) {
+            console.warn('ACE not available for server-config, using text()', e);
+            yaml_content = cfgEl.text() || '';
+        }
+
+        var k8s = cell.find('.server-k8s').is(':checked');
+        var service_name = (cell.find('.server-k8s-svc').val() || '').trim();
+        var portRaw = cell.find('.server-k8s-port').val();
+        var port = portRaw === '' || portRaw === undefined || portRaw === null ? '' : parseInt(portRaw);
+        var host = (cell.find('.server-k8s-host').val() || '').trim();
+        var path = (cell.find('.server-k8s-path').val() || '/').trim();
+
+        var payload = {
+            type: 'server',
+            server_type: server_type || 'opcua',
+            instance: instance || 'default',
+            // Store raw YAML as content so template can restore it directly
+            content: yaml_content,
+            k8s: !!k8s,
+            k8s_options: {
+                service_name: service_name,
+                port: port || 4840,
+                host: host,
+                path: path
+            }
+        };
+        return payload;
+    } catch (e) {
+        console.error('get_server_cell failed', e);
+        return {type: 'server', content: ''};
+    }
+}
+
+// need to implement
+function get_test_cell(cell) {
+    console.error("function get_test_cell(cell) not implemented yet.")
+    return {};
+}
+
+// Streaming data cell: reuse data cell extraction but change type
+function get_data_stream_cell(cell) {
+    try {
+        var obj = get_data_cell(cell);
+
+        if (obj === null) {
+            console.error('get_data_stream_cell failed', e);
+            return null;
+        }
+
+        if (obj && typeof obj === 'object') {
+            obj.type = 'data_stream';
+        }
+        return obj;
+    } catch (e) {
+        console.error('get_data_stream_cell failed', e);
+        return {type: 'data_stream', output: 'table', tabs: [], table: {}, chart: {}};
+    }
 }
 
 /**
@@ -470,11 +705,11 @@ function get_shell_cell(cell) {
  */
 function get_cell_values(cell) {
     var cell_type = cell.attr("celltype");
+    // console.log("celltype: ", cell_type);
     // Get the cell-type specific details
-    cell_data = window["get_" + cell_type + "_cell"](cell);
+    var cell_data = window["get_" + cell_type + "_cell"](cell);
 
-
-    console.log('cell data: ', cell_data);
+    // console.log('cell data: ', cell_data);
     // cell_data["content"] = "locals().keys()";
     return cell_data;
 }
@@ -489,13 +724,21 @@ function get_cell_values(cell) {
  */
 function get_cell(cell_owner, topic) {
     var owner_cells = [];
+    var error = false;
 
     cell_owner.find(".clarama-cell-content").each(
         function (index) {
             var input = $(this);
 
             //console.log("Getting cell values for " + input.attr('id') + ':' + input.attr('class') + ' = ' + input.attr("celltype"))
-            cell = get_cell_values(input);
+            var cell = get_cell_values(input);
+
+            if (cell === null) {
+                console.error("get_cell_values returned null for " + input.attr('id') + ':' + input.attr('class') + ' = ' + input.attr("celltype"))
+
+                error = true;
+                return false;
+            }
 
             // Then let's add in the generic cell information, like the loop
             // we are too low down here, the clarama-cell is near the editable fields far down from clarama-cell-item, so let's go back up to that one
@@ -505,14 +748,17 @@ function get_cell(cell_owner, topic) {
             //console.log(input.closest(".clarama-cell-item").find('.loop-iterable'));
             cell['loop-iterable'] = input.closest(".clarama-cell-item").find('.loop-iterable').val();
 
-            if (topic != "") {
-                console.log("Getting Cell with STEP: " + topic)
+            if (topic !== "") {
+                // console.log("Getting Cell with STEP: " + topic)
                 cell['topic'] = topic;
                 cell['step'] = topic;
             }
 
             owner_cells.push(cell);
         });
+
+    if (error)
+        return null;
 
     return owner_cells;
 }

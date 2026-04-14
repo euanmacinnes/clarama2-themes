@@ -1,9 +1,70 @@
+function toolbar_interactions(toolbar) {
+    toolbar.find(".toolbar-container").each(function () {
+        const $container = $(this);
+        const $hoverLine = $container.find('.hover-line');
+        const $toolbar = $container.find('.floating-toolbar');
+
+        $hoverLine.on('click', function (e) {
+            const rect = $hoverLine[0].getBoundingClientRect();
+            const scrollTop = $(window).scrollTop();
+
+            // Position toolbar right above the line
+            $toolbar.css({
+                top: rect.top + scrollTop - $toolbar.outerHeight() - 5,
+                left: e.clientX - ($toolbar.outerWidth() / 2)
+            });
+
+            $toolbar.toggleClass('visible');
+        });
+
+        // Hide toolbar when clicking outside
+        $(document).on('click', function (e) {
+            if (!$toolbar.is(e.target) &&
+                !$toolbar.has(e.target).length &&
+                !$hoverLine.is(e.target)) {
+                $toolbar.removeClass('visible');
+            }
+        });
+    });
+}
+
 function enable_interactions(parent, reload = false, runtask = false) {
-    console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class"));
+    // console.log('initialising interactions on ' + parent.attr('id') + ':' + parent.attr("class"));
 
     //      parent.find('.clarama-execute').execute();
     parent.find(".dropdown-toggle").dropdown();
     parent.find('.clarama-field-select2').initselect();
+
+    // --- Scope Select2 dropdowns only when an element is inside a modal/popup
+    (function scopeSelect2ToContainer() {
+        parent.find('.clarama-field-select2').each(function () {
+            const $el = $(this);
+            const $host = $el.closest('.modal, #interactionPopup').first(); // element-level check
+            let opts = {};
+            try {
+                if ($el.data('select2')) {
+                    const inst = $el.data('select2');
+                    if (inst && inst.options && inst.options.options) {
+                        opts = inst.options.options;
+                    }
+                    $el.select2('destroy');
+                }
+            } catch (e) { /* no-op */
+            }
+
+            if ($host.length) {
+                $el.select2(Object.assign({}, opts, {
+                    dropdownParent: $host,
+                    width: (opts && opts.width) || 'resolve'
+                }));
+            } else {
+                $el.select2(Object.assign({}, opts, {
+                    width: (opts && opts.width) || 'resolve'
+                }));
+            }
+        });
+    })();
+
     parent.find('.source-editor').editor();
     parent.find('.text-editor').trumbowyg({
         autogrow: true,
@@ -25,10 +86,12 @@ function enable_interactions(parent, reload = false, runtask = false) {
         ]
     });
 
+    toolbar_interactions(parent);
 
     var task_parent = parent.find('.clarama-task')
     task_run(task_parent);
     task_save(task_parent);
+    task_publish(task_parent);
     task_edit_run(task_parent);
     task_parent.find('.clarama-websocket').enablesocket();
 
@@ -40,7 +103,8 @@ function enable_interactions(parent, reload = false, runtask = false) {
 
     cell_insert_step(parent);
     cell_delete_step(parent);
-    cell_toggle_debug_view(parent);
+    cell_toggle_insights_view(parent);
+    cell_toggle_focus(parent);
 
     var fields = parent.find('.clarama-field');
 
@@ -53,28 +117,77 @@ function enable_interactions(parent, reload = false, runtask = false) {
     fields.filter('.clarama-delay-field').interact_delay();
     fields.filter('.clarama-editor-field').interact_editor();
     fields.filter('.clarama-rtf-field').interact_rtf();
-    fields.filter('.clarama-daterange').daterangepicker({
-        timePicker: true,
-        timePickerSeconds: true,
-        alwaysShowCalendars: true,
-        ranges: {
-            'Today': [moment(), moment()],
-            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-            'This Month': [moment().startOf('month'), moment().endOf('month')],
-            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-        }
-    });
+
+    // --- DateRangePicker: mount inside modal/popup only when needed
+    (function scopeDaterangeToContainer() {
+        parent.find('.clarama-daterange').each(function () {
+            const $el = $(this);
+            const $host = $el.closest('.modal, #interactionPopup').first(); // element-level check
+
+            try {
+                const drp = $el.data('daterangepicker');
+                if (drp) {
+                    drp.remove();
+                    $el.off('.daterangepicker');
+                    $el.removeData('daterangepicker');
+                }
+            } catch (e) { /* no-op */
+            }
+
+            const common = {
+                timePicker: true,
+                timePickerSeconds: true,
+                alwaysShowCalendars: true,
+                ranges: {
+                    'Today': [moment(), moment()],
+                    'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                    'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                    'This Month': [moment().startOf('month'), moment().endOf('month')],
+                    'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                }
+            };
+
+            if ($host.length) {
+                $el.daterangepicker(Object.assign({}, common, {parentEl: $host}));
+            } else {
+                $el.daterangepicker(common);
+            }
+        });
+    })();
+
     hoverover_this(parent.find('.hoverover'));
 
+    // Wire kernel info click handlers for dynamically loaded content
+    try {
+        parent.find('#edit-kernel-status, #run-kernel-status, #explore-kernel-status').each(function () {
+            var $el = $(this);
+            if ($el.data('wired')) return;
+            $el.data('wired', 1);
+            $el.css('cursor', 'pointer');
+            if (!$el.attr('title')) {
+                $el.attr('title', 'Click to view kernel info');
+            }
+            $el.on('click', function () {
+                var kid = $el.data('kernel-id') || $.trim($el.text());
+                if (window.ClaramaKernel && window.ClaramaKernel.openKernelInfo) {
+                    window.ClaramaKernel.openKernelInfo(kid);
+                } else {
+                    console.warn('ClaramaKernel not available to open kernel info');
+                }
+            });
+        });
+    } catch (e) {
+        console.warn('Kernel info wiring failed', e);
+    }
+
     if (reload) {
-        parent.find('.clarama-post-embedded').attr('clarama_loaded', false);
-        parent.find('.clarama-embedded').attr('clarama_loaded', false);
+        parent.find('.clarama-post-embedded').attr('clarama_loaded', "false");
+        parent.find('.clarama-embedded').attr('clarama_loaded', "false");
     }
 
     if (runtask) {
-        console.log("runtask autorun")
+        // console.log("runtask autorun")
         parent.find('.clarama-post-embedded').attr('autorun', true);
         parent.find('.clarama-embedded').attr('autorun', true);
     }
@@ -82,4 +195,5 @@ function enable_interactions(parent, reload = false, runtask = false) {
     parent.find('.clarama-post-embedded').load_post();
     parent.find('.clarama-embedded').load();
     Prism.highlightAll(); // Manually trigger highlighting
+    exposeInteractionSourcesUnder(parent);
 }

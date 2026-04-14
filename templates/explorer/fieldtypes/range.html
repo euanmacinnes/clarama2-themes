@@ -2,7 +2,8 @@
 
 {% block content %}
     <inputgroup class="input-group">
-        <input class="form-control clarama-now-field text-bg-primary"
+        <input class="form-control clarama-now-field clarama-field text-bg-primary"
+                data-sticky="true"
                style="width: 10%; height: 37px;"
                type="number"
                name="amountInput"
@@ -14,17 +15,21 @@
                oninput="this.nextElementSibling.value=this.value"/>
         <input data-id="{{ field_id }}" name="{{ field_name }}" type="range"
                class="form-control form-range clarama-field clarama-now-field input-group-append"
+               data-sticky="true"
                style="width: 90%; height: 37px;"
                fieldtype="html"
                 {{ field_config | required }}
                 {{ field_config | readonly }}
-               autocomplete="on"
+               autocomplete="{{ get(field_config,'autocomplete','on') }}"
                oninput="this.previousElementSibling.value = this.value"
                placeholder="{{ get(field_config,'placeholder') }}"
                value="{{ field_value or get(field_config,'default','') }}"
                step="{{ get(field_config,'step','0.01') }}"
                min="{{ get(field_config,'minimum','0') }}"
                max="{{ get(field_config,'maximum','5') }}"
+                {% if field_config.get('data',{}).get('source') %}
+               sourceurl="{{ field_config['data'] | datasource }}"
+                {% endif %}
                 {% include theme("explorer/files/field_tooltip.html") %}
         >
     </inputgroup>

@@ -80,7 +80,7 @@ function chart_options_initialize(loop_index) {
 
     // jQuery to handle click event for all sg remove buttons
     $(document).on('click', '.cell-delete-series-group', function () {
-        $(this).closest('li').remove();
+        $(this).closest('.list-group-item').remove();
     });
 
     addSGBtn.addEventListener("click", function () {
@@ -91,7 +91,7 @@ function chart_options_initialize(loop_index) {
 
     // jQuery to handle click event for all sf remove buttons
     $(document).on('click', '.cell-delete-series-format', function () {
-        $(this).closest('li').remove();
+        $(this).closest('.list-group-item').remove();
     });
 
     addSFBtn.addEventListener("click", function () {
@@ -102,7 +102,7 @@ function chart_options_initialize(loop_index) {
 
     // jQuery to handle click event for all AN remove buttons
     $(document).on('click', '.cell-delete-series-annotations', function () {
-        $(this).closest('li').remove();
+        $(this).closest('.list-group-item').remove();
     });
 
     addANBtn.addEventListener("click", function () {

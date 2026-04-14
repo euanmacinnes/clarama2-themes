@@ -1,236 +1,16 @@
-// Default datasets for the demo cube geometry moved outside initCube
-const CHART3D_DEFAULT_DATASETS = {
-    cubeVertices: new Float32Array([
-        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1,
-        -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1
-    ]),
-    cubeEdges: new Uint16Array([
-        0, 1, 1, 2, 2, 3, 3, 0,
-        4, 5, 5, 6, 6, 7, 7, 4,
-        0, 4, 1, 5, 2, 6, 3, 7
-    ]),
-    // 36 vertices (positions) for a cube [-1..+1], two triangles per face.
-    cubeTriPositions: new Float32Array([
-        // FRONT  (z = +1)
-        -1, -1, 1, 1, -1, 1, 1, 1, 1,
-        -1, -1, 1, 1, 1, 1, -1, 1, 1,
-
-        // BACK   (z = -1)
-        1, -1, -1, -1, -1, -1, -1, 1, -1,
-        1, -1, -1, -1, 1, -1, 1, 1, -1,
-
-        // LEFT   (x = -1)
-        -1, -1, -1, -1, 1, -1, -1, 1, 1,
-        -1, -1, -1, -1, 1, 1, -1, -1, 1,
-
-        // RIGHT  (x = +1)
-        1, -1, -1, 1, 1, -1, 1, 1, 1,
-        1, -1, -1, 1, 1, 1, 1, -1, 1,
-
-        // TOP    (y = +1)
-        -1, 1, -1, 1, 1, -1, 1, 1, 1,
-        -1, 1, -1, 1, 1, 1, -1, 1, 1,
-
-        // BOTTOM (y = -1)
-        -1, -1, -1, 1, -1, -1, 1, -1, 1,
-        -1, -1, -1, 1, -1, 1, -1, -1, 1,
-    ]),
-    // Matching per-vertex UVs (each face is a neat [0..1] square)
-    cubeTriUVs: new Float32Array([
-        // FRONT
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // BACK
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // LEFT
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // RIGHT
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // TOP
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-
-        // BOTTOM
-        0, 0, 1, 0, 1, 1,
-        0, 0, 1, 1, 0, 1,
-    ]),
-    // Per-vertex RGBA colors for the 12 cube triangles (6 faces x 2 tris x 3 verts)
-    // Each face uses a distinct color; colors are repeated per vertex
-    cubeTriColors: new Float32Array([
-        // FRONT (red)
-        1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
-        1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
-
-        // BACK (green)
-        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-
-        // LEFT (blue)
-        0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1,
-        0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1,
-
-        // RIGHT (yellow)
-        1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1,
-        1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1,
-
-        // TOP (magenta)
-        1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1,
-        1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1,
-
-        // BOTTOM (cyan)
-        0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,
-        0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,
-    ]),
+window.exampleAxisConfig = {
+    titleX: 'Longitude (°)',
+    titleY: 'Latitude (°)',
+    titleZ: 'Altitude (km)',
+    minX: -18, maxX: 18,
+    minY: -9, maxY: 9,
+    z: {title: 'Altitude (km)', min: 0, max: 10},
+    ticks: {
+        x: {step: 6, format: (v) => v.toFixed(0)},
+        y: {step: 3, format: (v) => v.toFixed(0)},
+        z: {step: 5, format: (v) => v.toFixed(0)}
+    }
 };
-
-// Build an example line primitive: Mobius strip edge scaled to 10x5x3
-(function () {
-    function generateMobiusPoints(samples, R, w, vConst) {
-        const pts = [];
-        const TWO_PI = Math.PI * 2;
-        const maxT = 2 * TWO_PI; // 0..4π to close edge for v=const
-        for (let i = 0; i < samples; i++) {
-            const t = maxT * (i / samples);
-            const ct = Math.cos(t), st = Math.sin(t);
-            const c2 = Math.cos(t / 2), s2 = Math.sin(t / 2);
-            const v = vConst;
-            const x = (R + v * c2) * ct;
-            const y = (R + v * c2) * st;
-            const z = v * s2;
-            pts.push([x, y, z]);
-        }
-        return pts;
-    }
-
-    function scaleAndCenter(pts, target) {
-        let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-        for (const p of pts) {
-            if (p[0] < minX) minX = p[0];
-            if (p[0] > maxX) maxX = p[0];
-            if (p[1] < minY) minY = p[1];
-            if (p[1] > maxY) maxY = p[1];
-            if (p[2] < minZ) minZ = p[2];
-            if (p[2] > maxZ) maxZ = p[2];
-        }
-        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
-        const sx = maxX - minX || 1, sy = maxY - minY || 1, sz = maxZ - minZ || 1;
-        const tx = target[0] / sx, ty = target[1] / sy, tz = target[2] / sz;
-        for (const p of pts) {
-            p[0] = (p[0] - cx) * tx;
-            p[1] = (p[1] - cy) * ty;
-            p[2] = (p[2] - cz) * tz;
-        }
-        return pts;
-    }
-
-    function toLinePairs(pts) {
-        const out = [];
-        for (let i = 0; i < pts.length - 1; i++) {
-            const a = pts[i], b = pts[i + 1];
-            out.push(a[0], a[1], a[2], b[0], b[1], b[2]);
-        }
-        // close loop
-        const a = pts[pts.length - 1], b = pts[0];
-        out.push(a[0], a[1], a[2], b[0], b[1], b[2]);
-        return new Float32Array(out);
-    }
-
-    const samples = 600;
-    const R = 2.0, w = 0.7; // base before scaling
-    const vConst = w; // edge line on the strip
-    let pts = generateMobiusPoints(samples, R, w, vConst);
-    pts = scaleAndCenter(pts, [10, 5, 3]);
-    CHART3D_DEFAULT_DATASETS.mobiusLineEdges = toLinePairs(pts);
-})();
-
-// Define default primitives that reference the datasets by name so generalized renderer can draw them
-const CHART3D_DEFAULT_PRIMITIVES = [
-    // Render cube corners as points
-    {name: 'Cube Points', vertices: 'cubeVertices', mode: 'point'},
-    // Render the 12 textured triangles that make the cube faces
-    {
-        name: 'Cube Triangles',
-        vertices: 'cubeTriPositions',
-        uv: 'cubeTriUVs',
-        mode: 'triangle',
-        textureURL: 'https://images.pexels.com/photos/129733/pexels-photo-129733.jpeg?_gl=1*ank8ph*_ga*MzI5MTE5MDI0LjE3NTcwODUyMDk.*_ga_8JE65Q40S6*czE3NTcwODUyMDkkbzEkZzEkdDE3NTcwODUyMTEkajU4JGwwJGgw'
-    },
-    // Third cube primitive: per-vertex colours (no texture)
-    {
-        name: 'Cube Triangles (per-vertex colours)',
-        vertices: 'cubeTriPositions',
-        colors: 'cubeTriColors',
-        mode: 'triangle',
-        position: {x: -3, y: -1, z: 2},
-        rotationDeg: {x: 0, y: 45, z: -30},
-    },
-    // Second example primitive demonstrating per-primitive position and rotation (degrees)
-    {
-        name: 'Cube Triangles (offset + rotated)',
-        vertices: 'cubeTriPositions',
-        uv: 'cubeTriUVs',
-        mode: 'triangle',
-        // translate by +3 on X, -1 on Y, +0 on Z (world units)
-        position: {x: 3, y: -1, z: 0},
-        // rotate 30° around X and 45° around Y
-        rotationDeg: {x: 30, y: 45, z: 0},
-        textureURL: 'https://images.pexels.com/photos/129733/pexels-photo-129733.jpeg?_gl=1*ank8ph*_ga*MzI5MTE5MDI0LjE3NTcwODUyMDk.*_ga_8JE65Q40S6*czE3NTcwODUyMDkkbzEkZzEkdDE3NTcwODUyMTEkajU4JGwwJGgw'
-    },
-    // Example line primitive: Mobius strip edge scaled to 10x5x3
-    {
-        name: 'Mobius Strip Line (10x5x3)',
-        edges: 'mobiusLineEdges',
-        mode: 'line',
-        uniformColor: [0.15, 0.6, 0.2, 1.0]
-    }
-];
-
-function boot() {
-    document.querySelectorAll('canvas[id^="chart3d-"]').forEach((c) => {
-        // Example: pass axis configuration to initCube. You can remove or customize this block.
-        const exampleAxisConfig = {
-            // Titles can be specified either at the root or per-axis object
-            titleX: 'Longitude (°)',
-            titleY: 'Latitude (°)',
-            titleZ: 'Altitude (km)',
-            // Ranges can also be specified at the root or per-axis
-            minX: -18, maxX: 18,
-            minY: -9, maxY: 9,
-            // Demonstrate per-axis nested config (will override root if both provided)
-            z: {title: 'Altitude (km)', min: 0, max: 10},
-            // Optional tick settings (consumed elsewhere if implemented)
-            ticks: {
-                x: {step: 6, format: (v) => v.toFixed(0)},
-                y: {step: 3, format: (v) => v.toFixed(0)},
-                z: {step: 5, format: (v) => v.toFixed(0)}
-            }
-        };
-        if (!c.dataset.cubeInit) initCube(c, CHART3D_DEFAULT_DATASETS, CHART3D_DEFAULT_PRIMITIVES, exampleAxisConfig);
-    });
-}
-
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-} else {
-    boot();
-}
-// test just with the cube first
-
-// test with triangles, points and lines
-// then test with the different datasets 
-// (vertices would be the same, but the edges would be different)
-
-// optional uv and color
-// points (just the vertices)
-// lines (vertices + lines)
-// traingle (vertices + lines + uv map + color)
 
 // ------------------------------------------------------------
 // Per-canvas setup
@@ -239,6 +19,9 @@ if (document.readyState === "loading") {
 // Per-canvas setup (generalized datasets + primitives)
 // ------------------------------------------------------------
 function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
+    // flash("initCube");
+    console.log("initCube DATASETS", datasets);
+    console.log("initCube PRIMITIVES", primitives);
     canvas.dataset.cubeInit = "1";
 
     const gl = canvas.getContext("webgl", {antialias: true, preserveDrawingBuffer: true});
@@ -251,11 +34,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // --- helpers ------------------------------------------------------------
-    function getSelectedPrimitive() {
-        // returns 'point' | 'line' | 'triangle'
-        return $('.chart3d-series-objects .obj-primitive option:selected').attr('id') || 'point';
-    }
-
     function sh(type, src) {
         const s = gl.createShader(type);
         gl.shaderSource(s, src);
@@ -283,9 +61,10 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // 2D overlay for tick labels & titles
-    const wrap = canvas.parentElement || document.body;
+    const wrap = canvas.closest('.chart3d-canvas-holder') || canvas.parentElement || document.body;
     if (getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
     const overlay = document.createElement("canvas");
+    overlay.name = "UI-overlay";
     overlay.style.position = "absolute";
     overlay.style.left = "0";
     overlay.style.top = "0";
@@ -295,6 +74,25 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     overlay.style.zIndex = "2";
     wrap.appendChild(overlay);
     const ctx2d = overlay.getContext("2d");
+    // --- tooltip DIV (overlays canvas; pointer-through) -------------------------
+    const tip = document.createElement('div');
+    tip.className = 'chart3d-tooltip';
+    Object.assign(tip.style, {
+        position: 'absolute',
+        zIndex: '3',
+        left: '0px',
+        top: '0px',
+        pointerEvents: 'none',
+        background: 'rgba(0,0,0,0.75)',
+        color: '#fff',
+        padding: '4px 6px',
+        borderRadius: '6px',
+        font: '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+        transform: 'translate(8px, -12px)',
+        display: 'none'
+    });
+    wrap.appendChild(tip);
+
 
     // Style (Matplotlib-ish)
     const STYLE = {
@@ -312,9 +110,9 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
     // Axis titles (from axisConfig or data-* if present)
     const AXIS_TITLE = {
-        x: (axisConfig.titleX || (axisConfig.x && axisConfig.x.title) || canvas.dataset.axisX || "X"),
-        y: (axisConfig.titleY || (axisConfig.y && axisConfig.y.title) || canvas.dataset.axisY || "Y"),
-        z: (axisConfig.titleZ || (axisConfig.z && axisConfig.z.title) || canvas.dataset.axisZ || "Z")
+        x: ((axisConfig.titles && axisConfig.titles.x) || "X"),
+        y: ((axisConfig.titles && axisConfig.titles.y) || "Y"),
+        z: ((axisConfig.titles && axisConfig.titles.z) || "Z")
     };
 
     // Axis ranges (min/max) from axisConfig or data-*
@@ -323,30 +121,203 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         return isFinite(n) ? n : null;
     }
 
-    const AXIS_RANGE = {
+    // Separate ranges:
+    // - GRAPH_RANGE controls the physical size of the rendered axes (cube extent)
+    // - LABEL_RANGE controls the numeric values written on the axes (tick labels)
+    const GRAPH_RANGE = {
         x: {
-            min: (axisConfig.minX ?? (axisConfig.x && axisConfig.x.min) ?? parseNum(canvas.dataset.axisXMin)),
-            max: (axisConfig.maxX ?? (axisConfig.x && axisConfig.x.max) ?? parseNum(canvas.dataset.axisXMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.x && axisConfig.graph_bounds.x[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.x && axisConfig.graph_bounds.x[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[1]) ?? undefined,
         },
         y: {
-            min: (axisConfig.minY ?? (axisConfig.y && axisConfig.y.min) ?? parseNum(canvas.dataset.axisYMin)),
-            max: (axisConfig.maxY ?? (axisConfig.y && axisConfig.y.max) ?? parseNum(canvas.dataset.axisYMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.y && axisConfig.graph_bounds.y[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.y && axisConfig.graph_bounds.y[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[1]) ?? undefined,
         },
         z: {
-            min: (axisConfig.minZ ?? (axisConfig.z && axisConfig.z.min) ?? parseNum(canvas.dataset.axisZMin)),
-            max: (axisConfig.maxZ ?? (axisConfig.z && axisConfig.z.max) ?? parseNum(canvas.dataset.axisZMax)),
+            min: (axisConfig.graph_bounds && axisConfig.graph_bounds.z && axisConfig.graph_bounds.z[0]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[0]) ?? undefined,
+            max: (axisConfig.graph_bounds && axisConfig.graph_bounds.z && axisConfig.graph_bounds.z[1]) ?? (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[1]) ?? undefined,
         }
     };
 
-    function hasRange(axis) {
-        const r = AXIS_RANGE[axis];
+    const LABEL_RANGE = {
+        x: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.x && axisConfig.orig_bounds.x[1]) ?? undefined,
+        },
+        y: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.y && axisConfig.orig_bounds.y[1]) ?? undefined,
+        },
+        z: {
+            min: (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[0]) ?? undefined,
+            max: (axisConfig.orig_bounds && axisConfig.orig_bounds.z && axisConfig.orig_bounds.z[1]) ?? undefined,
+        }
+    };
+
+    // ---- Auto axis range from vertex data (expand by ±5 using only X/Y/Z) ----
+    function applyAutoAxisRange() {
+        const readDS = (n) => (n ? datasets[n] : null);
+
+        // Scan a df_to_dict-like dataset for columns exactly x,y,z (case-insensitive)
+        function scanXYZ(df) {
+            if (!df || typeof df !== 'object') return null;
+            const cols = df.cols || df.columns;
+            const rows = df.rows || df.data || df.values;
+            const orient = String(df.orientation || df.orient || 'byrow').toLowerCase();
+            if (!Array.isArray(cols) || !Array.isArray(rows)) return null;
+
+            const ci = new Map();
+            for (let i = 0; i < cols.length; i++) {
+                const name = String(cols[i]).trim();
+                ci.set(name, i);
+                ci.set(name.toLowerCase(), i);
+            }
+            const ix = ci.get('x') ?? ci.get('X');
+            const iy = ci.get('y') ?? ci.get('Y');
+            const iz = ci.get('z') ?? ci.get('Z');
+            if (ix == null || iy == null || iz == null) return null; // require x,y,z
+
+            const num = (v) => {
+                const n = +v;
+                return Number.isFinite(n) ? n : null;
+            };
+
+            const mm = {
+                x: {min: +Infinity, max: -Infinity},
+                y: {min: +Infinity, max: -Infinity},
+                z: {min: +Infinity, max: -Infinity},
+            };
+
+            if (orient === 'byrow' || orient === 'table' || orient === 'json' || orient === '') {
+                for (const r of rows) {
+                    if (!Array.isArray(r)) continue;
+                    const vx = num(r[ix]), vy = num(r[iy]), vz = num(r[iz]);
+                    if (vx != null) {
+                        if (vx < mm.x.min) mm.x.min = vx;
+                        if (vx > mm.x.max) mm.x.max = vx;
+                    }
+                    if (vy != null) {
+                        if (vy < mm.y.min) mm.y.min = vy;
+                        if (vy > mm.y.max) mm.y.max = vy;
+                    }
+                    if (vz != null) {
+                        if (vz < mm.z.min) mm.z.min = vz;
+                        if (vz > mm.z.max) mm.z.max = vz;
+                    }
+                }
+            } else if (orient === 'bycol' || orient === 'chart') {
+                const cx = rows[ix] || [], cy = rows[iy] || [], cz = rows[iz] || [];
+                const L = Math.max(cx.length, cy.length, cz.length);
+                for (let i = 0; i < L; i++) {
+                    const vx = num(cx[i]), vy = num(cy[i]), vz = num(cz[i]);
+                    if (vx != null) {
+                        if (vx < mm.x.min) mm.x.min = vx;
+                        if (vx > mm.x.max) mm.x.max = vx;
+                    }
+                    if (vy != null) {
+                        if (vy < mm.y.min) mm.y.min = vy;
+                        if (vy > mm.y.max) mm.y.max = vy;
+                    }
+                    if (vz != null) {
+                        if (vz < mm.z.min) mm.z.min = vz;
+                        if (vz > mm.z.max) mm.z.max = vz;
+                    }
+                }
+            } else {
+                return null;
+            }
+
+            if (!Number.isFinite(mm.x.min) || !Number.isFinite(mm.x.max) ||
+                !Number.isFinite(mm.y.min) || !Number.isFinite(mm.y.max) ||
+                !Number.isFinite(mm.z.min) || !Number.isFinite(mm.z.max)) {
+                return null;
+            }
+            return mm;
+        }
+
+        // 1) Try aggregating from primitives' obj-vertices
+        const agg = {
+            x: {min: +Infinity, max: -Infinity},
+            y: {min: +Infinity, max: -Infinity},
+            z: {min: +Infinity, max: -Infinity}
+        };
+        const updateAgg = (mm) => {
+            if (!mm) return;
+            if (mm.x.min < agg.x.min) agg.x.min = mm.x.min;
+            if (mm.x.max > agg.x.max) agg.x.max = mm.x.max;
+            if (mm.y.min < agg.y.min) agg.y.min = mm.y.min;
+            if (mm.y.max > agg.y.max) agg.y.max = mm.y.max;
+            if (mm.z.min < agg.z.min) agg.z.min = mm.z.min;
+            if (mm.z.max > agg.z.max) agg.z.max = mm.z.max;
+        };
+
+        let found = false;
+        for (const prim of (primitives || [])) {
+            const mm = scanXYZ(readDS(prim['obj-vertices']));
+            if (mm) {
+                updateAgg(mm);
+                found = true;
+            }
+        }
+        if (!found) {
+            for (const key of Object.keys(datasets || {})) {
+                const mm = scanXYZ(datasets[key]);
+                if (mm) {
+                    updateAgg(mm);
+                    found = true;
+                }
+            }
+        }
+        if (!found) return;
+
+        const margin = 5;
+
+        function snapWhole(min, max) {
+            let lo = Math.floor(min);
+            let hi = Math.ceil(max);
+            if (lo === hi) {
+                lo -= 1;
+                hi += 1;
+            } // avoid degenerate range
+            return {min: lo, max: hi};
+        }
+
+        const auto = {
+            x: snapWhole(agg.x.min - margin, agg.x.max + margin),
+            y: snapWhole(agg.y.min - margin, agg.y.max + margin),
+            z: snapWhole(agg.z.min - margin, agg.z.max + margin),
+        };
+
+        // Apply to GRAPH_RANGE if missing
+        for (const axis of ['x', 'y', 'z']) {
+            const g = GRAPH_RANGE[axis] || (GRAPH_RANGE[axis] = {});
+            if (!(typeof g.min === 'number' && isFinite(g.min))) g.min = auto[axis].min;
+            if (!(typeof g.max === 'number' && isFinite(g.max))) g.max = auto[axis].max;
+        }
+
+        // Apply to LABEL_RANGE if not provided/degenerate
+        for (const axis of ['x', 'y', 'z']) {
+            const r = LABEL_RANGE[axis] || (LABEL_RANGE[axis] = {});
+            const provided = (typeof r.min === 'number' && typeof r.max === 'number' &&
+                isFinite(r.min) && isFinite(r.max) && r.max !== r.min);
+            if (!provided) {
+                r.min = auto[axis].min;
+                r.max = auto[axis].max;
+            }
+        }
+    }
+
+    applyAutoAxisRange();
+
+    function hasLabelRange(axis) {
+        const r = LABEL_RANGE[axis];
         return r && typeof r.min === 'number' && typeof r.max === 'number' && r.max !== r.min;
     }
 
     function mapToLabel(axis, t) {
-        // Map internal coordinate t in [-Laxis, Laxis] to [min,max] if provided for that axis
-        if (!hasRange(axis)) return t;
-        const r = AXIS_RANGE[axis];
+        // Map internal coordinate t in [-Laxis, Laxis] to [min,max] from LABEL_RANGE if provided
+        if (!hasLabelRange(axis)) return t;
+        const r = LABEL_RANGE[axis];
         const Laxis = axis === 'x' ? axisLenX : (axis === 'y' ? axisLenY : axisLenZ);
         const u = (t + Laxis) / (2 * Laxis); // 0..1
         return r.min + u * (r.max - r.min);
@@ -361,11 +332,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     // --- programs (uniform color) -------------------------------------------
     const vsPos = `
         attribute vec3 a_position;
+        attribute float a_psize;
         uniform mat4 u_mvp;
         uniform float u_pointSize;
         void main(){
             gl_Position = u_mvp * vec4(a_position, 1.0);
-            gl_PointSize = u_pointSize;
+            gl_PointSize = (a_psize > 0.0) ? a_psize : u_pointSize;
         }
     `;
     const fsUniform = `
@@ -388,6 +360,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
     const locU = (p) => ({
         a_position: gl.getAttribLocation(p, "a_position"),
+        a_psize: gl.getAttribLocation(p, "a_psize"),
         u_mvp: gl.getUniformLocation(p, "u_mvp"),
         u_color: gl.getUniformLocation(p, "u_color"),
         u_pointSize: gl.getUniformLocation(p, "u_pointSize"),
@@ -401,13 +374,14 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     // --- programs (per-vertex color) ----------------------------------------
     const vsPosColor = `
         attribute vec3 a_position;
+        attribute float a_psize;
         attribute vec4 a_color;
         varying vec4 v_color;
         uniform mat4 u_mvp;
         uniform float u_pointSize;
         void main(){
             gl_Position = u_mvp * vec4(a_position, 1.0);
-            gl_PointSize = u_pointSize;
+            gl_PointSize = (a_psize > 0.0) ? a_psize : u_pointSize;
             v_color = a_color;
         }
     `;
@@ -430,6 +404,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     const progPointsVary = prog(vsPosColor, fsPointsVary);
     const locV = (p) => ({
         a_position: gl.getAttribLocation(p, "a_position"),
+        a_psize: gl.getAttribLocation(p, "a_psize"),
         a_color: gl.getAttribLocation(p, "a_color"),
         u_mvp: gl.getUniformLocation(p, "u_mvp"),
         u_pointSize: gl.getUniformLocation(p, "u_pointSize"),
@@ -460,6 +435,38 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         }
     `;
     const progTrisTex = prog(vsPosUV, fsTex);
+    // --- programs (textured triangles with per-vertex color) ---
+    const vsPosUVColor = `
+        attribute vec3 a_position;
+        attribute vec2 a_uv;
+        attribute vec4 a_color;
+        varying vec2 v_uv;
+        varying vec4 v_color;
+        uniform mat4 u_mvp;
+        void main(){
+            gl_Position = u_mvp * vec4(a_position, 1.0);
+            v_uv = a_uv;
+            v_color = a_color;
+        }
+    `;
+    const fsTexColor = `
+        precision mediump float;
+        varying vec2 v_uv;
+        varying vec4 v_color;
+        uniform sampler2D u_tex;
+        void main(){
+            gl_FragColor = texture2D(u_tex, v_uv) * v_color;
+        }
+    `;
+    const progTrisTexColor = prog(vsPosUVColor, fsTexColor);
+    const locTexColor = {
+        a_position: gl.getAttribLocation(progTrisTexColor, "a_position"),
+        a_uv: gl.getAttribLocation(progTrisTexColor, "a_uv"),
+        a_color: gl.getAttribLocation(progTrisTexColor, "a_color"),
+        u_mvp: gl.getUniformLocation(progTrisTexColor, "u_mvp"),
+        u_tex: gl.getUniformLocation(progTrisTexColor, "u_tex"),
+    };
+
     const locTex = {
         a_position: gl.getAttribLocation(progTrisTex, "a_position"),
         a_uv: gl.getAttribLocation(progTrisTex, "a_uv"),
@@ -467,24 +474,56 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         u_tex: gl.getUniformLocation(progTrisTex, "u_tex"),
     };
 
-    // Axis half-extent per axis. If AXIS_RANGE provides numeric min/max, fit [-L,L] to [min,max]
-    // and choose L = max(|min|, |max|) so that 0 is always visible and proportions remain reasonable.
-    // Fallback to 3.0 when no range is provided.
+    // Axis half-extent per axis. If GRAPH_RANGE provides numeric min/max, fit [-L,L] to [min,max]
+    // and choose L = (max - min)/2 for physical size of the cube. Fallback to 3.0 when no range is provided.
+    // Note: LABEL_RANGE controls tick label values separately.
     const defaultAxisLen = 3.0;
 
     function axisHalfExtentFor(axis) {
-        const r = AXIS_RANGE[axis];
-        if (r && typeof r.min === 'number' && typeof r.max === 'number') {
-            const span = r.max - r.min;
-            const L = Math.abs(span) / 2;
-            return (L > 0 && isFinite(L)) ? L : defaultAxisLen;
-        }
-        return defaultAxisLen;
+        const spanFrom = (r) =>
+            r && typeof r.min === 'number' && typeof r.max === 'number' &&
+            isFinite(r.min) && isFinite(r.max) && r.max !== r.min
+                ? Math.abs(r.max - r.min) / 2
+                : null;
+
+        // Prefer GRAPH_RANGE; if missing/degenerate, use LABEL_RANGE; else default
+        const g = GRAPH_RANGE[axis];
+        const l = LABEL_RANGE[axis];
+        return spanFrom(g) ?? spanFrom(l) ?? defaultAxisLen;
     }
 
     const axisLenX = axisHalfExtentFor('x');
     const axisLenY = axisHalfExtentFor('y');
     const axisLenZ = axisHalfExtentFor('z');
+
+    // --- normalize data coords -> internal [-L..+L] using LABEL_RANGE -----------
+    function hasFiniteLabelRange(axis) {
+        const r = LABEL_RANGE[axis];
+        return r && isFinite(r.min) && isFinite(r.max) && r.max !== r.min;
+    }
+
+    // Maps a single scalar value v on a given axis into [-L..+L]
+    function mapScalarToInternal(axis, v) {
+        const r = LABEL_RANGE[axis];
+        if (!hasFiniteLabelRange(axis)) return v;
+        const L = (axis === 'x') ? axisLenX : (axis === 'y') ? axisLenY : axisLenZ;
+        const span = (r.max - r.min) || 1e-6;
+        const scale = (2 * L) / span;
+        const offset = -L - r.min * scale;
+        return v * scale + offset;
+    }
+
+    // Accepts any Float32Array of triples [..., x, y, z, ...] and maps in-place
+    function normalizeXYZSeq(float32) {
+        if (!float32 || float32.length < 3) return float32;
+        const out = new Float32Array(float32.length);
+        for (let i = 0; i < float32.length; i += 3) {
+            out[i] = mapScalarToInternal('x', float32[i]);
+            out[i + 1] = mapScalarToInternal('y', float32[i + 1]);
+            out[i + 2] = mapScalarToInternal('z', float32[i + 2]);
+        }
+        return out;
+    }
 
     // Per-axis tick step and size with overrides from axisConfig if provided.
     function numOr(v, d) {
@@ -584,6 +623,76 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     gl.bindBuffer(gl.ARRAY_BUFFER, boxBuf);
     gl.bufferData(gl.ARRAY_BUFFER, boxEdges, gl.STATIC_DRAW);
 
+    // --- tiny vec/quat helpers ----------------------------------
+    function v3(x = 0, y = 0, z = 0) {
+        return new Float32Array([x, y, z]);
+    }
+
+    function v3dot(a, b) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    }
+
+    function v3cross(a, b) {
+        return v3(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]);
+    }
+
+    function v3len(a) {
+        return Math.hypot(a[0], a[1], a[2]);
+    }
+
+    function v3norm(a) {
+        const L = v3len(a) || 1;
+        return v3(a[0] / L, a[1] / L, a[2] / L);
+    }
+
+    function quatIdentity() {
+        return new Float32Array([0, 0, 0, 1]);
+    } // [x,y,z,w]
+    function quatMul(a, b) {
+        const ax = a[0], ay = a[1], az = a[2], aw = a[3];
+        const bx = b[0], by = b[1], bz = b[2], bw = b[3];
+        return new Float32Array([
+            aw * bx + ax * bw + ay * bz - az * by,
+            aw * by - ax * bz + ay * bw + az * bx,
+            aw * bz + ax * by - ay * bx + az * bw,
+            aw * bw - ax * bx - ay * by - az * bz
+        ]);
+    }
+
+    function quatNormalize(q) {
+        const L = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+        return new Float32Array([q[0] / L, q[1] / L, q[2] / L, q[3] / L]);
+    }
+
+    function quatFromAxisAngle(axis, angle) {
+        const a = v3norm(axis), s = Math.sin(angle / 2);
+        return new Float32Array([a[0] * s, a[1] * s, a[2] * s, Math.cos(angle / 2)]);
+    }
+
+    function mat4FromQuat(q) {
+        const x = q[0], y = q[1], z = q[2], w = q[3];
+        const xx = x * x, yy = y * y, zz = z * z, xy = x * y, xz = x * z, yz = y * z, wx = w * x, wy = w * y,
+            wz = w * z;
+        const m = new Float32Array(16);
+        m[0] = 1 - 2 * (yy + zz);
+        m[4] = 2 * (xy - wz);
+        m[8] = 2 * (xz + wy);
+        m[12] = 0;
+        m[1] = 2 * (xy + wz);
+        m[5] = 1 - 2 * (xx + zz);
+        m[9] = 2 * (yz - wx);
+        m[13] = 0;
+        m[2] = 2 * (xz - wy);
+        m[6] = 2 * (yz + wx);
+        m[10] = 1 - 2 * (xx + yy);
+        m[14] = 0;
+        m[3] = 0;
+        m[7] = 0;
+        m[11] = 0;
+        m[15] = 1;
+        return m;
+    }
+
     // --- matrices -----------------------------------------------------------
     function mat4Identity() {
         const m = new Float32Array(16);
@@ -655,44 +764,151 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // --- interaction --------------------------------------------------------
-    const initDist = 30.0, initRotX = 0, initRotY = 0; // the initial rotation upon loading
-    let dist = initDist, rotX = initRotX, rotY = initRotY;
-    let dragging = false, lastX = 0, lastY = 0;
+    const initDist = 13.0;
+    let dist = initDist;
+    let dragging = false;
+
+    // current orientation as a quaternion
+    let qOrient = quatIdentity();
+
+    // last arcball vector under the cursor while dragging
+    let lastArc = null;
+
+    // Map a pointer event to an arcball vector on the unit sphere in view space
+    function arcballVecFromEvent(e) {
+        const rect = canvas.getBoundingClientRect();
+        // normalised device coords in [-1, 1]
+        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = ((rect.bottom - e.clientY) / rect.height) * 2 - 1; // invert Y
+        // project (x,y) onto a unit sphere (trackball)
+        const r2 = x * x + y * y;
+        const z = r2 <= 1 ? Math.sqrt(1 - r2) : 0;
+        const v = v3(x, y, z);
+        // normalise (important when outside the unit circle)
+        return v3norm(v);
+    }
+
+    // Cached matrices/viewport for hover picking
+    let lastMVP = null, lastCssW = 0, lastCssH = 0;
 
     canvas.addEventListener("pointerdown", (e) => {
         dragging = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
+        lastArc = arcballVecFromEvent(e);
         canvas.setPointerCapture(e.pointerId);
     });
+
     canvas.addEventListener("pointermove", (e) => {
         if (!dragging) return;
-        const rect = canvas.getBoundingClientRect();
-        rotY += (e.clientX - lastX) / Math.max(1, rect.width) * Math.PI;
-        rotX += (e.clientY - lastY) / Math.max(1, rect.height) * Math.PI;
-        rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
-        lastX = e.clientX;
-        lastY = e.clientY;
+        const cur = arcballVecFromEvent(e);
+        // rotation between lastArc -> cur
+        const axis = v3cross(lastArc, cur);
+        const dot = Math.min(1, Math.max(-1, v3dot(lastArc, cur)));
+        const angle = Math.acos(dot); // radians
+
+        if (v3len(axis) > 1e-6 && angle > 1e-6) {
+            const dq = quatFromAxisAngle(axis, angle);
+            qOrient = quatNormalize(quatMul(dq, qOrient));
+        }
+        lastArc = cur;
         requestAnimationFrame(render);
     });
+
     window.addEventListener("pointerup", () => {
         dragging = false;
+        lastArc = null;
     });
+
     canvas.addEventListener("wheel", (e) => {
         const zoomGesture = e.ctrlKey || e.metaKey;
         if (!zoomGesture) return;
 
         e.preventDefault();
-        const s = Math.exp(e.deltaY * 0.005);
+        const s = Math.exp(e.deltaY * 0.001);
         dist = Math.max(2.0, dist * s);
         requestAnimationFrame(render);
     }, {passive: false});
+
     canvas.addEventListener("dblclick", () => {
-        rotX = initRotX;
-        rotY = initRotY;
+        qOrient = quatIdentity();
         dist = initDist;
         requestAnimationFrame(render);
     });
+
+    // --- hover picking ----------------------------------------------------------
+    function fmtTick(v) {
+        return formatTick(v);
+    }
+
+    canvas.addEventListener('pointermove', (e) => {
+        if (dragging || !lastMVP) {
+            tip.style.display = 'none';
+            return;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        const dpr = window.devicePixelRatio || 1;
+        const pickR = 12 * dpr;
+        const pickR2 = pickR * pickR;
+
+        let best = null; // {o, idx, sx, sy, d2}
+
+        for (const o of compiled) {
+            if (o.modeGL !== gl.POINTS || !o.vertsN) continue;
+
+            // per-primitive transform
+            const pos = o.position || {x: 0, y: 0, z: 0};
+            const rotD = o.rotationDeg || {x: 0, y: 0, z: 0};
+            const toRad = d => (d || 0) * Math.PI / 180.0;
+            const Rxp = mat4RotateX(toRad(rotD.x));
+            const Ryp = mat4RotateY(toRad(rotD.y));
+            const Rzp = mat4RotateZ(toRad(rotD.z));
+            const Tp = mat4Translate(pos.x || 0, pos.y || 0, pos.z || 0);
+            const Mp = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
+            const MVPp = mat4Mul(lastMVP, Mp);
+
+            const arr = o.vertsN;
+            for (let i = 0; i < arr.length; i += 3) {
+                const p = projectToScreen(arr[i], arr[i + 1], arr[i + 2], MVPp, lastCssW, lastCssH);
+                if (!p) continue;
+                const dx = p.x - mx, dy = p.y - my;
+                const d2 = dx * dx + dy * dy;
+                if (d2 <= pickR2 && (!best || d2 < best.d2)) best = {o, idx: i / 3, sx: p.x, sy: p.y, d2};
+            }
+        }
+
+        if (!best) {
+            tip.style.display = 'none';
+            return;
+        }
+
+        const vx = best.o.vertsN[best.idx * 3 + 0];
+        const vy = best.o.vertsN[best.idx * 3 + 1];
+        const vz = best.o.vertsN[best.idx * 3 + 2];
+
+        const lx = mapToLabel('x', vx);
+        const ly = mapToLabel('y', vy);
+        const lz = mapToLabel('z', vz);
+
+        tip.textContent = `(${fmtTick(lx)}, ${fmtTick(ly)}, ${fmtTick(lz)})`;
+        tip.style.left = `${best.sx}px`;
+        tip.style.top = `${best.sy}px`;
+        tip.style.display = 'block';
+    });
+
+    // hide tooltip while user acts
+    canvas.addEventListener('pointerdown', () => {
+        tip.style.display = 'none';
+    });
+    canvas.addEventListener('wheel', () => {
+        tip.style.display = 'none';
+    }, {passive: true});
+    canvas.addEventListener('dblclick', () => {
+        tip.style.display = 'none';
+    });
+
 
     // --- resize -------------------------------------------------------------
     const overlayCanvas = overlay; // alias
@@ -712,8 +928,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         requestAnimationFrame(render);
     }
 
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
+
     const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
+    ro.observe(wrap);
     window.addEventListener("resize", resize);
     document.addEventListener("shown.bs.tab", resize, true);
     document.addEventListener("shown.bs.collapse", resize, true);
@@ -787,51 +1007,29 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     // ---------- compile generalized primitives ---------------------------------
     const compiled = [];
 
-    function createCheckerTextureGL(size = 64, squares = 8) {
-        const tex = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-
-        const pixels = new Uint8Array(size * size * 4);
-        const step = size / squares;
-
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                const idx = (y * size + x) * 4;
-                const cx = Math.floor(x / step);
-                const cy = Math.floor(y / step);
-                const on = (cx + cy) % 2 === 0;
-                const v = on ? 230 : 40;
-                pixels[idx + 0] = v;
-                pixels[idx + 1] = v;
-                pixels[idx + 2] = v;
-                pixels[idx + 3] = 255;
-            }
-        }
-
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        return tex;
-    }
-
-    // Build a default checker texture once
-    const checkerTex = createCheckerTextureGL(64, 8);
-
     // Texture cache and async loader for URL-based textures
-    const textureCache = new Map(); // url -> WebGLTexture | {loading:true, tex:WebGLTexture}
+    const textureCache = new Map();
 
     function isHttpUrl(u) {
         return typeof u === 'string' && /^(https?:)?\/\//i.test(u);
     }
 
     function getOrLoadTexture(url, onLoaded) {
-        if (!url) return checkerTex;
+        console.info('Requesting Texture:', url);
+        if (!url) {
+            console.info('Texture has no URL, request rejected');
+            return;
+        }
+        console.info('Loading Texture:', url);
         const cached = textureCache.get(url);
-        if (cached && cached !== 'loading') return cached;
-        if (cached === 'loading') return checkerTex;
+        if (cached && cached !== 'loading') {
+            console.info('Returning cached texture');
+            return cached;
+        }
+        if (cached === 'loading') {
+            console.info('New texture, not loaded, Creating Texture while loading occurs');
+            return;
+        }
         // mark as loading
         textureCache.set(url, 'loading');
 
@@ -850,6 +1048,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         if (isHttpUrl(url)) img.crossOrigin = 'anonymous';
         img.onload = () => {
             try {
+                console.info('Texture ' + url + ' loaded from HTTP, uploading to GPU');
                 gl.bindTexture(gl.TEXTURE_2D, tex);
                 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
@@ -862,86 +1061,92 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
                 requestAnimationFrame(render);
             } catch (e) {
                 console.warn('Failed to upload texture image', url, e);
-                textureCache.set(url, checkerTex);
-                if (typeof onLoaded === 'function') onLoaded(checkerTex);
                 requestAnimationFrame(render);
             }
         };
         img.onerror = () => {
-            console.warn('Failed to load texture URL:', url);
-            textureCache.set(url, checkerTex);
-            if (typeof onLoaded === 'function') onLoaded(checkerTex);
+            console.error('Failed to load texture URL:', url);
             requestAnimationFrame(render);
         };
         try {
             img.src = url;
         } catch (e) {
             console.warn('Invalid texture URL:', url, e);
-            textureCache.set(url, checkerTex);
         }
-        return checkerTex;
     }
 
-    // Helper: normalize data array from various shapes to a flat Float32Array
-    function toFloat32(data, componentsExpected) {
-        if (!data) return null;
-        // If already a typed array
-        if (data instanceof Float32Array) return data;
-        if (Array.isArray(data) && data.length > 0) {
-            // If flat array of numbers
-            if (typeof data[0] === 'number') return new Float32Array(data);
-            // If array of arrays: flatten
-            if (Array.isArray(data[0])) {
-                const out = new Float32Array(data.length * data[0].length);
-                let k = 0;
-                for (const row of data) {
-                    for (const v of row) out[k++] = +v;
+    // Helper: convert df_to_dict-like data using specified column names into a flat Float32Array
+    // New signature: toFloat32(data, columnNamesOrCount)
+    // - If columnNamesOrCount is an array or string -> treat as requested column names
+    // - If it's a number -> legacy behavior (componentsExpected) using generic inference
+    function toFloat32(data, columnNamesOrCount) {
+        if (!data) {
+            return null;
+        }
+
+        // Helper: coerce to finite number, default 0
+        const num = (v) => {
+            const n = +v;
+            return Number.isFinite(n) ? n : 0;
+        };
+
+        // If caller passed column names, attempt df-dict path first
+        let requestedCols = null;
+        if (Array.isArray(columnNamesOrCount)) {
+            requestedCols = columnNamesOrCount.map(c => String(c).toLowerCase());
+        } else if (typeof columnNamesOrCount === 'string') {
+            requestedCols = [columnNamesOrCount.toLowerCase()];
+        }
+
+        // df_to_dict-like object: {cols:[...], orientation:'byrow'|'bycol', rows:[...]}
+        if (requestedCols && typeof data === 'object' && !Array.isArray(data)) {
+            const cols = data.cols || data.columns;
+            const orientation = ((data.orientation || data.orient || 'byrow') + '').toLowerCase();
+            const rows = data.rows || data.data || data.values;
+            if (Array.isArray(cols) && Array.isArray(rows)) {
+                // Build column index map (case-insensitive match)
+                const colIndex = new Map();
+                for (let i = 0; i < cols.length; i++) {
+                    const name = String(cols[i]).toLowerCase();
+                    if (!colIndex.has(name)) colIndex.set(name, i);
                 }
-                return out;
-            }
-            // If array of objects with x,y,z or u,v or r,g,b,a
-            if (typeof data[0] === 'object') {
-                const keysXYZ = ['x', 'y', 'z'];
-                const keysXYZU = ['X', 'Y', 'Z'];
-                const keysUV = ['u', 'v'];
-                const keysUVU = ['U', 'V'];
-                const keysRGB = ['r', 'g', 'b', 'a'];
-                const keysRGBU = ['R', 'G', 'B', 'A'];
+                const idxs = [];
+                for (const rc of requestedCols) {
+                    const ci = colIndex.get(rc);
+                    if (ci === undefined) {
+                        console.warn('toFloat32: missing column', rc);
+                        return null;
+                    }
+                    idxs.push(ci);
+                }
+
                 const out = [];
-                for (const row of data) {
-                    let used = false;
-                    if (!used && row && keysXYZ.every(k => k in row)) {
-                        out.push(+row.x, +row.y, +row.z);
-                        used = true;
+                if (orientation === 'byrow' || orientation === 'table' || orientation === 'json' || orientation === '') {
+                    for (let r = 0; r < rows.length; r++) {
+                        const row = rows[r];
+                        if (!Array.isArray(row)) continue;
+                        for (let k = 0; k < idxs.length; k++) {
+                            out.push(num(row[idxs[k]]));
+                        }
                     }
-                    if (!used && row && keysXYZU.every(k => k in row)) {
-                        out.push(+row.X, +row.Y, +row.Z);
-                        used = true;
+                } else if (orientation === 'bycol' || orientation === 'chart') {
+                    const maxLen = rows.reduce((m, col) => Math.max(m, Array.isArray(col) ? col.length : 0), 0);
+                    for (let r = 0; r < maxLen; r++) {
+                        for (let k = 0; k < idxs.length; k++) {
+                            const colArr = rows[idxs[k]];
+                            const v = Array.isArray(colArr) ? colArr[r] : undefined;
+                            out.push(num(v));
+                        }
                     }
-                    if (!used && row && keysUV.every(k => k in row)) {
-                        out.push(+row.u, +row.v);
-                        used = true;
-                    }
-                    if (!used && row && keysUVU.every(k => k in row)) {
-                        out.push(+row.U, +row.V);
-                        used = true;
-                    }
-                    if (!used && row && keysRGB.every(k => k in row)) {
-                        out.push(+row.r, +row.g, +row.b, +(row.a ?? 1));
-                        used = true;
-                    }
-                    if (!used && row && keysRGBU.every(k => k in row)) {
-                        out.push(+row.R, +row.G, +row.B, +(row.A ?? 1));
-                        used = true;
-                    }
-                    if (!used) {
-                        // fallback: push all numeric values in property order
-                        for (const v of Object.values(row)) if (typeof v === 'number') out.push(+v);
-                    }
+                } else {
+                    console.warn('toFloat32: unknown orientation', orientation);
+                    return null;
                 }
+                console.info("FLOAT32 For array " + columnNamesOrCount, idxs, out);
                 return new Float32Array(out);
             }
         }
+        flash("Unknown dataset format");
         return null;
     }
 
@@ -958,161 +1163,170 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
     }
 
     // Build compiled objects from datasets + primitives
-    try {
-        const getDS = (name) => {
-            if (!name) return null;
-            const raw = datasets[name];
-            return raw;
-        };
-        for (const prim of (primitives || [])) {
-            try {
-                const vertsRaw = getDS(prim.vertices);
-                const edgesRaw = getDS(prim.edges);
-                const uvRaw = getDS(prim.uv || prim.uvs);
-                const colRaw = getDS(prim.color || prim.colour || prim.colors);
-
-                const verts = toFloat32(vertsRaw, 3);
-                const edges = toFloat32(edgesRaw, 3); // positions for lines
-                const uvs = toFloat32(uvRaw, 2);
-                const cols = toFloat32(colRaw);
-
-                const name = prim.name || prim.id || 'obj';
-
-                // Determine mode
-                let mode = prim.mode || prim.primitive; // 'point' | 'line' | 'triangle'
-                if (!mode) {
-                    if (edges && edges.length >= 6) mode = 'line';
-                    else if (verts && (verts.length % 9 === 0)) mode = 'triangle';
-                    else mode = 'point';
-                }
-
-                let program = null;
-                let locations = null;
-                let usesColorVary = false;
-                let usesUniformColor = false;
-                let usesTex = false;
-                let colorSize = 4;
-                let uniformColor = null;
-
-                const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, (mode === 'line' && edges) ? edges : verts);
-                let cbo = null, uvbo = null, ebo = null;
-                let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
-                let modeGL = gl.POINTS;
-
-                if (mode === 'point') {
-                    // points use vertices
-                    if (!verts || verts.length < 3) {
-                        console.warn('Primitive skipped (no vertices):', name);
-                        continue;
-                    }
-                    countVerts = Math.floor(verts.length / 3);
-                    // Choose colors handling
-                    if (cols && cols.length >= countVerts * 3) {
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progPointsVary;
-                        locations = locColor.points;
-                    } else {
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.point;
-                        program = progPoints;
-                        locations = loc.points;
-                    }
-                    modeGL = gl.POINTS;
-                } else if (mode === 'line') {
-                    // lines use edges positions directly
-                    const lineData = edges || verts; // fallback to verts if edges missing (interpret as line strip pairs)
-                    if (!lineData || lineData.length < 6) {
-                        console.warn('Primitive skipped (no edges/verts for lines):', name);
-                        continue;
-                    }
-                    countVerts = Math.floor(lineData.length / 3);
-                    if (cols && cols.length >= countVerts * 3) {
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progLinesVary;
-                        locations = locColor.lines;
-                    } else {
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.cube;
-                        program = progLines;
-                        locations = loc.lines;
-                    }
-                    modeGL = gl.LINES;
-                } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh') {
-                    if (!verts || verts.length < 9) {
-                        console.warn('Primitive skipped (no triangle vertices):', name);
-                        continue;
-                    }
-                    countVerts = Math.floor(verts.length / 3);
-                    if (uvs && uvs.length >= (countVerts * 2)) {
-                        // textured
-                        usesTex = true;
-                        uvbo = createBufferAndUpload(gl.ARRAY_BUFFER, uvs);
-                        program = progTrisTex;
-                        locations = locTex;
-                    } else if (cols && cols.length >= countVerts * 3) {
-                        // per-vertex color
-                        usesColorVary = true;
-                        colorSize = (cols.length === countVerts * 4) ? 4 : 3;
-                        cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
-                        program = progTrisVary;
-                        locations = locColor.tris;
-                    } else {
-                        // uniform color
-                        usesUniformColor = true;
-                        uniformColor = prim.uniformColor || STYLE.cube;
-                        program = progTris;
-                        locations = loc.tris;
-                    }
-                    modeGL = gl.TRIANGLES;
-                } else {
-                    console.warn('Unknown primitive mode, skipping:', mode);
-                    continue;
-                }
-
-                // If this primitive uses texturing and provides a texture URL, load it now (fallback to checker while loading)
-                let textureUrl = prim.textureUrl || prim.texture || prim.textureURL;
-                let initialTexture = checkerTex;
-                if (usesTex && textureUrl) {
-                    initialTexture = getOrLoadTexture(textureUrl, (tex) => {
-                        // after load, update the compiled object's texture reference
-                        const obj = compiled.find(x => x.name === name);
-                        if (obj) obj.texture = tex;
-                    });
-                }
-
-                compiled.push({
-                    name,
-                    program,
-                    locations,
-                    vbo,
-                    cbo,
-                    uvbo,
-                    ebo,
-                    colorSize,
-                    usesColorVary,
-                    usesUniformColor,
-                    uniformColor,
-                    usesTex,
-                    texture: initialTexture,
-                    hasIndices: false,
-                    countVerts,
-                    countElems,
-                    indexType,
-                    modeGL,
-                    // store transform directives from primitive (position and rotation in degrees)
-                    position: prim.position || {x: 0, y: 0, z: 0},
-                    rotationDeg: prim.rotationDeg || {x: 0, y: 0, z: 0},
-                });
-            } catch (e) {
-                console.error('Error compiling primitive:', e);
-            }
+    const getDS = (name) => {
+        if (name === '' || name === undefined) {
+            return null
         }
-    } catch (e) {
-        console.error('Failed to build primitives:', e);
+
+        const raw = datasets[name];
+        return raw;
+    };
+    for (const prim of (primitives || [])) {
+        const vertsRaw = getDS(prim['obj-vertices']);
+        const edgesRaw = getDS(prim['obj-edges']);
+        const uvRaw = getDS(prim['obj-uv']);
+        const colRaw = getDS(prim['obj-color'] || prim['obj-colour']);
+
+        const verts = toFloat32(vertsRaw, ['x', 'y', 'z']);
+        const edges = toFloat32(edgesRaw, ['x1', 'y1', 'z1', 'x2', 'y2', 'z2']); // positions for lines
+        const uvs = toFloat32(uvRaw, ['u', 'v']);
+        const cols = toFloat32(colRaw, ['r', 'g', 'b', 'a']);
+
+        const name = prim.name || prim.id || 'obj';
+
+        // Determine mode
+        let mode = prim['obj-primitive']; // 'point' | 'line' | 'triangle'
+        if (!mode) {
+            if (edges && edges.length >= 6) mode = 'line';
+            else if (verts && (verts.length % 9 === 0)) mode = 'triangle';
+            else mode = 'point';
+        }
+
+        const hasPS = vertsRaw && (vertsRaw.cols || vertsRaw.columns || []).some(c => String(c).toLowerCase() === 'ps');
+        const pointsizes = (mode === 'point' && hasPS) ? toFloat32(vertsRaw, ['ps']) : null;
+
+        // Normalize positions so data ranges fit the axis cube
+        const vertsN = normalizeXYZSeq(verts);
+        const edgesN = normalizeXYZSeq(edges);
+
+        let program = null;
+        let locations = null;
+        let usesColorVary = false;
+        let usesUniformColor = false;
+        let usesTex = false;
+        let colorSize = 4;
+        let uniformColor = null;
+
+        const vboSource = (mode === 'line' && edgesN) ? edgesN : vertsN;
+        const vbo = createBufferAndUpload(gl.ARRAY_BUFFER, vboSource);
+        let psbo = createBufferAndUpload(gl.ARRAY_BUFFER, pointsizes);
+        let cbo = null, uvbo = null, ebo = null;
+        let countVerts = 0, countElems = 0, indexType = gl.UNSIGNED_SHORT;
+        let modeGL = gl.POINTS;
+
+        if (mode === 'point') {
+            // points use vertices
+            if (!vertsN || vertsN.length < 3) {
+                console.warn('Primitive skipped (no vertices):', name);
+                continue;
+            }
+            countVerts = Math.floor(vertsN.length / 3);
+            // Choose colors handling
+            if (cols && cols.length >= countVerts * 3) {
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progPointsVary;
+                locations = locColor.points;
+            } else {
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.point;
+                program = progPoints;
+                locations = loc.points;
+            }
+            modeGL = gl.POINTS;
+        } else if (mode === 'line') {
+            // lines use edges positions directly
+            const lineData = edgesN || vertsN; // fallback to verts if edges missing (interpret as line strip pairs)
+            if (!lineData || lineData.length < 6) {
+                console.warn('Primitive skipped (no edges/verts for lines):', name);
+                continue;
+            }
+            countVerts = Math.floor(lineData.length / 3);
+            if (cols && cols.length >= countVerts * 3) {
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progLinesVary;
+                locations = locColor.lines;
+            } else {
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.cube;
+                program = progLines;
+                locations = loc.lines;
+            }
+            modeGL = gl.LINES;
+        } else if (mode === 'triangle' || mode === 'triangles' || mode === 'mesh' || mode === 'trianglestrip' || mode === 'triangle_strip') {
+            if (!vertsN || vertsN.length < 9) {
+                console.warn('Primitive skipped (no triangle vertices):', name);
+                continue;
+            }
+            countVerts = Math.floor(vertsN.length / 3);
+            if (uvs && uvs.length >= (countVerts * 2)) {
+                // textured
+                usesTex = true;
+                uvbo = createBufferAndUpload(gl.ARRAY_BUFFER, uvs);
+                program = progTrisTex;
+                locations = locTex;
+            } else if (cols && cols.length >= countVerts * 3) {
+                // per-vertex color
+                usesColorVary = true;
+                colorSize = (cols.length === countVerts * 4) ? 4 : 3;
+                cbo = createBufferAndUpload(gl.ARRAY_BUFFER, cols);
+                program = progTrisVary;
+                locations = locColor.tris;
+            } else {
+                // uniform color
+                usesUniformColor = true;
+                uniformColor = prim.uniformColor || STYLE.cube;
+                program = progTris;
+                locations = loc.tris;
+            }
+            // Select WebGL draw mode: TRIANGLES for lists, TRIANGLE_STRIP if requested
+            modeGL = (mode === 'trianglestrip' || mode === 'triangle_strip') ? gl.TRIANGLE_STRIP : gl.TRIANGLES;
+        } else {
+            console.warn('Unknown primitive mode, skipping:', mode);
+            continue;
+        }
+
+        // If this primitive uses texturing and provides a texture URL, load it now
+        let textureUrl = prim['obj-texture-absolute'];
+        let initialTexture;
+        if (usesTex && textureUrl) {
+            // flash("Loading texture " + textureUrl);
+            initialTexture = getOrLoadTexture(textureUrl, (tex) => {
+                // after load, update the compiled object's texture reference
+                const obj = compiled.find(x => x.name === name);
+                if (obj) obj.texture = tex;
+            });
+        }
+
+        compiled.push({
+            name,
+            program,
+            locations,
+            vbo,
+            cbo,
+            uvbo,
+            psbo,
+            ebo,
+            colorSize,
+            usesColorVary,
+            usesUniformColor,
+            uniformColor,
+            usesTex,
+            texture: initialTexture,
+            hasIndices: false,
+            countVerts,
+            countElems,
+            indexType,
+            modeGL,
+            // store transform directives from primitive (position and rotation in degrees)
+            position: prim.position || {x: 0, y: 0, z: 0},
+            rotationDeg: prim.rotationDeg || {x: 0, y: 0, z: 0},
+            // CPU-side verts for hover picking (only for points)
+            vertsN: (modeGL === gl.POINTS) ? vertsN : null,
+        });
     }
 
     // ---------- render -------------------------------------------------------
@@ -1124,16 +1338,20 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         gl.clearColor(STYLE.clear[0], STYLE.clear[1], STYLE.clear[2], STYLE.clear[3]);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        const rect = canvas.getBoundingClientRect();
+        const host = canvas.closest('.chart3d-canvas-holder') || canvas.parentElement || canvas;
+        const rect = host.getBoundingClientRect();
         const cssW = Math.max(1, rect.width);
         const cssH = Math.max(1, rect.height);
 
         const P = mat4Perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100.0);
         const V = mat4Translate(0, 0, -dist);
-        const Rx = mat4RotateX(rotX);
-        const Ry = mat4RotateY(rotY);
-        const M = mat4Mul(Ry, Rx);
+        const M = mat4FromQuat(qOrient);
         const MVP = mat4Mul(mat4Mul(P, V), M);
+
+        // cache for hover picking
+        lastCssW = cssW;
+        lastCssH = cssH;
+        lastMVP = MVP;
 
         // Grids (back/left/bottom panes)
         gl.useProgram(progLines);
@@ -1177,7 +1395,6 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             const Mp = mat4Mul(Tp, mat4Mul(Rzp, mat4Mul(Ryp, Rxp)));
             const MVPp = mat4Mul(MVP, Mp);
 
-            // common: MVP (per primitive)
             if (o.locations.u_mvp) gl.uniformMatrix4fv(o.locations.u_mvp, false, MVPp);
 
             // attributes
@@ -1189,6 +1406,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
 
             // point size (if program supports it)
             if (o.locations.u_pointSize) gl.uniform1f(o.locations.u_pointSize, Math.max(4.0, 5.0 * dpr));
+
+            if (o.psbo && o.locations.a_psize !== -1) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, o.psbo);
+                gl.vertexAttribPointer(o.locations.a_psize, 1, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(o.locations.a_psize);
+            }
 
             // colors
             if (o.usesColorVary && o.cbo) {
@@ -1206,7 +1429,7 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             // texture
             if (o.usesTex && o.uvbo) {
                 gl.activeTexture(gl.TEXTURE0);
-                if (o.texture) gl.bindTexture(gl.TEXTURE_2D, o.texture);
+                gl.bindTexture(gl.TEXTURE_2D, o.texture);
                 gl.uniform1i(o.locations.u_tex, 0);
                 gl.bindBuffer(gl.ARRAY_BUFFER, o.uvbo);
                 if (o.locations.a_uv !== -1) {
@@ -1222,6 +1445,12 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
             } else {
                 gl.drawArrays(o.modeGL, 0, o.countVerts);
             }
+
+            // cleanup: disable attributes to prevent state leakage to next primitives
+            if (o.locations.a_position !== -1) gl.disableVertexAttribArray(o.locations.a_position);
+            if (o.locations.a_psize !== -1) gl.disableVertexAttribArray(o.locations.a_psize);
+            if (o.locations.a_color !== -1) gl.disableVertexAttribArray(o.locations.a_color);
+            if (o.locations.a_uv !== -1) gl.disableVertexAttribArray(o.locations.a_uv);
         }
 
         // ---------- 2D overlay (ticks + titles) ----------
@@ -1263,3 +1492,5 @@ function initCube(canvas, datasets = {}, primitives = [], axisConfig = {}) {
         render();
     });
 }
+
+if (!window.initCube) window.initCube = initCube;

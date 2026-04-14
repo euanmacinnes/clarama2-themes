@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Clarama Streaming Chart Demo</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0 12px 40px;
+            background: #fafafa;
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 16px 0 6px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin: 20px 0 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 18px;
+            align-items: start;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e3e3e3;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 280px !important;
+        }
+
+        .toolbar {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            padding: 8px 0;
+            z-index: 2;
+        }
+
+        .toolbar button {
+            margin-right: 8px;
+        }
+
+        .log {
+            white-space: pre-wrap;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            background: #0b1020;
+            color: #b7c1ff;
+            border-radius: 6px;
+            padding: 8px;
+            max-height: 160px;
+            overflow: auto;
+        }
+
+        .hint {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+    </style>
+    <!-- Chart.js and plugins (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.umd.min.js"></script>
+    <!-- Local Clarama streaming renderer -->
+    <script src="/fixed/themes/default/static/js/clarama_data_chart_stream.js"></script>
+</head>
+<body>
+<div class="toolbar row">
+    <strong>Streaming Chart Demo</strong>
+    <button id="btnStartAll">Start All</button>
+    <button id="btnStopAll">Stop All</button>
+    <button id="btnRestartTopics">Restart Topics</button>
+    <span class="hint">Hold Ctrl for pan/zoom on time charts. Zoom emits events logged below.</span>
+</div>
+
+<h1>Multiple Streaming Charts (Simulated Data)</h1>
+<p class="hint">This page uses an in-page ClaramaStream mock to simulate websocket topics. It exercises many
+    bChartStream features: time/timeseries, category_grouped/bulk alignment, mixed series types, z-radius (bubble),
+    per-point labels (series-l) in tooltips, unit-axis mapping with and without provided uv, and logarithmic y-axis
+    safety for non-positive values.</p>
+
+<div class="grid">
+    <div class="card">
+        <h2>Time scale: Line + Bar (mixed types), labels in tooltip</h2>
+        <canvas id="c_time_mix"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Timeseries scale: Dense points</h2>
+        <canvas id="c_timeseries"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Category Grouped: Alignment across categories</h2>
+        <canvas id="c_cat_group"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Category Bulk: Multiple keys per category</h2>
+        <canvas id="c_cat_bulk"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Bubble (x,y,r): Z-axis radius</h2>
+        <canvas id="c_bubble"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Unit axes mapping (with and without uv)</h2>
+        <canvas id="c_units"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Logarithmic Y safety (non-positives null)</h2>
+        <canvas id="c_logy"></canvas>
+    </div>
+</div>
+
+<h2>Events log</h2>
+<div id="log" class="log"></div>
+
+<script>
+    // -------------------- In-page ClaramaStream mock --------------------
+    (function () {
+        const topics = new Map();
+        const timers = new Map();
+
+        function send(topic, msg) {
+            const subs = topics.get(topic);
+            if (!subs) return;
+            subs.forEach(fn => {
+                try {
+                    fn(msg);
+                } catch (e) {
+                    console.error('handler error', e);
+                }
+            });
+        }
+
+        function startTopic(topic) {
+            // Guard
+            if (timers.get(topic)) return;
+
+            switch (topic) {
+                case 'topic_time_mix':
+                    simulateTimeMix(topic);
+                    break;
+                case 'topic_timeseries':
+                    simulateTimeseries(topic);
+                    break;
+                case 'topic_cat_group':
+                    simulateCategoryGrouped(topic);
+                    break;
+                case 'topic_cat_bulk':
+                    simulateCategoryBulk(topic);
+                    break;
+                case 'topic_bubble':
+                    simulateBubble(topic);
+                    break;
+                case 'topic_units':
+                    simulateUnits(topic);
+                    break;
+                case 'topic_logy':
+                    simulateLogY(topic);
+                    break;
+                default:
+                    // no-op
+                    break;
+            }
+        }
+
+        function stopTopic(topic) {
+            const t = timers.get(topic);
+            if (t) {
+                clearInterval(t);
+                timers.delete(topic);
+            }
+        }
+
+        function clearAll() {
+            Array.from(timers.keys()).forEach(stopTopic);
+        }
+
+        window.ClaramaStream = {
+            register: function (topic, handler) {
+                if (!topics.has(topic)) topics.set(topic, new Set());
+                topics.get(topic).add(handler);
+                // Auto-start simulation upon first subscription
+                startTopic(topic);
+                return function unregister() {
+                    try {
+                        const set = topics.get(topic);
+                        if (set) {
+                            set.delete(handler);
+                            if (set.size === 0) {
+                                topics.delete(topic);
+                                stopTopic(topic);
+                            }
+                        }
+                    } catch (e) {
+                    }
+                }
+            },
+            _debug: {startTopic, stopTopic, clearAll}
+        };
+
+        // ---- Simulations ----
+        function simulateTimeMix(topic) {
+            // cols: time, value, label
+            const cols = ['time', 'value', 'label'];
+            send(topic, {
+                type: 'start', cols, info: {
+                    chart: {
+                        'xaxis-type': 'time',
+                        'chart-type': 'line',
+                        'legend': 'On',
+                        'series-groups': [
+                            {
+                                'series-x': 'time',
+                                'series-y': 'value',
+                                'series-l': 'label',
+                                'series-type': 'line',
+                                'series-tab': 0
+                            }
+                        ],
+                        'series-formats': [
+                            {
+                                'format-nrx': 'd0:value',
+                                'format-type': 'line',
+                                'format-title': 'Line A',
+                                'format-ua': ''
+                            },
+                            {'format-nrx': '.*sv:Bar.*', 'format-type': 'bar', 'format-title': 'Bar via sv'}
+                        ]
+                    }
+                }
+            });
+
+            let t0 = Date.now();
+            let n = 0;
+            timers.set(topic, setInterval(() => {
+                n++;
+                const now = new Date(t0 + n * 1000).toISOString();
+                const rows = [[now, 50 + 10 * Math.sin(n / 3), 'L' + n]];
+                send(topic, {type: 'chunk', chunk_no: n - 1, rows, sv: (n % 5 === 0 ? 'Bar' : '')});
+                if (n > 120) {
+                    send(topic, {type: 'end', last_chunk_no: n - 1});
+                    stopTopic(topic);
+                }
+            }, 250));
+        }
+
+        function simulateTimeseries(topic) {
+            const cols = ['ts', 'y'];
+            send(topic, {
+                type: 'start', cols, info: {
+                    chart: {
+                        'xaxis-type': 'timeseries',
+                        'chart-type': 'line',
+                        'series-groups': [{'series-x': 'ts', 'series-y': 'y', 'series-tab': 0}]
+                    }
+                }
+            });
+            let t0 = Date.now();
+            let n = 0;
+            timers.set(topic, setInterval(() => {
+                n++;
+                const ts = new Date(t0 + n * 200).toISOString();
+                send(topic, {type: 'chunk', chunk_no: n - 1, rows: [[ts, Math.random() * 100]]});
+                if (n > 160) {
+                    send(topic, {type: 'end'});
+                    stopTopic(topic);
+                }
+            }, 150));
+        }
+
+        function simulateCategoryGrouped(topic) {
+            const cols = ['category', 'y', 'series'];
+            send(topic, {
+                type: 'start', cols, info: {
+                    chart: {
+                        'xaxis-type': 'category_grouped', 'chart-type': 'bar',
+                        'series-groups': [{
+                            'series-x': 'category',
+                            'series-y': 'y',
+                            'series-s': 'series',
+                            'series-tab': 0
+                        }],
+                        'series-formats': [{'format-nrx': '.*A', 'format-type': 'bar'}, {
+                            'format-nrx': '.*B',
+                            'format-type': 'line'
+                        }]
+                    }
+                }
+            });
+            const cats = ['Alpha', 'Beta', 'Gamma', 'Delta'];
+            let n = 0;
+            timers.set(topic, setInterval(() => {
+                n++;
+                const c = cats[n % cats.length];
+                const s = (n % 2 === 0) ? 'Series A' : 'Series B';
+                const y = 20 + (s === 'Series A' ? 10 : 0) + Math.round(Math.random() * 20);
+                send(topic, {type: 'chunk', chunk_no: n - 1, rows: [[c, y, s]]});
+                if (n > 40) {
+                    send(topic, {type: 'end'});
+                    stopTopic(topic);
+                }
+            }, 400));
+        }
+
+        function simulateCategoryBulk(topic) {
+            const cols = ['category', 'y', 'key'];
+            send(topic, {
+                type: 'start', cols, info: {
+                    chart: {
+                        'xaxis-type': 'category_bulk', 'chart-type': 'bar',
+                        'series-groups': [{'series-x': 'category', 'series-y': 'y', 'series-s': 'key', 'series-tab': 0}]
+                    }
+                }
+            });
+            const cats = ['Q1', 'Q2', 'Q3', 'Q4'];
+            const keys = ['North', 'South', 'West'];
+            let i = 0;
+            timers.set(topic, setInterval(() => {
+                const c = cats[i % cats.length];
+                const rows = keys.map(k => [c, 10 + Math.round(Math.random() * 30), k]);
+                send(topic, {type: 'chunk', chunk_no: i, rows});
+                i++;
+                if (i > 12) {
+                    send(topic, {type: 'end'});
+                    stopTopic(topic);
+                }
+            }, 700));
+        }
+
+        function simulateBubble(topic) {
+            const cols = ['time', 'y', 'r', 'label'];
+            send(topic, {
+                type: 'start', cols, info: {
+                    chart: {
+                        'xaxis-type': 'time', 'chart-type': 'bubble',
+                        'series-groups': [{
+                            'series-x': 'time',
+                            'series-y': 'y',
+                            'series-z': 'r',
+                            'series-l': 'label',
+                            'series-tab': 0,
+                            'series-type': 'bubble'
+                        }]
+                    }
+                }
+            });
+            let t0 = Date.now();
+            let n = 0;
+            timers.set(topic, setInterval(() => {
+                n++;
+                const ts = new Date(t0 + n * 1200).toISOString();
+                const y = Math.random() * 100;
+                const r = 5 + Math.random() * 20;
+                send(topic, {type: 'chunk', chunk_no: n - 1, rows: [[ts, y, r, 'p' + n]]});
+                if (n > 25) {
+                    send(topic, {type: 'end'});
+                    stopTopic(topic);
+                }
+            }, 350));
+        }
+
+        function simulateUnits(topic) {
+            const cols = ['time', 'temp', 'press'];
+            // Demonstrate unitAxis mapping via series-formats (no uv) and also provide uv dynamically for second series
+            send(topic, {
+                type: 'start', cols, info: {
+                    chart: {
+                        'xaxis-type': 'time', 'chart-type': 'line',
+                        'series-groups': [{
+                            'series-x': 'time',
+                            'series-y': 'temp',
+                            'series-tab': 0
+                        }, {'series-x': 'time', 'series-y': 'press', 'series-tab': 1}],
+                        'series-formats': [
+                            {'format-nrx': 'd0:temp', 'format-title': 'Temperature', 'format-ua': '°C'},
+                            {'format-nrx': 'd1:press', 'format-title': 'Pressure', 'format-ua': 'kPa'}
+                        ]
+                    }
+                }
+            });
+            let t0 = Date.now(), n = 0;
+            timers.set(topic, setInterval(() => {
+                n++;
+                const ts = new Date(t0 + n * 1000).toISOString();
+                // Alternate providing uv to test dynamic axis creation, though series-formats already assign yAxis
+                const uv = (n % 2 === 0) ? undefined : (n % 4 === 1 ? '°C' : 'kPa');
+                send(topic, {type: 'chunk', chunk_no: (n - 1) * 2, rows: [[ts, 15 + 5 * Math.sin(n / 10), null]], uv});
+                send(topic, {
+                    type: 'chunk',
+                    chunk_no: (n - 1) * 2 + 1,
+                    rows: [[ts, null, 90 + 10 * Math.cos(n / 7)]],
+                    uv
+                });
+                if (n > 50) {
+                    send(topic, {type: 'end'});
+                    stopTopic(topic);
+                }
+            }, 300));
+        }
+
+        function simulateLogY(topic) {
+            const cols = ['t', 'y'];
+            send(topic, {
+                type: 'start', cols, info: {
+                    chart: {
+                        'xaxis-type': 'time', 'chart-type': 'line',
+                        'scales': {y: {type: 'logarithmic'}},
+                        'series-groups': [{'series-x': 't', 'series-y': 'y', 'series-tab': 0}]
+                    }
+                }
+            });
+            let t0 = Date.now();
+            let n = 0;
+            timers.set(topic, setInterval(() => {
+                n++;
+                const ts = new Date(t0 + n * 800).toISOString();
+                // produce some non-positive values to test null-coercion
+                const raw = (n % 7 === 0) ? 0 : (n % 11 === 0 ? -5 : Math.abs(50 + 40 * Math.sin(n / 5)));
+                send(topic, {type: 'chunk', chunk_no: n - 1, rows: [[ts, raw]]});
+                if (n > 45) {
+                    send(topic, {type: 'end'});
+                    stopTopic(topic);
+                }
+            }, 260));
+        }
+    })();
+    // -------------------------------------------------------------------
+
+    // Utility logging
+    function log(msg) {
+        const el = document.getElementById('log');
+        const t = new Date().toLocaleTimeString();
+        el.textContent += `[${t}] ${msg}\n`;
+        el.scrollTop = el.scrollHeight;
+    }
+
+    // -------------------- Initialize charts --------------------
+    const charts = [];
+
+    function makeCharts() {
+        // 1) Time mixed types; use sv to flip to bar occasionally
+        charts.push(bChartStream('c_time_mix', {
+            topic: 'topic_time_mix',
+            chart: {'xaxis-type': 'time', 'legend': 'On'}
+        }));
+
+        // 2) Timeseries dense
+        charts.push(bChartStream('c_timeseries', {
+            topic: 'topic_timeseries',
+            chart: {'xaxis-type': 'timeseries'}
+        }));
+
+        // 3) Category grouped
+        charts.push(bChartStream('c_cat_group', {
+            topic: 'topic_cat_group',
+            chart: {'xaxis-type': 'category_grouped'}
+        }));
+
+        // 4) Category bulk
+        charts.push(bChartStream('c_cat_bulk', {
+            topic: 'topic_cat_bulk',
+            chart: {'xaxis-type': 'category_bulk'}
+        }));
+
+        // 5) Bubble
+        charts.push(bChartStream('c_bubble', {
+            topic: 'topic_bubble',
+            chart: {'xaxis-type': 'time', 'chart-type': 'bubble'}
+        }));
+
+        // 6) Units
+        charts.push(bChartStream('c_units', {
+            topic: 'topic_units',
+            chart: {'xaxis-type': 'time', 'legend': 'On'}
+        }));
+
+        // 7) Log y
+        charts.push(bChartStream('c_logy', {
+            topic: 'topic_logy',
+            chart: {'xaxis-type': 'time'}
+        }));
+
+        // Wire zoom refetch example on the first chart
+        const canvas = document.getElementById('c_time_mix');
+        canvas.addEventListener('clarama:zoom-range', (e) => {
+            const d = e.detail;
+            log(`Zoom range: ${d.startISO} → ${d.endISO}, step ~${d.stepMs}ms (target ${d.targetPoints} pts)`);
+        });
+        canvas.addEventListener('clarama:zoom-reset', () => {
+            log('Zoom reset');
+        });
+    }
+
+    // Controls
+    document.getElementById('btnStartAll').addEventListener('click', () => {
+        makeCharts();
+    });
+    document.getElementById('btnStopAll').addEventListener('click', () => {
+        if (window.ClaramaStream && window.ClaramaStream._debug) window.ClaramaStream._debug.clearAll();
+    });
+    document.getElementById('btnRestartTopics').addEventListener('click', () => {
+        // Demonstrate restartStream() on the first chart
+        const rc = window.__claramaStreamRestart && window.__claramaStreamRestart['c_time_mix'];
+        if (rc) rc('topic_time_mix');
+    });
+
+    // Auto-start on load
+    window.addEventListener('load', () => {
+        makeCharts();
+    });
+</script>
+</body>
+</html>

@@ -3,9 +3,13 @@
 {% block content %}
     <input data-id="{{ field_id }}" name="{{ field_name }}" type="hidden"
            class="form-control clarama-field"
+           data-sticky="true"
            fieldtype="html"
             {{ field_config | required }}
             {{ field_config | readonly }}
            value="{{ field_value or get(field_config,'default','') | safe }}"
+            {% if field_config.get('data',{}).get('source') %}
+            sourceurl="{{ field_config['data'] | datasource }}"
+            {% endif %}
     />
 {% endblock %}

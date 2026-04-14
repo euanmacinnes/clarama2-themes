@@ -3,7 +3,7 @@
 <div class="container-fluid bg-light">
     <div class="row" style="padding: 0">
         <div class="col-1 bg-secondary text-light" style="padding: 0">
-            <button type="button" class="btn btn-secondary">Playwright Test Artifacts</button>
+            <button type="button" class="btn btn-c2-secondary">Playwright Test Artifacts</button>
         </div>
         <div class="col">
             <div class="row">
@@ -14,7 +14,8 @@
         </div>
         <div class="col-auto">
             <ul class="btn-group" role="group" aria-label="test_functions">
-                <a href="{{ file_url }}" class="btn btn-secondary" title="Back to Test"><i class="bi bi-arrow-left"></i>
+                <a href="{{ file_url }}" class="btn btn-c2-secondary" title="Back to Test"><i
+                        class="bi bi-arrow-left"></i>
                     Back to Test</a>
             </ul>
         </div>
@@ -45,7 +46,7 @@
                                                      alt="Test Screenshot" style="max-height: 400px;">
                                             </div>
                                             <div class="card-footer">
-                                                <a href="{{ artifacts.artifacts.screenshot }}" class="btn btn-primary"
+                                                <a href="{{ artifacts.artifacts.screenshot }}" class="btn btn-c2"
                                                    target="_blank">
                                                     <i class="bi bi-download"></i> Download Screenshot
                                                 </a>
@@ -67,7 +68,7 @@
                                                 </video>
                                             </div>
                                             <div class="card-footer">
-                                                <a href="{{ artifacts.artifacts.video }}" class="btn btn-primary"
+                                                <a href="{{ artifacts.artifacts.video }}" class="btn btn-c2"
                                                    target="_blank">
                                                     <i class="bi bi-download"></i> Download Video
                                                 </a>
@@ -91,7 +92,7 @@
                                                 <pre><code>npx playwright show-trace trace.zip</code></pre>
                                             </div>
                                             <div class="card-footer">
-                                                <a href="{{ artifacts.artifacts.trace }}" class="btn btn-primary">
+                                                <a href="{{ artifacts.artifacts.trace }}" class="btn btn-c2">
                                                     <i class="bi bi-download"></i> Download Trace
                                                 </a>
                                             </div>

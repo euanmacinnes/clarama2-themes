@@ -10,7 +10,7 @@ window.chartColors = {
     grey: 'rgb(201, 203, 207)'
 };
 
-(function(global) {
+(function (global) {
     var MONTHS = [
         'January',
         'February',
@@ -40,18 +40,18 @@ window.chartColors = {
     var Color = global.Color;
     Samples.utils = {
         // Adapted from http://indiegamr.com/generate-repeatable-random-numbers-in-js/
-        srand: function(seed) {
+        srand: function (seed) {
             this._seed = seed;
         },
 
-        rand: function(min, max) {
+        rand: function (min, max) {
             var seed = this._seed;
             min = min === undefined ? 0 : min;
             max = max === undefined ? 1 : max;
             this._seed = (seed * 9301 + 49297) % 233280;
             return min + (this._seed / 233280) * (max - min);
         },
-        numbers: function(config) {
+        numbers: function (config) {
             var cfg = config || {};
             var min = cfg.min || 0;
             var max = cfg.max || 1;
@@ -74,7 +74,7 @@ window.chartColors = {
 
             return data;
         },
-        labels: function(config) {
+        labels: function (config) {
             var cfg = config || {};
             var min = cfg.min || 0;
             var max = cfg.max || 100;
@@ -92,7 +92,7 @@ window.chartColors = {
 
             return values;
         },
-        months: function(config) {
+        months: function (config) {
             var cfg = config || {};
             var count = cfg.count || 12;
             var year = cfg.year || 2020;
@@ -102,13 +102,13 @@ window.chartColors = {
 
             for (i = 0; i < count; ++i) {
                 value = MONTHS[Math.ceil(i) % 12];
-                var yr = year + Math.trunc(i/12);
+                var yr = year + Math.trunc(i / 12);
                 values.push(value.substring(0, section) + ', ' + yr);
             }
 
             return values;
         },
-        color: function(index) {
+        color: function (index) {
             return COLORS[index % COLORS.length];
         },
 
@@ -117,19 +117,81 @@ window.chartColors = {
         //  return ColorO(color).alpha(alpha).rgbString();
         //}
         transparentize: function (r, g, b, alpha) {
-              const a = (1 - alpha) * 255;
-              const calc = x => Math.round((x - a)/alpha);
+            const a = (1 - alpha) * 255;
+            const calc = x => Math.round((x - a) / alpha);
 
-              return `rgba(${calc(r)}, ${calc(g)}, ${calc(b)}, ${alpha})`;
-            }
+            return `rgba(${calc(r)}, ${calc(g)}, ${calc(b)}, ${alpha})`;
+        }
 
 
     };
     // DEPRECATED
-    window.randomScalingFactor = function() {
+    window.randomScalingFactor = function () {
         return Math.round(Samples.utils.rand(-100, 100));
     };
     // INITIALIZATION
     Samples.utils.srand(Date.now());
 
 }(this));
+
+// Convert a df_to_dict output to an array of row objects
+// Accepts shapes like: {cols:[...], orientation:'byrow'|'bycol', rows:[...]}
+// Returns array of objects [{col1: v11, col2: v12, ...}, ...]
+function dfDictToArrayOfDicts(obj) {
+    try {
+        if (!obj || typeof obj !== 'object') return null;
+
+        // If already an array of plain objects, pass through
+        if (Array.isArray(obj) && obj.length > 0 && typeof obj[0] === 'object' && !Array.isArray(obj[0])) {
+            return obj;
+        }
+
+        const cols = obj.cols || obj.columns;
+        const orientation = (obj.orientation || obj.orient || '').toLowerCase();
+        const rows = obj.rows || obj.data || obj.values;
+
+        if (!Array.isArray(cols) || !Array.isArray(rows)) return null;
+        if (cols.length === 0) return [];
+
+        const out = [];
+        if (orientation === 'byrow' || orientation === 'table' || orientation === 'json' || orientation === '') {
+            // rows: array of arrays matching columns
+            for (let i = 0; i < rows.length; i++) {
+                const r = rows[i];
+                if (!Array.isArray(r)) continue;
+                const o = {};
+                for (let c = 0; c < cols.length; c++) o[cols[c]] = r[c];
+                out.push(o);
+            }
+            return out;
+        }
+        if (orientation === 'bycol' || orientation === 'chart') {
+            // rows: array per column
+            const n = rows.length;
+            // Build by column; align by row index
+            const maxLen = rows.reduce((m, col) => Math.max(m, Array.isArray(col) ? col.length : 0), 0);
+            for (let i = 0; i < maxLen; i++) {
+                const o = {};
+                for (let c = 0; c < cols.length; c++) {
+                    const colArr = rows[c];
+                    o[cols[c]] = Array.isArray(colArr) ? colArr[i] : undefined;
+                }
+                out.push(o);
+            }
+            return out;
+        }
+
+        // Fallback: if rows look like objects with column keys, normalize
+        if (rows.length > 0 && typeof rows[0] === 'object' && !Array.isArray(rows[0])) {
+            return rows;
+        }
+
+        return null;
+    } catch (e) {
+        console.warn('dfDictToArrayOfDicts failed:', e);
+        return null;
+    }
+}
+
+// Expose globally for other modules to use
+if (!window.dfDictToArrayOfDicts) window.dfDictToArrayOfDicts = dfDictToArrayOfDicts;

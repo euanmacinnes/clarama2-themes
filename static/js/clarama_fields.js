@@ -1,5 +1,86 @@
 //  Copyright (c) 2024. Euan Duncan Macinnes, euan.d.macinnes@gmail.com, S7479622B - All Rights Reserved
 
+(function(){
+    const PREFIX = 'clarama_sticky_';
+    const USE_COOKIE_MAX = 400;         // only fall back to cookies for tiny values
+    const LS_OK = (function() { 
+        try {
+            localStorage.setItem('__t','1');
+            localStorage.removeItem('__t');
+            return true;
+        } catch(_) {
+            return false;
+        }
+    })();
+
+    function lsKey(name) {
+        return name;
+    }
+
+    function migrateStickyCookiesToLocalStorage() {
+        if (!LS_OK) return;
+        try {
+            const cookies = document.cookie.split(';');
+            cookies.forEach(c => {
+                let kv = c.trim();
+                const eq = kv.indexOf('=');
+                if (eq < 0) return;
+                const k = decodeURIComponent(kv.slice(0, eq));
+                const v = decodeURIComponent(kv.slice(eq+1));
+                if (k.startsWith(PREFIX)) {
+                    localStorage.setItem(lsKey(k), v);
+                    // delete cookie
+                    document.cookie = k + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+                }
+            });
+        } catch(e) { /* ignore */ }
+    }
+
+    window.claramaSetCookie = function(name, value, days) {
+        try {
+            const val = String(value ?? '');
+            if (LS_OK) {
+                localStorage.setItem(lsKey(name), val);
+                return;
+            }
+            if (val.length > USE_COOKIE_MAX) return;
+            var expires = "";
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days*24*60*60*1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + encodeURIComponent(val) + expires + "; path=/";
+        } catch(_) { /* ignore */ }
+    };
+
+    window.claramaGetCookie = function(name){
+        try {
+            if (LS_OK) {
+                const v = localStorage.getItem(lsKey(name));
+                if (v !== null && v !== undefined) return v;
+            }
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i=0; i<ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0)==' ') c = c.substring(1);
+                if (c.indexOf(nameEQ) == 0) return decodeURIComponent(c.substring(nameEQ.length));
+            }
+        } catch(_) { /* ignore */ }
+        return null;
+    };
+
+    window.claramaDeleteCookie = function(name){
+        try {
+            if (LS_OK) localStorage.removeItem(lsKey(name));
+            document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+        } catch(_) { /* ignore */ }
+    };
+
+    migrateStickyCookiesToLocalStorage();
+})();
+
 function _arrayBufferToBase64(buffer) {
     var binary = '';
     var bytes = new Uint8Array(buffer);
@@ -215,19 +296,35 @@ function get_fields(fields, cell, field_submit) {
         'environment': socket_div.attr("environment")
     }
 
-    $('.stream').each(
+    var error = false;
+
+    $('ul.stream').each(
         function (index) {
             var stream = $(this);
 
             var current_stream = stream.attr("stream")
+            if (!current_stream) {
+                // Skip elements that are not actual stream containers
+                return;
+            }
 
             var stream_cells = get_cell(stream, "");
+
+            if (stream_cells === null) {
+                error = true;
+                return false;
+            }
 
             console.log("Saving stream " + current_stream);
             stream_dict = {};
             stream_dict[current_stream] = stream_cells;
             registry['streams'].push(stream_dict);
         });
+
+    if (error) {
+        flash("Save cancelled due to error");
+        return null;
+    }
 
     if (fields) {
         // console.log("get_fields fields", fields)
@@ -239,12 +336,12 @@ function get_fields(fields, cell, field_submit) {
         field_submit(registry);
 }
 
-function toggleDebugForCurrentCell(cell) {
+function toggleInsightsForCurrentCell(cell) {
     if (!cell) return false;
 
     const $cell = $(cell);
-    const debugButton = $cell.find('.celleditdebug').first();
-    debugButton.click();
+    const insightsButton = $cell.find('.insights-toggle-bar').first();
+    insightsButton.click();
 }
 
 /**
@@ -292,6 +389,28 @@ function initializeCellNavigation() {
         }
 
         return currentCell;
+    }
+
+    function moveToPrevCell(currentCell) {
+        if (!currentCell) return null;
+        const currentStep = parseInt($(currentCell).attr('step'));
+        const prevStep = currentStep - 1;
+        if (isNaN(prevStep) || prevStep < 1) return null;
+
+        const prevCell = getCellByStep(prevStep);
+        if (prevCell) {
+            currentCellStep = prevStep;
+            const $prevEditor = $(prevCell).find('.cell-editor').first();
+            if ($prevEditor.length) {
+                $prevEditor.focus();
+                const $ti = $prevEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                if ($ti.length) $ti.focus();
+            }
+            const prevTop = prevCell.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({top: prevTop - 100, behavior: 'smooth'});
+            return prevCell;
+        }
+        return null;
     }
 
     function moveToNextCell(currentCell) {
@@ -393,13 +512,12 @@ function initializeCellNavigation() {
         return false;
     }
 
-    function toggleDebugForCurrentCell(cell) {
+    function toggleInsightsForCurrentCell(cell) {
         if (!cell) return false;
-
         const $cell = $(cell);
-        const debugButton = $cell.find('.celleditdebug').first();
-        if (debugButton.length > 0) {
-            debugButton.click();
+        const toggleBar = $cell.find('.insights-toggle-bar').first();
+        if (toggleBar.length > 0) {
+            toggleBar.trigger('click');
             return true;
         }
         return false;
@@ -419,33 +537,175 @@ function initializeCellNavigation() {
         }
     });
 
-    $(document).on('keydown', function (e) {
-        // Ctrl+Enter: Run current cell and move to next
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
+    $(document).off('keydown.cellNavJump').on('keydown.cellNavJump', function (e) {
+        const prefs = readShortcutPrefs();
+        if (!prefs.enabled) return;
+
+        if (e.altKey) return;
+        const isCtrl = !!e.ctrlKey;
+        if (!isCtrl) return;
+        const key = e.key || '';
+
+        if (key === 'ArrowDown' || e.keyCode === 40) {
             e.preventDefault();
-
-            const currentCell = getCurrentCell();
-            if (!currentCell) return;
-
-            const runSuccess = runCurrentCell(currentCell);
-
-            if (runSuccess) {
-                setTimeout(() => {
-                    moveToNextCell(currentCell);
-                }, 300);
-            }
+            const curr = getCurrentCell();
+            if (curr) moveToNextCell(curr);
+            return;
         }
-
-        // Ctrl+\ : Toggle debug for current cell
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 220) {
+        if (key === 'ArrowUp' || e.keyCode === 38) {
             e.preventDefault();
-
-            const currentCell = getCurrentCell();
-            if (!currentCell) return;
-
-            toggleDebugForCurrentCell(currentCell);
+            const curr = getCurrentCell();
+            if (curr) moveToPrevCell(curr);
+            return;
         }
     });
+
+    let lastShiftUpTs = 0;
+    let shiftTapCount = 0;
+    let shiftSequenceValid = true;
+    const DOUBLE_SHIFT_MS = 400;
+
+    $(document).on('keydown', function (e) {
+        const prefs = readShortcutPrefs();
+        if (!prefs.enabled) return;
+    
+        // maintain double-shift detection state
+        if (e.key !== 'Shift') {
+            shiftSequenceValid = false;
+            shiftTapCount = 0;
+        }
+        if (e.repeat) return;
+    
+        const $t = $(e.target);
+        if ($t.is('.gina-input') || $t.closest('.gina-block').length) return;
+        const inInsightsConsole = $t.is('textarea.console-input') > 0;
+    
+        // Shift + Enter : run & move next (disabled inside Insights console)
+        if (e.shiftKey && e.keyCode === 13) {
+            if (inInsightsConsole) return;
+            e.preventDefault();
+    
+            const currentCell = getCurrentCell();
+            if (!currentCell) return;
+    
+            const runSuccess = runCurrentCell(currentCell);
+            if (runSuccess) setTimeout(() => { moveToNextCell(currentCell); }, 300);
+            return;
+        }
+    
+        // Ctrl + Enter : run in place
+        if (e.ctrlKey && e.keyCode === 13) {
+            e.preventDefault();
+            const currentCell = getCurrentCell();
+            if (!currentCell) return;
+            runCurrentCell(currentCell);
+            return;
+        }
+    });
+
+    $(document).on('keyup', function (e) {
+        const prefs = readShortcutPrefs();
+        if (!prefs.enabled) return;
+
+        const $t = $(e.target);
+        if ($t.is('.gina-input') || $t.closest('.gina-block').length) return;
+
+        if (e.key !== 'Shift') return;
+        const now = Date.now();
+        if (shiftSequenceValid && (now - lastShiftUpTs) <= DOUBLE_SHIFT_MS) {
+            shiftTapCount += 1;
+        } else {
+            shiftTapCount = 1;
+        }
+        lastShiftUpTs = now;
+        shiftSequenceValid = true;
+
+        // Double tapping shift key: toggle cell insights
+        if (shiftTapCount === 2) {
+            const currentCell = getCurrentCell();
+            if (currentCell) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleInsightsForCurrentCell(currentCell);
+            } else {
+                console.log('no current cell');
+            }
+            shiftTapCount = 0;
+        }
+    });
+}
+
+// === Shortcut Prefs ============================================
+const SC_LS_KEY = 'clarama_shortcuts_prefs';
+
+function getDefaultShortcutPrefs() {
+    return { enabled: true };
+}
+
+function readShortcutPrefs() {
+    try {
+        const raw = localStorage.getItem(SC_LS_KEY);
+        if (!raw) return getDefaultShortcutPrefs();
+        const parsed = JSON.parse(raw);
+        return Object.assign(getDefaultShortcutPrefs(), parsed);
+    } catch (_) {
+        return getDefaultShortcutPrefs();
+    }
+}
+
+function writeShortcutPrefs(p) {
+    localStorage.setItem(SC_LS_KEY, JSON.stringify(p));
+}
+
+function syncShortcutTogglesToUI() {
+    const p = readShortcutPrefs();
+    const el = document.getElementById('sc_enabled');
+    if (el) el.checked = !!p.enabled;
+}
+
+function disableAllShortcuts() {
+    const p = readShortcutPrefs();
+    p.enabled = false;
+    writeShortcutPrefs(p);
+    syncShortcutTogglesToUI();
+    flash("Disabled all Clarama shortcuts", "info");
+}
+
+function enableAllShortcuts() {
+    const p = readShortcutPrefs();
+    p.enabled = true;
+    writeShortcutPrefs(p);
+    syncShortcutTogglesToUI();
+    flash("Enabled all Clarama shortcuts", "info");
+}
+
+// === Wire up the dropdown =====================================
+(function wireShortcutPrefsDropdown() {
+    $(document).on('shown.bs.dropdown', '#shortcutPrefsBtn', function () {
+        syncShortcutTogglesToUI();
+    });
+
+    $(document).on('change', '#sc_enabled', function () {
+        if (this.checked) {
+            enableAllShortcuts();
+        } else {
+            disableAllShortcuts();
+        }
+    });
+
+    syncShortcutTogglesToUI();
+})();
+
+function defaultInt(value, default_value) {
+    if (value === undefined) return default_value;
+    if (value === null) return default_value;
+    if (value === '') return default_value;
+    if (value === 'null') return default_value;
+    if (value === 'undefined') return default_value;
+    if (value === 'None') return default_value;
+    if (value === 'false') return default_value;
+    if (value === 'True') return default_value;
+    return parseInt(value);
 }
 
 /**
@@ -533,13 +793,28 @@ $.fn.initselect = function () {
 
                 var close_on_select = embedded.attr("close_on_select");
 
+                // Allow column mapping attributes on the select element or its wrapper div
+                var user_id_column = embedded.attr("id_column")
+                var user_value_column = embedded.attr("value_column")
+                var user_select_column = embedded.attr("select_column")
+                var user_disable_column = embedded.attr("disable_column")
+
+
                 if (close_on_select === undefined)
                     close_on_select = false
 
 
+                var allow_custom = embedded.attr("allow_custom") === "true";
                 embedded.select2({
                     selectionCssClass: "select2-select",
                     closeOnSelect: close_on_select,
+                    tags: allow_custom,
+                    createTag: allow_custom ? function(params) {
+                        var term = $.trim(params.term);
+                        console.log("createTag fired, term:", term);
+                        if (term === '') return null;
+                        return { id: term, text: term, newTag: true };
+                    } : undefined,
                     dataType: 'json',
                     minimumResultsForSearch: 1,
                     ajax: {
@@ -568,9 +843,39 @@ $.fn.initselect = function () {
 
 
                             var resultarr = [];
+                            var cols = data['results']['cols']
                             var rows = data['results']['rows'];
                             var headings = ['id', 'text', 'selected', 'disabled']
-                            var hcount = headings.length;
+
+
+                            console.log("user_id_column", user_id_column);
+                            console.log("user_value_column", user_value_column);
+                            var id_index = defaultInt(user_id_column, 0);
+                            var value_index = defaultInt(user_value_column, 1);
+                            var selected_index = defaultInt(user_select_column, -1);
+                            var disabled_index = defaultInt(user_disable_column, -1);
+
+                            console.log("id_index", id_index);
+                            console.log("value_index", value_index);
+                            console.log("selected_index", selected_index);
+                            console.log("disabled_index", disabled_index);
+
+                            if (cols.length === 1) {
+                                id_index = 0;
+                                value_index = 0;
+                            }
+
+                            let column_index_mappings = [id_index, value_index];
+                            if (selected_index >= 0) {
+                                column_index_mappings.push(selected_index);
+
+                                if (disabled_index >= 0)
+                                    column_index_mappings.push(disabled_index);
+                            }
+
+                            var hcount = column_index_mappings.length;
+                            console.log("hcount", hcount);
+
 
                             if (data['data'] != 'ok') {
                                 $('#clarama-query-result').html(data['error']);
@@ -596,7 +901,7 @@ $.fn.initselect = function () {
                                 for (var row in rows) {
                                     var result = {};
                                     for (var i = 0; i < hcount; i++) {
-                                        result[headings[i]] = rows[row][i];
+                                        result[headings[i]] = rows[row][column_index_mappings[i]];
                                     }
 
                                     resultarr.push(result);
@@ -611,7 +916,8 @@ $.fn.initselect = function () {
                     }
                 });
             } else {
-                embedded.select2({width: "100%", closeOnSelect: embedded.attr('closeOnSelect') || false});
+                var allow_custom = embedded.attr("allow_custom") === "true";
+                embedded.select2({width: "100%", closeOnSelect: embedded.attr('closeOnSelect') || false, tags: allow_custom});
             }
 
             embedded.attr("clarama_data_set", true)
@@ -667,36 +973,385 @@ $.fn.editor = function () {
     });
 }
 
-// This is to allow the shortcut to be read through the code editors
+// to prevent ace editor from interfering with cell keyboard shortcuts
 $(document).on('focus', '.source-editor, .text-editor, .ace_text-input', function () {
     const editor = $(this);
 
     if (editor.hasClass('source-editor') && editor.attr('id')) {
         try {
             const aceEditor = ace.edit(editor.attr('id'));
-
-            // Remove any existing command to avoid duplicates
-            aceEditor.commands.removeCommand('toggleDebug');
-
-            // Add the debug toggle command to ACE editor
+            aceEditor.commands.removeCommand('runCellAndStay');
             aceEditor.commands.addCommand({
-                name: 'toggleDebug',
-                bindKey: {win: 'Ctrl-\\', mac: 'Cmd-\\'},
+                name: 'runCellAndStay',
+                bindKey: {win: 'Ctrl-Enter'},
                 exec: function (editor) {
-                    const editorElement = $(editor.container);
-                    const currentCell = editorElement.closest('.clarama-cell-item')[0];
-                    if (currentCell) {
-                        toggleDebugForCurrentCell(currentCell);
+                    const prefs = readShortcutPrefs();
+                    if (!prefs.enabled) return;
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    const $runBtn = $cell.find('.celleditrun').first();
+                    if ($runBtn.length) {
+                        $runBtn.trigger('click');
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('runCellAndNext');
+            aceEditor.commands.addCommand({
+                name: 'runCellAndNext',
+                bindKey: {win: 'Shift-Enter'},
+                exec: function (editor) {
+                    const prefs = readShortcutPrefs();
+                    if (!prefs.enabled) return;
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    const $runBtn = $cell.find('.celleditrun').first();
+                    if ($runBtn.length) {
+                        $runBtn.trigger('click');
+                        setTimeout(() => {
+                            const currentStep = parseInt($cell.attr('step'));
+                            const $next = $(`li.clarama-cell-item[step="${currentStep + 1}"]`);
+                            const $nextEditor = $next.find('.cell-editor').first();
+                            if ($nextEditor.length) {
+                                $nextEditor.focus();
+                                const $ti = $nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                                if ($ti.length) $ti.focus();
+                            }
+                        }, 300);
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('jumpPrevCell');
+            aceEditor.commands.addCommand({
+                name: 'jumpPrevCell',
+                bindKey: {win: 'Ctrl-Up'},
+                exec: function (editor) {
+                    const prefs = readShortcutPrefs();
+                    if (!prefs.enabled) return;
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    if (!$cell.length) return;
+                    const step = parseInt($cell.attr('step'));
+                    const $prev = $(`li.clarama-cell-item[step="${step - 1}"]`);
+                    const $prevEditor = $prev.find('.cell-editor').first();
+                    if ($prevEditor.length) {
+                        $prevEditor.focus();
+                        const $ti = $prevEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                        if ($ti.length) $ti.focus();
+                        const prevTop = $prev[0].getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({top: prevTop - 100, behavior: 'smooth'});
+                    }
+                }
+            });
+
+            aceEditor.commands.removeCommand('jumpNextCell');
+            aceEditor.commands.addCommand({
+                name: 'jumpNextCell',
+                bindKey: {win: 'Ctrl-Down'},
+                exec: function (editor) {
+                    const prefs = readShortcutPrefs();
+                    if (!prefs.enabled) return;
+                    const $cell = $(editor.container).closest('.clarama-cell-item');
+                    if (!$cell.length) return;
+                    const step = parseInt($cell.attr('step'));
+                    const $next = $(`li.clarama-cell-item[step="${step + 1}"]`);
+                    const $nextEditor = $next.find('.cell-editor').first();
+                    if ($nextEditor.length) {
+                        $nextEditor.focus();
+                        const $ti = $nextEditor.find('input[type="text"], textarea, .ace_text-input').first();
+                        if ($ti.length) $ti.focus();
+                        const nextTop = $next[0].getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({top: nextTop - 100, behavior: 'smooth'});
                     }
                 }
             });
         } catch (e) {
-            console.log('Could not bind debug shortcut to ACE editor:', e);
+            console.log('Could not bind insights shortcut to ACE editor:', e);
         }
     }
 });
 
+function claramaSetCookie(name, value, days) {
+    try {
+
+        var expires = "";
+        if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + encodeURIComponent(value || '') + expires + "; path=/";
+    } catch (e) { /* ignore */
+    }
+}
+
+function claramaGetCookie(name) {
+    try {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+        }
+    } catch (e) { /* ignore */
+    }
+    return null;
+}
+
+function claramaDeleteCookie(name) {
+    try {
+        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    } catch (e) { /* ignore */
+    }
+}
+
+function claramaStickyKeyForField(fieldKey) {
+    try {
+        var url = String(window.location && (window.location.pathname + window.location.search)) || '';
+        var enc = encodeURIComponent(url);
+        return 'clarama_sticky_' + enc + '_' + fieldKey;
+    } catch (e) {
+        return 'clarama_sticky__' + fieldKey;
+    }
+}
+
+function initStickyFields(context) {
+    var root = context ? $(context) : $(document);
+    var fields = root.find('.clarama-field[data-sticky="true"]');
+
+    function isSelect2($e) {
+        try {
+            return $e.hasClass('select2-hidden-accessible') || !!$e.data('select2');
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function restoreSelect($el, saved) {
+        // Support legacy (string or array of strings) and new format (object or array of {id,text})
+        var selections = [];
+        try {
+            var parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                if (parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
+                    selections = parsed.map(function (o) {
+                        return {id: String(o.id), text: (o.text != null ? String(o.text) : String(o.id))};
+                    });
+                } else {
+                    selections = (parsed || []).map(function (v) {
+                        return {id: String(v), text: null};
+                    });
+                }
+            } else if (parsed && typeof parsed === 'object') {
+                selections = [{
+                    id: String(parsed.id),
+                    text: (parsed.text != null ? String(parsed.text) : String(parsed.id))
+                }];
+            } else if (parsed != null) {
+                selections = [{id: String(parsed), text: null}];
+            }
+        } catch (e) {
+            // not JSON, treat as single id string
+            selections = saved ? [{id: String(saved), text: null}] : [];
+        }
+
+        if (selections.length === 0) return;
+
+        var multiple = $el.prop('multiple');
+        // Ensure options exist with correct text; add if missing
+        selections.forEach(function (sel) {
+            if ($el.find('option[value="' + sel.id.replace(/"/g, '&quot;') + '"]').length === 0) {
+                var opt = new Option(sel.text || sel.id, sel.id, true, true);
+                $el.append(opt);
+            }
+        });
+        // Set values
+        var ids = selections.map(function (s) {
+            return s.id;
+        });
+        $el.val(multiple ? ids : ids[0]).trigger('change');
+    }
+
+    function persistSelect($el) {
+        var payload;
+        try {
+            if (isSelect2($el)) {
+                var data = $el.select2('data') || [];
+                if (!Array.isArray(data)) data = [data];
+                if ($el.prop('multiple')) {
+                    var arr = data.filter(Boolean).map(function(d){
+                        return { id: String(d.id), text: String(d.text ?? '') };
+                    });
+                    payload = JSON.stringify(arr);
+                } else {
+                    var d = data.filter(Boolean)[0] || null;
+                    payload = d ? JSON.stringify({ id: String(d.id), text: String(d.text ?? '') }) : 'null';
+                }
+            } else {
+                var selected = $el.find('option:selected');
+                if ($el.prop('multiple')) {
+                    var arr = [];
+                    selected.each(function () {
+                        arr.push({id: String(this.value), text: String($(this).text() || '')});
+                    });
+                    payload = JSON.stringify(arr);
+                } else {
+                    var opt = selected[0];
+                    payload = opt ? JSON.stringify({id: String(opt.value), text: String($(opt).text() || '')}) : 'null';
+                }
+            }
+        } catch (e) {
+            // Fallback to ids only
+            var val = $el.val();
+            if ($el.prop('multiple')) {
+                try {
+                    payload = JSON.stringify(val || []);
+                } catch (e2) {
+                    payload = '[]';
+                }
+            } else {
+                payload = String(val || '');
+            }
+        }
+        return payload;
+    }
+
+    fields.each(function () {
+        var $el = $(this);
+        // Skip passwords for safety
+        if (($el.attr('type') || '').toLowerCase() === 'password') return;
+        var fieldKey = ($el.attr('data-id') || $el.attr('name') || $el.attr('id') || '');
+        if (!fieldKey) return;
+        var key = claramaStickyKeyForField(fieldKey);
+        var legacyKey = 'clarama_sticky_' + fieldKey; // pre-URL cookies
+
+        // Restore (prefer URL-scoped cookie; fallback to legacy and migrate)
+        var saved = claramaGetCookie(key);
+        if ((saved === null || saved === undefined || saved === '') && legacyKey) {
+            var legacySaved = claramaGetCookie(legacyKey);
+            if (legacySaved !== null && legacySaved !== undefined && legacySaved !== '') {
+                saved = legacySaved;
+                // Migrate to new namespaced key
+                try {
+                    claramaSetCookie(key, legacySaved, 180);
+                    claramaDeleteCookie(legacyKey);
+                } catch (e) {
+                }
+            }
+        }
+
+        if (saved !== null && saved !== undefined && saved !== '') {
+            if ($el.is(':checkbox')) {
+                $el.prop('checked', saved === '1' || saved === 'true');
+            } else if ($el.is('select')) {
+                restoreSelect($el, saved);
+            } else {
+                $el.val(saved);
+            }
+        }
+
+        // Persist on change/input
+        var persist = function () {
+            var val;
+            if ($el.is(':checkbox')) {
+                val = $el.prop('checked') ? '1' : '0';
+            } else if ($el.is('select')) {
+                val = persistSelect($el);
+            } else {
+                val = $el.val();
+            }
+            claramaSetCookie(key, val, 180);
+        };
+        $el.on('change input', persist);
+    });
+}
+
+function claramaSaveStickyCookies(context) {
+    try {
+        var root = context ? $(context) : $(document);
+        var fields = root.find('.clarama-field[data-sticky="true"]');
+
+        function isSelect2($e) {
+            try {
+                return $e.hasClass('select2-hidden-accessible') || !!$e.data('select2');
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function persistSelect($el) {
+            var payload;
+            try {
+                if (isSelect2($el)) {
+                    var data = $el.select2('data') || [];
+                    if (!Array.isArray(data)) data = [data];
+                    if ($el.prop('multiple')) {
+                        var arr = data.filter(Boolean).map(function(d){
+                            return { id: String(d.id), text: String(d.text ?? '') };
+                        });
+                        payload = JSON.stringify(arr);
+                    } else {
+                        var d = data.filter(Boolean)[0] || null;
+                        payload = d ? JSON.stringify({ id: String(d.id), text: String(d.text ?? '') }) : 'null';
+                    }
+                } else {
+                    var selected = $el.find('option:selected');
+                    if ($el.prop('multiple')) {
+                        var arr = [];
+                        selected.each(function () {
+                            arr.push({id: String(this.value), text: String($(this).text() || '')});
+                        });
+                        payload = JSON.stringify(arr);
+                    } else {
+                        var opt = selected[0];
+                        payload = opt ? JSON.stringify({
+                            id: String(opt.value),
+                            text: String($(opt).text() || '')
+                        }) : 'null';
+                    }
+                }
+            } catch (e) {
+                // Fallback to ids only
+                var val = $el.val();
+                if ($el.prop('multiple')) {
+                    try {
+                        payload = JSON.stringify(val || []);
+                    } catch (e2) {
+                        payload = '[]';
+                    }
+                } else {
+                    payload = String(val || '');
+                }
+            }
+            return payload;
+        }
+
+        fields.each(function () {
+            var $el = $(this);
+            if (($el.attr('type') || '').toLowerCase() === 'password') return; // safety
+            var fieldKey = ($el.attr('data-id') || $el.attr('name') || $el.attr('id') || '');
+            if (!fieldKey) return;
+            var key = claramaStickyKeyForField(fieldKey);
+            var val;
+            if ($el.is(':checkbox')) {
+                val = $el.prop('checked') ? '1' : '0';
+            } else if ($el.is('select')) {
+                val = persistSelect($el);
+            } else {
+                val = $el.val();
+            }
+            claramaSetCookie(key, val, 180);
+        });
+    } catch (e) {
+        console.log('claramaSaveStickyCookies failed', e);
+    }
+}
+
 $(document).ready(function () {
     initializeCellNavigation();
+    try {
+        initStickyFields(document);
+    } catch (e) {
+        console.log('Sticky init failed', e);
+    }
 });
 

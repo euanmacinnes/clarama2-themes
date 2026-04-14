@@ -54,8 +54,8 @@ let socket_topics = ['clarama-systemwide'];
  * Requires an open task_active_socket.
  */
 function topic_subscribe() {
-    console.log("CLARAMA_WEBSOCKET.JS registering topics. This is universal for ALL socket divs, as there is only ONE actual websocket on the page");
-    console.log(socket_topics);
+    // console.log("CLARAMA_WEBSOCKET.JS registering topics. This is universal for ALL socket divs, as there is only ONE actual websocket on the page");
+    // console.log(socket_topics);
     task_active_socket.send(JSON.stringify({topics: socket_topics}));
 }
 
@@ -71,6 +71,51 @@ function processTaskMessages() {
     socket_taskQueue = [];
 }
 
+
+/**
+ * Send the current topic subscriptions to the active websocket.
+ * Requires an open task_active_socket.
+ */
+function update_topics(topic) {
+    if (task_active_socket !== undefined)
+        if (task_active_socket.readyState === WebSocket.OPEN) {
+            // console.log("CLARAMA_WEBSOCKET.JS updating universal topics for page to " + socket_topics);
+            task_active_socket.send(JSON.stringify({topics: socket_topics}));
+            return;
+        } else {
+            console.warn("CLARAMA_WEBSOCKET.js: update_topic socket was not open");
+        }
+    else {
+        console.warn("CLARAMA_WEBSOCKET.js: update_topic  socket undefined, pushing on queue");
+    }
+}
+
+/**
+ * Subscribe to topic
+ */
+function add_topic(topic) {
+    if (socket_topics.indexOf(topic) === -1) {
+        socket_topics.push(topic);
+        //console.log("CLARAMA_WEBSOCKET.js: ADD TOPIC " + topic);
+        //console.log(socket_topics);
+    }
+    update_topics(topic);
+}
+
+/**
+ * Unsubscribe from topic
+ */
+function remove_topic(topic) {
+    const idx = socket_topics.indexOf(topic);
+    if (idx !== -1) {
+        socket_topics.splice(idx, 1);
+        //console.log("CLARAMA_WEBSOCKET.js: REMOVE TOPIC " + topic);
+        //console.log(socket_topics);
+    }
+
+    update_topics(topic);
+}
+
 /**
  * Queue or immediately execute a task message depending on socket state.
  *
@@ -81,25 +126,7 @@ function processTaskMessages() {
  * @param {string|boolean} autorun - Whether to auto-run the task when ready.
  */
 function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kernel_status) {
-    if (socket_topics.indexOf(topic) === -1) {
-        socket_topics.push(topic);
-        console.log("CLARAMA_WEBSOCKET.js: TOPICS");
-        console.log(socket_topics);
-    }
-
-    if (task_active_socket !== undefined)
-        if (task_active_socket.readyState === WebSocket.OPEN) {
-            task_active_socket.send(JSON.stringify({topics: socket_topics}));
-            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " executing");
-            get_task(embedded, task_url, socket_id, autorun, kernel_status);
-            return;
-        } else {
-            console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket was not open");
-        }
-    else {
-        console.log("CLARAMA_WEBSOCKET.js: ENQUEUE TASK " + task_url + " socket undefined, pushing on queue");
-    }
-
+    add_topic(topic);
 
     let task_message = {
         'topic': topic,
@@ -109,6 +136,16 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kerne
         'autorun': autorun,
         'kernel_status': kernel_status,
     };
+
+    // If the socket is open, execute immediately; otherwise, queue for later
+    try {
+        if (task_active_socket && task_active_socket.readyState === WebSocket.OPEN) {
+            get_task(task_message.embedded, task_message.task_url, task_message.socket_id, task_message.autorun, task_message.kernel_status);
+            return;
+        }
+    } catch (e) {
+        // fall back to queueing
+    }
 
     socket_taskQueue.push(task_message);
 }
@@ -125,7 +162,7 @@ function enqueueTaskMessage(topic, embedded, task_url, socket_id, autorun, kerne
  * @param {string|boolean} autorun
  */
 function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
-    console.log("CLARAMA_WEBSOCKET.js: GET TASK " + task_url + " getting, with kernel_status " + kernel_status);
+    //console.log("CLARAMA_WEBSOCKET.js: GET TASK " + task_url + " getting, with kernel_status " + kernel_status);
 
     const topic = new URLSearchParams(task_url.split('?')[1]).get('topic');
     let element_id = null;
@@ -137,7 +174,7 @@ function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
         }
     }
 
-    console.log('current_elem: ', element_id);
+    // console.log('current_elem: ', element_id);
     let elementsObjects = [];
 
     for (let prop in window) {
@@ -162,24 +199,24 @@ function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
                 waitInteractions = elementData.links.filter(link => link.wait === true || link.wait === 'true');
 
                 if (waitInteractions.length > 0) {
-                    console.log(`Element "${targetId}" has ${waitInteractions.length} wait interaction(s):`);
+                    //console.log(`Element "${targetId}" has ${waitInteractions.length} wait interaction(s):`);
                     waitInteractions.forEach((interaction, index) => {
                         console.log(`  [${index + 1}] UID: ${interaction.uid || 'N/A'}, Element: ${interaction.element || 'N/A'}`);
                     });
                 } else {
-                    console.log(`Element "${targetId}" has no wait interactions (${elementData.links.length} total interactions)`);
+                    //console.log(`Element "${targetId}" has no wait interactions (${elementData.links.length} total interactions)`);
                 }
             } else {
-                console.log(`Element "${targetId}" has no links/interactions`);
+                //console.log(`Element "${targetId}" has no links/interactions`);
             }
         } else {
-            console.log(`Element "${targetId}" not found in ${elementsData.name}`);
+            console.warn(`Element "${targetId}" not found in ${elementsData.name}`);
         }
     });
 
     // If there are wait interactions, set up waiting mechanism
     if (waitInteractions.length > 0) {
-        console.log(`CLARAMA_WEBSOCKET.js: Element ${element_id} waiting for ${waitInteractions.length} interactions to resume`);
+        //console.log(`CLARAMA_WEBSOCKET.js: Element ${element_id} waiting for ${waitInteractions.length} interactions to resume`);
 
         // Store the pending task execution details
         const pendingTaskKey = `pendingTask_${element_id}`;
@@ -214,15 +251,21 @@ function get_task(embedded, task_url, socket_id, autorun, kernel_status) {
  * @param {string|boolean} autorun
  */
 function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
-    fetch(task_url)
+    var fetch_options = {
+        method: 'POST',
+        body: JSON.stringify({}),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+    fetch(task_url, fetch_options)
         .then((response) => {
             if (response.ok) {
-                console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " response " + response.status);
+                // console.log("CLARAMA_WEBSOCKET.js: TASK " + task_url + " response " + response.status);
                 return response.json();
             }
-            ;
 
-            console.error("ERROR calling", task_url, response);
+            console.error("WEBSOCKET executeTask ERROR calling", task_url, response);
             return Promise.reject(response);
         })
         .then((task_response) => {
@@ -239,7 +282,7 @@ function executeTask(embedded, task_url, socket_id, autorun, kernel_status) {
 
 
             embedded.attr('task_kernel_id', kernel_id);
-            console.log("CLARAMA_WEBSOCKET.js: EXECUTE TASK " + task_url + " connected to kernel " + kernel_id)
+            //console.log("CLARAMA_WEBSOCKET.js: EXECUTE TASK " + task_url + " connected to kernel " + kernel_id)
 
             let active_selector = ('#environment_' + environment_file).replaceAll('.', "_");
 
@@ -284,11 +327,11 @@ function handleTaskInteractionResume(resumeMessage) {
     }
 
     if (!resumingElementId) {
-        console.log("CLARAMA_WEBSOCKET.js: Could not extract element ID from step_id:", step_id);
+        console.error("CLARAMA_WEBSOCKET.js: Could not extract element ID from step_id:", step_id);
         return;
     }
 
-    console.log(`CLARAMA_WEBSOCKET.js: Received task_interaction_resume from ${resumingElementId}`);
+    // console.log(`CLARAMA_WEBSOCKET.js: Received task_interaction_resume from ${resumingElementId}`);
 
     // Check all pending tasks to see which ones are waiting for this element
     for (let prop in window) {
@@ -297,27 +340,27 @@ function handleTaskInteractionResume(resumeMessage) {
             const waitingElementId = prop.replace('pendingTask_', 'element_');
 
             if (pendingTask && pendingTask.waitingFor && pendingTask.waitingFor.includes(resumingElementId)) {
-                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} was waiting for ${resumingElementId}`);
+                // console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} was waiting for ${resumingElementId}`);
 
                 // Mark this element as resumed
                 pendingTask.resumedFrom.add(resumingElementId);
 
-                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} has received resume from:`,
-                    Array.from(pendingTask.resumedFrom));
-                console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for:`,
-                    pendingTask.waitingFor.filter(elem => !pendingTask.resumedFrom.has(elem)));
+                //console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} has received resume from:`,
+                //    Array.from(pendingTask.resumedFrom));
+                //console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for:`,
+                //   pendingTask.waitingFor.filter(elem => !pendingTask.resumedFrom.has(elem)));
 
                 // Check if all required elements have sent resume messages
                 const allResumed = pendingTask.waitingFor.every(elem => pendingTask.resumedFrom.has(elem));
 
                 if (allResumed) {
-                    console.log(`CLARAMA_WEBSOCKET.js: All wait interactions complete for ${waitingElementId}, proceeding with task execution`);
+                    //console.log(`CLARAMA_WEBSOCKET.js: All wait interactions complete for ${waitingElementId}, proceeding with task execution`);
                     executeTask(pendingTask.embedded, pendingTask.task_url, pendingTask.socket_id, pendingTask.autorun, pendingTask.kernel_status);
 
                     // Clean up the pending task
                     delete window[prop];
                 } else {
-                    console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for more resume messages`);
+                    //console.log(`CLARAMA_WEBSOCKET.js: Element ${waitingElementId} still waiting for more resume messages`);
                 }
             }
         }
@@ -347,7 +390,7 @@ function socket_task(embedded, task, topic, refresh_kernel, reset_environment) {
         env_url = '&environment=' + environment;
 
         //refresh = true;
-        console.log("CLARAMA_WEBSOCKET.js: overriding environment with " + env_url);
+        //console.log("CLARAMA_WEBSOCKET.js: overriding environment with " + env_url);
     }
 
     if (refresh_kernel === true) refresh = true;
@@ -379,7 +422,7 @@ function start_socket(reconnect = false, embedded) {
 
     if (task_active_socket !== undefined) {
         if (task_active_socket.readyState !== WebSocket.OPEN) {
-            console.log("CLARAMA_WEBSOCKET.JS resetting socket with state " + task_active_socket.readyState);
+            //console.log("CLARAMA_WEBSOCKET.JS resetting socket with state " + task_active_socket.readyState);
             task_active_socket.close();
             task_active_socket = undefined;
         }
@@ -389,7 +432,7 @@ function start_socket(reconnect = false, embedded) {
         let webSocket = new WebSocket(socket_address);
 
         task_active_socket = webSocket;
-        console.log("CLARAMA_WEBSOCKET.JS start_socket " + task_active_socket);
+        //console.log("CLARAMA_WEBSOCKET.JS start_socket " + task_active_socket);
 
         webSocket.onerror = function (event) {
             onError(event, socket_address, webSocket, embedded)
@@ -495,6 +538,8 @@ $.fn.enablesocket = function () {
  * @returns {string} Processed text.
  */
 function replace_keys(text, key_dict) {
+    if (text === undefined || text === '' || text === null) return text;
+
     Object.entries(key_dict).forEach(([key, value]) => {
         if (key !== 'array') {
             //console.log('key ' + key);
@@ -577,6 +622,174 @@ function process_template(template_id, substitutions, target_div) {
     }
 }
 
+// ---- Element protocol helpers ----
+function _findElementRootByName(name) {
+    // Prefer elements marked with data-element-name
+    let $root = $("[data-element-name='" + name + "']");
+    if ($root.length === 0) {
+        // Fallback to id selector
+        $root = $("#" + name);
+    }
+    return $root;
+}
+
+function _readFieldValue($field) {
+    if (!$field || $field.length === 0) return null;
+    const type = ($field.attr('type') || '').toLowerCase();
+    const tag = ($field.prop('tagName') || '').toLowerCase();
+
+    if (type === 'checkbox') return $field.prop('checked');
+    if (tag === 'select') return $field.val();
+    return $field.val();
+}
+
+function _writeFieldValue($field, value) {
+    if (!$field || $field.length === 0) return false;
+    const type = ($field.attr('type') || '').toLowerCase();
+    const tag = ($field.prop('tagName') || '').toLowerCase();
+
+    if (type === 'checkbox') {
+        $field.prop('checked', !!value).trigger('change');
+        return true;
+    }
+    if (tag === 'select') {
+        $field.val(value).trigger('change');
+        if ($field.hasClass('select2-hidden-accessible')) {
+            $field.trigger('change.select2');
+        }
+        return true;
+    }
+    $field.val(value).trigger('input').trigger('change');
+    return true;
+}
+
+function _postKernelCode(kernelId, request_id, code, topic) {
+    const url = $CLARAMA_ROOT + $CLARAMA_ENVIRONMENTS_KERNEL_RUN + kernelId;
+    const payload = {
+        streams: [{
+            main: [{
+                type: 'request',
+                topic: topic || '',
+                request_id: request_id,
+                content: code
+            }]
+        }],
+        parameters: {}
+    };
+    return fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+}
+
+function handleElementMessage(dict, socket_div) {
+    const name = dict.name;
+    const action = dict.action;
+    const field = dict.field;
+    const request_id = dict.request_id;
+
+    const kernelId = socket_div.attr('task_kernel_id');
+    const topic = socket_div.attr('topic') || '';
+
+    if (!action) return;
+
+    // Actions that require a named root element
+    const $root = name ? _findElementRootByName(name) : null;
+
+    if (action === 'bind') {
+        // no-op for now; could highlight or verify presence
+        return;
+    }
+
+    if (action === 'set') {
+        if (!$root || $root.length === 0) return;
+        const $field = field ? $root.find("[name='" + field + "']").first() : $root.find('input,select,textarea').first();
+        _writeFieldValue($field, dict.value);
+        return;
+    }
+
+    if (action === 'get') {
+        if (!kernelId) {
+            console.warn('Element get: missing kernel id on socket div');
+            return;
+        }
+        if (!$root || $root.length === 0) return;
+        const $field = field ? $root.find("[name='" + field + "']").first() : $root.find('input,select,textarea').first();
+        const value = _readFieldValue($field);
+
+        _postKernelCode(kernelId, request_id, value, topic);
+        return;
+    }
+
+    if (action === 'list') {
+        if (!kernelId) {
+            console.warn('Element list: missing kernel id on socket div');
+            return;
+        }
+        // Find all elements with class 'clarama-field'
+        const names = [];
+        $('.clarama-field').each(function () {
+            const $el = $(this);
+            const n = $el.attr('data-element-name') || $el.attr('id') || $el.attr('name');
+            if (n) names.push(n);
+        });
+        const unique = Array.from(new Set(names));
+        _postKernelCode(kernelId, request_id, JSON.stringify(unique), topic);
+        return;
+    }
+}
+
+// Simple global stream dispatcher to allow components to receive raw stream frames via the central websocket
+window.ClaramaStream = window.ClaramaStream || (function () {
+    const handlers = {}; // topic -> Set<function>
+
+    function register(topic, fn) {
+        const t = topic || '*';
+        console.log('ClaramaStream.register', t, fn, handlers);
+        if (!handlers[t]) handlers[t] = new Set();
+        handlers[t].add(fn);
+        return function unregister() {
+            try {
+                const set = handlers[t];
+                if (set) set.delete(fn);
+            } catch (e) {
+                // noop
+            }
+        };
+    }
+
+    function dispatch(topic, msg) {
+        const t = topic || '*';
+        console.log('ClaramaStream.dispatch', t, msg, handlers);
+        const hs = handlers[t];
+        if (hs && hs.forEach) {
+            hs.forEach(fn => {
+                try {
+                    fn(msg, t);
+                } catch (e) {
+                    console.error('Stream handler error', e);
+                }
+            });
+        }
+        // Also dispatch to wildcard handlers
+        if (t !== '*') {
+            const ws = handlers['*'];
+            if (ws && ws.forEach) {
+                ws.forEach(fn => {
+                    try {
+                        fn(msg, t);
+                    } catch (e) {
+                        // noop
+                    }
+                });
+            }
+        }
+    }
+
+    return {register, dispatch};
+})();
+
 // On receipt of a websocket message from the server. The kernels will send messages of dicts
 // in which one of the keys, "type" indicates the type of message, which then correlates with the HTML template to use
 // to render that message
@@ -591,23 +804,45 @@ function process_template(template_id, substitutions, target_div) {
  * @param {WebSocket} webSocket
  */
 function onMessage(event, socket_url, webSocket, socket_div) {
-    let dict = JSON.parse(event.data);
+    // Detect simple heartbeat pong messages before any JSON parsing
+    try {
+        if (typeof event.data === 'string') {
+            const trimmed = event.data.trim().toLowerCase();
+            if (trimmed === 'pong') {
+                // Received pong heartbeat; no further action required
+                console.log('CLARAMA_WEBSOCKET.js: Received pong heartbeat');
+                return;
+            }
+        }
+    } catch (e) { /* noop */
+    }
+
+    let dict;
+    try {
+        dict = JSON.parse(event.data);
+    } catch (e) {
+        // Not JSON (e.g., control frames or plain text heartbeat); ignore
+        return;
+    }
+    //console.log("WEBSOCKET.js: onMessage " + dict['class']);
+    // console.log("dict: ", dict);
 
     let message_event = socket_div.attr('onmessage');
 
     if (message_event !== undefined) {
-        console.log("Message event: " + message_event);
         dict = window[message_event](dict, socket_url, webSocket, socket_div);
 
         if (dict === undefined)
             return;
+
+        console.log("Message event: ", dict);
     }
 
     if ('class' in dict) {
-        console.log("WEBSOCKET.js: Processing Socket Message " + dict['class']);
+        //console.log("WEBSOCKET.js: Processing Socket Message " + dict['class']);
         try {
             if (dict['class'] === "ping") {
-                console.log('ping back ' + new Date() + ' ' + task_active_socket);
+                //console.log('ping back ' + new Date() + ' ' + task_active_socket);
                 task_active_socket.send('ping');
             }
 
@@ -615,6 +850,25 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 console.log("WEBSOCKET.js: Received task_interaction_resume message");
                 console.log(dict);
                 handleTaskInteractionResume(dict);
+            }
+
+            if (dict['class'] === 'element') {
+                handleElementMessage(dict, socket_div);
+                return;
+            }
+
+            if (dict['class'] === "file") {
+                // Dispatch global window events for file messages
+                try {
+                    //flash(JSON.stringify(dict));
+                    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+                        window.dispatchEvent(new CustomEvent('clarama:file', {detail: dict}));
+                        if (dict['action']) {
+                            window.dispatchEvent(new CustomEvent('clarama:file:' + dict['action'], {detail: dict}));
+                        }
+                    }
+                } catch (e) {
+                }
             }
 
             if (dict['class'] === "layout") {
@@ -642,6 +896,147 @@ function onMessage(event, socket_url, webSocket, socket_div) {
 
             if (dict['class'] === "alert") {
                 flash(dict['message'], dict['category']);
+            }
+
+
+            if (dict['class'] === "insights_inspector_template") {
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+                if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                    window.__claramaRunIntent[taskIndex].sawChat = true;
+                }
+
+                const cbInspect = "cell_insights_inspect_callback_" + taskIndex;
+
+                if (typeof window[cbInspect] === "function") {
+                    try {
+                        window[cbInspect](chunk);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    return; // handled by code console (keep callback for subsequent chunks)
+                }
+            }
+
+            if (dict['class'] === "insights_code_template") {
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+
+                const cbCode = "cell_insights_code_callback_" + taskIndex;
+
+                if (typeof window[cbCode] === "function") {
+                    try {
+                        window[cbCode](chunk);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    return; // handled by code console (keep callback for subsequent chunks)
+                }
+            }
+
+            if (dict['class'] === "insights_variables_template") {
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+
+                const cbVars = "cell_insights_variables_callback_" + taskIndex;
+
+                // Otherwise deliver to variables
+                if (typeof window[cbVars] === "function") {
+                    try {
+                        window[cbVars](chunk);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    return; // handled by variables (keep callback for subsequent chunks)
+                }
+            }
+
+            if (dict['class'] === "insights_chat_template") {
+                const stepId = String(dict.step_id || "");
+                const m = stepId.match(/step_(\d+)/);
+                const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+
+                if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                    window.__claramaRunIntent[taskIndex].sawChat = true;
+                }
+
+                const output = (dict && dict.values && typeof dict.values.output !== 'undefined')
+                    ? dict.values.output
+                    : (typeof dict.output !== 'undefined' ? dict.output : "");
+                let chunk = Array.isArray(output) ? output.join("") : (output != null ? String(output) : "");
+                chunk = html_decode(chunk);
+
+                if (taskIndex) {
+                    const cbChat = "cell_insights_chat_callback_" + taskIndex;
+
+                    // If a chat stream callback is already active, just deliver the chunk.
+                    if (typeof window[cbChat] === "function") {
+                        try {
+                            window[cbChat](chunk);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        return; // handled by chat (keep callback for subsequent chunks)
+                    }
+
+                    try {
+                        // Open insights if closed
+                        if (!isInsightsOpen(taskIndex)) {
+                            const $cell = getCellByTask(taskIndex);
+                            if ($cell && $cell.length) {
+                                openInsights($cell, taskIndex);
+                            }
+                        }
+
+                        // Ensure the Chat tab is active
+                        const chatBtnId = `insights-chat-tab-${taskIndex}`;
+                        const chatBtn = document.getElementById(chatBtnId);
+                        if (chatBtn) {
+                            const Tab = (window.bootstrap && window.bootstrap.Tab) ? window.bootstrap.Tab : null;
+                            if (Tab) {
+                                Tab.getOrCreateInstance(chatBtn).show();
+                            } else {
+                                chatBtn.click?.();
+                            }
+                        }
+
+                        // After opening + tab switch, try to deliver chunk again if a callback is now wired
+                        const cbChatNow = "cell_insights_chat_callback_" + taskIndex;
+                        if (typeof window[cbChatNow] === "function") {
+                            try {
+                                window[cbChatNow](chunk);
+                            } catch (e) {
+                                console.error(e);
+                            }
+                            return;
+                        }
+                    } catch (e) {
+                        console.error("Auto-open Insights for chat failed:", e);
+                    }
+                }
+
+                return; // nothing to deliver
             }
 
             if (dict['class'] === "progress_bar") {
@@ -682,7 +1077,7 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 let output_text = dict['values']['output'];
                 let step_id = dict['step_id'];
 
-                console.log("Template message received - Step ID:", step_id, "Output:", output_text);
+                console.log("Template message received - ", dict['type'], "Step ID:", step_id, "Output:", output_text);
 
                 // Extract task index from step_id (assuming format like "step_123")
                 let taskIndex = null;
@@ -692,61 +1087,6 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                         taskIndex = match[1];
                     } else {
                         taskIndex = step_id.replace(/\D/g, ''); // Remove non-digits
-                    }
-                }
-
-                if (taskIndex && output_text !== undefined) {
-                    // Check for console callback first
-                    let consoleCallbackKey = 'cell_debugger_console_callback_' + taskIndex;
-                    let variablesCallbackKey = 'cell_debugger_variables_callback_' + taskIndex;
-                    let generalCallbackKey = 'cell_debugger_callback_' + taskIndex;
-
-                    if (typeof window[consoleCallbackKey] === "function") {
-                        console.log("Found console callback, calling with output:", output_text);
-                        try {
-                            window[consoleCallbackKey](output_text);
-                            delete window[consoleCallbackKey];
-                        } catch (e) {
-                            console.error("Error calling console debugger callback:", e);
-                        }
-                    } else if (typeof window[variablesCallbackKey] === "function") {
-                        console.log("Found variables callback, calling with output:", output_text);
-                        try {
-                            window[variablesCallbackKey](output_text);
-                            delete window[variablesCallbackKey];
-                        } catch (e) {
-                            console.error("Error calling variables debugger callback:", e);
-                        }
-                    } else if (typeof window[generalCallbackKey] === "function") {
-                        console.log("Found general callback, calling with output:", output_text);
-                        try {
-                            window[generalCallbackKey](output_text);
-                            delete window[generalCallbackKey];
-                        } catch (e) {
-                            console.error("Error calling general debugger callback:", e);
-                        }
-                    } else {
-                        let debuggerCallbacks = Object.keys(window).filter(key => key.startsWith('cell_debugger_callback_'));
-                        console.log("Available debugger callbacks:", debuggerCallbacks);
-
-                        if (debuggerCallbacks.length === 1) {
-                            console.log("Using single available callback:", debuggerCallbacks[0]);
-                            try {
-                                window[debuggerCallbacks[0]](output_text);
-                                delete window[debuggerCallbacks[0]];
-                            } catch (e) {
-                                console.error("Error calling single debugger callback:", e);
-                            }
-                        } else {
-                            console.log("No callback found, trying direct population for task:", taskIndex);
-                            if (taskIndex) {
-                                try {
-                                    populateVariablesList(output_text, taskIndex);
-                                } catch (e) {
-                                    console.error("Error calling populateVariablesList directly:", e);
-                                }
-                            }
-                        }
                     }
                 }
 
@@ -773,6 +1113,53 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET TABLE MESSAGE:" + webSocket.url);
                 process_template(dict['type'], dict['values'], $(resulter));
                 bTable(dict['values']['table_id'], dict['results']);
+
+                try {
+                    const stepId = String(dict.step_id || "");
+                    let taskIndex = null;
+
+                    const m = stepId.match(/(\d+)$/);
+                    if (m) {
+                        taskIndex = m[1];
+                    } else {
+                        const digits = stepId.replace(/\D/g, "");
+                        taskIndex = digits || null;
+                    }
+
+                    if (
+                        taskIndex &&
+                        window.__insightsDataRoute &&
+                        window.__insightsDataRoute[taskIndex] &&
+                        window.__insightsDataRoute[taskIndex].active
+                    ) {
+                        // Only reroute when the Data Inspector tab is currently active
+                        const activeId = getActiveTabId(taskIndex) || "";
+                        if (!activeId.startsWith("insights-data-inspector-tab-")) {
+                            return;
+                        }
+
+                        const fromHost    = document.getElementById(`results_${taskIndex}`);
+                        const insightsHost = document.getElementById(`insights-results-${taskIndex}`);
+                        if (!fromHost || !insightsHost) {
+                            return;
+                        }
+
+                        const tables = fromHost.querySelectorAll("table");
+                        if (!tables.length) {
+                            return;
+                        }
+                        const table = tables[tables.length - 1];
+
+                        const pagers = fromHost.querySelectorAll(".fixed-table-pagination");
+                        const pager  = pagers.length ? pagers[pagers.length - 1] : null;
+
+                        insightsHost.innerHTML = "";
+                        insightsHost.appendChild(table);
+                        insightsHost.appendChild(pager);
+                    }
+                } catch (e) {
+                    console.error("Failed to reroute Data Inspector table into Insights results:", e);
+                }
             }
 
             if (dict['class'] === "template_chart") {
@@ -781,6 +1168,35 @@ function onMessage(event, socket_url, webSocket, socket_div) {
                 console.log($(resulter));
                 process_template(dict['type'], dict['values'], $(resulter));
                 bChart(dict['values']['chart_id'], dict['results']);
+            }
+
+            if (dict['class'] === "template_table_stream") {
+                let resulter = "#" + dict['step_id'];
+                console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET TABLE MESSAGE:" + webSocket.url);
+                process_template(dict['type'], dict['values'], $(resulter));
+                var options = dict['values']
+                var handle = bTableStream(dict['values']['table_id'], options);
+                console.log("WEBSOCKET TABLE STREAM OPTIONS: ");
+                console.log(options);
+                add_topic(options['topic'])
+                startLiveStream(false, options['query'], options['topic'], options['url']);
+
+            }
+
+            if (dict['class'] === "template_chart_stream") {
+                let resulter = "#" + dict['step_id'];
+                console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART MESSAGE:" + webSocket.url + " " + dict['step_id']);
+                console.log($(resulter));
+                process_template(dict['type'], dict['values'], $(resulter));
+                bChartStream(dict['values']['chart_id'], dict['values']);
+            }
+
+            if (dict['class'] === "template_chart3d") {
+                let resulter = "#" + dict['step_id'];
+                console.log("CLARAMA_WEBSOCKET.js: WEBSOCKET CHART3D MESSAGE:" + webSocket.url + " " + dict['step_id']);
+                console.log($(resulter));
+                process_template(dict['type'], dict['values'], $(resulter));
+                bChart3d(dict['values']['chart_id'], dict['results']);
             }
 
             if (dict['class'] === 'task_memory') {
@@ -811,9 +1227,33 @@ function onMessage(event, socket_url, webSocket, socket_div) {
 
                 if (dict['type'] === 'task_step_exception') {
                     task_progress.addClass("bg-danger");
+                    const stepId = String(dict.step_id || "");
+                    const mStep = stepId.match(/step_(\d+)/);
+                    const taskIndex = mStep ? mStep[1] : stepId.replace(/\D/g, "");
+                    if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                        window.__claramaRunIntent[taskIndex].sawException = true;
+                    }
+                }
+
+                // Auto-close Insights after a successful run if no chat arrived
+                try {
+                    if (dict['type'] === 'task_step_completed') {
+                        const stepId = String(dict.step_id || "");
+                        const mStep = stepId.match(/step_(\d+)/);
+                        const taskIndex = mStep ? mStep[1] : stepId.replace(/\D/g, "");
+
+                        if (taskIndex && window.__claramaRunIntent && window.__claramaRunIntent[taskIndex]) {
+                            const intent = window.__claramaRunIntent[taskIndex];
+                            if (intent.hadInsightsOpen && !intent.sawChat && !intent.sawException) {
+                                closeAllinsights();
+                            }
+                            delete window.__claramaRunIntent[taskIndex];
+                        }
+                    }
+                } catch (e) {
+                    console.error('Post-run Insights autoclose failed', e);
                 }
             }
-
         } catch (err) {
             console.log(err);
             console.log('CLARAMA_WEBSOCKET.js: exception raised processing:');
@@ -822,10 +1262,23 @@ function onMessage(event, socket_url, webSocket, socket_div) {
     } else if ('progress' in dict) {
         $('#task_progress_' + dict['stream']).attr('aria-valuenow', dict['step_number']);
     } else {
-        console.log("CLARAMA_WEBSOCKET.js: WTF was this: " + dict);
+        // Attempt to route raw stream frames (start/chunk/end/error) through ClaramaStream
+        try {
+            if (dict.type === 'start' || dict.type === 'chunk' || dict.type === 'end' || dict.type === 'error') {
+                const t = dict.topic;
+                console.log("CLARAMA_WEBSOCKET.js: Routing raw stream frame to ClaramaStream", dict, t);
+                if (window.ClaramaStream && typeof window.ClaramaStream.dispatch === 'function') {
+                    window.ClaramaStream.dispatch(t, dict);
+                    return;
+                }
+            }
+        } catch (e) { /* fallthrough to log */
+            console.error('CLARAMA_WEBSOCKET.js ClaramaStream error', e);
+        }
+        console.log("CLARAMA_WEBSOCKET.js: WTF was this: ", dict);
     }
 
-    console.log(task_active_socket);
+    //console.log(task_active_socket);
 }
 
 /**
@@ -888,3 +1341,32 @@ function onError(event, socket_url, webSocket, socket_div) {
     console.log("CLARAMA_WEBSOCKET.js: WebSocket Error [" + event.data + "] from " + socket_url + " on socket " + webSocket);
     //alert("SOCKET error " + event.data, "danger");
 }
+
+
+// Ensure global access to topic management functions, including alias for common typo
+(function () {
+    if (typeof window !== 'undefined') {
+        try {
+            window.add_topic = window.add_topic || add_topic;
+        } catch (e) {
+            // ignore if not defined yet
+        }
+        try {
+            window.remove_topic = window.remove_topic || remove_topic;
+        } catch (e) {
+        }
+
+        window.onClaramaFileEvent = function (actionOrHandler, handler) {
+            const isAction = typeof actionOrHandler === 'string';
+            const ev = isAction ? ('clarama:file:' + actionOrHandler) : 'clarama:file';
+            const fn = isAction ? handler : actionOrHandler;
+            if (typeof fn === 'function') window.addEventListener(ev, fn);
+        };
+        window.offClaramaFileEvent = function (actionOrHandler, handler) {
+            const isAction = typeof actionOrHandler === 'string';
+            const ev = isAction ? ('clarama:file:' + actionOrHandler) : 'clarama:file';
+            const fn = isAction ? handler : actionOrHandler;
+            if (typeof fn === 'function') window.removeEventListener(ev, fn);
+        };
+    }
+})();

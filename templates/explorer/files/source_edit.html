@@ -1,0 +1,339 @@
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center bg-secondary text-white rounded-top px-3 py-2 mb-2">
+        <div class="d-flex align-items-center gap-3">
+            <span class="fw-bold">Source Editor</span>
+            <div class="input-group input-group-sm" style="width: 420px;">
+                <span class="input-group-text">Type</span>
+                <select id="source-type" class="form-select">
+                    {% for st in sourcetypes %}
+                        <option value="{{ st }}" {% if st == current_type %}selected{% endif %}>{{ st|upper }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <i id="save" class="fs-3 bi bi-floppy" onclick="save_source();" url="{{ file_url }}" title="Save"></i>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="sourceEditTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-type" data-bs-toggle="tab" data-bs-target="#pane-type"
+                    type="button" role="tab" aria-controls="pane-type" aria-selected="true">Type
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-options" data-bs-toggle="tab" data-bs-target="#pane-options" type="button"
+                    role="tab" aria-controls="pane-options" aria-selected="false">Options
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-preview" data-bs-toggle="tab" data-bs-target="#pane-preview" type="button"
+                    role="tab" aria-controls="pane-preview" aria-selected="false">Preview
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-designer" data-bs-toggle="tab" data-bs-target="#pane-designer"
+                    type="button"
+                    role="tab" aria-controls="pane-designer" aria-selected="false">Designer
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 p-3 rounded-bottom card-body" id="sourceEditTabsContent">
+        <!-- Type Pane -->
+        <div class="tab-pane fade show active" id="pane-type" role="tabpanel" aria-labelledby="tab-type">
+            <div class="row g-2">
+                {% for st in sourcetypes %}
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                        <button type="button"
+                                class="btn w-100 {% if st == current_type %}btn-c2{% else %}btn-light{% endif %}"
+                                onclick="document.getElementById('source-type').value='{{ st }}'; setTypeActive('{{ st }}');">
+                            <i class="bi fs-4 {{ {
+                                'sql':'bi-database','rest':'bi-globe','csv':'bi-filetype-csv','xls':'bi-file-earmark-excel',
+                                'yaml':'bi-filetype-yml','redis':'bi-hdd-network','influx':'bi-graph-up','array':'bi-list'
+                            }[st] if st in {
+                                'sql':'bi-database','rest':'bi-globe','csv':'bi-filetype-csv','xls':'bi-file-earmark-excel',
+                                'yaml':'bi-filetype-yml','redis':'bi-hdd-network','influx':'bi-graph-up','array':'bi-list'
+                            } else 'bi-box-arrow-in-right' }} w-100"></i>
+                            <div class="text-center mt-1"><b>{{ st|upper }}</b></div>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Options Pane -->
+        <div class="tab-pane fade" id="pane-options" role="tabpanel" aria-labelledby="tab-options">
+            <div class="mb-2">
+                <label class="form-label">Options (YAML or JSON)</label>
+                <textarea id="options-text" class="form-control" rows="18"
+                          placeholder="# Enter source options here in YAML or JSON">{{ current_options_yaml }}</textarea>
+                <div class="form-text">These options are saved under the selected type key inside the source YAML.</div>
+            </div>
+        </div>
+
+        <!-- Preview Pane -->
+        <div class="tab-pane fade" id="pane-preview" role="tabpanel" aria-labelledby="tab-preview">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Action</label>
+                    <select id="preview-action" class="form-select">
+                        <option value="test" selected>test</option>
+                        <option value="browse">browse</option>
+                        <option value="query">query</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-9">
+                    <label class="form-label">Parameters (JSON)</label>
+                    <input id="preview-params" class="form-control" placeholder='{"limit":10}'>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-c2" onclick="test_source(); return false;">Run</button>
+                </div>
+            </div>
+            <pre id="preview-output" class="mt-3 p-2 bg-light border rounded"
+                 style="max-height: 360px; overflow:auto;"></pre>
+        </div>
+
+        <!-- Designer Pane -->
+        <div class="tab-pane fade" id="pane-designer" role="tabpanel" aria-labelledby="tab-designer">
+            <div id="designer-content">
+                <div class="alert alert-info">Select a source type to load a designer. Supported: SQL, REST.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setTypeActive(st) {
+        const buttons = document.querySelectorAll('#pane-type button');
+        buttons.forEach(b => {
+            b.classList.remove('btn-c2');
+            b.classList.add('btn-light');
+        });
+        const found = Array.from(buttons).find(b => (b.innerText || '').trim() === st.toUpperCase());
+        if (found) {
+            found.classList.remove('btn-light');
+            found.classList.add('btn-c2');
+        }
+    }
+
+    async function save_source() {
+        const type = document.getElementById('source-type').value;
+        const options_text = document.getElementById('options-text').value;
+        const url = '/web/explorer/save/{{ file_url }}';
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type, options_text})
+            });
+            if (!res.ok) {
+                throw new Error('Save failed');
+            }
+            const j = await res.json();
+            window.claramaToast && window.claramaToast.success('Source saved');
+        } catch (e) {
+            console.error(e);
+            window.claramaToast && window.claramaToast.error('Failed to save');
+        }
+    }
+
+    async function test_source() {
+        const action = document.getElementById('preview-action').value;
+        const paramsText = document.getElementById('preview-params').value || '{}';
+        let params = {};
+        try {
+            params = JSON.parse(paramsText);
+        } catch (e) {
+            params = {};
+        }
+        const url = '/web/data/execute/' + action + '/{{ file_url }}';
+        let out = document.getElementById('preview-output');
+        out.textContent = 'Running ' + action + '...';
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(params)
+            });
+            const txt = await res.text();
+            out.textContent = txt;
+        } catch (e) {
+            out.textContent = 'Error: ' + e;
+        }
+    }
+
+    // --- Designer helpers ---
+    function getOptionsTextarea() {
+        return document.getElementById('options-text');
+    }
+
+    function setOptionsJSON(obj) {
+        try {
+            getOptionsTextarea().value = JSON.stringify(obj, null, 2);
+        } catch (e) {
+        }
+    }
+
+    function parseCurrentOptions() {
+        try {
+            return JSON.parse(getOptionsTextarea().value || '{}');
+        } catch (e) {
+            try {
+                return YAML.parse(getOptionsTextarea().value || '{}');
+            } catch (_) {
+                return {};
+            }
+        }
+    }
+
+    async function loadDesigner() {
+        const st = (document.getElementById('source-type').value || '').toLowerCase();
+        const holder = document.getElementById('designer-content');
+        holder.innerHTML = '<div class="text-muted">Loading designer for ' + st.toUpperCase() + '…</div>';
+        try {
+            const res = await fetch('/web/data/source/options/' + st);
+            const data = await res.json();
+            const schema = data && data.results ? data.results : {};
+            if (st === 'sql') renderSQLDesigner(schema); else if (st === 'rest') renderRESTDesigner(schema); else holder.innerHTML = '<div class="alert alert-warning">No designer available for ' + st.toUpperCase() + '.</div>';
+        } catch (e) {
+            holder.innerHTML = '<div class="alert alert-danger">Failed to load designer: ' + e + '</div>';
+        }
+    }
+
+    function renderSQLDesigner(schema) {
+        window._sqlSchema = schema || {};
+        const holder = document.getElementById('designer-content');
+        const engines = (schema && schema.engines) || [];
+        const options = parseCurrentOptions();
+        const engineOptions = engines.map(e => `<option value="${e.key}">${e.label}</option>`).join('');
+        holder.innerHTML = `
+    <div class="card mb-3"><div class="card-header">SQL Engine</div>
+      <div class="card-body row g-2">
+        <div class="col-12 col-md-6">
+          <label class="form-label">Engine</label>
+          <select id="sql-engine" class="form-select">${engineOptions}</select>
+        </div>
+        <div id="sql-params" class="col-12"></div>
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-sm btn-c2" onclick="applySqlToOptions();return false;">Apply to Options</button>
+        </div>
+      </div></div>`;
+        document.getElementById('sql-engine').addEventListener('change', () => renderSqlParams(engines));
+        renderSqlParams(engines);
+    }
+
+    function renderSqlParams(engines) {
+        const engKey = document.getElementById('sql-engine').value;
+        const eng = (engines || []).find(e => e.key === engKey) || {};
+        let html = '';
+        (eng.params || []).forEach(p => {
+            const defPort = (p === 'port' && eng.default_port) ? ` value="${eng.default_port}"` : '';
+            html += `<div class="row g-2 align-items-end mb-1">
+      <div class="col-4 text-end"><label class="form-label mb-0">${p}</label></div>
+      <div class="col-8"><input class="form-control" id="sql-${p}" placeholder="${p}"${defPort}></div>
+    </div>`;
+        });
+        document.getElementById('sql-params').innerHTML = html;
+    }
+
+    function applySqlToOptions() {
+        const engKey = document.getElementById('sql-engine').value;
+        const engines = (window._sqlSchema && window._sqlSchema.engines) || [];
+        const eng = (engines || []).find(e => e.key === engKey) || {};
+        const params = {};
+        (eng.params || []).forEach(p => {
+            params[p] = document.getElementById('sql-' + p)?.value || '';
+        });
+        const obj = {engine: {driver: engKey, ...params}};
+        setOptionsJSON(obj);
+    }
+
+    function renderRESTDesigner(schema) {
+        const holder = document.getElementById('designer-content');
+        const methods = schema.methods || ['get', 'post'];
+        holder.innerHTML = `
+    <div class="card mb-3"><div class="card-header">REST Global</div>
+      <div class="card-body row g-2">
+        <div class="col-12 col-md-6"><label class="form-label">Base URL</label><input id="rest-url" class="form-control" placeholder="http://localhost:8080"></div>
+        <div class="col-12 col-md-6"><label class="form-label">Timeout (ms)</label><input id="rest-timeout" class="form-control" type="number" value="10000"></div>
+      </div></div>
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">Endpoints <button class="btn btn-sm btn-outline-secondary" onclick="addRestEndpoint();return false;">Add</button></div>
+      <div class="card-body" id="rest-endpoints"></div>
+    </div>
+    <div class="d-flex gap-2"><button class="btn btn-sm btn-c2" onclick="applyRestToOptions();return false;">Apply to Options</button></div>
+  `;
+        window._restEndpoints = [];
+        addRestEndpoint();
+    }
+
+    function addRestEndpoint() {
+        const idx = (window._restEndpoints?.length || 0);
+        if (!window._restEndpoints) window._restEndpoints = [];
+        const ep = {name: 'endpoint_' + (idx + 1), method: 'get', endpoint_url: '/', inputs: {}, transformation: ''};
+        window._restEndpoints.push(ep);
+        renderRestEndpoints();
+    }
+
+    function renderRestEndpoints() {
+        const cont = document.getElementById('rest-endpoints');
+        cont.innerHTML = '';
+        (window._restEndpoints || []).forEach((ep, i) => {
+            const card = document.createElement('div');
+            card.className = 'border rounded p-2 mb-2';
+            card.innerHTML = `
+      <div class="row g-2 mb-1">
+        <div class="col-12 col-md-3"><input class="form-control" id="ep-name-${i}" value="${ep.name}" placeholder="name"></div>
+        <div class="col-12 col-md-2"><select class="form-select" id="ep-method-${i}">${['get', 'post', 'put', 'delete', 'patch', 'head'].map(m => `<option ${ep.method === m ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
+        <div class="col-12 col-md-7"><input class="form-control" id="ep-url-${i}" value="${ep.endpoint_url}" placeholder="/path"></div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-12"><label class="form-label">Transformation (Python)</label>
+          <textarea class="form-control" rows="4" id="ep-tx-${i}" placeholder="# return transformed object">${ep.transformation || ''}</textarea>
+        </div>
+      </div>
+      <div class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="removeRestEndpoint(${i});return false;">Remove</button></div>
+    `;
+            cont.appendChild(card);
+        });
+    }
+
+    function removeRestEndpoint(i) {
+        window._restEndpoints.splice(i, 1);
+        renderRestEndpoints();
+    }
+
+    function applyRestToOptions() {
+        const base = document.getElementById('rest-url').value || '';
+        const timeout = parseInt(document.getElementById('rest-timeout').value || '0') || 0;
+        const endpoints = {};
+        (window._restEndpoints || []).forEach((_, i) => {
+            const name = document.getElementById('ep-name-' + i).value || ('endpoint_' + (i + 1));
+            endpoints[name] = {
+                method: document.getElementById('ep-method-' + i).value || 'get',
+                endpoint_url: document.getElementById('ep-url-' + i).value || '/',
+                inputs: {},
+                transformation: document.getElementById('ep-tx-' + i).value || ''
+            };
+        });
+        const obj = {url: base, timeout: timeout, endpoints: endpoints};
+        setOptionsJSON(obj);
+    }
+
+    // Load designer when tab opened or type changes
+    (function () {
+        document.getElementById('source-type').addEventListener('change', () => {
+            if (document.getElementById('tab-designer').classList.contains('active') || document.getElementById('pane-designer').classList.contains('show')) {
+                loadDesigner();
+            }
+        });
+        const designerTabBtn = document.getElementById('tab-designer');
+        designerTabBtn && designerTabBtn.addEventListener('shown.bs.tab', function () {
+            loadDesigner();
+        });
+    })();
+
+</script>
+
+{% include theme("web/file_footer.html") %}

@@ -15,22 +15,30 @@ function gina_kernel_registered(kernel_id) {
 
 // THIS WILL BE CALLED ON MESSAGE RECEIVED TO PROCESS CUSTOM MESSAGES
 function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
-    return dict;
     // the main websocket decodes the event as a dict straight away, so we can process it here
 
     // 1) Handshake → unlock inputs
     if (dict && dict.type === "ai_user_input") {
-        console.log("GINA handshake received.");
+        if (dict.clear)
+            resetConversation();
+
         window.__ginaHandshakeDone = true;
         window.waitingForAiUserInput = false;
-        window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+        window.__ginaSetInputsEnabled(true, "Type your question.");
+
+        // for unlocking insights console since the dict for gina is going throught this function
+        const stepId = String(dict.step_id || "");
+        const m = stepId.match(/step_(\d+)/);
+        const taskIndex = m ? m[1] : stepId.replace(/\D/g, "");
+        setConsoleEnabled(taskIndex, true);
         return;
     }
 
     // 2) Answer (either a welcome/system message OR a reply to the user's turn)
-    if (dict && dict["class"] === "template" && dict["type"] === "task_step_result") {
-        const reply = html_decode(dict.values.output[0]);
-        console.log('reply: ', reply)
+    if (dict && dict["class"] === "template" && dict["type"] === "task_llm_result") {
+        const outputs = (dict.values && dict.values.output) ? dict.values.output : [];
+        const chunk = html_decode(outputs.join(""));
+        const isFinal = !!(dict.values && dict.values.final);
         const container = document.getElementById("gina-chat-container");
 
         // If there is NO block currently processing, this is a system/welcome reply.
@@ -38,12 +46,11 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         if (!hasProcessing) {
             if (window.__ginaWelcomeShown) return;
             window.__ginaWelcomeShown = true;
-            window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
+            __ginaSetInputsEnabled(true, "Type your question.");
             return;
         }
 
         let block =
-            (window.__ginaGetActiveBlock && window.__ginaGetActiveBlock()) ||
             container?.querySelector("#gina-latest .gina-block.processing") ||
             container?.querySelector("#gina-conversations .gina-block.processing") ||
             container?.querySelector("#gina-latest .gina-block.chat-mode");
@@ -55,33 +62,101 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
         const out = block?.querySelector(".gina-output");
         const outContainer = block?.querySelector(".gina-output-container");
         if (outContainer) outContainer.style.display = "block";
+
         if (out) {
             out.classList.remove("loading");
-            out.style.whiteSpace = "pre-wrap";
-            out.textContent = reply || "";
+            out.style.whiteSpace = "normal"; // use HTML rendering
+            // Accumulate buffer for streaming
+            const prev = out.__streamBuffer || "";
+            const next = prev + (chunk || "");
+            out.__streamBuffer = next;
+            out.innerHTML = markdownToHtml(next);
+            try {
+                if (window.hljs && typeof window.hljs.highlightAll === 'function') {
+                    window.hljs.highlightAll();
+                }
+            } catch (e) { /* noop */
+            }
+            try {
+                if (window.Prism && typeof window.Prism.highlightAll === 'function') {
+                    window.Prism.highlightAll();
+                }
+            } catch (e) { /* noop */
+            }
+            try {
+                if (window.mermaid && typeof window.mermaid.run === 'function') {
+                    window.mermaid.run({
+                        suppressErrors: false,
+                    }, out.querySelectorAll('.mermaid'));
+                }
+            } catch (e) {
+                console.warn('Mermaid run failed', e);
+            }
+            try {
+                // Attach copy handlers for any Mermaid copy buttons in this output block
+                const btns = out.querySelectorAll('.mermaid-copy-btn');
+                btns.forEach(btn => {
+                    if (btn.__ginaBound) return; // avoid rebinding on stream updates
+                    btn.__ginaBound = true;
+                    btn.addEventListener('click', function (ev) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        const b64 = this.getAttribute('data-b64') || '';
+                        let txt = '';
+                        try {
+                            txt = decodeURIComponent(escape(atob(b64)));
+                        } catch (e) {
+                            try {
+                                txt = atob(b64);
+                            } catch (_) {
+                                txt = '';
+                            }
+                        }
+                        const doFeedback = () => {
+                            const origHTML = this.innerHTML;
+                            this.innerHTML = '<i class="bi bi-clipboard-check" aria-hidden="true"></i>';
+                            setTimeout(() => {
+                                this.innerHTML = origHTML;
+                            }, 1200);
+                        };
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(txt).then(doFeedback).catch(doFeedback);
+                        } else {
+                            // Fallback copy
+                            const ta = document.createElement('textarea');
+                            ta.value = txt;
+                            document.body.appendChild(ta);
+                            ta.select();
+                            try {
+                                document.execCommand('copy');
+                            } catch (_) {
+                            }
+                            document.body.removeChild(ta);
+                            doFeedback();
+                        }
+                    });
+                });
+            } catch (e) { /* noop */
+            }
         }
 
-        // User turn is "finalized" only if the block is in chat mode (we replaced the textarea with a user bubble)
-        const isFinalizedUserTurn =
-            block?.classList.contains("chat-mode") ||
-            !!block?.querySelector(".gina-input-wrapper.finalized");
+        // If final chunk received, finalize the block and UI state
+        if (isFinal) {
+            const isFinalizedUserTurn =
+                block?.classList.contains("chat-mode") ||
+                !!block?.querySelector(".gina-input-wrapper.finalized");
 
-        if (isFinalizedUserTurn) {
-            block.classList.remove("processing");
-            window.__ginaClearProcessingGuard && window.__ginaClearProcessingGuard();
-            window.__ginaSetProcessingState && window.__ginaSetProcessingState(false);
+            if (isFinalizedUserTurn) {
+                block.classList.remove("processing");
+                window.__ginaClearProcessingGuard();
+                window.__ginaSetProcessingState(false);
 
-            // Clear the active reference before moving it away
-            if (window.__ginaGetActiveBlock && block === window.__ginaGetActiveBlock()) {
-                window.__ginaSetActiveBlock && window.__ginaSetActiveBlock(null);
-                window.__ginaActiveTurnId = null;
+                window.__ginaMoveBlockToHistory(block);
+                window.__ginaSpawnNext();
+            } else {
+                // Welcome/system message — keep the composer in place
+                window.__ginaSetInputsEnabled(true, "Type your question.");
             }
-
-            window.__ginaMoveBlockToHistory && window.__ginaMoveBlockToHistory(block);
-            window.__ginaSpawnNext && window.__ginaSpawnNext();
-        } else {
-            // Welcome/system message — keep the composer in place
-            window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(true, "Type your question.");
         }
 
         window.__ginaCheckDocking && window.__ginaCheckDocking();
@@ -89,19 +164,434 @@ function gina_kernel_message(dict, socket_url, webSocket, socket_div) {
     }
 
     // 3) Error → show error bubble and continue flow
-    if (dict && dict["class"] === "message" && dict["type"] === "task_step_exception") {
+    if (dict && ((dict["class"] === "message" && dict["type"] === "task_step_exception") || (dict["class"] === "template" && dict["type"] === "task_step_error"))) {
         const container = document.getElementById("gina-chat-container");
-        const block = (window.__ginaGetActiveBlock && window.__ginaGetActiveBlock()) ||
-            container?.querySelector("#gina-latest .gina-block.processing");
+        const block = container?.querySelector("#gina-latest .gina-block.processing");
         const msg = (dict.values && dict.values.error) ? String(dict.values.error) : "An error occurred.";
-        window.__ginaFinalizeBlockAfterError && window.__ginaFinalizeBlockAfterError(block, msg);
-        // Clear the active reference on error too
-        window.__ginaSetActiveBlock && window.__ginaSetActiveBlock(null);
-        window.__ginaActiveTurnId = null;
+        window.__ginaFinalizeBlockAfterError(block, msg);
         return;
     }
 
     return dict;
+}
+
+// Configure markdown to html
+function markdownToHtml(text) {
+    const input = String(text || "");
+    // Split on triple backticks to preserve code fences exactly
+    const parts = input.split(/```/g);
+
+    // ---------- Helpers ----------
+    const sanitizeUrl = (url) => {
+        try {
+            const u = String(url || '').trim();
+            if (!u) return '#';
+            const lower = u.toLowerCase();
+            if (
+                lower.startsWith('http://') ||
+                lower.startsWith('https://') ||
+                lower.startsWith('mailto:') ||
+                lower.startsWith('tel:')
+            ) return u;
+            return '#';
+        } catch (_) {
+            return '#';
+        }
+    };
+
+    const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+
+    // Inline markdown (bold, italic, code, links, images, strikethrough, soft breaks)
+    const renderInline = (s) => {
+        let t = esc(s);
+
+        // Images ![alt](url)
+        t = t.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, alt, url, title) => {
+            const u = sanitizeUrl(url);
+            const ti = title ? ` title="${title}"` : '';
+            return `<img src="${u}" alt="${alt}"${ti}>`;
+        });
+
+        // Links [text](url)
+        t = t.replace(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g, (m, txt, url, title) => {
+            const u = sanitizeUrl(url);
+            const ti = title ? ` title="${title}"` : '';
+            return `<a href="${u}" target="_blank" rel="noopener"${ti}>${txt}</a>`;
+        });
+
+        // Inline code `code`
+        t = t.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
+
+        // Bold **text** or __text__
+        t = t.replace(/\*\*([\s\S]+?)\*\*/g, (m, a) => `<strong>${a}</strong>`);
+        t = t.replace(/__([\s\S]+?)__/g, (m, a) => `<strong>${a}</strong>`);
+
+        // Italic *text* or _text_
+        t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, (m, pre, a) => `${pre}<em>${a}</em>`);
+        t = t.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, (m, pre, a) => `${pre}<em>${a}</em>`);
+        
+        // Strikethrough ~~text~~
+        t = t.replace(/~~([^~]+)~~/g, (m, s) => `<del>${s}</del>`);
+
+        // Soft line breaks: "two spaces + newline" => <br>
+        t = t.replace(/  \n/g, '<br>');
+
+        return t;
+    };
+
+    // Block rendering for non-code segments
+    const renderBlocks = (segment) => {
+        const lines = segment.replace(/\r\n?/g, '\n').split('\n');
+        let i = 0;
+        let html = '';
+
+        const renderTable = (start) => {
+            // header | header
+            // ---   | ---
+            const rows = [];
+            let idx = start;
+            while (idx < lines.length && /\|/.test(lines[idx])) {
+                rows.push(lines[idx]);
+                idx++;
+            }
+            if (rows.length < 2 || !/^\s*[:\-\| ]+\s*$/.test(rows[1])) return null;
+
+            const th = rows[0].split('|').map(s => s.trim());
+            const bodyRows = rows.slice(2).map(r => r.split('|').map(s => s.trim()));
+
+            let t = '<table class="gina-md-table"><thead><tr>' +
+                th.map(h => `<th>${renderInline(h)}</th>`).join('') +
+                '</tr></thead>';
+
+            if (bodyRows.length) {
+                t += '<tbody>' + bodyRows.map(cells =>
+                    `<tr>${cells.map(c => `<td>${renderInline(c)}</td>`).join('')}</tr>`
+                ).join('') + '</tbody>';
+            }
+            t += '</table>';
+            return { html: t, next: idx };
+        };
+
+        while (i < lines.length) {
+            let line = lines[i];
+
+            // Horizontal rule
+            if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+                html += '<hr>';
+                i++; continue;
+            }
+
+            // Headings #..######
+            const h = line.match(/^\s*(#{1,6})\s+(.+)\s*$/);
+            if (h) {
+                const level = h[1].length;
+                html += `<h${level}>${renderInline(h[2])}</h${level}>`;
+                i++; continue;
+            }
+
+            // Blockquote
+            if (/^\s*>\s?/.test(line)) {
+                const buf = [];
+                while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+                    buf.push(lines[i].replace(/^\s*>\s?/, ''));
+                    i++;
+                }
+                html += `<blockquote>${renderBlocks(buf.join('\n'))}</blockquote>`;
+                continue;
+            }
+
+            // Code block indented by 4 spaces → treat as code
+            if (/^\s{4}/.test(line)) {
+                const buf = [];
+                while (i < lines.length && /^\s{4}/.test(lines[i])) {
+                    buf.push(lines[i].replace(/^\s{4}/, ''));
+                    i++;
+                }
+                html += `<pre class="ginacode"><code>${esc(buf.join('\n'))}</code></pre>`;
+                continue;
+            }
+
+            // Table
+            if (/\|/.test(line)) {
+                const table = renderTable(i);
+                if (table) { html += table.html; i = table.next; continue; }
+            }
+
+            // Lists (unordered and ordered)
+            const ulStart = line.match(/^\s*([*+-])\s+(.+)/);
+            const olStart =
+                line.match(/^\s*(\d+)[\.)]\s+(.+)/) ||
+                line.match(/^\s*(\d+)\s+([A-Za-z].+)/); // accept "4 Something" as a list item
+
+            if (ulStart || olStart) {
+                const ordered = !!olStart;
+
+                // Determine the current list's base indent
+                const baseIndent = (line.match(/^\s*/)?.[0].length) ?? 0;
+
+                // Emit opening tag (with start attribute if needed)
+                let startNum = ordered ? (Number(olStart[1]) || 1) : 1;
+                if (ordered) {
+                    html += (startNum !== 1) ? `<ol start="${startNum}">` : `<ol>`;
+                } else {
+                    html += `<ul>`;
+                }
+
+                // Consume items for this list until the pattern or indent breaks
+                const consumeList = (startIndex, parentIndent, isOrdered) => {
+                    let idx = startIndex;
+
+                    const sameLevelUl = (ln) => {
+                        const m = ln.match(/^(\s*)([*+-])\s+(.+)/);
+                        return m && (m[1].length === parentIndent) ? m : null;
+                    };
+                    const sameLevelOl = (ln) => {
+                        const m = ln.match(/^(\s*)(\d+)[\.)]\s+(.+)/) || ln.match(/^(\s*)(\d+)\s+([A-Za-z].+)/);
+                        return m && (m[1].length === parentIndent) ? m : null;
+                    };
+
+                    // Helper: detect a nested list start (greater indent than parent)
+                    const nestedListStart = (ln) => {
+                        return (
+                            ln.match(/^\s{2,}[*+-]\s+.+/) ||
+                            ln.match(/^\s{2,}\d+[\.)]\s+.+/) ||
+                            ln.match(/^\s{2,}\d+\s+[A-Za-z].+/)
+                        );
+                    };
+
+                    // Parse one list item (captures wrapped lines, nested lists, and item paragraphs)
+                    const parseOneItem = (firstLine, firstMatch) => {
+                        let itemText = firstMatch[3] || firstMatch[2] || firstMatch[0];
+                        if (isOrdered && firstMatch[3]) itemText = firstMatch[3];
+                        if (!isOrdered && firstMatch[3]) itemText = firstMatch[3];
+
+                        const parts = [itemText];  
+                        const children = []; 
+
+                        idx++; 
+
+                        while (idx < lines.length) {
+                            const ln = lines[idx];
+
+                            if (!ln.trim().length) {
+                                let look = idx + 1, stop = false;
+                                while (look < lines.length && !lines[look].trim().length) look++;
+                                if (look < lines.length) {
+                                    const lookLn = lines[look];
+                                    if ((isOrdered && sameLevelOl(lookLn)) || (!isOrdered && sameLevelUl(lookLn))) {
+                                        idx = look; // jump to that next item
+                                        break;
+                                    }
+                                }
+                                parts.push(''); 
+                                idx++;
+                                continue;
+                            }
+
+                            // If we encounter a same-level new item, stop
+                            if ((isOrdered && sameLevelOl(ln)) || (!isOrdered && sameLevelUl(ln))) {
+                                break;
+                            }
+
+                            if (nestedListStart(ln)) {
+                                // Determine nested block extent
+                                const nestedIndent = (ln.match(/^\s*/)?.[0].length) ?? 0;
+
+                                // Gather nested lines until we go back to <= parentIndent or EOF
+                                const nestLines = [];
+                                let k = idx;
+                                while (k < lines.length) {
+                                    const nln = lines[k];
+                                    const nIndent = (nln.match(/^\s*/)?.[0].length) ?? 0;
+                                    if (!nln.trim().length) { nestLines.push(nln); k++; continue; }
+                                    if (nIndent < nestedIndent) break; // back to parent or less
+                                    nestLines.push(nln);
+                                    k++;
+                                }
+
+                                const normalized = nestLines.map(nl => nl.replace(new RegExp(`^\\s{0,${nestedIndent}}`), '')).join('\n');
+                                children.push(renderBlocks(normalized));
+                                idx = k;
+                                continue;
+                            }
+
+                            // Continuation line (wrapped text) at >= parentIndent+2 → keep as part of item text
+                            const currIndent = (ln.match(/^\s*/)?.[0].length) ?? 0;
+                            if (currIndent >= parentIndent + 2) {
+                                parts.push(ln.replace(/^\s{2,}/, ''));
+                                idx++;
+                                continue;
+                            }
+
+                            // If it looks like a paragraph line that isn't a new list, keep it inside the item
+                            if (!/^\s*([*+-])\s+/.test(ln) && !/^\s*\d+[\.)]?\s+/.test(ln)) {
+                                parts.push(ln.trim());
+                                idx++;
+                                continue;
+                            }
+
+                            break;
+                        }
+
+                        // Render item: paragraphs + any nested lists appended
+                        const paragraphs = parts.join('\n').split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+                        let inner = paragraphs.map(p => `<p>${renderInline(p)}</p>`).join('');
+                        if (!inner) inner = `<p>${renderInline('')}</p>`;
+                        if (children.length) inner += children.join('');
+                        html += `<li>${inner}</li>`;
+                    };
+
+                    // Emit items until we hit a non-item or lower indent
+                    while (idx < lines.length) {
+                        const ln = lines[idx];
+
+                        if (ln.trim().length && ((ln.match(/^\s*/)?.[0].length) ?? 0) < parentIndent) break;
+
+                        const mUl = sameLevelUl(ln);
+                        const mOl = sameLevelOl(ln);
+
+                        if (isOrdered && mOl) {
+                            parseOneItem(ln, mOl);
+                            idx++;
+                            continue;
+                        }
+                        if (!isOrdered && mUl) {
+                            parseOneItem(ln, mUl);
+                            idx++;
+                            continue;
+                        }
+                        break;
+                    }
+
+                    return idx;
+                };
+
+                i = consumeList(i, baseIndent, ordered) - 1;
+
+                html += ordered ? `</ol>` : `</ul>`;
+                continue;
+            }
+
+            // Paragraphs / line breaks
+            if (line.trim().length === 0) {
+                html += '<br>';
+                i++; continue;
+            }
+            const pbuf = [line];
+            i++;
+            while (i < lines.length && lines[i].trim().length > 0 && !/^\s*(#{1,6})\s+/.test(lines[i])) {
+                if (/^\s*[*+-]\s+/.test(lines[i]) || /^\s*\d+\.\s+/.test(lines[i]) ||
+                    /^\s*>\s?/.test(lines[i]) || /\|/.test(lines[i])) break;
+                pbuf.push(lines[i]);
+                i++;
+            }
+            html += `<p>${renderInline(pbuf.join('\n'))}</p>`;
+        }
+
+        return html;
+    };
+
+    // ---------- Main parse ----------
+    let html = '';
+    for (let i = 0; i < parts.length; i++) {
+        const segment = parts[i];
+
+        if (i % 2 === 1) {
+            // Code fence segment (may start with language line)
+            let lang = '';
+            let body = segment;
+            const firstNl = segment.indexOf('\n');
+            if (firstNl >= 0) {
+                lang = segment.slice(0, firstNl).trim().toLowerCase();
+                body = segment.slice(firstNl + 1);
+            }
+
+            // Normalise common aliases
+            const map = {
+                'py': 'python', 'python': 'python',
+                'sql': 'sql',
+                'ps1': 'powershell', 'ps': 'powershell', 'powershell': 'powershell',
+                'sh': 'bash', 'shell': 'bash', 'bash': 'bash',
+                'js': 'javascript', 'javascript': 'javascript',
+                'ts': 'typescript', 'typescript': 'typescript',
+                'json': 'json', 'html': 'html', 'xml': 'xml',
+                'yaml': 'yaml', 'yml': 'yaml', 'ini': 'ini',
+                'txt': 'text', 'text': 'text',
+                'mermaid': 'mermaid'
+            };
+            const norm = map[lang] || (lang && /^[a-z0-9_+-]+$/.test(lang) ? lang : '');
+
+            if (norm === 'mermaid') {
+                // Mermaid: raw (not HTML-escaped) content inside .mermaid
+                const safe = body.replace(/<\//g, '<\\/');
+                let b64 = '';
+                try { b64 = btoa(unescape(encodeURIComponent(body))); }
+                catch (e) { try { b64 = btoa(body); } catch (_) { b64 = ''; } }
+                html += `
+<div class="mermaid-wrap" style="position:relative;">
+  <div class="mermaid">${safe}</div>
+  <button class="mermaid-copy-btn" data-b64="${b64}" title="Copy Mermaid"
+          style="position:absolute; right:6px; bottom:6px; padding:4px 6px; border:none; border-radius:4px; background:rgba(0,0,0,0.5); color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+      <i class="bi bi-clipboard" aria-hidden="true"></i>
+  </button>
+</div>`;
+            } else {
+                // --- Language-aware code vs markdown fence decision ---
+                const NON_CODE_LANGS = new Set(['markdown','md','text','plain','plaintext','txt']);
+                const CODE_LANGS = new Set([
+                    'python','py','javascript','js','typescript','ts','java','c','cpp','csharp','go','rust','php',
+                    'ruby','kotlin','swift','scala','r','matlab','sql','bash','shell','powershell','ps1',
+                    'html','xml','css','json','yaml','yml','ini','dockerfile','makefile'
+                ]);
+
+                // markdown-ish cues (excluding headings for now)
+                let mdSignals = 0;
+                if (/^\s{0,3}([*-+]|\d+\.)\s/m.test(body)) mdSignals++;   // lists
+                if (/^\s{0,3}>\s/m.test(body)) mdSignals++;                // blockquote
+                if (/\[[^\]]+\]\([^)]+\)/m.test(body)) mdSignals++;        // [link](url)
+                if (/(\*\*|__)[^*]+(\*\*|__)/m.test(body)) mdSignals++;    // bold
+                if (/(\*|_)[^*]+(\*|_)/m.test(body)) mdSignals++;          // italic
+                if (/^\s*\|[^|\n]+\|/m.test(body)) mdSignals++;            // table row
+
+                const looksLikeCode =
+                    /(^|\n)\s*(def |class |function |#include\b|import\b|from\b|SELECT\b|WITH\b|INSERT\b|UPDATE\b|BEGIN\b|try\s*:|except\b|catch\s*\(|if\s*\(|for\s*\(|while\s*\(|return\b|const\s+|let\s+|var\s+|=>|:=|=\s*["'`[{(]|{\s*$)/m
+                        .test(body)
+                    || /;\s*$|}\s*$|\)\s*{/.test(body);
+
+                const explicitlyNonCode = norm && NON_CODE_LANGS.has(norm);
+                const langLooksCode = !!norm && CODE_LANGS.has(norm);
+
+                // Treat leading '#' as markdown heading only when NOT a declared code lang
+                const hasMarkdownHeading = /^\s{0,3}#{1,6}\s/m.test(body);
+                if (!langLooksCode && hasMarkdownHeading) mdSignals++;
+
+                let isRealCode = false;
+                if (!explicitlyNonCode) {
+                    if (langLooksCode) {
+                        // generous to declared code: allow 0/1 markdown signals
+                        isRealCode = looksLikeCode || mdSignals < 2;
+                    } else {
+                        // no declared lang: require code-ish and zero markdown signals
+                        isRealCode = looksLikeCode && mdSignals === 0;
+                    }
+                }
+
+                if (isRealCode) {
+                    const cls = norm ? `language-${norm} hljs` : 'hljs';
+                    html += `<pre class="ginacode"><code class="${cls}">${esc(body)}</code></pre>`;
+                } else {
+                    html += `<pre class="mdfence"><code class="language-text">${esc(body)}</code></pre>`;
+                }
+            }
+        } else {
+            // Normal (non-fence) text: render block markdown
+            html += renderBlocks(segment);
+        }
+    }
+
+    return `<div class="clarama-markdown">${html}</div>`;
 }
 
 function findKernelId() {
@@ -109,6 +599,20 @@ function findKernelId() {
 }
 
 // --- Kernel call ----------------------------------------------------------
+/**
+ * Send a user question to the GINA kernel.
+ *
+ * @param {string} questionText    Raw text from the active .gina-input.
+ * @param {HTMLElement} [forBlock] Optional .gina-block element used to show
+ *                                 errors if the network call fails.
+ *
+ * Behaviour:
+ * - Serialises any necessary context (e.g. conversation history) into a payload.
+ * - POSTs to the Clarama backend, which forwards to the GINA kernel.
+ * - On success, the actual assistant reply is delivered asynchronously via
+ *   WebSocket and rendered by kernel callbacks (see gina_kernel_message).
+ * - On error, shows a flash message and finalises the current block with an error.
+ */
 function runQuestionThroughKernel(questionText, forBlock) {
     get_field_values({}, true, function (field_registry) {
         field_registry["clarama_task_kill"] = false;
@@ -124,8 +628,8 @@ function runQuestionThroughKernel(questionText, forBlock) {
 
         const url = $CLARAMA_ENVIRONMENTS_KERNEL_RUN + task_kernel_id;
         const task_registry = {
-            streams: [{ main: [{ source: questionText, type: "question" }] }],
-            parameters: field_registry
+            streams: [{main: [{source: questionText, type: "question", agent_id: 'GINA'}]}],
+            parameters: field_registry,
         };
 
         $.ajax({
@@ -137,6 +641,7 @@ function runQuestionThroughKernel(questionText, forBlock) {
             success: function (data) {
                 if (data && data["data"] === "ok") {
                     // WebSocket will deliver the response
+                    console.log('GINA user input: ', questionText);
                     return;
                 }
                 const err = (data && data["error"]) ? data["error"] : "An error occurred while processing your question.";
@@ -156,6 +661,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- DOM refs -------------------------------------------------------------
     const ginaButton = document.getElementById("gina-button");
     const mainContent = document.getElementById("main-content");
+    const ginaWrapper = document.getElementById('gina-wrapper');
     const ginaContainer = document.getElementById("gina-chat-container");
     const ginaButtonGroup = document.querySelector(".gina-button-group");
     const ginaSaveBtn = document.querySelector(".gina-save-btn");
@@ -172,73 +678,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function navbarOffsetPx() {
         const h = (navbar && navbar.getBoundingClientRect && navbar.getBoundingClientRect().height)
-            ? navbar.getBoundingClientRect().height : 64;
+          ? navbar.getBoundingClientRect().height : 64;
         return Math.max(0, Math.round(h)) + 8; // breathing room
     }
-
+    
     function setNavbarOffsetVar() {
         const px = navbarOffsetPx();
         document.documentElement.style.setProperty("--navbar-offset", px + "px");
     }
 
-    function floatingMaxHeight() {
-        return window.innerHeight - navbarOffsetPx() - 20;
-    }
-
-    function isFloating() {
-        return ginaContainer.classList.contains("mode-floating");
-    }
-
-    function enterDocked() {
-        ginaContainer.classList.add("mode-docked");
-        ginaContainer.classList.remove("mode-floating");
-        syncMainCollapse();
-        // Once docked, the page is the only scroller
-        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-    }
-
     function checkDocking() {
         if (!ginaContainer.classList.contains("active")) return;
-
+      
         setNavbarOffsetVar();
-
-        if (!isFloating()) { // already docked
-            syncMainCollapse();
-            return;
-        }
-
-        const maxH = floatingMaxHeight();
-        const rect = ginaContainer.getBoundingClientRect();
-
-        // Measure untransformed content height (not affected by the 0.9 scale)
-        const inputCol = ginaContainer.querySelector(".gina-input-container");
-        const controls = ginaContainer.querySelector(".gina-controls");
-        const contentH =
-            (controls?.scrollHeight || 0) +
-            (historyHost?.scrollHeight || 0) +
-            (latestHost?.scrollHeight || 0) + 24;
-
-        // Take the largest of all available measurements
-        const h = Math.max(
-            ginaContainer.scrollHeight || 0,
-            inputCol?.scrollHeight || 0,
-            rect.height || 0,
-            contentH
+      
+        const col = ginaContainer.querySelector(".gina-input-container");
+        const contentH = Math.max(
+          col?.scrollHeight || 0,
+          ginaContainer.scrollHeight || 0
         );
-
-        // Visual cues while floating
-        const bottomOver = rect.bottom >= (window.innerHeight - 8);
-        const spaceBelow = window.innerHeight - rect.bottom;
-
-        const latestInput = ginaContainer.querySelector("#gina-latest .gina-input");
-        const inputFull = latestInput ? latestInput.scrollHeight : 0;
-
-        if ((h > maxH + 4) || bottomOver || spaceBelow < 12 || (inputFull + 40 > maxH)) {
-            enterDocked();
-        } else {
-            syncMainCollapse();
-        }
-    }
+      
+        const avail = Math.max(0, window.innerHeight - navbarOffsetPx() - 40);
+      
+        // Target vertical pad to visually center short containers
+        let vpad = Math.floor((avail - contentH) / 2);
+        if (!Number.isFinite(vpad)) vpad = 8;
+        vpad = Math.max(8, vpad); // never less than 8px
+      
+        ginaContainer.style.setProperty("--gina-vpad", vpad + "px");
+      
+        syncMainCollapse();
+      }
 
     function historyCount() {
         return historyHost.querySelectorAll(".gina-block").length;
@@ -246,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function stickHistoryToBottom() {
         if (ginaContainer.classList.contains("mode-docked")) {
-            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+            window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
         } else {
             // when floating, keep as-is; no inner scrolling needed
         }
@@ -322,7 +792,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return oneLineH;
     }
 
-    function autoSize(el, { expandFully = false } = {}) {
+    function autoSize(el, {expandFully = false} = {}) {
         if (!el) return;
 
         const scope = el.closest("#gina-chat-container") || document.documentElement;
@@ -480,6 +950,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function resetConversation() {
         // Stop any voice capture
         stopListening();
+        runQuestionThroughKernel('/clear'); // reset the session. /reset is a hard reset and wipes out the agent prompt too, which is bad, and likely to be removed.
 
         historyHost.innerHTML = "";
         latestHost.innerHTML = "";
@@ -518,25 +989,37 @@ document.addEventListener("DOMContentLoaded", () => {
         checkDocking();
     }
 
-
+    /**
+     * Open the main GINA panel in docked mode.
+     *
+     * - Collapses the main content area so the chat can sit under the navbar.
+     * - Marks #gina-wrapper as .is-open and #gina-chat-container as active + mode-docked.
+     * - Ensures the first .gina-input is focused and auto-sized.
+     */
     function openGina() {
-        mainContent?.classList.add("hidden");
-        ginaContainer.classList.add("active", "mode-floating");
+        mainContent?.classList.add("hidden", "collapsed");
+      
+        ginaContainer.classList.add("active", "mode-docked");
+        ginaContainer.classList.remove("mode-floating");
         ginaButtonGroup?.classList.add("gina-active");
+        ginaWrapper?.classList.add('is-open');
+      
         setNavbarOffsetVar();
         requestAnimationFrame(checkDocking);
+      
         const firstInput = ginaContainer.querySelector(".gina-input");
         setTimeout(() => {
-            if (firstInput) {
-                firstInput.focus();
-                autoSize(firstInput);
-            }
+          if (firstInput) {
+            firstInput.focus();
+            autoSize(firstInput);
+          }
         }, 200);
-    }
+    }      
 
     function closeGina() {
         ginaContainer.classList.remove("active", "mode-floating", "mode-docked");
         ginaButtonGroup?.classList.remove("gina-active");
+        ginaWrapper?.classList.remove('is-open');
         mainContent?.classList.remove("collapsed");
         setTimeout(() => mainContent?.classList.remove("hidden"), 0);
     }
@@ -548,7 +1031,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.__ginaHandshakeSent = true;
                 window.waitingForAiUserInput = true;
                 window.__ginaSetInputsEnabled && window.__ginaSetInputsEnabled(false, "GINA is getting ready...");
-                runQuestionThroughKernel("");
+                runQuestionThroughKernel("/init\nmodel: gemma3:4b");
             }
             const open = ginaContainer.classList.contains("active");
             if (!open) {
@@ -558,6 +1041,18 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+
+    // Expose helper so other scripts (e.g. unsaved-changes prompts)
+    // can safely close GINA if it's currently open.
+    window.__ginaCloseIfOpen = function () {
+        try {
+            if (ginaContainer && ginaContainer.classList.contains("active")) {
+                closeGina();
+            }
+        } catch (e) {
+            console.warn("GINA: error while trying to close from external caller", e);
+        }
+    };
 
     // --- Helpers --------------------------------------------------------------
     function setProcessingState(v) {
@@ -658,7 +1153,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     reject(new Error("Timeout waiting for block to render"));
                 }
             });
-            mo.observe(ginaContainer, { childList: true, subtree: true });
+            mo.observe(ginaContainer, {childList: true, subtree: true});
             setTimeout(() => {
                 mo.disconnect();
                 if (!tryFind()) reject(new Error("Timeout waiting for block to render"));
@@ -695,8 +1190,8 @@ document.addEventListener("DOMContentLoaded", () => {
             toggleSendButtonFor(block);
             checkDocking();
         } catch (err) {
-            console.error("GINA: failed to render next conversation block:", err);
-            flash("Failed to load the next conversation block. Please try again.", "danger");
+            // console.error("GINA: failed to render next conversation block:", err);
+            // flash("Failed to load the next conversation block. Please try again.", "danger");
         }
     }
 
@@ -756,7 +1251,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
-    __ginaObserver.observe(historyHost, { childList: true, subtree: true });
+    __ginaObserver.observe(historyHost, {childList: true, subtree: true});
 
     // --- Delegated events (latest + history) ---------------------------------
     ginaContainer.addEventListener("input", (e) => {
@@ -802,7 +1297,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isListening) stopListening();
 
         // Expand fully so the full message height is captured, then render bubble
-        autoSize(input, { expandFully: true });
+        autoSize(input, {expandFully: true});
 
         const userBubble = document.createElement("div");
         userBubble.className = "gina-msg user";
@@ -831,12 +1326,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     ginaContainer.addEventListener("keydown", (e) => {
-        if (!e.target.matches(".gina-input")) return;
-        // Send on Enter, but allow Shift+Enter for new lines
-        if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (!e.target.matches('.gina-input')) return;
+        // Shift+Enter make a newline
+        if (e.key === 'Enter' && e.shiftKey) {
+            e.stopPropagation();
+            return;
+        }
+        // Plain Enter sends
+        if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing) {
             e.preventDefault();
-            const block = e.target.closest(".gina-block");
-            const btn = block?.querySelector(".gina-send-btn");
+            e.stopPropagation();
+            const block = e.target.closest('.gina-block');
+            const btn = block?.querySelector('.gina-send-btn');
             if (btn && !btn.disabled) btn.click();
         }
         // Allow escape key to toggle Gina close
@@ -861,8 +1362,8 @@ document.addEventListener("DOMContentLoaded", () => {
         for (const b of blocks) {
             const q = b.querySelector(".gina-msg.user")?.textContent?.trim();
             const a = b.querySelector(".gina-output")?.textContent?.trim();
-            if (q) turns.push({ role: "user", content: q });
-            if (a) turns.push({ role: "assistant", content: a });
+            if (q) turns.push({role: "user", content: q});
+            if (a) turns.push({role: "assistant", content: a});
         }
 
         // 2) Also include the latest block if it's in chat mode
@@ -871,8 +1372,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const q = latest.querySelector(".gina-msg.user")?.textContent?.trim();
             const a = latest.querySelector(".gina-output")?.textContent?.trim();
             if (q) {
-                turns.push({ role: "user", content: q });
-                if (a) turns.push({ role: "assistant", content: a });
+                turns.push({role: "user", content: q});
+                if (a) turns.push({role: "assistant", content: a});
             }
         }
         return turns;
@@ -893,18 +1394,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ginaNewChatBtn?.addEventListener("click", async (e) => {
         e.preventDefault();
-      
-        // Force floating mode
-        ginaContainer.classList.add("active", "mode-floating");
-        ginaContainer.classList.remove("mode-docked");
-      
-        // Hide & collapse the page content while floating
+
+        // Stay in docked mode
+        ginaContainer.classList.add("active", "mode-docked");
+        ginaContainer.classList.remove("mode-floating");
+
+        // Keep the page collapsed while GINA is open
         mainContent?.classList.add("hidden", "collapsed");
-      
+
         // Ensure CSS vars and layout are up to date
         setNavbarOffsetVar();
         requestAnimationFrame(checkDocking);
-      
+
         await resetConversation();
         const firstInput = document.querySelector("#gina-latest .gina-input");
         if (firstInput) firstInput.focus();
@@ -980,9 +1481,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Keep scroller/height feeling right on viewport changes
     window.addEventListener("resize", () => {
-        checkDocking();
-        if (historyCount() > 0) stickHistoryToBottom();
+        if (ginaContainer.classList.contains("active")) checkDocking();
     });
+      
+    // Make it react when the conversation grows
+    const mo = new MutationObserver(() => checkDocking());
+    mo.observe(document.getElementById("gina-latest"), { childList: true, subtree: true });
+    mo.observe(document.getElementById("gina-conversations"), { childList: true, subtree: true });
 
     // Expose helpers for websocket callbacks
     window.__ginaSetInputsEnabled = setInputsEnabled;
@@ -993,3 +1498,28 @@ document.addEventListener("DOMContentLoaded", () => {
     window.__ginaFinalizeBlockAfterError = finalizeBlockAfterError;
     window.__ginaCheckDocking = checkDocking;
 });
+
+(function () {
+    function enforceSingleBlock() {
+        const latest = document.getElementById('gina-latest');
+        if (!latest) return;
+
+        // Remove older blocks, keep the first one we find.
+        const blocks = latest.querySelectorAll('.gina-block');
+        for (let i = 1; i < blocks.length; i++) {
+            blocks[i].remove();
+        }
+    }
+
+    const latest = document.getElementById('gina-latest');
+    if (!latest) return;
+
+    const mo = new MutationObserver(() => {
+        const x = window.scrollX, y = window.scrollY;
+        enforceSingleBlock();
+        requestAnimationFrame(() => window.scrollTo(x, y));
+    });
+
+    mo.observe(latest, { childList: true, subtree: true });
+    enforceSingleBlock();
+})();

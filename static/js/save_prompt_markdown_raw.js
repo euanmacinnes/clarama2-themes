@@ -131,6 +131,11 @@ function updateInitialContentAfterSave() {
 }
 
 function showUnsavedChangesModal() {
+    // Close GINA if it is currently open
+    if (window.__ginaCloseIfOpen && typeof window.__ginaCloseIfOpen === 'function') {
+        window.__ginaCloseIfOpen();
+    }
+
     if (!modalInstance) {
         modalInstance = new bootstrap.Modal(document.getElementById('unsaved-changes-modal'), {
             backdrop: 'static',

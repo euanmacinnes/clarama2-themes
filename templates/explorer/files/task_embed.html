@@ -44,6 +44,14 @@
     {% endfor %}
 {% endfor %}
 
+<!-- Task toolbar: args help -->
+<div class="d-flex justify-content-end mb-2">
+    <button type="button" class="btn btn-light btn-sm" title="Task parameters"
+            onclick="openTaskArgsModal('{{ internal_topic }}_socket_args', 'Task Parameters')">
+        <i class="bi bi-question-circle"></i>
+    </button>
+</div>
+
 <div class="clarama-task">
     <!-- internal topic already has element_x inside -->
     <div id="{{ internal_topic }}_socket"
@@ -65,6 +73,8 @@
 
 
 
+
 </script>
 {% include theme("explorer/files/task_response_templates.html") %}
+{% include theme("web/common_dialogs.html") %}
 {% include theme("web/file_footer.html") %}

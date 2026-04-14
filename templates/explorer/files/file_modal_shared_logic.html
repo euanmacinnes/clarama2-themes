@@ -75,23 +75,23 @@
 
     function renderFilesNFolder(path, breadcrumbId, selectId, filters) {
         const selectElement = document.getElementById(selectId);
-        console.log(`fetch path: ${path}`)
+        //console.log(`fetch path: ${path}`)
         fetch(path)
             .then((response) => response.json())
             .then((json_files) => {
-                console.log("json files", json_files)
+                //console.log("json files", json_files)
                 $(`#${selectId}`).empty();
 
                 const sortedFolders = naturalSort(json_files['results']['folders']);
                 const sortedFiles = naturalSort(json_files['results']['files']);
-                console.log("folders", sortedFolders)
-                console.log("files", sortedFiles)
+                //console.log("folders", sortedFolders)
+                //console.log("files", sortedFiles)
 
                 // using regex to filter
                 // *.field.yaml -> /^.*\.field\.yaml$/
                 // *.task.yaml -> /^.*\.task\.yaml$/
                 // *.md -> /^.*\.md$/
-                console.log("filters", filters);
+                //console.log("filters", filters);
                 const filePathFilters = filters
                     .split('|')
                     .map(path => {
@@ -99,7 +99,7 @@
                         return new RegExp(`${escaped}`);
                     })
 
-                console.log("filePathFilters", filePathFilters)
+                //console.log("filePathFilters", filePathFilters)
 
                 // render folders
                 sortedFolders.forEach(folder => {
@@ -124,9 +124,9 @@
                     const option = document.createElement('option');
 
                     // store relative path in val
-                    console.log("relativePath", relativePath)
+                    //console.log("relativePath", relativePath)
                     const trimmedPath = relativePath.trim();
-                    console.log("trimmedPath", trimmedPath)
+                    //console.log("trimmedPath", trimmedPath)
                     if (/^(?:\.\.\/)+$/.test(trimmedPath) || trimmedPath === '') {
                         option.value = trimmedPath + filePath;
                     } else {

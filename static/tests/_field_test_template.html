@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Field Test</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
+  <style> body{ padding:1rem; } </style>
+</head>
+<body>
+<div class="container">
+  <div id="app"></div>
+</div>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="../js/clarama_embedded.js"></script>
+<script src="../js/clarama_enable_interactions.js"></script>
+<script src="../js/clarama_fields.js"></script>
+<script src="clarama_fields_testkit.js"></script>
+<script>
+  // Replace yamlPath and title per page
+  $(function(){
+    window.$CLARAMA_ROOT = '';
+    ClaramaFieldTestKit.renderFieldTwice({ yamlPath: 'System/Tests/Fields/string.field.yaml', container: '#app', title: 'String Field' });
+  });
+</script>
+</body>
+</html>

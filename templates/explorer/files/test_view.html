@@ -3,7 +3,7 @@
 <div class="container-fluid bg-light">
     <div class="row" style="padding: 0">
         <div class="col-1 bg-secondary text-light" style="padding: 0">
-            <button type="button" class="btn btn-secondary">Playwright Test</button>
+            <button type="button" class="btn btn-c2-secondary">Playwright Test</button>
         </div>
         <div class="col">
             <div class="row">
@@ -11,9 +11,9 @@
         </div>
         <div class="col-auto">
             <ul class="btn-group clarama-test" role="group" aria-label="test_functions">
-                <a href="{{ file_url }}/edit" class="btn btn-secondary" title="Edit Test"><i
+                <a href="{{ file_url }}/edit" class="btn btn-c2-secondary" title="Edit Test"><i
                         class="bi bi-pencil"></i></a>
-                <button id="execute" type="button" class="btn btn-secondary clarama-test clarama-test-execute"
+                <button id="execute" type="button" class="btn btn-c2-secondary clarama-test clarama-test-execute"
                         url="{{ file_url }}" title="Execute Test"><i class="bi bi-play"></i></button>
             </ul>
         </div>
@@ -21,7 +21,7 @@
     <div class="row">
         <div class="col-1 bg-secondary text-light" style="padding: 0">
             <hr/>
-            <button type="button" class="btn btn-secondary">Configuration</button>
+            <button type="button" class="btn btn-c2-secondary">Configuration</button>
         </div>
         <div class="col mb-3" style="padding: 0">
             <hr/>
@@ -97,7 +97,7 @@
     <div class="row">
         <div class="col-1 bg-secondary text-light" style="padding: 0">
             <hr/>
-            <button type="button" class="btn btn-secondary">Test Blocks</button>
+            <button type="button" class="btn btn-c2-secondary">Test Blocks</button>
         </div>
         <div class="col mb-3" style="padding: 0">
             <hr/>
@@ -204,7 +204,7 @@
                         // Add artifacts link if available
                         if (testResult.test_id && Object.keys(testResult.artifacts).length > 0) {
                             resultHtml += '<p><a href="/explorer/view_artifacts/' + $('.clarama-test-execute').attr('url') +
-                                '?test_id=' + testResult.test_id + '" class="btn btn-primary">' +
+                                '?test_id=' + testResult.test_id + '" class="btn btn-c2">' +
                                 '<i class="bi bi-camera-video"></i> View Test Artifacts</a></p>';
                         }
 

@@ -1,59 +1,84 @@
 <div class="modal fade" tabindex="-1" id="browseFileModal">
     <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Browse File</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Browse File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb" id="breadcrumb_browsefile">
+                    </ol>
+                </nav>
+
+                <select id="add_content_browsefile" name="add_file" size="10" class="form-control">
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-c2" onclick="add_selected_file()">Select
+                </button>
+            </div>
         </div>
-        <div class="modal-body">
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb" id="breadcrumb_browsefile">
-            </ol>
-          </nav>
-  
-          <select id="add_content_browsefile" name="add_file" size="10" class="form-control">
-          </select>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" onclick="add_selected_file()">Select
-          </button>
-        </div>
-      </div>
     </div>
 </div>
 
 <script type="text/javascript">
     // this will not add a grid element
 
-    $( document ).ready(() => {
+    // Simple error reporter for this modal
+    function reportError(location, error){
+        try {
+            const name = (error && (error.name||'')) || 'Error';
+            const msg = (error && (error.message||error.toString())) || 'Unknown error';
+            const stack = (error && error.stack) ? ('\n' + error.stack.split('\n').slice(0,4).join('\n')) : '';
+            const notice = '[' + location + '] ' + name + ': ' + msg + (stack ? ('\n' + stack) : '');
+            if (typeof window.flash === 'function'){
+                window.flash(notice.replace(/\n/g,'<br/>'), 'danger');
+            }
+            if (window.console && console.error){ console.error('browse_file_modal reportError:', notice); }
+        } catch(e){
+            try { console.error('browse_file_modal reportError failed', e); } catch(_e){}
+        }
+    }
+
+    $(document).ready(() => {
         // this allows double click to add file
         $('#add_content_browsefile').on('dblclick', 'option', function () {
-            const selectedItem = $(this); 
+            const selectedItem = $(this);
             if (!isFolder(selectedItem)) {
-                console.log("File selected: " + selectedItem.val());
+                //console.log("File selected: " + selectedItem.val());
                 add_selected_file();
             }
         });
 
         // this loads the folder/file in the browse modal
         $('#browseFileModal').on('shown.bs.modal', function (event) {
-            const button = $(event.relatedTarget);
-            const filters = button.attr('filters'); 
-            const inputId = button.attr('inputId');
-            const gridElem = button.attr('gridElem');
+            try {
+                const button = $(event.relatedTarget);
+                const filters = button && button.attr ? button.attr('filters') : '';
+                const inputId = button && button.attr ? button.attr('inputId') : '';
+                const gridElem = button && button.attr ? button.attr('gridElem') : '';
 
-            $(this).data('inputId', inputId);
-            $(this).data('gridElem', gridElem);
-            path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
+                const adjacent = button && button.prev ? button.prev(".browse-field") : null;
 
-            navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile', filters);
+                //console.log("ADJACENT", adjacent);
+
+                $(this).data('inputId', inputId);
+                $(this).data('adjacent', adjacent);
+                $(this).data('gridElem', gridElem);
+                path = ($CLARAMA_ROOT + '/content/json/{{ file_url | path }}?subfolders=True&extensions=' + filters);
+
+                navigateToPath(path, 'breadcrumb_browsefile', 'add_content_browsefile', filters);
+            } catch (e) {
+                reportError('browse_file_modal.html::shown.bs.modal handler', e);
+            }
         });
     });
 
     async function add_selected_file() {
         const selected_val = "./" + $("#add_content_browsefile").val(); // ./ bec current directory
-        console.log("adding " + selected_val);
+        //console.log("adding " + selected_val);
         if (selected_val == null) {
             flash("No file selected!");
             return;
@@ -61,56 +86,35 @@
 
         const newSource = $CLARAMA_ROOT + selected_val;
 
-        const inputId = $("#browseFileModal").data('inputId');
+        let inputId = $("#browseFileModal").data('inputId');
         // console.log("inputId", inputId)
 
-        // this applies to the part in .field.yaml under data pick source
-        // once u pick a source itll replace the current code editors's 'source: '
-        // if no 'source: ' is found then itll j insert at the last row
-        if (inputId == "field_data_source") {
-            const fieldEditor = ace.edit("data");
-            console.log("fieldEditor", fieldEditor)
-            const fieldSession = fieldEditor.getSession();
-            console.log("fieldSession", fieldSession)
-            const fieldLines = fieldSession.getDocument().getAllLines();
-            console.log("fieldLines", fieldLines)
+        let targetInput = document.getElementById(inputId); // this just the input field to put the url
+        let target = '';
 
-            let found = false;
-            const newText = "source: " + newSource;
-
-            for (let i = 0; i < fieldLines.length; i++) {
-                if (fieldLines[i].includes("source")) {
-                    fieldSession.replace({
-                        start: { row: i, column: 0 },
-                        end: { row: i, column: fieldLines[i].length }
-                    }, newText);
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                const lastRow = fieldLines.length;
-                fieldSession.insert({ row: lastRow, column: 0 }, newText);
-            }
-            
-            $("#browseFileModal").modal('hide');
-            return;
+        if (targetInput === null) {
+            targetInput = $("#browseFileModal").data('adjacent');
+            //console.log("targetInput", targetInput);
+            inputId = 'relative';
+        } else {
+            target = inputId.replace('_elemInput', '');
         }
 
-        const targetInput = document.getElementById(inputId); // this just the input field to put the url
-        let target = inputId.replace('_elemInput', ''); 
         if (targetInput) {
+
             let absolutePath = resolveRelativeFilePath("{{ file_url | path }}", newSource)
             if (inputId.includes('_elemInput')) { // this is the grid element's dropdown menu
                 targetInput.href = "/content/edit/" + absolutePath;
                 targetInput.textContent = newSource;
+                var oldSource = targetInput.getAttribute('url');
+                remove_topic(oldSource);
+                add_topic(newSource);
                 {{ grid_id }}elements[target]['url'] = newSource;
 
                 let parentDiv = document.getElementById(target);
                 const currentUrl = parentDiv.getAttribute('url');
                 parentDiv.setAttribute('url', "/render/embed/" + absolutePath + "?" + $("#" + target + "_paramsInput").val() + "&clarama_layout=text_left&clarama_autorefresh=true&clarama_element_prefix=element_5_&clarama_element_width=4&clarama_field_spacing=3&clarama_element_height=2&clarama_element_aspect=2.0");
-                
+
                 // console.log("new url", document.getElementById(target).getAttribute('url'))
                 enable_interactions($(`#${target}`).parent(), true);
             } else if (inputId == "settings_table_source") { // this part is to generate the fields in a slate when a table in the slate settings is selected
@@ -123,35 +127,50 @@
                 let tableSourceDir = absolutePath.substring(0, absolutePath.lastIndexOf('/')) + "/" + nameOnly + " fields";
 
                 const targetPath = path.split('?')[0].split('/').slice(3).join('/');
-                console.log("targetPath", targetPath)
+                //console.log("targetPath", targetPath)
                 relativePath = getRelativePath("{{ file_url | path }}", targetPath);
-                console.log("relativePath", relativePath)
+                //console.log("relativePath", relativePath)
 
-                console.log("table source path", tableSourceDir)
+                //console.log("table source path", tableSourceDir)
                 fetch("/content/json/" + tableSourceDir)
                     .then((response) => response.json())
                     .then(async (json_files) => {
-                        console.log("json files", json_files)
+                        //console.log("json files", json_files)
 
                         all_fields = json_files['results']['files'];
                         for (const filePath of all_fields) {
                             let absFullFilePath = json_files['results']['filename'] + "/" + filePath;
                             let relativeFullFilePath = "./" + getRelativePath("{{ file_url | path }}", absFullFilePath)
-                            
+
                             // console.log("filePath", filePath);
                             // console.log("absFullFilePath", absFullFilePath);
                             // console.log("relativeFullFilePath", relativeFullFilePath);
                             try {
                                 // did async-await to ensure itll run finish first before proceeding to next loop
                                 await add_selected_content('/content/element/{{ file_url }}', relativeFullFilePath);
-                                console.log("success");
-                            } catch(err) {
-                                console.error("error", err)
+                                //console.log("success");
+                            } catch (err) {
+                                console.error("BROWSE FILE MODAL error {{ file_url }}" + relativeFullFilePath, err)
                             }
-                        };
+                        }
+                        ;
                     });
             } else {
-                targetInput.value = newSource;
+                if (targetInput.jquery) {
+                    targetInput.val(newSource);
+                } else {
+                    targetInput.value = newSource;
+                }
+                if (typeof inputId === 'string' && inputId.indexOf('interaction-url-') === 0) {
+                    try {
+                        const ev = new Event('input', { bubbles: true });
+                        if (targetInput.jquery) {
+                            targetInput[0].dispatchEvent(ev);
+                        } else {
+                            targetInput.dispatchEvent(ev);
+                        }
+                    } catch (e) { /* no-op */ }
+                }
             }
 
             if (inputId !== "grid-elem" && (!inputId.includes('_elemInput'))) {
@@ -165,8 +184,38 @@
             flash("File path stored successfully! " + newSource);
         } else {
             flash("Target input field not found!", "danger");
+            console.error("BROWSE FILE MODAL Target input field not found!");
         }
 
-        $("#browseFileModal").modal('hide');
+        try {
+            if (window.bootstrap && window.bootstrap.Modal) {
+                const el = document.getElementById('browseFileModal');
+                const inst = window.bootstrap.Modal.getInstance(el) || new window.bootstrap.Modal(el);
+                inst.hide();
+            } else if ($ && $("#browseFileModal").modal) {
+                $("#browseFileModal").modal('hide');
+            } else {
+                throw new Error('BROWSE FILE MODAL No Bootstrap modal implementation available to hide modal.');
+            }
+        } catch(e) {
+            reportError('browse_file_modal.html::add_selected_file hide', e);
+        }
+    }
+    // Safe programmatic show for the Browse File modal
+    window.showBrowseFileModal = function(){
+        try {
+            const el = document.getElementById('browseFileModal');
+            if (!el) { throw new Error('#browseFileModal element not found'); }
+            if (window.bootstrap && window.bootstrap.Modal) {
+                const inst = new window.bootstrap.Modal(el, {backdrop: true, keyboard: true});
+                inst.show();
+            } else if ($ && $(el).modal) {
+                $(el).modal({show: true, backdrop: true, keyboard: true});
+            } else {
+                throw new Error('No Bootstrap modal implementation available to show modal.');
+            }
+        } catch(e) {
+            reportError('browse_file_modal.html::showBrowseFileModal', e);
+        }
     }
 </script>

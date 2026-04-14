@@ -1,7 +1,7 @@
 /**
  * Clarama Cell Interactions JS - Functions for handling user interactions with cells
  * @fileoverview This file provides functions to handle various interactions with cells
- * in the Clarama interface, including running cells, toggling the cell debugger,
+ * in the Clarama interface, including running cells, toggling the cell insights,
  * inserting and deleting steps, copy and pasting cells, clearing the outputs of the cells,
  * setting output types, and navigating between cells.
  */
@@ -17,43 +17,47 @@ let currentContextCell = null;
 window.copiedCellData = null;
 
 /**
- * Closes all currently open debuggers
- * @description Finds all open debuggers and closes them
+ * Closes all currently open insights
+ * @description Finds all open insights and closes them
  */
-function closeAllDebuggers() {
-    // Find all cells that have debuggers (both static and dynamic)
-    $('[id^="debugger_"]').each(function () {
-        var debuggerDiv = $(this);
-        var debuggerId = debuggerDiv.attr('id');
-        var taskIndex = debuggerId.replace('debugger_', '');
+function closeAllinsights() {
+    $('[id^="insights_"]').each(function () {
+        var insightsDiv = $(this);
+        var taskIndex = insightsDiv.attr('id').replace('insights_', '');
+        var cellItem = insightsDiv.closest('.clarama-cell-item');
+        if (!cellItem.length) cellItem = $(`li.clarama-cell-item[step="${taskIndex}"]`);
+        if (!cellItem.length) cellItem = $(`li.clarama-cell-item[data-task-index="${taskIndex}"]`);
+        if (!cellItem.length) return;
 
-        // Find the parent cell - try multiple selectors to catch dynamically added cells
-        var cellItem = debuggerDiv.closest('.clarama-cell-item');
-        if (!cellItem.length) {
-            // Fallback: try to find by step attribute
-            cellItem = $(`li.clarama-cell-item[step="${taskIndex}"]`);
-        }
-        if (!cellItem.length) {
-            // Another fallback: try to find by data-task-index
-            cellItem = $(`li.clarama-cell-item[data-task-index="${taskIndex}"]`);
-        }
-
-        if (!cellItem.length) {
-            console.warn("Could not find cell item for debugger", taskIndex);
-            return;
-        }
-
-        var leftContent = cellItem.find(`#left_content_${taskIndex}`);
         var rightContent = cellItem.find(`#right_content_${taskIndex}`);
-        var debugButton = cellItem.find('.celleditdebug');
+        var oldBtn = cellItem.find('.celleditinsights');
+        var bar = cellItem.find('.insights-toggle-bar');
 
-        // Only process if the debugger is currently open
-        if (rightContent.length > 0 && !rightContent.hasClass('d-none')) {
-            leftContent.removeClass('col-6').addClass('col-6');
+        // Only process if the insights is currently open
+        if (rightContent.length && !rightContent.hasClass('d-none')) {
+            teardownDragDivider(cellItem);
             rightContent.addClass('d-none');
 
-            debugButton.removeClass('btn-warning');
-            debugButton.attr('title', 'Debug (Ctrl-\\)');
+            if (oldBtn.length) {
+                oldBtn.removeClass('btn-warning').attr('title', 'Insights');
+            }
+
+            if (bar.length) {
+                bar.removeClass('open').attr('title', 'Insights');
+                var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
+                if (headerBulb.length) {
+                    headerBulb
+                        .removeClass('bi-lightbulb insight-bulb-glow')
+                        .addClass('bi-lightbulb-off');
+                }
+
+                if (bar.length) {
+                    const icon = bar.find('i');
+                    if (icon.length) {
+                        icon.removeClass('bi-lightbulb').addClass('bi-lightbulb-off');
+                    }
+                }
+            }
 
             var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
             if (isNotificationCell) {
@@ -64,13 +68,8 @@ function closeAllDebuggers() {
                 }
             }
 
-            // Clean up any debugger-specific callbacks
-            if (window[`cell_debugger_variables_callback_${taskIndex}`]) {
-                window[`cell_debugger_variables_callback_${taskIndex}`] = null;
-            }
-            if (window[`cell_debugger_callback_${taskIndex}`]) {
-                window[`cell_debugger_callback_${taskIndex}`] = null;
-            }
+            disarmCodeInspectorAutoReload(taskIndex);
+            disobserveGinaChatSizing(taskIndex);
         }
     });
 }
@@ -84,101 +83,60 @@ function cell_edit_run(parent) {
     parent.find(".celleditrun").click(function () {
         var cell_button = $(this).closest('.clarama-cell-item');
         var taskIndex = cell_button.attr('step');
-        var hasDebuggerOpen = !cell_button.find('#right_content_' + taskIndex).hasClass('d-none');
+        var hasinsightsOpen = !cell_button.find('#right_content_' + taskIndex).hasClass('d-none');
+
+        // Record the run intent for this step
+        window.__claramaRunIntent = window.__claramaRunIntent || {};
+        window.__claramaRunIntent[taskIndex] = { hadInsightsOpen: hasinsightsOpen, sawChat: false };
+
         cell_item_run(cell_button);
-
-        if (hasDebuggerOpen) {
-            closeAllDebuggers();
-
-            setTimeout(function () {
-                var currentStep = parseInt(taskIndex);
-                if (!isNaN(currentStep)) {
-                    var nextCell = $("li.clarama-cell-item[step='" + (currentStep + 1) + "']");
-                    if (nextCell.length) {
-                        var nextTaskIndex = nextCell.attr('step');
-                        if (nextCell.find('.celleditdebug').length > 0) {
-                            openDebugger(nextCell, nextTaskIndex);
-                        }
-
-                        // Focus on the next cell's editor
-                        var nextEditorDiv = nextCell.find(".ace_editor").eq(0);
-                        if (nextEditorDiv.length) {
-                            var editor = nextEditorDiv.get(0).env.editor;
-                            editor.focus();
-                            editor.gotoLine(editor.session.getLength() + 1, 0);
-                        }
-                    }
-                }
-            }, 100);
-        }
     });
 }
 
 /**
- * Initialize debugger for new cells
- * @param {jQuery} newElement - The newly created cell element
+ * Initialise insights + editors for a newly created cell.
+ *
+ * @param {jQuery} newElement  - <li.clarama-cell-item> that was just inserted.
+ *
+ * Steps:
+ * - Calls enable_interactions(newElement).
+ * - Ensures the insights bar reflects the correct taskIndex (step or data-task-index).
+ * - Binds data-task-index into:
+ *      * .insights-toggle-bar
+ *      * .console-input
+ *      * .execute-console
+ * - Reinitialises sticky fields, Select2 dropdowns and embedded ACE editors.
+ * - If a left-hand editor exists, enables code-insert bars immediately; otherwise
+ *   defers until observeEditorReady() detects the editor.
+ * - Syncs the insights console and initialises chat reprompt controls.
  */
-function initializeNewCellDebugger(newElement) {
+function initializeNewCellinsights(newElement) {
     enable_interactions(newElement);
-    cell_toggle_debug_view(newElement);
+    cell_toggle_insights_view(newElement);
 
     var taskIndex = newElement.attr('step') || newElement.attr('data-task-index');
-
     if (taskIndex) {
-        setupConsoleHandlers(newElement, taskIndex);
-
-        var debugButton = newElement.find('.celleditdebug');
-        if (debugButton.length) {
-            debugButton.attr('data-task-index', taskIndex);
-        }
+        newElement.find('.insights-toggle-bar').attr('data-task-index', taskIndex);
 
         var consoleInput = newElement.find('.console-input');
-        if (consoleInput.length) {
-            consoleInput.attr('data-task-index', taskIndex);
-        }
+        if (consoleInput.length) consoleInput.attr('data-task-index', taskIndex);
 
         var executeButton = newElement.find('.execute-console');
-        if (executeButton.length) {
-            executeButton.attr('data-task-index', taskIndex);
-        }
-    }
-}
-
-/**
- * Set up console handlers for a specific cell
- * @param {jQuery} cellElement - The cell element
- * @param {string} taskIndex - The task index
- */
-function setupConsoleHandlers(cellElement, taskIndex) {
-    var consoleInput = cellElement.find('.console-input');
-    var executeButton = cellElement.find('.execute-console');
-
-    if (consoleInput.length) {
-        consoleInput.off('keypress.console');
-
-        // Handle Enter key in console input
-        consoleInput.on('keypress.console', function (e) {
-            if (e.which == 13) { // Enter key
-                const currentCell = $(this).closest('.clarama-cell-item');
-                const currentTaskIdx = currentCell.attr('step') || currentCell.attr('data-task-index');
-                debug_console_run(currentTaskIdx);
-            }
-        });
-
-        consoleInput.attr('data-task-index', taskIndex);
+        if (executeButton.length) executeButton.attr('data-task-index', taskIndex);
     }
 
-    if (executeButton.length) {
-        executeButton.off('click.console');
+    initStickyFields(newElement);                 // ensure sticky defaults are restored
+    newElement.find('.clarama-field').initselect(); // wire select2 + AJAX
+    newElement.find('[editor]').editor();           // ACE editors inside the cell
 
-        executeButton.on('click.console', function () {
-            const currentCell = $(this).closest('.clarama-cell-item');
-            const currentTaskIdx = currentCell.attr('step') || currentCell.attr('data-task-index');
-            debug_console_run(currentTaskIdx);
-        });
-
-        executeButton.attr('data-task-index', taskIndex);
+    const host = findEditorInLeft(taskIndex);
+    if (host) {
+        toggleBarsForTask(taskIndex, /*enabled=*/true);
+    } else if (typeof observeEditorReady === 'function') {
+        observeEditorReady(taskIndex);
     }
+    syncInsightsConsole(taskIndex);
+    initialiseCellReprompt(taskIndex);
 }
 
 /**
@@ -187,6 +145,15 @@ function setupConsoleHandlers(cellElement, taskIndex) {
  * @description Attaches click event handlers to insert step buttons, handling both
  * new cell creation and insertion of steps before or after existing cells
  */
+function nextDataCellName() {
+    var maxIdx = -1;
+    $('.data-cell-name').each(function () {
+        var m = ($(this).val() || '').match(/^data(\d+)$/);
+        if (m) maxIdx = Math.max(maxIdx, parseInt(m[1]));
+    });
+    return 'data' + (maxIdx + 1);
+}
+
 function cell_insert_step(parent) {
     parent.find(".insert_step").off('click');
     parent.find(".insert_step").on("click", function (event) {
@@ -201,7 +168,8 @@ function cell_insert_step(parent) {
 
             new_step_id = new_step_id + 1;
 
-            get_html('/step/stream/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/',
+            var nameParam = steptype === 'data' ? '?name=' + encodeURIComponent(nextDataCellName()) : '';
+            get_html('/step/stream/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/' + nameParam,
                 function (new_step) {
                     var $new_element = $(new_step);
 
@@ -209,7 +177,7 @@ function cell_insert_step(parent) {
                     step_stream.append($new_element);
 
                     sortUpdate(step_stream);
-                    initializeNewCellDebugger($new_element);
+                    initializeNewCellinsights($new_element);
                 });
         } else {
             console.log('cell_insert_step: insert above existing cell');
@@ -232,7 +200,8 @@ function cell_insert_step(parent) {
 
             new_step_id = new_step_id + 1;
 
-            get_html('/step/' + step_stream.attr('stream') + '/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/',
+            var nameParam = steptype === 'data' ? '?name=' + encodeURIComponent(nextDataCellName()) : '';
+            get_html('/step/' + step_stream.attr('stream') + '/' + steptype + '/' + new_step_id + '/' + step_stream_file + '/' + nameParam,
                 function (new_step) {
                     var $new_element = $(new_step);
 
@@ -245,23 +214,64 @@ function cell_insert_step(parent) {
                     }
 
                     sortUpdate(step_stream);
-                    initializeNewCellDebugger($new_element);
+                    initializeNewCellinsights($new_element);
                 });
         }
+    });
+
+    function resetMoreOptions($tb) {
+        const $moreBtn = $tb.find('[id$="_more_options"]');
+        $tb.find('.toolbar-more-btn').addClass('d-none');
+        $moreBtn.removeClass('toolbar-ellipsis-hidden').attr('aria-expanded', 'false');
+        $tb.find('.toolbar-ellipsis').removeClass('toolbar-ellipsis-hidden');
+    }
+
+    parent.find('[id^="task_toolbar_"]').each(function () {
+        const $tb = $(this);
+        resetMoreOptions($tb);
+
+        const $toggleTargets = $tb.find('[id$="_more_options"], .toolbar-ellipsis');
+        $toggleTargets
+            .off('click.revealMore')
+            .on('click.revealMore', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const $moreBtn = $tb.find('[id$="_more_options"]');
+                $moreBtn.addClass('toolbar-ellipsis-hidden').attr('aria-expanded', 'true');
+                $tb.find('.toolbar-ellipsis').addClass('toolbar-ellipsis-hidden');
+                $tb.find('.toolbar-more-btn').removeClass('d-none');
+            });
+
+            $tb.off('mouseleave.revealMore').on('mouseleave.revealMore', function () {
+                resetMoreOptions($tb);
+            });
     });
 }
 
 /**
- * Opens debugger for a specific cell
- * @param {jQuery} cellItem - The cell item to open debugger for
+ * Opens insights for a specific cell
+ * @param {jQuery} cellItem - The cell item to open insights for
  * @param {string} taskIndex - The task index of the cell
  */
-function openDebugger(cellItem, taskIndex) {
-    closeAllDebuggers();
+function openInsights(cellItem, taskIndex) {
+    closeAllinsights();
 
-    var leftContent = cellItem.find('#left_content_' + taskIndex);
-    var rightContent = cellItem.find('#right_content_' + taskIndex);
-    var debugButton = cellItem.find('.celleditdebug');
+    var leftContent = cellItem.find('.left-content[id^="left_content_"]').first();
+    var rightContent = cellItem.find('.right-content[id^="right_content_"]').first();
+
+    var deriveIndex = function (el) {
+        if (!el || !el.attr('id')) return null;
+        var m = el.attr('id').match(/_(\d+)$/);
+        return m ? m[1] : null;
+    };
+    var realIndex =
+        deriveIndex(rightContent) ||
+        deriveIndex(leftContent) ||
+        String(taskIndex || '');
+    taskIndex = realIndex;
+
+    var oldBtn = cellItem.find('.celleditinsights');       // may or may not exist
+    var bar = cellItem.find('.insights-toggle-bar');    // new vertical bar
     var isNotificationCell = cellItem.find('.clarama-cell-content[celltype="notification"]').length > 0;
     var notificationContents = null;
 
@@ -269,23 +279,86 @@ function openDebugger(cellItem, taskIndex) {
         notificationContents = cellItem.find('.clarama-cell-content[celltype="notification"] .alert-secondary > div');
     }
 
-    leftContent.removeClass('col-6').addClass('col-6');
     rightContent.removeClass('d-none');
+    setupDragDivider(cellItem, taskIndex);
+    syncInsightsConsole(taskIndex);
 
-    debugButton.addClass('btn-warning');
-    debugButton.attr('title', 'Hide Debug (Ctrl-\\)');
+    // Ensure /init runs EVERY time this cell's Insights opens:
+    if (window.__ginaInsightsHandshakeSent) delete window.__ginaInsightsHandshakeSent[taskIndex];
+    if (window.__ginaInsightsHandshakeDone) delete window.__ginaInsightsHandshakeDone[taskIndex];
+    initialiseInsightsGina(taskIndex, /*force=*/true);
+    initialiseCellReprompt(taskIndex);
+    applyGinaChatSizing(taskIndex);
+    observeGinaChatSizing(taskIndex);
 
-    if (isNotificationCell && notificationContents && notificationContents.length > 0) {
-        notificationContents.removeClass('row');
-        notificationContents.addClass('d-flex flex-column');
+    setTimeout(() => {
+        // Arm if Code Inspector tab is currently active
+        try {
+            armCodeInspectorAutoReload(taskIndex, 150);
+        } catch (_) {
+        }
+
+        const tabsHost = document.getElementById(`insightsTabs_${taskIndex}`);
+        if (tabsHost) {
+            tabsHost.addEventListener('shown.bs.tab', (ev) => {
+                const btn = ev.target; // activated tab button
+                const id = btn && btn.id ? String(btn.id) : "";
+                if (id.startsWith('insights-code-inspector-tab-')) {
+                    armCodeInspectorAutoReload(taskIndex, 150);
+                } else {
+                    disarmCodeInspectorAutoReload(taskIndex);
+                }
+            }, {once: false});
+        }
+    }, 0);
+
+    // Visual states / titles
+    if (oldBtn.length) {
+        oldBtn.addClass('btn-warning').attr('title', 'Hide insights');
+    }
+    if (bar.length) {
+        bar.addClass('open').attr('title', 'Hide insights');
+        bar.attr('data-task-index', taskIndex);
+        var headerBulb = cellItem.find(`#insight_bulb_${taskIndex}`);
+        if (headerBulb.length) {
+            headerBulb
+                .removeClass('bi-lightbulb-off')
+                .addClass('bi-lightbulb insight-bulb-glow');
+        }
+
+        // Vertical bar icon -> ON
+        if (bar.length) {
+            const icon = bar.find('i');
+            if (icon.length) {
+                icon.removeClass('bi-lightbulb-off').addClass('bi-lightbulb');
+            }
+        }
     }
 
-    setupConsoleHandlers(cellItem, taskIndex);
+    if (isNotificationCell && notificationContents && notificationContents.length > 0) {
+        notificationContents.removeClass('row').addClass('d-flex flex-column');
+    }
 
-    cell_debugger_run(cellItem, function (output_text) {
-        var taskIndex = cellItem.attr('step') || cellItem.attr('data-task-index');
-        populateVariablesList(output_text, taskIndex);
+    cell_insights_variables_run(cellItem, function (output_text) {
+        var idx = cellItem.attr('step') || cellItem.attr('data-task-index');
     });
+}
+
+function cleanup(taskIndex) {
+    if (taskIndex) {
+        if (window[`cell_insights_variables_callback_${taskIndex}`]) {
+            window[`cell_insights_variables_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_code_callback_${taskIndex}`]) {
+            window[`cell_insights_code_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_inspect_callback_${taskIndex}`]) {
+            window[`cell_insights_inspect_callback_${taskIndex}`] = null;
+        }
+        if (window[`cell_insights_chat_callback_${taskIndex}`]) {
+            window[`cell_insights_chat_callback_${taskIndex}`] = null;
+        }
+    }
 }
 
 /**
@@ -301,65 +374,255 @@ function cell_delete_step(parent) {
         var step_parent = step_type.parents(".clarama-cell-item");
         var taskIndex = step_parent.attr('step') || step_parent.attr('data-task-index');
 
-        if (taskIndex) {
-            if (window[`cell_debugger_variables_callback_${taskIndex}`]) {
-                window[`cell_debugger_variables_callback_${taskIndex}`] = null;
-            }
-            if (window[`cell_debugger_callback_${taskIndex}`]) {
-                window[`cell_debugger_callback_${taskIndex}`] = null;
-            }
-        }
+        cleanup(taskIndex);
 
         var step_stream = step_parent.parents(".stream");
         step_parent.remove();
         sortUpdate(step_stream);
-        closeAllDebuggers();
+        closeAllinsights();
     });
 }
 
 /**
- * Sets up handlers for toggling debug view
+ * Sets up handlers for toggling insights view
  * @param {jQuery} parent - jQuery object representing the parent container
- * @description Attaches click event handlers to debug buttons and toggles
- * the visibility of the debug panel (right content area). Only one debugger
+ * @description Attaches click event handlers to insights buttons and toggles
+ * the visibility of the insights panel (right content area). Only one insights
  * can be open at a time.
  */
-function cell_toggle_debug_view(parent) {
-    parent.find(".celleditdebug").off('click.debug');
-    parent.find(".celleditdebug").on("click.debug", function () {
-        var debugButton = $(this);
-        var cellItem = debugButton.closest('.clarama-cell-item');
-
-        var taskIndex = debugButton.attr('data-task-index') ||
+function cell_toggle_insights_view(parent) {
+    parent.find(".celleditinsights, .insights-toggle-bar").off('click.insights');
+    parent.find(".celleditinsights, .insights-toggle-bar").on("click.insights", function () {
+        const insightsControl = $(this);
+        const cellItem = insightsControl.closest('.clarama-cell-item');
+        const idFrom = (sel) => {
+            const el = cellItem.find(sel)[0];
+            if (!el || !el.id) return null;
+            const m = el.id.match(/_(\d+)$/);
+            return m ? m[1] : null;
+        };
+        let taskIndex =
+            idFrom('.right-content[id^="right_content_"]') ||
+            idFrom('.left-content[id^="left_content_"]') ||
+            insightsControl.attr('data-task-index') ||
             cellItem.attr('step') ||
             cellItem.attr('data-task-index');
-
-        var rightContent = cellItem.find('#right_content_' + taskIndex);
-        var isThisDebuggerOpen = !rightContent.hasClass('d-none');
-
-        if (isThisDebuggerOpen) {
-            closeAllDebuggers();
+        // Fall back 
+        taskIndex = String(taskIndex || '');
+        const rightContent = cellItem.find('.right-content[id^="right_content_"]').first();
+        const isOpen = rightContent.length && !rightContent.hasClass('d-none');
+        if (isOpen) {
+            closeAllinsights();
         } else {
-            openDebugger(cellItem, taskIndex);
+            openInsights(cellItem, taskIndex);
         }
     });
+}
+
+/**
+ * Set the CSS custom property that controls the split ratio.
+ * The value is read by CSS to size left/right panes responsively.
+ *
+ * @param {HTMLElement} rowEl - The `.content-row` element.
+ * @param {number} ratio - Ratio in [0, 1] for left pane width.
+ * @returns {void}
+ */
+function setRatio(rowEl, ratio) {
+    rowEl.style.setProperty('--split-ratio', String(ratio));
+}
+
+/**
+ * Get the divider's visual width in pixels.
+ * Falls back to 8px if the element has no measurable width yet.
+ *
+ * @param {HTMLElement} rowEl - The `.content-row` element (unused, reserved for symmetry).
+ * @param {HTMLElement} [dividerEl] - The divider element.
+ * @returns {number} Width in pixels.
+ */
+function getDividerWidth(rowEl, dividerEl) {
+    return (dividerEl?.getBoundingClientRect().width) || 8;
+}
+
+
+function getBarWidth(rowEl) {
+    const bar = rowEl.querySelector('.insights-toggle-bar');
+    return bar ? bar.getBoundingClientRect().width : 0;
+}
+
+
+/**
+ * Compute available horizontal space (in px) for the two panes combined,
+ * i.e., the row width minus the divider width.
+ *
+ * @param {HTMLElement} rowEl - The `.content-row` element.
+ * @param {HTMLElement} [dividerEl] - The divider element.
+ * @returns {number} Available width in pixels (≥ 0).
+ */
+function getAvail(rowEl, dividerEl) {
+    const rect = rowEl.getBoundingClientRect();
+    return Math.max(0, rect.width - getDividerWidth(rowEl, dividerEl) - getBarWidth(rowEl));
+}
+
+/**
+ * Apply a split ratio to a jQuery-wrapped row by setting its CSS var.
+ *
+ * @param {jQuery} row - jQuery object for the `.content-row` element.
+ * @param {number} ratio - Ratio in [0, 1] for left pane width.
+ * @returns {void}
+ */
+function applyRatio(row, ratio) {
+    const rowEl = row[0];
+    setRatio(rowEl, ratio);
+}
+
+/**
+ * Initialize and enable the draggable divider for a cell.
+ * - Ensures the right pane is visible and the row is marked as split.
+ * - Creates the divider if missing and wires up mouse/touch/keyboard handlers.
+ * - Enforces minimum pane widths (in px) via clamped ratio.
+ * - Persists the ratio in localStorage (`cellSplitRatio_<taskIndex>`).
+ * - Uses a ResizeObserver to keep the layout valid on container resize.
+ *
+ * @param {jQuery} cellItem - jQuery object for the cell `<li.clarama-cell-item>`.
+ * @param {string|number} taskIndex - The cell's step index used for IDs and storage.
+ * @returns {void}
+ */
+function setupDragDivider(cellItem, taskIndex) {
+    const row = cellItem.find('.content-row');
+    const left = cellItem.find('#left_content_' + taskIndex);
+    const right = cellItem.find('#right_content_' + taskIndex);
+
+    right.removeClass('d-none');
+    row.addClass('split-active');
+
+    let divider = row.find('.drag-divider');
+    if (!divider.length) {
+        divider = $('<div class="drag-divider" role="separator" aria-orientation="vertical" tabindex="0"></div>');
+        left.after(divider);
+    }
+
+    const rowEl = row[0];
+    const dividerEl = divider[0];
+    const MIN_PX = 400; // min width of the left and right pane
+
+    let ratio = parseFloat(localStorage.getItem('cellSplitRatio_' + taskIndex));
+    if (!(ratio > 0 && ratio < 1)) ratio = 0.5;
+    applyRatio(row, ratio);
+
+    // Clamp function that respects current container width
+    function clampRatio(r) {
+        const avail = getAvail(rowEl, dividerEl);
+        if (!avail) return 0.5;
+        const minR = Math.min(0.5, MIN_PX / avail);
+        return Math.max(minR, Math.min(1 - minR, r));
+    }
+
+    // Drag logic
+    let dragging = false;
+
+    function onMove(e) {
+        if (!dragging) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const rect = rowEl.getBoundingClientRect();
+        const avail = getAvail(rowEl, dividerEl);
+        let leftPx = clientX - rect.left - (getDividerWidth(rowEl, dividerEl) / 2);
+        leftPx = Math.max(MIN_PX, Math.min(avail - MIN_PX, leftPx));
+        ratio = clampRatio(avail ? (leftPx / avail) : 0.5);
+        applyRatio(row, ratio);
+    }
+
+    function onUp() {
+        if (!dragging) return;
+        dragging = false;
+        $('body').removeClass('dragging');
+        localStorage.setItem('cellSplitRatio_' + taskIndex, String(ratio));
+        $(document).off('.cellsplit_' + taskIndex);
+    }
+
+    divider
+        .off('.cellsplit_' + taskIndex)
+        .on('mousedown.cellsplit_' + taskIndex + ' touchstart.cellsplit_' + taskIndex, (e) => {
+            e.preventDefault();
+            dragging = true;
+            $('body').addClass('dragging');
+            $(document)
+                .on('mousemove.cellsplit_' + taskIndex + ' touchmove.cellsplit_' + taskIndex, onMove)
+                .on('mouseup.cellsplit_' + taskIndex + ' touchend.cellsplit_' + taskIndex + ' touchcancel.cellsplit_' + taskIndex, onUp);
+        })
+        .on('keydown.cellsplit_' + taskIndex, (e) => {
+            const avail = getAvail(rowEl, dividerEl);
+            const step = 10 / Math.max(avail, 1);
+            if (e.key === 'ArrowLeft') ratio -= step;
+            else if (e.key === 'ArrowRight') ratio += step;
+            else return;
+            ratio = clampRatio(ratio);
+            applyRatio(row, ratio);
+            localStorage.setItem('cellSplitRatio_' + taskIndex, String(ratio));
+            e.preventDefault();
+        });
+
+    // Keep the split correct on container resize
+    const ro = new ResizeObserver(() => {
+        ratio = clampRatio(ratio);
+        applyRatio(row, ratio);
+        localStorage.setItem('cellSplitRatio_' + taskIndex, String(ratio));
+    });
+    ro.observe(rowEl);
+    row.data('resizeObserver', ro);
+}
+
+/**
+ * Tear down the draggable divider for a cell.
+ * - Removes `split-active` and the divider element.
+ * - Clears the CSS ratio variable.
+ * - Disconnects the ResizeObserver.
+ *
+ *
+ * @param {jQuery} cellItem - jQuery object for the cell `<li.clarama-cell-item>`.
+ * @param {string|number} [taskIndex] - Optional step index (not required by current implementation).
+ * @returns {void}
+ */
+function teardownDragDivider(cellItem) {
+    const row = cellItem.find('.content-row');
+    row.removeClass('split-active');
+    const ro = row.data('resizeObserver');
+    if (ro) {
+        ro.disconnect();
+        row.removeData('resizeObserver');
+    }
+    row[0].style.removeProperty('--split-ratio');
+    row.find('.drag-divider').remove();
 }
 
 /**
  * Sets the output type for a data cell
  * @param {string} id_template - Base ID for the data cell elements
- * @param {string} value - Output type ('table', 'chart', or 'code')
+ * @param {string} value - Output type ('table', 'chart', 'chart3d' or 'code')
  * @param {string} Options - ID suffix for the options accordion
  * @description Updates button states and visibility of options based on the selected output type
  */
 function datacell_setOutput(id_template, value, Options) {
-    $('#' + id_template + '_output').attr('value', value);
+    if (!value) value = 'table';
+    $('#' + id_template + '_output').val(value);
 
-    console.log(id_template);
-    console.log(value);
+    const types = ['table', 'chart', 'chart3d', 'code', 'diagram'];
 
-    if ((value == undefined) || (value == ''))
-        value = 'table';
+    types.forEach(t => {
+        const $btn = $('#' + id_template + '_' + t);
+        const isActive = (t === value);
+        // swap your theme classes
+        $btn.toggleClass('btn-c2', isActive)
+            .toggleClass('btn-c2-secondary', !isActive)
+            .attr('aria-pressed', isActive ? 'true' : 'false');
+    });
+
+    // ['Chart3d', 'Chart', 'Table',' Diagram'].forEach(suffix => {
+    //     const tabContent = document.getElementById(`collapse${suffix}Options_` + Options);
+    //     if (tabContent) {
+    //         bootstrap.Collapse.getOrCreateInstance(tabContent, { toggle: false }).hide();
+    //     }
+    // });
+
 
     if (value == 'table') {
         $('#' + id_template + '_table').removeClass('btn-secondary');
@@ -367,6 +630,8 @@ function datacell_setOutput(id_template, value, Options) {
 
         $('#' + id_template + '_chart').removeClass('btn-primary');
         $('#' + id_template + '_chart').addClass('btn-secondary');
+        $('#' + id_template + '_diagram').removeClass('btn-primary');
+        $('#' + id_template + '_diagram').addClass('btn-secondary');
         $('#' + id_template + '_chart3d').removeClass('btn-primary');
         $('#' + id_template + '_chart3d').addClass('btn-secondary');
         $('#' + id_template + '_code').removeClass('btn-primary');
@@ -376,11 +641,25 @@ function datacell_setOutput(id_template, value, Options) {
         $('#' + id_template + '_code').removeClass('btn-primary');
         $('#' + id_template + '_table').addClass('btn-secondary');
         $('#' + id_template + '_table').removeClass('btn-primary');
+        $('#' + id_template + '_diagram').addClass('btn-secondary');
+        $('#' + id_template + '_diagram').removeClass('btn-primary');
         $('#' + id_template + '_chart3d').addClass('btn-secondary');
         $('#' + id_template + '_chart3d').removeClass('btn-primary');
 
         $('#' + id_template + '_chart').addClass('btn-primary');
         $('#' + id_template + '_chart').removeClass('btn-secondary');
+    } else if (value == 'diagram') {
+        $('#' + id_template + '_code').addClass('btn-secondary');
+        $('#' + id_template + '_code').removeClass('btn-primary');
+        $('#' + id_template + '_table').addClass('btn-secondary');
+        $('#' + id_template + '_table').removeClass('btn-primary');
+        $('#' + id_template + '_chart').addClass('btn-secondary');
+        $('#' + id_template + '_chart').removeClass('btn-primary');
+        $('#' + id_template + '_chart3d').addClass('btn-secondary');
+        $('#' + id_template + '_chart3d').removeClass('btn-primary');
+
+        $('#' + id_template + '_diagram').addClass('btn-primary');
+        $('#' + id_template + '_diagram').removeClass('btn-secondary');
     } else if (value == 'chart3d') {
         $('#' + id_template + '_code').addClass('btn-secondary');
         $('#' + id_template + '_code').removeClass('btn-primary');
@@ -388,10 +667,13 @@ function datacell_setOutput(id_template, value, Options) {
         $('#' + id_template + '_table').removeClass('btn-primary');
         $('#' + id_template + '_chart').addClass('btn-secondary');
         $('#' + id_template + '_chart').removeClass('btn-primary');
+        $('#' + id_template + '_diagram').addClass('btn-secondary');
+        $('#' + id_template + '_diagram').removeClass('btn-primary');
 
         $('#' + id_template + '_chart3d').addClass('btn-primary');
         $('#' + id_template + '_chart3d').removeClass('btn-secondary');
     } else {
+        // default to code
         $('#' + id_template + '_code').addClass('btn-primary');
         $('#' + id_template + '_code').removeClass('btn-secondary');
 
@@ -399,27 +681,81 @@ function datacell_setOutput(id_template, value, Options) {
         $('#' + id_template + '_table').removeClass('btn-primary');
         $('#' + id_template + '_chart').addClass('btn-secondary');
         $('#' + id_template + '_chart').removeClass('btn-primary');
+        $('#' + id_template + '_diagram').addClass('btn-secondary');
+        $('#' + id_template + '_diagram').removeClass('btn-primary');
         $('#' + id_template + '_chart3d').addClass('btn-secondary');
         $('#' + id_template + '_chart3d').removeClass('btn-primary');
     }
 
-    if (value === 'chart3d' || value === 'table' || value === 'chart' || value === 'code') {
+    if (value === 'chart3d' || value === 'table' || value === 'chart' || value === 'diagram' || value === 'code') {
         // Close the accordion if one of the buttons is clicked
 
         // close the 3d chart options
         let accordion = document.getElementById('collapseChart3dOptions_' + Options);
         let bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
         bsCollapse.hide();
-        
+
         // close the chart options
         accordion = document.getElementById('collapseChartOptions_' + Options);
         bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
         bsCollapse.hide();
-        
+
+        // close the diagram options
+        accordion = document.getElementById('collapseDiagramOptions_' + Options);
+        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        bsCollapse.hide();
+
         // close the table options
         accordion = document.getElementById('collapseTableOptions_' + Options);
         bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
         bsCollapse.hide();
+
+        // close the code options
+        accordion = document.getElementById('collapseCodeOptions_' + Options);
+        bsCollapse = new bootstrap.Collapse(accordion, {toggle: false});
+        bsCollapse.hide();
+    }
+}
+
+/**
+ * Sets the output type for a data stream cell
+ * @param {string} id_template - Base ID for the data stream cell elements
+ * @param {string} value - Output type ('table' or 'chart')
+ * @param {string} Options - ID suffix for the options accordion
+ * @description Updates button states and visibility of options based on the selected output type
+ */
+function datastreamcell_setOutput(id_template, value, Options) {
+    if (!value) value = 'table';
+  
+    // hidden field
+    $('#' + id_template + '_output').val(value);
+  
+    const types = ['table', 'chart'];
+    types.forEach(t => {
+        const $btn = $('#' + id_template + '_' + t);
+        const isActive = (t === value);
+        $btn
+            .toggleClass('btn-c2', isActive)
+            .toggleClass('btn-c2-secondary', !isActive)
+            .attr('aria-pressed', isActive ? 'true' : 'false')
+            .attr('aria-expanded', isActive ? 'true' : 'false');
+    });
+
+    const allAccordions = ['collapseTableOptions_', 'collapseChartOptions_'];
+
+    allAccordions.forEach(prefix => {
+        const el = document.getElementById(prefix + Options);
+        if (el) bootstrap.Collapse.getOrCreateInstance(el, { toggle: false }).hide();
+    });
+
+    // Show the selected panel
+    const panelMap = {
+        table: 'collapseTableOptions_', 
+        chart: 'collapseChartOptions_'
+    };
+    const toShow = document.getElementById(panelMap[value] + Options);
+    if (toShow) {
+        bootstrap.Collapse.getOrCreateInstance(toShow, { toggle: false }).show();
     }
 }
 
@@ -497,6 +833,18 @@ function extractCellContent(cell) {
             content = get_data_cell(targetCell);
             break;
 
+        case 'data_stream':
+            content = get_data_stream_cell(targetCell);
+            break;
+
+        case 'server':
+            content = get_server_cell(targetCell);
+            break;
+
+        case 'test':
+            content = get_test_cell(targetCell);
+            break;
+
         default:
             console.warn('Unknown cell type:', cellType);
             flash('could not copy cell', 'danger');
@@ -518,8 +866,8 @@ function initializeCellCopyPaste() {
     $('#panel-context-menu').children()[0].onclick = taskCellCopy;
     $('#panel-context-menu').children()[1].onclick = taskCellPaste;
 
-    // Right-click event on cell results
-    $('[id^="results_"]').on('contextmenu', function (e) {
+    // Right-click event on cell + insights results
+    $('[id^="results_"], [id^="insights-results-"]').on('contextmenu', function (e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -575,7 +923,7 @@ function initializeCellCopyPaste() {
     });
 
     $(document).on('contextmenu', function (e) {
-        if (!$(e.target).closest('.panel, .cell-editor, [id^="results_"]').length) {
+        if (!$(e.target).closest('.panel, .cell-editor, [id^="results_"], [id^="insights-results-"]').length) {
             $('#panel-context-menu').hide();
             $('#output-context-menu').hide();
         }
@@ -678,7 +1026,7 @@ function taskCellPaste() {
             currentContextCell.after($new_element);
 
             sortUpdate(targetStream);
-            initializeNewCellDebugger($new_element);
+            initializeNewCellinsights($new_element);
 
             if (window.copiedCellData.loopIterable) {
                 const loopInput = $new_element.find('.loop-iterable');
@@ -716,4 +1064,179 @@ function taskCellPaste() {
             $(window).scrollTop(windowScrollTop);
         });
     }
+}
+
+function focusCellAnimation($el, opts = {}) {
+    const el = $el[0]; if (!el) return Promise.resolve();
+    const dur = opts.duration ?? 260, ease = opts.easing ?? 'ease';
+
+    const from = el.getBoundingClientRect().height;
+    el.style.height = from + 'px';
+    el.style.opacity = '1';
+    void el.offsetHeight;
+
+    return new Promise((resolve) => {
+        const onEnd = (e) => {
+            if (e.target !== el || e.propertyName !== 'height') return;
+            el.removeEventListener('transitionend', onEnd);
+            // Final focused state
+            el.style.height = '0px';
+            el.style.opacity = '0';
+            el.style.transition = ''; // clear transition
+            $el.addClass('is-focused');
+            resolve();
+        };
+        el.addEventListener('transitionend', onEnd);
+        el.style.transition = `height ${dur}ms ${ease}, opacity ${Math.min(dur,220)}ms ${ease}`;
+        // Target
+        el.style.height = '0px';
+        el.style.opacity = '0';
+    });
+}
+
+function unfocusCellAnimation($el, opts = {}) {
+    const el = $el[0]; if (!el) return Promise.resolve();
+    const dur = opts.duration ?? 260, ease = opts.easing ?? 'ease';
+
+    $el.removeClass('is-focused');
+    el.style.height = '0px';
+    el.style.opacity = '0';
+    void el.offsetHeight;
+
+    // Measure target
+    el.style.height = 'auto';
+    el.style.opacity = '1';
+    const target = el.getBoundingClientRect().height;
+    el.style.height = '0px';
+    el.style.opacity = '0';
+    void el.offsetHeight;
+
+    return new Promise((resolve) => {
+        const onEnd = (e) => {
+            if (e.target !== el || e.propertyName !== 'height') return;
+            el.removeEventListener('transitionend', onEnd);
+            el.style.height = '';
+            el.style.opacity = '1';
+            el.style.transition = ''; //clear transition
+            resolve();
+        };
+        el.addEventListener('transitionend', onEnd);
+        el.style.transition = `height ${dur}ms ${ease}, opacity ${Math.min(dur,220)}ms ${ease}`;
+        el.style.height = target + 'px';
+        el.style.opacity = '1';
+    });
+}
+
+const BAR_CLASS   = 'clarama-focus-bar';
+const GROUP_CLASS = 'clarama-focused-group';
+
+function prepareFocusBar($stream) {
+    let $bar   = $stream.children('.' + BAR_CLASS).first();
+    let $group = $();
+    if ($bar.length) {
+        const sel = $bar.attr('data-target');
+        if (sel) {
+            $group = $(sel);
+        }
+    }
+    if (!$bar.length || !$group.length) {
+        const uid = 'cgrp-' + Math.random().toString(36).slice(2, 9);
+        $bar   = $(`
+            <div class="${BAR_CLASS}" data-target="#${uid}" role="button" tabindex="0"
+                    title="Show hidden cells above">
+                <span class="arrow">▼</span>
+                <span class="label">Hidden cells above</span>
+                <span class="hint ms-1">(click to reveal)</span>
+            </div>
+        `);
+        $group = $(`<div id="${uid}" class="${GROUP_CLASS}"></div>`);
+        // start focused
+        $group.addClass('is-focused').css({ height: 0, opacity: 0 });
+    }
+    return { $bar, $group };
+}
+
+async function focusCell($cell) {
+    const $stream = $cell.closest('.stream');
+    if (!$stream.length) return;
+
+    // Do nothing if it's the first cell
+    const collapsedCells = $cell.prevAll('li.clarama-cell-item');
+    if (!collapsedCells.length) return;
+
+    const { $bar, $group } = prepareFocusBar($stream);
+
+    $bar.insertBefore($cell);
+    $group.insertBefore($cell);
+
+    const $above = $group.prevAll('li.clarama-cell-item')
+                         .not('.' + GROUP_CLASS)
+                         .not('.' + BAR_CLASS);
+    if (!$above.length) return;
+
+    $($above.get().reverse()).each(function(){ $group.append(this); });
+
+    $group.removeClass('is-focused');
+    const el = $group[0];
+    if (!el) return;
+
+    const prevStyle = el.getAttribute('style') || '';
+    el.style.height = 'auto';
+    el.style.opacity = '1';
+    const naturalHeight = el.getBoundingClientRect().height;
+    el.setAttribute('style', prevStyle);
+
+    $group.css({ height: naturalHeight + 'px', opacity: 1 });
+    void el.offsetHeight;
+
+    await focusCellAnimation($group);
+    $group.css({ height: '0px', opacity: 0 });
+}
+
+async function unfocusCell($stream, $group, $bar) {
+    await unfocusCellAnimation($group);
+
+    // Restore cells to the list and remove bar/group
+    const $after = $bar.nextAll('.clarama-cell-item').first();
+    const $cells = $group.children('li.clarama-cell-item');
+    if ($after.length) {
+        $cells.insertBefore($after);
+    } else {
+        $stream.append($cells);
+    }
+
+    $bar.remove();
+    $group.remove();
+}
+
+function cell_toggle_focus($root) {
+    $root.find('.stream')
+        .off('dblclick.focusAbove').on('dblclick.focusAbove', '.clarama-cell-item .panel', function(){
+            const $cell = $(this).closest('.clarama-cell-item');
+
+            let $prev = $cell.prev();
+            if ($prev.hasClass(GROUP_CLASS)) $prev = $prev.prev();
+
+            if ($prev.hasClass(BAR_CLASS)) {
+                const sel = $prev.attr('data-target');
+                const $group = sel ? $(sel) : $();
+                if ($group.length) {
+                    const $stream = $cell.closest('.stream');
+                    unfocusCell($stream, $group, $prev);
+                    return;
+                }
+            }
+
+            focusCell($cell);
+        })
+        .on('click.focusBar keydown.focusBar', '.' + BAR_CLASS, function(e){
+            if (e.type === 'keydown' && !['Enter', ' '].includes(e.key)) return;
+            const $bar = $(this);
+            const sel = $bar.attr('data-target');
+            const $group = sel ? $(sel) : $();
+            if ($group.length) {
+                const $stream = $bar.closest('.stream');
+                unfocusCell($stream, $group, $bar);
+            }
+        });
 }

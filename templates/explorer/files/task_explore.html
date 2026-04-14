@@ -23,10 +23,10 @@
             {% endfor %}
             <div class="col-auto clarama-task">
                 <div class="btn-group" role="group" aria-label="task_functions">
-                    <button id="run" type="button" class="btn btn-primary kernel-play-button" socket="run_socket"
+                    <button id="run" type="button" class="btn btn-c2 kernel-play-button" socket="run_socket"
                             kill="False"><i
                             class="bi bi-play-fill h2"></i></button>
-                    <button type="button" class="btn btn-info kernel_status" id="explore-kernel-status"> Loading...
+                    <button type="button" class="btn btn-c2 kernel_status" id="explore-kernel-status"> Loading...
                     </button>
                 </div>
             </div>
@@ -56,7 +56,7 @@
                         <div class="row bg-white text-dark clarama-cell-item"
                              id="{{ internal_topic ~ '_stream_' ~ stream ~ '_step' }}_{{ loop.index }}"
                         >
-                            <div class="col-1 bg-primary text-light justify-content-end" style="padding:0">
+                            <div class="col-1 bg-resultcell text-light justify-content-end" style="padding:0">
                                 <div class="container-fluid">
                                     <br/>{{ loop.index }}<br/>
                                     <br/>
@@ -99,4 +99,6 @@
 {% include theme("explorer/files/_grid_explore.html") %}
 {% include theme("explorer/files/task_response_templates.html") %}
 
+{% include theme("web/kernel_info_modal.html") %}
+<script src="{{ static( filename='js/clarama_kernel.js') }}" type="text/javascript"></script>
 {% include theme("web/file_footer.html") %}

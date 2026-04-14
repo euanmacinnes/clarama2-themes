@@ -1,0 +1,27 @@
+<!-- Common Kernel Info Modal -->
+<div class="modal fade" id="kernelInfoModal" tabindex="-1" aria-labelledby="kernelInfoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="kernelInfoModalLabel">Kernel Info</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <span class="text-muted">Kernel ID:</span>
+          <code id="kernelInfoModalKernelId">-</code>
+        </div>
+        <div id="kernelInfoModalAlert" class="alert alert-warning d-none" role="alert"></div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped" id="kernelInfoTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-c2-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

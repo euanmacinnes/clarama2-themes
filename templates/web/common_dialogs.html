@@ -1,0 +1,122 @@
+<!-- Common reusable dialogs across the app -->
+
+<!-- Task Args Help Modal (reused by embedded/popup tasks) -->
+<div class="modal fade" id="clarama-task-args-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Task Parameters</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-muted small">No arguments.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Opens the common Task Arguments modal, pretty-printing JSON from a script tag.
+    // Ensures the modal is attached to <body> and stacked above any existing modals.
+    window.openTaskArgsModal = function (scriptId, title) {
+        try {
+            var el = document.getElementById(scriptId);
+            var raw = el ? el.innerHTML : '';
+            // Prefer site-wide html_decode if available
+            var decoded = (typeof window.html_decode === 'function') ? window.html_decode(raw) : (function () {
+                var t = document.createElement('textarea');
+                t.innerHTML = raw;
+                return t.value;
+            })();
+
+            var obj;
+            var prettified;
+            try {
+                obj = JSON.parse(decoded);
+                prettified = JSON.stringify(obj, null, 2);
+            } catch (e) {
+                // Not JSON? show as plain text
+                prettified = decoded || 'No arguments.';
+            }
+
+            // Basic HTML-escape for safety
+            function esc(s) {
+                return String(s).replace(/[&<>]/g, function (c) {
+                    return {'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c];
+                });
+            }
+
+            // Prefer a single global instance; remove duplicates if any
+            var $all = $('#clarama-task-args-modal');
+            if ($all.length > 1) {
+                $all.not(':first').remove();
+            }
+
+            var $m = (window.ClaramaDialogs && window.ClaramaDialogs.ensureModal)
+                ? window.ClaramaDialogs.ensureModal('clarama-task-args-modal', {
+                    title: title || 'Task Arguments',
+                    body: '<pre class="mb-0 small">' + esc(prettified) + '</pre>',
+                    size: 'modal-lg modal-dialog-scrollable',
+                    footer: '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>'
+                })
+                : ($all.length ? $all.first() : $('#clarama-task-args-modal'));
+
+            // Ensure the modal element lives under <body> to avoid being trapped under another modal's stacking context
+            try {
+                if ($m && $m.length && $m.parent().get(0) !== document.body) {
+                    document.body.appendChild($m.get(0));
+                }
+            } catch (_moveErr) { /* no-op */
+            }
+
+            // Bring to front relative to any currently shown modals
+            var baseZ = 1060; // Backdrop 1060, modal 1065 (above Bootstrap defaults 1050/1055)
+            try {
+                $m.css('z-index', baseZ + 5);
+            } catch (_) {
+            }
+
+            try {
+                if (window.bootstrap && $m && $m.length) {
+                    var inst = bootstrap.Modal.getOrCreateInstance($m.get(0));
+                    // When shown, bump backdrop behind it
+                    $m.off('shown.bs.modal._args').on('shown.bs.modal._args', function () {
+                        try {
+                            var $backs = $('.modal-backdrop');
+                            if ($backs && $backs.length) {
+                                $backs.last().css('z-index', baseZ);
+                            }
+                        } catch (_z) {
+                        }
+                    });
+                    inst.show();
+                } else if ($m && $m.modal) {
+                    // jQuery plugin fallback
+                    $m.on('shown.bs.modal._args', function () {
+                        try {
+                            var $backs = $('.modal-backdrop');
+                            if ($backs && $backs.length) {
+                                $backs.last().css('z-index', baseZ);
+                            }
+                        } catch (_z) {
+                        }
+                    });
+                    $m.modal('show');
+                }
+            } catch (e2) {
+                try {
+                    console.warn('Failed to show args modal', e2);
+                } catch (_) {
+                }
+            }
+        } catch (err) {
+            try {
+                console.error('openTaskArgsModal error', err);
+            } catch (_) {
+            }
+        }
+    }
+</script>

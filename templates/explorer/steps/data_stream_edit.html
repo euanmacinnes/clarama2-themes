@@ -1,0 +1,760 @@
+{% if not table is defined %}
+    {% set table={'title':''} %}
+{% endif %}
+{% if not table['pagination'] is defined %}
+    {% do table.update({'pagination': True}) %}
+    {% do table.update({'pagesize': 15}) %}
+    {% do table.update({'sortable': True}) %}
+{% endif %}
+
+{% if not table['header'] is defined %}
+    {% do table.update({'header': True}) %}
+{% endif %}
+
+{% if not chart is defined %}
+    {% set chart={'title': '', 'subtitle': '', 'legend': 'Off', 'xaxis-type': 'category'} %}
+{% endif %}
+
+{% if not chart['series-annos'] is defined %}
+    {% do chart.update({'series-annos': [{}]}) %}
+{% endif %}
+
+{% if not chart['series-groups'] is defined %}
+    {% do chart.update({'series-groups': [{}]}) %}
+{% endif %}
+
+{% if not chart['series-formats'] is defined %}
+    {% do chart.update({'series-formats': [{}]}) %}
+{% endif %}
+
+{% set seriesannos = chart.get('series-annos', [{}]) %}
+{% set seriesgroups = chart.get('series-groups', [{}]) %}
+{% set seriesformats = chart.get('series-formats', [{}]) %}
+
+{% if not seriesannos %}
+    {% set seriesannos = [{}] %}
+{% endif %}
+{% if not seriesgroups %}
+    {% set seriesgroups = [{}] %}
+{% endif %}
+{% if not seriesformats %}
+    {% set seriesformats = [{}] %}
+{% endif %}
+
+<div class="clarama-cell-content" celltype="data_stream" dataid="{{ loop_index }}">
+    <div class="tab-content" id="dataStreamEditTabContentContainer_{{ loop_index }}">
+        <div class="bg-c2-light rounded-top text-light px-2" style="padding-top: .25rem !important;">
+
+            <!-- Toggle buttons -->
+            <div class="d-flex flex-wrap align-items-center">
+                <div class="flex-grow-1">
+                    <ul class="nav nav-tabs gap-1" id="dataStreamSourceTabs_{{ loop_index }}" role="tablist">
+                        <li class="nav-item">
+                            <i class="fs-2 bi bi-broadcast"></i>
+                        </li>
+                        <li class="nav-item">
+                            <div class="nav-item btn-group me-2">
+                                <button id="task_step_{{ loop_index }}_table" type="button" data-bs-toggle="collapse"
+                                        title="Table"
+                                        data-bs-target="#collapseTableOptions_{{ loop_index }}"
+                                        aria-expanded="{% if output=='table' %}true{% else %}false{% endif %}"
+                                        aria-controls="collapseTableOptions_{{ loop_index }}"
+                                        class="btn {% if output=='table' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
+                                        onclick="datastreamcell_setOutput('task_step_{{ loop_index }}', 'table', '{{ loop_index }}');">
+                                    <i class="bi bi-table"></i>
+                                </button>
+                                <button id="task_step_{{ loop_index }}_chart" type="button" data-bs-toggle="collapse"
+                                        title="2D Chart"
+                                        data-bs-target="#collapseChartOptions_{{ loop_index }}"
+                                        aria-expanded="{% if output=='chart' %}true{% else %}false{% endif %}"
+                                        aria-controls="collapseChartOptions_{{ loop_index }}"
+                                        class="btn rounded-0 {% if output=='chart' %}btn-c2{% else %}btn-c2-secondary{% endif %}"
+                                        onclick="datastreamcell_setOutput('task_step_{{ loop_index }}', 'chart', '{{ loop_index }}');">
+                                    <i class="bi bi-graph-up-arrow"></i>
+                                </button>
+                            </div>
+                        </li>
+                        {% if tabs is not defined or not tabs %}
+                            {% set tabs = [{'source': source, 'content': content, 'tab_id': 0}] %}
+                        {% endif %}
+
+                        <!-- Tab Headers -->
+                        {% for tab in tabs %}
+                            {% set current_tab = tab %}
+                            {% set current_loop = loop %}
+                            {% set is_active = loop.first %}
+                            {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
+
+                            {% with tab=tab, loop_index=loop_index, tab_id=tab_id, is_active=is_active %}
+                                {% include theme("explorer/steps/data_edit_tab_header.html") %}
+                            {% endwith %}
+                        {% endfor %}
+
+                        <li class="add-tab-button" role="presentation">
+                            <button id="add-source-tab-{{ loop_index }}" type="button" class="nav-link add-source-tab"
+                                    title="Add tab" data-loop-index="{{ loop_index }}">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% for tab in tabs %}
+            {% set tab_id = tab.tab_id if tab.tab_id is defined else loop.index0 %}
+            <div class="tab-content-block tab-pane tab-content-block-{{ loop_index }}_{{ tab_id }} {% if loop.first %}show active{% endif %}"
+                 id="tabContentBlock_{{ loop_index }}_{{ tab_id }}"
+                 data-tab-id="{{ tab_id }}"
+                 role="tabpanel" aria-labelledby="tab_{{ loop_index }}_{{ tab_id }}">
+                {# Include the sub-template for each tab's content #}
+                {% with source=tab.source, content=tab.content, loop_index=loop_index, tab_id=tab_id %}
+                    <!-- Input source file & SQL code editor -->
+                    {% include theme("explorer/steps/data_edit_tab_contents.html") %}
+                {% endwith %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div id="collapseTableOptions_{{ loop_index }}"
+         class="accordion-collapse collapse bg-cell-config {% if output=='table' %}show{% endif %}">
+        <div class="accordion-body" aria-labelledby="table" style="padding: 8px;">
+            <div class="container-fluid">
+                <div class="d-flex align-items-center my-3">
+                    <label for="c{{ loop_index }}" class="form-label ps-0">Table Title</label>
+                    <div class="col">
+                        <input type="string" class="form-control table-title" id="c{{ loop_index }}" name="title"
+                               value="{% if table is defined %}{{ table['title'] }}{% endif %}">
+                    </div>
+                    <button type="button" class="btn btn-c2 ms-3" data-bs-toggle="collapse" href="#tableYamlEditor"
+                            role="button" aria-expanded="false" aria-controls="tableYamlEditor">Advanced
+                    </button>
+                </div>
+                <div class="container-fluid mb-2 collapse" id="tableYamlEditor">
+                    <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}_table_advanced"
+                         name="task_step_field_yaml_{{ loop_index }}"
+                         editor="yaml"
+                         class="source-editor form-control clarama-field-editor table-advanced"
+                         celltype="code"
+                         style="min-height: 100px">{{ table['advanced'] }}</div>
+                </div>
+                <div class="d-flex align-items-center my-3">
+                    <table width="100%" class="table-centered">
+                        <thead>
+                        <tr>
+                            <th>Format</th>
+                            <th>Column Headers</th>
+                            <th>Search</th>
+                            <th>Export</th>
+                            <th>Filter</th>
+                            <th>Checkbox</th>
+                            <th>Multiselect</th>
+                            <th>Sortable</th>
+                            <th>Pagination</th>
+                            <th>Page Size</th>
+                            <th>Footer</th>
+                        </tr>
+                        </thead>
+                        <tr>
+                            {% set style = table.get('style','default') %}
+
+                            <td>
+                                <select id="style" name="style" class="form-control table-style">
+                                    <option {{ selected("default",style) }} id="default">Default</option>
+                                    <option {{ selected("light",style) }} id="light">Light</option>
+                                    <option {{ selected("dark",style) }} id="dark">Dark</option>
+                                    <option {{ selected("centered",style) }} id="centered">Centered</option>
+                                    <option {{ selected("metric",style) }} id="metric">Metric</option>
+                                    <option {{ selected("worksheet",style) }} id="worksheet">Worksheet</option>
+                                </select>
+                            </td>
+                            <td><input class="form-check-input table-header"
+                                       type="checkbox" {{ table['header'] | checked }}
+                                       name="header" id="header">
+                            </td>
+                            <td><input class="form-check-input table-search" name="search"
+                                       type="checkbox" {{ table['search'] | checked }}
+                                       value="" id="search">
+                            </td>
+                            <td><input class="form-check-input table-export" name="export"
+                                       type="checkbox" {{ table['export'] | checked }}
+                                       name="export" id="export">
+                            </td>
+                            <td><input class="form-check-input table-filter"
+                                       type="checkbox" {{ table['filter'] | checked }}
+                                       name="filter" id="filter">
+                            </td>
+                            <td><input class="form-check-input table-checkbox"
+                                       type="checkbox" {{ table['checkbox'] | checked }}
+                                       name="checkbox" id="checkbox">
+                            </td>
+                            <td><input class="form-check-input table-multiselect-row"
+                                       type="checkbox" {{ table['multiselect_row'] | checked }}
+                                       name="multiselect_row" id="multiselect_row">
+                            </td>
+                            <td><input class="form-check-input table-sortable"
+                                       type="checkbox" {{ table['sortable'] | checked }}
+                                       name="sortable" id="sortable">
+                            </td>
+                            <td><input class="form-check-input table-pagination"
+                                       type="checkbox" {{ table['pagination'] | checked }}
+                                       name="pagination" id="pagination">
+                            </td>
+                            <td><input class="form-control table-pagesize" type="number" value="{{ table['pagesize'] }}"
+                                       name="pagesize" id="pagesize"></td>
+
+                            <td><input class="form-check-input table-footer"
+                                       type="checkbox" {{ table['footer'] | checked }}
+                                       name="footer" id="footer">
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="input-group w-100 border-1 border-bottom border-info">
+                    <input id="task_step_{{ loop_index }}_table_slate_source" type="text"
+                           class="form-control rounded-0 border border-end-0 border-light-subtle removeInputFocus table-slate"
+                           placeholder="Row Rendering as Slate Filename" aria-label="Table styling relative filename"
+                           value="{{ table['slate'] }}">
+                    <button type="button" class="gridbrowsefile"
+                            data-bs-toggle="modal" data-bs-target="#browseFileModal"
+                            inputId="task_step_{{ loop_index }}_table_slate_source" filters="*.slate.yaml">
+                        <i class="bi bi-folder2-open"></i>
+                    </button>
+                    {% if table['slate'] %}
+                        <a href="{{ table['slate'] }}" target="_blank"
+                           id="task_step_{{ loop_index }}_source_browse_link"
+                           class="text-decoration-none text-white">
+                            <button id="task_step_{{ loop_index }}_source_browse_link" type="button"
+                                    class="btn btn-c2-secondary datasource" aria-haspopup="true"
+                                    aria-expanded="false" style="border-radius: 0px 4px 4px 0px;">
+                                <i class="bi bi-pen"></i>
+                            </button>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <input id="task_step_{{ loop_index }}_output" type="hidden" value="{{ output or 'table' }}">
+    <div id="collapseChartOptions_{{ loop_index }}"
+         class="accordion-collapse collapse bg-cell-config {% if output=='chart' %}show{% endif %}">
+        <div class="accordion-body" aria-labelledby="chart" style="padding: 8px;">
+            <div class="container-fluid">
+                <div class="d-flex align-items-center my-3">
+                    <label for="c{{ loop_index }}" class="form-label ps-0">Chart Title</label>
+                    <div class="col">
+                        <input type="string" class="form-control chart-title" id="c{{ loop_index }}" name="title"
+                               value="{% if chart is defined %}{{ chart['title'] }}{% endif %}">
+                    </div>
+
+                    <label for="ct{{ loop_index }}" class="form-label">Chart Subtitle</label>
+                    <div class="col">
+                        <input type="string" class="form-control chart-subtitle" id="ct{{ loop_index }}"
+                               name="subtitle"
+                               value="{% if chart is defined %}{{ chart['subtitle'] }}{% endif %}">
+                    </div>
+
+                    <label for="lg{{ loop_index }}" class="form-label">Legend</label>
+                    <div class="col">
+                        {% set legend = 'Off' %}
+                        {% if chart is defined %}
+                            {% set legend = chart['legend'] %}
+                        {% endif %}
+                        <select id="lg{{ loop_index }}" class="form-control chart-legend">
+                            <option {{ selected("Off",legend) }}>Off</option>
+                            <option {{ selected("Left",legend) }}>Left</option>
+                            <option {{ selected("Right",legend) }}>Right</option>
+                            <option {{ selected("Top",legend) }}>Top</option>
+                            <option {{ selected("Bottom",legend) }}>Bottom</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-c2 ms-3" data-bs-toggle="collapse" href="#chartYamlEditor"
+                            role="button" aria-expanded="false" aria-controls="chartYamlEditor">Advanced
+                    </button>
+                </div>
+            </div>
+
+            <div class="container-fluid mb-2 collapse" id="chartYamlEditor">
+                <div id="content_query_{{ loop_index }}_tab_{{ tab_id }}"
+                     name="task_step_field_yaml_{{ loop_index }}"
+                     editor="yaml"
+                     class="source-editor form-control clarama-field-editor chart-advanced"
+                     celltype="code"
+                     style="min-height: 100px">{{ chart['advanced'] }}</div>
+            </div>
+
+            <div class="container-fluid my-3">
+                <label for="xaxis{{ loop_index }}" class="form-label p-0 mb-2">X-Axis</label>
+                <div class="col">
+                    {% set xaxis = 'category' %}
+                    {% if chart is defined %}
+                        {% set xaxis = chart['xaxis-type'] %}
+                    {% endif %}
+                    <select id="xaxis{{ loop_index }}" class="form-control chart-xaxis-type">
+                        <option value="linear" {{ selected("linear",xaxis) }}>Linear (X must be numeric)
+                        </option>
+                        <option value="time" {{ selected("time",xaxis) }}>Time (X must be datetime)</option>
+                        <option value="logarithmic" {{ selected("logarithmic",xaxis) }}>Logarithmic (X must be
+                            numeric)
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <ul id="seriesGrp{{ loop_index }}" class="list-group">
+                <label for="sg{{ loop_index }}" class="form-label mb-2">
+                    Series Groups
+                    <i id="addSG{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                </label>
+                <div class="list-group-item d-flex row gx-2 align-items-center">
+                    <div style="width: 2%;"></div>
+                    <div class="grid10-col-1">Tab</div>
+                    <div class="grid10-col-1">Type</div>
+                    <div class="grid10-col-1">X Axis</div>
+                    <div class="grid10-col-1">Y Axis</div>
+                    <div class="grid10-col-1">Z Axis</div>
+                    <div class="grid10-col-1">Y Min Axis</div>
+                    <div class="grid10-col-1">Y Max Axis</div>
+                    <div class="grid10-col-1">Series Axis</div>
+                    <div class="grid10-col-1">Unit Axis</div>
+                    <div class="grid10-col-1">Label Axis</div>
+                    <div style="width: 2%;"></div>
+                </div>
+                {% for sgroup in seriesgroups %}
+                    {% with loop_index=loop_index, series_index=loop.index0 %}
+                        {% include theme("explorer/steps/data_edit_chart_series_group_stream.html") %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+            <ul id="seriesFormat{{ loop_index }}" class="list-group">
+                <label for="sg{{ loop_index }}" class="form-label mb-2"><br/>
+                    Series Formats
+                    <i id="addSF{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                </label>
+                <div class="list-group-item d-flex row gx-2 align-items-center">
+                    <div class="grid9-col-1">Series Name/Regex</div>
+                    <div class="grid9-col-1">Display Name</div>
+                    <div class="grid9-col-1">Unit Axis</div>
+                    <div class="text-center grid9-col-1">Fill / Stepped / Dotted</div>
+                    <div class="grid9-col-1">Point Size</div>
+                    <div class="grid9-col-1">Point Style</div>
+                    <div class="grid9-col-1">Line Width</div>
+                    <div class="grid9-col-1">Colour</div>
+                    <div class="grid9-col-1">Fill Colour</div>
+                    <div style="width: 2%;"></div>
+                </div>
+                {% for sformat in seriesformats %}
+                    {% with loop_index=loop_index, series_index=loop.index0 %}
+                        {% include theme("explorer/steps/data_edit_chart_series_format.html") %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+            <ul id="seriesAnno{{ loop_index }}" class="list-group">
+                <label for="sa{{ loop_index }}" class="form-label mb-2"><br/>
+                    Series Annotations
+                    <i id="addAN{{ loop_index }}" class="bi bi-plus-circle ms-1 data-cell-icon-hover add"></i>
+                </label>
+                <div class="list-group-item d-flex row gx-2 align-items-center">
+                    <div class="grid14-col-1">Tab</div>
+                    <div class="grid14-col-1">Type</div>
+                    <div class="grid14-col-1">Image</div>
+                    <div class="grid14-col-1">Label</div>
+                    <div class="grid14-col-1">X Axis</div>
+                    <div class="grid14-col-1">Y Axis</div>
+                    <div class="grid14-col-1">X Max Axis</div>
+                    <div class="grid14-col-1">Y Max Axis</div>
+                    <div class="grid14-col-1">Unit Axis</div>
+                    <div class="grid14-col-1">State Axis</div>
+                    <div class="text-center" style="width: 4%;">Dotted</div>
+                    <div class="grid14-col-1">Border Width</div>
+                    <div class="grid14-col-1">Colour</div>
+                    <div class="grid14-col-1">Fill Colour</div>
+                    <div style="width: 2%;"></div>
+                </div>
+                {% for sanno in seriesannos %}
+                    {% with loop_index=loop_index, series_index=loop.index0, sanno=sanno %}
+                        {% include theme("explorer/steps/data_edit_chart_series_annotation.html") %}
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+
+        </div>
+    </div>
+    <div id="content_chart_{{ loop_index }}">
+
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(() => {
+        const loopIndex = '{{ loop_index }}';
+        console.log("data_edit.html Document Ready. JS loopIndex:", loopIndex);
+
+        chart_options_initialize(loopIndex);
+
+        $('[data-toggle="tooltip"]').tooltip('dispose');
+
+        let currentModalInputFieldId = null;
+
+        $('#browseFileModal').on('show.bs.modal', function (event) {
+            const button = $(event.relatedTarget);
+            currentModalInputFieldId = button.attr('inputId');
+        });
+
+        $('#browseFileModal').on('hidden.bs.modal', function () {
+            if (currentModalInputFieldId) {
+                const $targetInput = $(`#${currentModalInputFieldId}`);
+                if ($targetInput.length) {
+                    $targetInput.trigger('change');
+                }
+                currentModalInputFieldId = null;
+            }
+        });
+
+        function updateSeriesFields($selectElem) {
+            const seriesType = $selectElem.val();
+            const fields = ['series-x', 'series-y', 'series-z', 'series-ymin', 'series-ymax', 'series-s', 'series-u', 'series-l'];
+
+            const disableRules = {
+                "Bubble": ['series-ymin', 'series-ymax'],
+                "Line": ['series-z'],
+                "Bar": ['series-z', 'series-ymin', 'series-ymax'],
+                "Scatter": ['series-z'],
+                "Pie": ['series-y', 'series-z', 'series-ymin', 'series-ymax', 'series-s'],
+                "Doughnut": ['series-y', 'series-z', 'series-ymin', 'series-ymax'],
+                "Polar Area": ['series-y', 'series-z', 'series-ymin', 'series-ymax', 'series-s'],
+                "Radar": ['series-y', 'series-z', 'series-ymin', 'series-ymax']
+            };
+
+            const group = $selectElem.closest('.chart-series-groups');
+
+            fields.forEach(field => {
+                group.find('input.' + field).prop('disabled', false);
+            });
+
+            const toDisable = disableRules[seriesType] || [];
+            toDisable.forEach(field => {
+                group.find('input.' + field).prop('disabled', true);
+            });
+        }
+
+        function hideDataStreamCellPanelById(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            try {
+                const inst = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+                inst.hide();
+            } catch (e) {
+                el.classList.remove('show');
+                el.style.height = '';
+            }
+        }
+        
+        function closeAllOptionPanels() {
+            hideDataStreamCellPanelById(`collapseTableOptions_${loopIndex}`);
+            hideDataStreamCellPanelById(`collapseChartOptions_${loopIndex}`);
+        }
+
+        function updateAllTabDropdowns(loopIndex) {
+            const currentTabs = [];
+            $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').each(function () {
+                const $tabButton = $(this);
+                const tabId = $tabButton.attr('id').split('_').pop();
+
+                let tabTitle = $tabButton.find('.tab-title').text().trim();
+
+                if (!tabTitle) {
+                    tabTitle = $tabButton.attr('title');
+                }
+
+                if (!tabTitle) {
+                    const $sourceInput = $(`#content_source_${loopIndex}_tab_${tabId}`);
+                    if ($sourceInput.length && $sourceInput.val()) {
+                        tabTitle = $sourceInput.val().split(/[\\/]/).pop();
+                    }
+                }
+
+                if (!tabTitle) {
+                    tabTitle = `Tab ${tabId}`;
+                }
+
+                currentTabs.push({
+                    id: tabId,
+                    title: tabTitle
+                });
+            });
+
+            // Update all series group tab dropdowns
+            $(`#seriesGrp${loopIndex} .series-tab`).each(function () {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                $dropdown.empty();
+
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+
+            // Update series annotations tab dropdowns
+            $(`#seriesAnno${loopIndex} .anno-tab`).each(function () {
+                const $dropdown = $(this);
+                const currentValue = $dropdown.val();
+                $dropdown.empty();
+
+                currentTabs.forEach((tab, index) => {
+                    const isSelected = currentValue === tab.id || (!currentValue && index === 0);
+                    $dropdown.append(`<option value="${tab.id}" ${isSelected ? 'selected' : ''}>${tab.title}</option>`);
+                });
+            });
+        }
+
+        $('.series-type').each(function () {
+            updateSeriesFields($(this));
+        });
+
+        $(document).on('change', '.series-type', function () {
+            updateSeriesFields($(this));
+        });
+
+        $(document).on('click', `#addSG${loopIndex}`, function () {
+            setTimeout(() => {
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
+        });
+
+        $(document).on('click', `#addAN${loopIndex}`, function () {
+            setTimeout(() => {
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
+        });
+
+        $(document).on('click', `#addSO${loopIndex}`, function () {
+            setTimeout(() => {
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
+        });
+
+        // --- TAB MANAGEMENT ---
+        let tabCounter = 0;
+        const existingTabs = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab');
+
+        let maxExistingTabId = -1;
+        existingTabs.each(function () {
+            const $tabButton = $(this);
+            const tabId = parseInt($tabButton.attr('id').split('_').pop());
+            if (!isNaN(tabId) && tabId > maxExistingTabId) {
+                maxExistingTabId = tabId;
+            }
+        });
+
+        tabCounter = maxExistingTabId + 1;
+
+        const tabsContainer = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex}`);
+        const contentContainer = $(`#dataStreamEditTabContentContainer_${loopIndex}`);
+        const addSourceTabBtn = $(`#dataStreamEditTabContentContainer_${loopIndex} #add-source-tab-${loopIndex}`);
+
+        function addTabHeader(tabId, isFirst = false) {
+            const newTabHeader = document.createElement("li");
+            newTabHeader.className = "clarama-post-embedded clarama-replaceable nav-item";
+            newTabHeader.setAttribute("role", "presentation");
+
+            const tabData = {
+                tab_id: tabId,
+                source: ''
+            };
+
+            const params = new URLSearchParams({
+                loop_index: loopIndex,
+                tab_id: tabId,
+                is_active: isFirst.toString(),
+                tab: JSON.stringify(tabData),
+                source: '',
+                content: ''
+            });
+
+            newTabHeader.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_header?${params.toString()}`);
+            return newTabHeader;
+        }
+
+        function addTabContent(tabId) {
+            const newTabContent = document.createElement("div");
+            newTabContent.className = "tab-content-block tab-pane tab-content-block-" + loopIndex + "_" + tabId;
+            newTabContent.setAttribute("id", `tabContentBlock_${loopIndex}_${tabId}`);
+            newTabContent.setAttribute("data-tab-id", tabId);
+            newTabContent.setAttribute("role", "tabpanel");
+            newTabContent.setAttribute("aria-labelledby", `tab_${loopIndex}_${tabId}`);
+
+            const innerContent = document.createElement("div");
+            innerContent.className = "clarama-post-embedded clarama-replaceable";
+
+            const params = new URLSearchParams({
+                loop_index: loopIndex,
+                tab_id: tabId,
+                source: '',
+                content: ''
+            });
+
+            innerContent.setAttribute("url", `/template/render/explorer/steps/data_edit_tab_contents?${params.toString()}`);
+            newTabContent.appendChild(innerContent);
+            return newTabContent;
+        }
+
+        function addNewTab() {
+            const tabId = tabCounter++;
+
+            // Check if this is the first tab (no existing tabs)
+            const existingTabsCount = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').length;
+            const isFirst = existingTabsCount === 0;
+
+            const tabHeader = addTabHeader(tabId, isFirst);
+            const tabContent = addTabContent(tabId);
+
+            // Insert the tab header before the add button
+            const addSourceTabLi = addSourceTabBtn.closest('li');
+            addSourceTabLi.before(tabHeader);
+
+            contentContainer.append(tabContent);
+
+            enable_interactions(tabsContainer);
+            enable_interactions(contentContainer);
+
+            setTimeout(() => {
+                const $newTabButton = $(`#tab_${loopIndex}_${tabId}`);
+                if ($newTabButton.length) {
+                    activateTab($newTabButton[0]);
+                }
+                updateAllTabDropdowns(loopIndex);
+            }, 200);
+
+            return tabId;
+        }
+
+        tabsContainer.on('click', '.close-tab', function (e) {
+            e.stopPropagation();
+            const $tabButton = $(this).closest('button');
+            const tabIdToClose = $tabButton.attr('id').split('_').pop();
+            const $tabLi = $tabButton.closest('li');
+
+            // Check if this is the currently active tab
+            const isActiveTab = $tabButton.hasClass('active');
+
+            // Find the next tab to activate if this is the active tab
+            let $nextTabToActivate = null;
+            if (isActiveTab) {
+                // First try to get the tab to the right
+                $nextTabToActivate = $tabLi.next('li').find('button.nav-link').not('.add-source-tab').first();
+
+                // If no tab to the right, get the tab to the left
+                if (!$nextTabToActivate.length) {
+                    $nextTabToActivate = $tabLi.prev('li').find('button.nav-link').not('.add-source-tab').first();
+                }
+            }
+
+            const $editorDiv = $(`#content_query_${loopIndex}_tab_${tabIdToClose}`);
+            const editorInstance = $editorDiv.data('monacoEditor');
+            if (editorInstance && typeof editorInstance.dispose === 'function') {
+                editorInstance.dispose();
+            }
+
+            $tabLi.remove();
+            $(`#tabContentBlock_${loopIndex}_${tabIdToClose}`).remove();
+
+            // Activate the next tab if we closed the active tab
+            if (isActiveTab && $nextTabToActivate && $nextTabToActivate.length) {
+                activateTab($nextTabToActivate[0]);
+            }
+
+            updateAllTabDropdowns(loopIndex);
+        });
+
+        if (addSourceTabBtn.length) {
+            addSourceTabBtn.on('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                console.log(`Add tab clicked for cell ${loopIndex}`);
+                const newTabId = addNewTab();
+                $(`#tab_${loopIndex}_${newTabId}`).trigger('click');
+            });
+        } else {
+            console.warn(`Add Source Tab button (#add-source-tab-${loopIndex}) not found for cell ${loopIndex}.`);
+        }
+
+        // --- DYNAMIC TAB NAMING ---
+        function updateTabNameFromInput($input) {
+            const inputId = $input.attr('id');
+            const parts = inputId.split('_');
+            const currentLoopIndex = parts[2];
+            const currentTabId = parts[4];
+
+            if (currentLoopIndex === loopIndex) {
+                const $tabButton = $(`#tab_${currentLoopIndex}_${currentTabId}`);
+                const $tabTitleSpan = $tabButton.find('.tab-title');
+
+                let newName = $input.val();
+                if (newName) {
+                    newName = newName.split(/[\\/]/).pop();
+                } else {
+                    newName = `Tab ${currentTabId}`;
+                }
+                $tabTitleSpan.text(newName);
+                $tabButton.attr('title', newName);
+
+                updateAllTabDropdowns(loopIndex);
+            }
+        }
+
+        contentContainer.on('change keyup', '.source-input-field', function () {
+            updateTabNameFromInput($(this));
+        });
+
+        contentContainer.find('.source-input-field').each(function () {
+            updateTabNameFromInput($(this));
+        });
+
+        // --- TAB ACTIVATION ---
+        function activateTab(tabButton) {
+            const $tabButton = $(tabButton);
+            const targetContentId = $tabButton.attr('aria-controls');
+            $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} .nav-link`).removeClass('active').attr('aria-selected', 'false');
+            $(`#dataStreamEditTabContentContainer_${loopIndex} .tab-pane`).removeClass('show active');
+            $tabButton.addClass('active').attr('aria-selected', 'true');
+            $(`#${targetContentId}`).addClass('show active');
+        }
+
+        tabsContainer.on('click', 'button.nav-link', function (e) {
+            e.preventDefault();
+            const $thisButton = $(this);
+            if ($thisButton.hasClass('add-source-tab')) {
+                return;
+            }
+            activateTab(this);
+        });
+
+        const $initialActiveTab = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link.active`);
+        if ($initialActiveTab.length) {
+            // Tab already active
+        } else {
+            const $firstTab = $(`#dataStreamEditTabContentContainer_${loopIndex} #dataStreamSourceTabs_${loopIndex} button.nav-link`).not('.add-source-tab').first();
+            if ($firstTab.length) {
+                activateTab($firstTab[0]);
+                updateAllTabDropdowns(loopIndex);
+            }
+        }
+
+        const contentRow = $(`#dataStreamEditTabContentContainer_${loopIndex}`).closest('.cell-split').find('.content-row').get(0);
+        if (contentRow) {
+            const mo = new MutationObserver((muts) => {
+                if (contentRow.classList.contains('split-active')) {
+                    closeAllOptionPanels();
+                }
+            });
+            mo.observe(contentRow, { attributes: true, attributeFilter: ['class'] });
+            // If already open on load, close immediately
+            if (contentRow.classList.contains('split-active')) {
+                closeAllOptionPanels();
+            }
+        }
+    });
+</script>
+
