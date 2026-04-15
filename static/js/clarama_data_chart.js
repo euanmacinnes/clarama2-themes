@@ -352,7 +352,7 @@ function parseval(destination, field_name, dataset, index = undefined) {
  * @description Takes annotation data from data_edit_chart_series_annotation.html form inputs
  * and converts it into properly formatted annotation objects for ChartJS
  */
-function ChartAnnotations(result, definition, dataset, chart_path) {
+function ChartAnnotations(result, tooltip_result, definition, dataset, chart_path) {
     if (!dataset || dataset['rows'].length === 0) {
         console.log("Annotation Error: No dataset provided");
         return;
@@ -366,6 +366,7 @@ function ChartAnnotations(result, definition, dataset, chart_path) {
     let state_val = undefined;
 
     let ai = Object.keys(result).length;
+    let ti = Object.keys(tooltip_result).length;
 
     if (ai === undefined)
         ai = 0;
@@ -387,25 +388,24 @@ function ChartAnnotations(result, definition, dataset, chart_path) {
         }
 
         var annoId = 'anno' + (ai + i);
+        var tooltipId = 'tooltip' + (ti + i);
 
         var annostate = check_field(definition['anno-s'], anno, false);
 
-        var annoObj = {
+        var tooltipObj = {
             tooltipFontSize: parseInt(definition['anno-tooltip']) || 12,
         };
+        tooltip_result[tooltipId] = tooltipObj; // ensure that the tooltip font size is added as annotations
 
         // Skip if essential properties are missing
         if (!definition['anno-type'] || (!definition['anno-x'] && !definition['anno-y'])) {
             console.log("Annotation Error: Missing essential properties from definition:");
             console.log(definition);
-            result[annoId] = annoObj; // ensure that the tooltip font size is added as annotations
-            // return;
             continue;
         }
 
         // Skip if the state field is set and the value of the state field is the same (only annotate on changed values of the field)
         if (annostate !== undefined && anno[annostate] === state_val) {
-            result[annoId] = annoObj; // ensure that the tooltip font size is added as annotations
             continue;
         }
 
@@ -420,12 +420,9 @@ function ChartAnnotations(result, definition, dataset, chart_path) {
         if (unit_axis === undefined)
             unit_axis = 'y';
 
-        // var annoObj = {
-        //     borderWidth: parseInt(definition['anno-width']) || 1,
-        // };
-
-        // Set border width
-        annoObj.borderWidth = parseInt(definition['anno-width']) || 1;
+        var annoObj = {
+            borderWidth: parseInt(definition['anno-width']) || 1,
+        };
 
         // Set border color
         if (definition['anno-col']) {
@@ -1068,10 +1065,12 @@ function bChart(chart_id, chart_data) {
 
     // Process annotations if they exist
     var annotations = {};
+    var tooltipConfigs = {};
     console.log("PROCESSING ANNOTATIONS");
     console.log(config['series-annos']);
     if (config['series-annos']) {
         let annotation_result = {}
+        let tooltip_result = {}
         for (i = 0; i < config['series-annos'].length; i++) {
             var sa = config['series-annos'][i];
             var current_dataset_index = sa['anno-tab'];
@@ -1085,11 +1084,12 @@ function bChart(chart_id, chart_data) {
             var anno_dataset = data[current_dataset_index];
             console.log("ANNOTATION DATASET");
             console.log(anno_dataset);
-            ChartAnnotations(annotation_result, sa, anno_dataset, config['path']);
+            ChartAnnotations(annotation_result, tooltip_result, sa, anno_dataset, config['path']);
 
         }
 
         annotations = {annotation: {annotations: annotation_result}};
+        tooltipConfigs = {tooltips: tooltip_result}
         console.log("FINAL ANNOTATIONS: " + Object.keys(annotations.annotation.annotations).length);
         console.log(annotations);
     }
@@ -1141,8 +1141,9 @@ function bChart(chart_id, chart_data) {
         for (let i = 0; i < datasetIndex; i++) {
             keyOffset += datasets[i].data.length
         }
-        const key = dataPoint ? `anno${dataPoint.dataIndex + keyOffset}` : null;
-        const fontSize = key ? (annotations.annotation.annotations[key]?.tooltipFontSize ?? 12) : 12; // fallback if missing
+        const key = dataPoint ? `tooltip${dataPoint.dataIndex + keyOffset}` : null;
+
+        const fontSize = key ? (tooltipConfigs.tooltips[key]?.tooltipFontSize ?? 12) : 12; // fallback if missing
         return {size: fontSize};
     }
     
