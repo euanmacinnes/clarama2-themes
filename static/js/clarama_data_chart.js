@@ -374,6 +374,8 @@ function ChartAnnotations(result, definition, dataset, chart_path) {
 
     console.log("ANNOTATION DATA " + ai + " of " + drows);
     console.log(definition);
+    console.log("ANNOTATIONS DATASET")
+    console.log(dataset)
 
     for (var i = 0; i < drows; i++) {
 
@@ -388,15 +390,22 @@ function ChartAnnotations(result, definition, dataset, chart_path) {
 
         var annostate = check_field(definition['anno-s'], anno, false);
 
+        var annoObj = {
+            tooltipFontSize: parseInt(definition['anno-tooltip']) || 12,
+        };
+
         // Skip if essential properties are missing
         if (!definition['anno-type'] || (!definition['anno-x'] && !definition['anno-y'])) {
             console.log("Annotation Error: Missing essential properties from definition:");
             console.log(definition);
-            return;
+            result[annoId] = annoObj; // ensure that the tooltip font size is added as annotations
+            // return;
+            continue;
         }
 
         // Skip if the state field is set and the value of the state field is the same (only annotate on changed values of the field)
         if (annostate !== undefined && anno[annostate] === state_val) {
+            result[annoId] = annoObj; // ensure that the tooltip font size is added as annotations
             continue;
         }
 
@@ -411,9 +420,12 @@ function ChartAnnotations(result, definition, dataset, chart_path) {
         if (unit_axis === undefined)
             unit_axis = 'y';
 
-        var annoObj = {
-            borderWidth: parseInt(definition['anno-width']) || 1,
-        };
+        // var annoObj = {
+        //     borderWidth: parseInt(definition['anno-width']) || 1,
+        // };
+
+        // Set border width
+        annoObj.borderWidth = parseInt(definition['anno-width']) || 1;
 
         // Set border color
         if (definition['anno-col']) {
@@ -430,8 +442,6 @@ function ChartAnnotations(result, definition, dataset, chart_path) {
             annoObj.borderDash = [4, 4];
         }
 
-        console.log(anno);
-        console.log(annoObj);
         let image = parseval("anno-i", definition['anno-i'], anno);
 
         if (image.slice(0, 1) === '/') {
@@ -1084,7 +1094,6 @@ function bChart(chart_id, chart_data) {
         console.log(annotations);
     }
 
-
     // Detect if any series group requires the Radial Bar plugin
     var hasRadialBar = false;
     try {
@@ -1105,6 +1114,36 @@ function bChart(chart_id, chart_data) {
     }
     if (hasRadialBar && labels !== undefined) {
         chartJS_datasets['labels'] = labels;
+    }
+
+    const tooltipFont = (context) => {
+        const dataPoint = context.chart.tooltip?.dataPoints?.[0]; 
+        const dataset = dataPoint.dataset.data
+        const xs = dataset.map(p => p.x)
+        const ys = dataset.map(p => p.y)
+        
+        // rather than relying on the index of the dataset in the "datasets" variable, 
+        // find the index by comparing items in the dataset
+        datasetIndex = 0
+        for (let i = 0; i < data.length; i++) {
+            ds = data[i].rows;
+            x_vals = ds[0];
+            y_vals = ds[1];
+            if (x_vals.length === xs.length && xs.every((value, index) => value === x_vals[index]) && 
+                y_vals.length === ys.length && ys.every((value, index) => value === y_vals[index])) {
+                    datasetIndex = i;
+                    break;
+            }
+        }
+        console.log(datasetIndex)
+
+        var keyOffset = 0
+        for (let i = 0; i < datasetIndex; i++) {
+            keyOffset += datasets[i].data.length
+        }
+        const key = dataPoint ? `anno${dataPoint.dataIndex + keyOffset}` : null;
+        const fontSize = key ? (annotations.annotation.annotations[key]?.tooltipFontSize ?? 12) : 12; // fallback if missing
+        return {size: fontSize};
     }
     
     console.log("CHART/2D registering radial Bar");
@@ -1165,6 +1204,8 @@ function bChart(chart_id, chart_data) {
                     //     // Filter logic here
                     //     return true; // or false
                     // },
+                    titleFont: tooltipFont,
+                    bodyFont: tooltipFont,
                     callbacks: {
                         label: function (context) {
                             let label = context.dataset.label || '';
@@ -1180,7 +1221,8 @@ function bChart(chart_id, chart_data) {
                             } else
                                 label += context.raw;
 
-
+                            console.log("LABEL")
+                            console.log(label)
                             return label;
                         }
                     }
