@@ -312,6 +312,7 @@ function get_data_cell(cell) {
             'anno-ym': $(this).find('.anno-ym').val(),                  // Y MAX axis
             'anno-u': $(this).find('.anno-u').val(),                    // unit axis
             'anno-s': $(this).find('.anno-s').val(),                    // state axis
+            'anno-tooltip': $(this).find('.anno-tooltip').val(),        // tooltip font size
             'anno-dt': $(this).find('.anno-dt').is(':checked'),         // dotted
             'anno-width': $(this).find('.anno-width').val(),            // border width
             'anno-type': $(this).find('.anno-type').find('option:selected').attr('id'), // type

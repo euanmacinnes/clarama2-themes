@@ -113,3 +113,8 @@
     flex: 0 0 auto;
     width: 7.230%; /* this is derived from (100-2-4 = 94)/13 because the last col (bin icon) i set width: 2% and dotted div set width: 4% */
 }
+
+.grid15-col-1 { /* Series Annotations */
+    flex: 0 0 auto;
+    width: 6.714%; /* this is derived from (100-2-4 = 94)/14 because the last col (bin icon) i set width: 2% and dotted div set width: 4% */
+}
